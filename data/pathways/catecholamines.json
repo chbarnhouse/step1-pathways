@@ -1,0 +1,236 @@
+{
+ "id": "catecholamines",
+ "name": "Catecholamine synthesis",
+ "group": "Nitrogen & amino acids",
+ "aliases": [
+  "catecholamine synthesis",
+  "tyrosine derivatives",
+  "dopamine synthesis"
+ ],
+ "summary": "Adrenal medulla and catecholaminergic neurons. Tyrosine hydroxylase is rate-limiting. Cofactors worth knowing at each step: BH₄, BH₄, B6, vitamin C (+ copper), SAM. Breakdown (MAO, COMT): dopamine → homovanillic acid; norepinephrine/epinephrine → normetanephrine/metanephrine → vanillylmandelic acid.",
+ "metabolites": {
+  "phe": {
+   "name": "Phenylalanine",
+   "short": "Phe",
+   "aliases": []
+  },
+  "tyr": {
+   "name": "Tyrosine",
+   "short": "Tyr",
+   "aliases": [],
+   "notes": "Also → thyroid hormones and melanin (tyrosinase; albinism)."
+  },
+  "dopa": {
+   "name": "L-DOPA",
+   "short": "DOPA",
+   "aliases": [
+    "DOPA",
+    "levodopa",
+    "dihydroxyphenylalanine",
+    "L-dihydroxyphenylalanine",
+    "3,4-dihydroxyphenylalanine"
+   ],
+   "notes": "Crosses the blood–brain barrier; dopamine doesn't."
+  },
+  "dopamine": {
+   "name": "Dopamine",
+   "short": "DA",
+   "aliases": [],
+   "notes": "Broken down to homovanillic acid (HVA)."
+  },
+  "ne": {
+   "name": "Norepinephrine",
+   "short": "NE",
+   "aliases": [
+    "noradrenaline"
+   ],
+   "notes": "Broken down to normetanephrine and VMA."
+  },
+  "epi": {
+   "name": "Epinephrine",
+   "short": "Epi",
+   "aliases": [
+    "adrenaline"
+   ],
+   "notes": "Broken down to metanephrine and VMA. Pheochromocytoma: ↑ plasma free metanephrines."
+  }
+ },
+ "enzymes": {
+  "pah": {
+   "name": "Phenylalanine hydroxylase",
+   "short": "PAH",
+   "aliases": [
+    "phenylalanine 4-hydroxylase"
+   ],
+   "notes": "Deficiency (or BH₄ deficiency, e.g. dihydropteridine reductase) → phenylketonuria: tyrosine becomes essential; musty odor, fair skin, intellectual disability. Maternal PKU → microcephaly, cardiac defects."
+  },
+  "th": {
+   "name": "Tyrosine hydroxylase",
+   "short": "TH",
+   "aliases": [],
+   "notes": "Rate-limiting step of catecholamine synthesis. Inhibited by metyrosine."
+  },
+  "ddc": {
+   "name": "DOPA decarboxylase",
+   "short": "DDC",
+   "aliases": [
+    "aromatic L-amino acid decarboxylase",
+    "AADC",
+    "aromatic amino acid decarboxylase",
+    "dopa decarboxylase"
+   ],
+   "notes": "Needs B6. Carbidopa blocks it peripherally so more L-DOPA reaches the brain."
+  },
+  "dbh": {
+   "name": "Dopamine β-hydroxylase",
+   "short": "DBH",
+   "aliases": [
+    "dopamine beta-hydroxylase",
+    "dopamine beta hydroxylase"
+   ],
+   "notes": "Inside secretory vesicles; needs vitamin C and copper (Menkes disease lowers it). Disulfiram inhibits it via copper chelation."
+  },
+  "pnmt": {
+   "name": "Phenylethanolamine N-methyltransferase",
+   "short": "PNMT",
+   "aliases": [
+    "phenylethanolamine N methyltransferase"
+   ],
+   "notes": "Adrenal medulla. Methyl group from SAM. Induced by cortisol arriving via the adrenal portal circulation."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "pah",
+   "from": "phe",
+   "to": "tyr",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "bh4",
+     "o2"
+    ],
+    "out": [
+     "bh2",
+     "h2o"
+    ]
+   },
+   "loc": "liver cytosol",
+   "tags": [
+    "irreversible"
+   ],
+   "requires": [
+    "BH₄ (tetrahydrobiopterin)"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "th",
+   "from": "tyr",
+   "to": "dopa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "bh4",
+     "o2"
+    ],
+    "out": [
+     "bh2"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ],
+   "requires": [
+    "BH₄ (tetrahydrobiopterin)"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "ddc",
+   "from": "dopa",
+   "to": "dopamine",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "co2"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ],
+   "requires": [
+    "B6 (pyridoxal phosphate)"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "dbh",
+   "from": "dopamine",
+   "to": "ne",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "vitc",
+     "o2"
+    ],
+    "out": [
+     "dhasc"
+    ]
+   },
+   "loc": "secretory vesicles",
+   "tags": [
+    "irreversible"
+   ],
+   "requires": [
+    "Vitamin C",
+    "Copper"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "pnmt",
+   "from": "ne",
+   "to": "epi",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "sam"
+    ],
+    "out": [
+     "sah"
+    ]
+   },
+   "loc": "adrenal medulla cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Tryptophan",
+   "Serotonin",
+   "Melanin",
+   "Homovanillic acid",
+   "Vanillylmandelic acid",
+   "Metanephrine",
+   "Thyroxine",
+   "Histamine"
+  ],
+  "enzymes": [
+   "Monoamine oxidase",
+   "Catechol-O-methyltransferase",
+   "Tryptophan hydroxylase",
+   "Tyrosinase",
+   "Histidine decarboxylase",
+   "Dihydropteridine reductase",
+   "Thyroid peroxidase"
+  ]
+ }
+}

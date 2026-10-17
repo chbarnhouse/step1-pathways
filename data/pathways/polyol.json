@@ -1,0 +1,99 @@
+{
+ "id": "polyol",
+ "name": "Polyol pathway",
+ "group": "Carbohydrates",
+ "aliases": [
+  "sorbitol pathway"
+ ],
+ "summary": "Glucose → sorbitol → fructose. Tissues with aldose reductase but little sorbitol dehydrogenase (lens, retina, Schwann cells, kidney) trap sorbitol in hyperglycemia → osmotic damage: cataracts, retinopathy, peripheral neuropathy. Liver, ovaries and seminal vesicles have both enzymes.",
+ "metabolites": {
+  "glucose": {
+   "name": "Glucose",
+   "short": "Glc",
+   "aliases": [
+    "D-glucose"
+   ]
+  },
+  "sorbitol": {
+   "name": "Sorbitol",
+   "short": "",
+   "aliases": [
+    "glucitol"
+   ],
+   "notes": "Osmotically active; can't cross membranes easily."
+  },
+  "fructose": {
+   "name": "Fructose",
+   "short": "Fru",
+   "aliases": [
+    "D-fructose"
+   ],
+   "notes": "Seminal vesicles use this route to supply sperm with fructose."
+  }
+ },
+ "enzymes": {
+  "ar": {
+   "name": "Aldose reductase",
+   "short": "AR",
+   "aliases": [],
+   "notes": "High in lens, retina, Schwann cells, kidney. Also reduces galactose to galactitol."
+  },
+  "sdh": {
+   "name": "Sorbitol dehydrogenase",
+   "short": "SORD",
+   "aliases": [
+    "sorbitol DH",
+    "polyol dehydrogenase"
+   ],
+   "notes": "Low or absent in lens, retina, Schwann cells and kidney — why sorbitol accumulates there."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "ar",
+   "from": "glucose",
+   "to": "sorbitol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "sdh",
+   "from": "sorbitol",
+   "to": "fructose",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "cytosol"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Galactitol",
+   "Mannitol",
+   "Glucose-6-phosphate",
+   "Fructose-1-phosphate"
+  ],
+  "enzymes": [
+   "Hexokinase",
+   "Fructokinase",
+   "Galactokinase",
+   "Glucose-6-phosphate dehydrogenase"
+  ]
+ }
+}

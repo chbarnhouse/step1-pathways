@@ -1,0 +1,332 @@
+{
+ "id": "heme",
+ "name": "Heme synthesis",
+ "group": "Heme",
+ "aliases": [
+  "porphyrin synthesis",
+  "heme biosynthesis"
+ ],
+ "summary": "Bone marrow (erythroid precursors) and liver. Starts and ends in mitochondria; the middle steps are cytosolic. ALA synthase is rate-limiting and repressed by heme. Lead inhibits ALA dehydratase and ferrochelatase. Each enzyme deficiency past ALA dehydratase is a porphyria.",
+ "metabolites": {
+  "glycine": {
+   "name": "Glycine",
+   "short": "Gly",
+   "aliases": [],
+   "notes": "Condenses with succinyl-CoA (from the TCA cycle)."
+  },
+  "ala": {
+   "name": "δ-Aminolevulinic acid",
+   "short": "δ-ALA",
+   "aliases": [
+    "ALA",
+    "aminolevulinic acid",
+    "delta-aminolevulinic acid",
+    "5-aminolevulinate",
+    "aminolevulinate",
+    "delta ALA"
+   ],
+   "notes": "Exits the mitochondrion. Elevated in lead poisoning and acute intermittent porphyria."
+  },
+  "pbg": {
+   "name": "Porphobilinogen",
+   "short": "PBG",
+   "aliases": [],
+   "notes": "Four PBG units build the tetrapyrrole. ↑ urinary PBG = acute intermittent porphyria."
+  },
+  "hmb": {
+   "name": "Hydroxymethylbilane",
+   "short": "HMB",
+   "aliases": [
+    "preuroporphyrinogen"
+   ],
+   "notes": "Linear tetrapyrrole; spontaneously cyclizes to uroporphyrinogen I without the next enzyme."
+  },
+  "uro": {
+   "name": "Uroporphyrinogen III",
+   "short": "Uro III",
+   "aliases": [
+    "uroporphyrinogen",
+    "uroporphyrinogen 3"
+   ],
+   "notes": "↑ in porphyria cutanea tarda (urine looks tea-colored)."
+  },
+  "copro": {
+   "name": "Coproporphyrinogen III",
+   "short": "Copro III",
+   "aliases": [
+    "coproporphyrinogen",
+    "coproporphyrinogen 3"
+   ],
+   "notes": "Re-enters the mitochondrion."
+  },
+  "protogen": {
+   "name": "Protoporphyrinogen IX",
+   "short": "Protogen IX",
+   "aliases": [
+    "protoporphyrinogen",
+    "protoporphyrinogen 9"
+   ]
+  },
+  "proto": {
+   "name": "Protoporphyrin IX",
+   "short": "PPIX",
+   "aliases": [
+    "protoporphyrin",
+    "protoporphyrin 9"
+   ],
+   "notes": "↑ (as zinc protoporphyrin) in lead poisoning and iron deficiency."
+  },
+  "heme": {
+   "name": "Heme",
+   "short": "Heme",
+   "aliases": [
+    "haem",
+    "heme b"
+   ],
+   "notes": "Represses ALA synthase (and hemin is given in acute porphyria attacks for that reason)."
+  }
+ },
+ "enzymes": {
+  "alas": {
+   "name": "ALA synthase",
+   "short": "ALAS",
+   "aliases": [
+    "aminolevulinic acid synthase",
+    "δ-aminolevulinate synthase",
+    "delta-aminolevulinic acid synthase",
+    "aminolevulinate synthase",
+    "ALA synthetase"
+   ],
+   "notes": "Rate-limiting; needs B6 (pyridoxal phosphate). Repressed by heme; induced by drugs that use cytochrome P450 (barbiturates, etc.). ALAS2 (erythroid) defects or B6 deficiency (isoniazid) → sideroblastic anemia."
+  },
+  "alad": {
+   "name": "ALA dehydratase",
+   "short": "ALAD",
+   "aliases": [
+    "aminolevulinic acid dehydratase",
+    "porphobilinogen synthase",
+    "δ-aminolevulinate dehydratase",
+    "delta-aminolevulinic acid dehydratase"
+   ],
+   "notes": "Joins two ALA. Inhibited by lead (↑ ALA → neuro symptoms, basophilic stippling with ferrochelatase block)."
+  },
+  "pbgd": {
+   "name": "Porphobilinogen deaminase",
+   "short": "PBGD",
+   "aliases": [
+    "PBG deaminase",
+    "hydroxymethylbilane synthase",
+    "HMB synthase",
+    "uroporphyrinogen I synthase"
+   ],
+   "notes": "Deficiency → acute intermittent porphyria (AD): painful abdomen, port-wine urine, polyneuropathy, psychological symptoms, precipitated by drugs/alcohol/starvation. No photosensitivity. Treat with glucose and hemin."
+  },
+  "uros": {
+   "name": "Uroporphyrinogen III synthase",
+   "short": "UROS",
+   "aliases": [
+    "uroporphyrinogen III cosynthase",
+    "uroporphyrinogen synthase",
+    "uroporphyrinogen 3 synthase"
+   ],
+   "notes": "Deficiency → congenital erythropoietic porphyria (Günther): severe photosensitivity, red urine and teeth."
+  },
+  "urod": {
+   "name": "Uroporphyrinogen decarboxylase",
+   "short": "UROD",
+   "aliases": [],
+   "notes": "Deficiency → porphyria cutanea tarda, the most common porphyria: blistering photosensitivity, hyperpigmentation, hypertrichosis, tea-colored urine; triggered by alcohol, hepatitis C, iron overload, estrogens."
+  },
+  "cpox": {
+   "name": "Coproporphyrinogen oxidase",
+   "short": "CPOX",
+   "aliases": [
+    "coproporphyrinogen III oxidase"
+   ],
+   "notes": "Mitochondrial. Deficiency → hereditary coproporphyria."
+  },
+  "ppox": {
+   "name": "Protoporphyrinogen oxidase",
+   "short": "PPOX",
+   "aliases": [
+    "protoporphyrinogen IX oxidase"
+   ],
+   "notes": "Deficiency → variegate porphyria (acute attacks + photosensitivity)."
+  },
+  "fech": {
+   "name": "Ferrochelatase",
+   "short": "FECH",
+   "aliases": [
+    "heme synthase"
+   ],
+   "notes": "Inserts Fe²⁺. Inhibited by lead (→ ↑ zinc protoporphyrin). Deficiency → erythropoietic protoporphyria (painful, non-blistering photosensitivity)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "alas",
+   "from": "glycine",
+   "to": "ala",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "succoa"
+    ],
+    "out": [
+     "coa",
+     "co2"
+    ]
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ],
+   "requires": [
+    "B6 (pyridoxal phosphate)"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "alad",
+   "from": "ala",
+   "to": "pbg",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "h2o"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ],
+   "notes": "2 ALA → PBG"
+  },
+  {
+   "id": "r3",
+   "enzyme": "pbgd",
+   "from": "pbg",
+   "to": "hmb",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "nh3"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "uros",
+   "from": "hmb",
+   "to": "uro",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "h2o"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "urod",
+   "from": "uro",
+   "to": "copro",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "co2"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r6",
+   "enzyme": "cpox",
+   "from": "copro",
+   "to": "protogen",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2"
+    ],
+    "out": [
+     "co2"
+    ]
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r7",
+   "enzyme": "ppox",
+   "from": "protogen",
+   "to": "proto",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2"
+    ],
+    "out": []
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r8",
+   "enzyme": "fech",
+   "from": "proto",
+   "to": "heme",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "fe2"
+    ],
+    "out": []
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "irreversible"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Succinyl-CoA",
+   "Bilirubin",
+   "Biliverdin",
+   "Uroporphyrinogen I",
+   "Zinc protoporphyrin",
+   "Coproporphyrin",
+   "Serine"
+  ],
+  "enzymes": [
+   "Heme oxygenase",
+   "Biliverdin reductase",
+   "UDP-glucuronosyltransferase",
+   "Succinyl-CoA synthetase",
+   "Transferrin",
+   "Ferroportin"
+  ]
+ }
+}

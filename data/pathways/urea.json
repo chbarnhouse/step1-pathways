@@ -1,0 +1,170 @@
+{
+ "id": "urea",
+ "name": "Urea cycle",
+ "group": "Nitrogen & amino acids",
+ "aliases": [
+  "ornithine cycle",
+  "Krebs–Henseleit cycle",
+  "Krebs-Henseleit cycle"
+ ],
+ "summary": "Liver. Starts in mitochondria — carbamoyl phosphate synthetase I (rate-limiting; NH₃ + HCO₃⁻ + 2 ATP → carbamoyl phosphate; needs N-acetylglutamate) and ornithine transcarbamylase — then finishes in the cytosol. Urea's two nitrogens: one from NH₃ (via carbamoyl phosphate), one from aspartate. “Ordinarily, Careless Crappers Are Also Frivolous About Urination.”",
+ "circular": true,
+ "metabolites": {
+  "ornithine": {
+   "name": "Ornithine",
+   "short": "Orn",
+   "aliases": [],
+   "notes": "Carried back into the mitochondrion to take up the next carbamoyl phosphate."
+  },
+  "citrulline": {
+   "name": "Citrulline",
+   "short": "Cit",
+   "aliases": [],
+   "notes": "Leaves the mitochondrion for the cytosolic steps."
+  },
+  "argsucc": {
+   "name": "Argininosuccinate",
+   "short": "ASA",
+   "aliases": [
+    "argininosuccinic acid"
+   ]
+  },
+  "arginine": {
+   "name": "Arginine",
+   "short": "Arg",
+   "aliases": [],
+   "notes": "Also the substrate for nitric oxide synthase (→ NO + citrulline)."
+  }
+ },
+ "enzymes": {
+  "otc": {
+   "name": "Ornithine transcarbamylase",
+   "short": "OTC",
+   "aliases": [
+    "ornithine transcarbamoylase",
+    "ornithine carbamoyltransferase"
+   ],
+   "notes": "Mitochondrial. Takes carbamoyl phosphate from CPS I. OTC deficiency is the most common urea cycle disorder (X-linked): hyperammonemia and ↑ orotic acid (excess carbamoyl phosphate spills into pyrimidine synthesis) with NO megaloblastic anemia — unlike UMP synthase deficiency."
+  },
+  "ass": {
+   "name": "Argininosuccinate synthetase",
+   "short": "ASS",
+   "aliases": [
+    "argininosuccinate synthase"
+   ],
+   "notes": "Brings in the second nitrogen (aspartate). ATP → AMP + PPi (two high-energy bonds). Deficiency → citrullinemia."
+  },
+  "asl": {
+   "name": "Argininosuccinate lyase",
+   "short": "ASL",
+   "aliases": [
+    "argininosuccinase"
+   ],
+   "notes": "Releases fumarate, which links the urea cycle to the TCA cycle. Deficiency → argininosuccinic aciduria."
+  },
+  "arginase": {
+   "name": "Arginase",
+   "short": "",
+   "aliases": [
+    "arginase 1"
+   ],
+   "notes": "Cleaves off urea and regenerates ornithine. Deficiency → progressive spastic diplegia, ↑ arginine, milder hyperammonemia; treat with a low-arginine diet."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "otc",
+   "from": "ornithine",
+   "to": "citrulline",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "carbp"
+    ],
+    "out": [
+     "pi"
+    ]
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "ass",
+   "from": "citrulline",
+   "to": "argsucc",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "asp",
+     "atp"
+    ],
+    "out": [
+     "amp",
+     "ppi"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "asl",
+   "from": "argsucc",
+   "to": "arginine",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "fum"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "arginase",
+   "from": "arginine",
+   "to": "ornithine",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "urea"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Carbamoyl phosphate",
+   "Aspartate",
+   "Fumarate",
+   "Glutamate",
+   "Glutamine",
+   "N-acetylglutamate",
+   "Orotic acid",
+   "Proline"
+  ],
+  "enzymes": [
+   "Carbamoyl phosphate synthetase I",
+   "Carbamoyl phosphate synthetase II",
+   "N-acetylglutamate synthase",
+   "Glutamate dehydrogenase",
+   "Glutaminase",
+   "Nitric oxide synthase",
+   "Aspartate aminotransferase"
+  ]
+ }
+}

@@ -1,18 +1,225 @@
 {
-  "atp":  { "name": "ATP",  "aliases": [] },
-  "adp":  { "name": "ADP",  "aliases": [] },
-  "amp":  { "name": "AMP",  "aliases": [] },
-  "gtp":  { "name": "GTP",  "aliases": [] },
-  "gdp":  { "name": "GDP",  "aliases": [] },
-  "nad":  { "name": "NAD⁺", "aliases": ["NAD+", "NAD"] },
-  "nadh": { "name": "NADH", "aliases": ["NADH+H+", "NADH + H+"] },
-  "nadp": { "name": "NADP⁺", "aliases": ["NADP+", "NADP"] },
-  "nadph":{ "name": "NADPH", "aliases": ["NADPH+H+"] },
-  "fad":  { "name": "FAD",  "aliases": [] },
-  "fadh2":{ "name": "FADH₂", "aliases": ["FADH2"] },
-  "coa":  { "name": "CoA",  "aliases": ["coenzyme A", "CoA-SH"] },
-  "co2":  { "name": "CO₂",  "aliases": ["CO2", "carbon dioxide"] },
-  "pi":   { "name": "Pi",   "aliases": ["phosphate", "inorganic phosphate", "P"] },
-  "ppi":  { "name": "PPi",  "aliases": ["pyrophosphate"] },
-  "h2o":  { "name": "H₂O",  "aliases": ["H2O", "water"] }
+ "atp": {
+  "name": "ATP",
+  "aliases": []
+ },
+ "adp": {
+  "name": "ADP",
+  "aliases": []
+ },
+ "amp": {
+  "name": "AMP",
+  "aliases": []
+ },
+ "gtp": {
+  "name": "GTP",
+  "aliases": []
+ },
+ "gdp": {
+  "name": "GDP",
+  "aliases": []
+ },
+ "nad": {
+  "name": "NAD⁺",
+  "aliases": [
+   "NAD+",
+   "NAD"
+  ]
+ },
+ "nadh": {
+  "name": "NADH",
+  "aliases": [
+   "NADH+H+",
+   "NADH + H+"
+  ]
+ },
+ "nadp": {
+  "name": "NADP⁺",
+  "aliases": [
+   "NADP+",
+   "NADP"
+  ]
+ },
+ "nadph": {
+  "name": "NADPH",
+  "aliases": [
+   "NADPH+H+"
+  ]
+ },
+ "fad": {
+  "name": "FAD",
+  "aliases": []
+ },
+ "fadh2": {
+  "name": "FADH₂",
+  "aliases": [
+   "FADH2"
+  ]
+ },
+ "coa": {
+  "name": "CoA",
+  "aliases": [
+   "coenzyme A",
+   "CoA-SH"
+  ]
+ },
+ "co2": {
+  "name": "CO₂",
+  "aliases": [
+   "CO2",
+   "carbon dioxide"
+  ]
+ },
+ "pi": {
+  "name": "Pi",
+  "aliases": [
+   "phosphate",
+   "inorganic phosphate",
+   "P"
+  ]
+ },
+ "ppi": {
+  "name": "PPi",
+  "aliases": [
+   "pyrophosphate"
+  ]
+ },
+ "h2o": {
+  "name": "H₂O",
+  "aliases": [
+   "H2O",
+   "water"
+  ]
+ },
+ "utp": {
+  "name": "UTP",
+  "aliases": []
+ },
+ "udpglc": {
+  "name": "UDP-glucose",
+  "aliases": [
+   "UDP glucose",
+   "UDPG"
+  ]
+ },
+ "udpgal": {
+  "name": "UDP-galactose",
+  "aliases": [
+   "UDP galactose"
+  ]
+ },
+ "bh4": {
+  "name": "BH₄",
+  "aliases": [
+   "BH4",
+   "tetrahydrobiopterin",
+   "THB"
+  ]
+ },
+ "bh2": {
+  "name": "BH₂",
+  "aliases": [
+   "BH2",
+   "dihydrobiopterin"
+  ]
+ },
+ "o2": {
+  "name": "O₂",
+  "aliases": [
+   "O2",
+   "oxygen"
+  ]
+ },
+ "sam": {
+  "name": "SAM",
+  "aliases": [
+   "S-adenosylmethionine",
+   "AdoMet",
+   "SAMe"
+  ]
+ },
+ "sah": {
+  "name": "SAH",
+  "aliases": [
+   "S-adenosylhomocysteine",
+   "AdoHcy"
+  ]
+ },
+ "vitc": {
+  "name": "Ascorbate",
+  "aliases": [
+   "vitamin C",
+   "ascorbic acid",
+   "vit C"
+  ]
+ },
+ "dhasc": {
+  "name": "Dehydroascorbate",
+  "aliases": [
+   "dehydroascorbic acid"
+  ]
+ },
+ "acetylcoa": {
+  "name": "Acetyl-CoA",
+  "aliases": [
+   "acetyl CoA",
+   "AcCoA"
+  ]
+ },
+ "succoa": {
+  "name": "Succinyl-CoA",
+  "aliases": [
+   "succinyl CoA"
+  ]
+ },
+ "carbp": {
+  "name": "Carbamoyl phosphate",
+  "aliases": [
+   "carbamoyl-P",
+   "carbamoylphosphate"
+  ]
+ },
+ "asp": {
+  "name": "Aspartate",
+  "aliases": [
+   "Asp",
+   "aspartic acid"
+  ]
+ },
+ "fum": {
+  "name": "Fumarate",
+  "aliases": [
+   "fumaric acid"
+  ]
+ },
+ "urea": {
+  "name": "Urea",
+  "aliases": []
+ },
+ "nh3": {
+  "name": "NH₃",
+  "aliases": [
+   "NH3",
+   "ammonia",
+   "NH4+",
+   "ammonium"
+  ]
+ },
+ "hco3": {
+  "name": "HCO₃⁻",
+  "aliases": [
+   "HCO3-",
+   "HCO3",
+   "bicarbonate"
+  ]
+ },
+ "fe2": {
+  "name": "Fe²⁺",
+  "aliases": [
+   "Fe2+",
+   "Fe",
+   "iron",
+   "ferrous iron"
+  ]
+ }
 }

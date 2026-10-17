@@ -1,0 +1,168 @@
+{
+ "id": "fructose",
+ "name": "Fructose metabolism",
+ "group": "Carbohydrates",
+ "aliases": [
+  "fructolysis"
+ ],
+ "summary": "Liver. Fructose skips PFK-1 (the main glycolytic control point), so it enters glycolysis faster and unregulated. Two disorders: essential fructosuria (fructokinase, benign) and hereditary fructose intolerance (aldolase B, dangerous).",
+ "metabolites": {
+  "fructose": {
+   "name": "Fructose",
+   "short": "Fru",
+   "aliases": [
+    "D-fructose"
+   ]
+  },
+  "f1p": {
+   "name": "Fructose-1-phosphate",
+   "short": "F1P",
+   "aliases": [],
+   "notes": "Builds up in hereditary fructose intolerance and traps phosphate → ↓ Pi blocks glycogenolysis and gluconeogenesis → hypoglycemia."
+  },
+  "glyceraldehyde": {
+   "name": "Glyceraldehyde",
+   "short": "",
+   "aliases": [
+    "D-glyceraldehyde"
+   ]
+  },
+  "dhap": {
+   "name": "Dihydroxyacetone phosphate",
+   "short": "DHAP",
+   "aliases": []
+  },
+  "g3p": {
+   "name": "Glyceraldehyde-3-phosphate",
+   "short": "G3P",
+   "aliases": [
+    "GAP",
+    "GA3P"
+   ]
+  }
+ },
+ "enzymes": {
+  "fk": {
+   "name": "Fructokinase",
+   "short": "",
+   "aliases": [
+    "ketohexokinase",
+    "KHK"
+   ],
+   "notes": "Deficiency = essential fructosuria: benign, fructose in blood and urine (reducing sugar on urine test, glucose dipstick negative)."
+  },
+  "aldob": {
+   "name": "Aldolase B",
+   "short": "",
+   "aliases": [
+    "aldolase",
+    "fructose-1-phosphate aldolase"
+   ],
+   "notes": "Deficiency = hereditary fructose intolerance (AR): vomiting, hypoglycemia, jaundice, cirrhosis after fruit, juice or honey (sucrose) is introduced. Treat by removing fructose and sucrose."
+  },
+  "tk": {
+   "name": "Triose kinase",
+   "short": "",
+   "aliases": [
+    "triokinase",
+    "glyceraldehyde kinase"
+   ],
+   "notes": "Phosphorylates glyceraldehyde so it can join glycolysis."
+  },
+  "tpi": {
+   "name": "Triose phosphate isomerase",
+   "short": "TPI",
+   "aliases": [
+    "triosephosphate isomerase",
+    "TIM"
+   ],
+   "notes": "Shared with glycolysis."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "fk",
+   "from": "fructose",
+   "to": "f1p",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "aldob",
+   "from": "f1p",
+   "to": "glyceraldehyde",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "also_to": [
+    "dhap"
+   ],
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "tk",
+   "from": "glyceraldehyde",
+   "to": "g3p",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "tpi",
+   "from": "dhap",
+   "to": "g3p",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "branch": true,
+   "loc": "cytosol"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Fructose-6-phosphate",
+   "Fructose-1,6-bisphosphate",
+   "Sorbitol",
+   "Galactose-1-phosphate",
+   "Glycerol-3-phosphate",
+   "Sucrose"
+  ],
+  "enzymes": [
+   "Hexokinase",
+   "Phosphofructokinase-1",
+   "Aldolase A",
+   "Sorbitol dehydrogenase",
+   "Galactokinase",
+   "Sucrase"
+  ]
+ }
+}

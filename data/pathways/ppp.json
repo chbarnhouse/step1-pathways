@@ -1,0 +1,208 @@
+{
+ "id": "ppp",
+ "name": "Pentose phosphate pathway",
+ "group": "Carbohydrates",
+ "aliases": [
+  "HMP shunt",
+  "hexose monophosphate shunt",
+  "PPP",
+  "pentose phosphate shunt",
+  "phosphogluconate pathway"
+ ],
+ "summary": "Cytosol — busiest in liver, adrenal cortex, adipose, lactating mammary gland and RBCs. Oxidative phase (irreversible) makes 2 NADPH per glucose-6-phosphate plus ribulose-5-phosphate. Non-oxidative phase (reversible; transketolase needs B1) trades sugars with glycolysis (F6P, G3P). No ATP made or used.",
+ "metabolites": {
+  "g6p": {
+   "name": "Glucose-6-phosphate",
+   "short": "G6P",
+   "aliases": []
+  },
+  "pgl": {
+   "name": "6-Phosphogluconolactone",
+   "short": "6-PGL",
+   "aliases": [
+    "6-phosphoglucono-δ-lactone",
+    "6-phosphoglucono-delta-lactone",
+    "6-phosphoglucono lactone",
+    "phosphogluconolactone"
+   ]
+  },
+  "pg6": {
+   "name": "6-Phosphogluconate",
+   "short": "6-PG",
+   "aliases": [
+    "6-phosphogluconic acid",
+    "phosphogluconate"
+   ]
+  },
+  "ru5p": {
+   "name": "Ribulose-5-phosphate",
+   "short": "Ru5P",
+   "aliases": [],
+   "notes": "End of the oxidative phase; feeds the non-oxidative sugar shuffle."
+  },
+  "r5p": {
+   "name": "Ribose-5-phosphate",
+   "short": "R5P",
+   "aliases": [],
+   "notes": "→ PRPP → nucleotide synthesis."
+  },
+  "xu5p": {
+   "name": "Xylulose-5-phosphate",
+   "short": "Xu5P",
+   "aliases": [],
+   "notes": "Transketolase (needs thiamine/B1) moves two carbons from Xu5P to R5P → G3P + sedoheptulose-7-P; transaldolase continues to F6P. RBC transketolase activity tests for thiamine deficiency."
+  }
+ },
+ "enzymes": {
+  "g6pd": {
+   "name": "Glucose-6-phosphate dehydrogenase",
+   "short": "G6PD",
+   "aliases": [
+    "glucose 6-phosphate dehydrogenase"
+   ],
+   "notes": "Rate-limiting. Activated by NADP⁺ (and induced by insulin); inhibited by NADPH. G6PD deficiency (X-linked): RBCs can't regenerate reduced glutathione → hemolysis after oxidant stress (fava beans, sulfonamides, primaquine, dapsone, infection); Heinz bodies and bite cells; protects against malaria."
+  },
+  "pgls": {
+   "name": "6-Phosphogluconolactonase",
+   "short": "6PGL",
+   "aliases": [
+    "lactonase",
+    "phosphogluconolactonase",
+    "6-phosphogluconolactonase"
+   ],
+   "notes": "Hydrolyzes the lactone ring."
+  },
+  "pgd": {
+   "name": "6-Phosphogluconate dehydrogenase",
+   "short": "6PGD",
+   "aliases": [
+    "phosphogluconate dehydrogenase",
+    "6-phosphogluconate DH"
+   ],
+   "notes": "Oxidative decarboxylation: the second NADPH and the CO₂."
+  },
+  "rpi": {
+   "name": "Ribose-5-phosphate isomerase",
+   "short": "RPI",
+   "aliases": [
+    "phosphopentose isomerase",
+    "ribose 5-phosphate isomerase"
+   ],
+   "notes": "Non-oxidative, reversible."
+  },
+  "rpe": {
+   "name": "Ribulose-5-phosphate 3-epimerase",
+   "short": "RPE",
+   "aliases": [
+    "ribulose 5-phosphate epimerase",
+    "phosphopentose epimerase",
+    "epimerase"
+   ],
+   "notes": "Non-oxidative, reversible."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "g6pd",
+   "from": "g6p",
+   "to": "pgl",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadp"
+    ],
+    "out": [
+     "nadph"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "pgls",
+   "from": "pgl",
+   "to": "pg6",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "pgd",
+   "from": "pg6",
+   "to": "ru5p",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadp"
+    ],
+    "out": [
+     "nadph",
+     "co2"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "rpi",
+   "from": "ru5p",
+   "to": "r5p",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r5",
+   "enzyme": "rpe",
+   "from": "ru5p",
+   "to": "xu5p",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "branch": true,
+   "loc": "cytosol"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Sedoheptulose-7-phosphate",
+   "Erythrose-4-phosphate",
+   "Fructose-6-phosphate",
+   "Glyceraldehyde-3-phosphate",
+   "PRPP",
+   "Glutathione",
+   "Glucose-1-phosphate"
+  ],
+  "enzymes": [
+   "Transketolase",
+   "Transaldolase",
+   "Glutathione reductase",
+   "Glutathione peroxidase",
+   "PRPP synthetase",
+   "Phosphoglucomutase",
+   "Hexokinase"
+  ]
+ }
+}

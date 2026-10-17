@@ -1,0 +1,322 @@
+{
+ "id": "tca",
+ "name": "TCA cycle",
+ "group": "Energy",
+ "aliases": [
+  "Krebs cycle",
+  "citric acid cycle",
+  "tricarboxylic acid cycle",
+  "TCA"
+ ],
+ "summary": "Mitochondrial matrix. Per acetyl-CoA: 3 NADH, 1 FADH₂, 1 GTP, 2 CO₂ (≈10 ATP). Irreversible: citrate synthase, isocitrate dehydrogenase (rate-limiting), α-ketoglutarate dehydrogenase. “Citrate Is Krebs' Starting Substrate For Making Oxaloacetate.”",
+ "circular": true,
+ "metabolites": {
+  "oaa": {
+   "name": "Oxaloacetate",
+   "short": "OAA",
+   "aliases": [
+    "oxaloacetic acid"
+   ],
+   "notes": "Regenerated each turn; also the gluconeogenic entry point (via PEPCK) and the source of aspartate."
+  },
+  "citrate": {
+   "name": "Citrate",
+   "short": "Cit",
+   "aliases": [
+    "citric acid"
+   ],
+   "notes": "Exported to the cytosol for fatty acid synthesis (citrate shuttle); activates acetyl-CoA carboxylase and F-1,6-BPase, inhibits PFK-1."
+  },
+  "isocitrate": {
+   "name": "Isocitrate",
+   "short": "Iso",
+   "aliases": [
+    "isocitric acid"
+   ]
+  },
+  "akg": {
+   "name": "α-Ketoglutarate",
+   "short": "α-KG",
+   "aliases": [
+    "alpha-ketoglutarate",
+    "2-oxoglutarate",
+    "aKG",
+    "alpha ketoglutarate",
+    "oxoglutarate"
+   ],
+   "notes": "Interconverts with glutamate (transamination, glutamate dehydrogenase)."
+  },
+  "succoa": {
+   "name": "Succinyl-CoA",
+   "short": "Succ-CoA",
+   "aliases": [
+    "succinyl CoA"
+   ],
+   "notes": "Also the entry point for odd-chain fatty acids (via propionyl-CoA → methylmalonyl-CoA, needs B12) and the starting material for heme."
+  },
+  "succinate": {
+   "name": "Succinate",
+   "short": "Succ",
+   "aliases": [
+    "succinic acid"
+   ]
+  },
+  "fumarate": {
+   "name": "Fumarate",
+   "short": "Fum",
+   "aliases": [
+    "fumaric acid"
+   ],
+   "notes": "Also produced by the urea cycle (argininosuccinate lyase) and purine synthesis."
+  },
+  "malate": {
+   "name": "Malate",
+   "short": "Mal",
+   "aliases": [
+    "malic acid"
+   ],
+   "notes": "Carries OAA carbon out of the mitochondrion for gluconeogenesis (malate shuttle)."
+  }
+ },
+ "enzymes": {
+  "cs": {
+   "name": "Citrate synthase",
+   "short": "CS",
+   "aliases": [],
+   "notes": "Acetyl-CoA + OAA condensation. Inhibited by ATP, NADH, succinyl-CoA, citrate."
+  },
+  "aconitase": {
+   "name": "Aconitase",
+   "short": "",
+   "aliases": [
+    "aconitate hydratase"
+   ],
+   "notes": "Isomerizes via cis-aconitate; iron–sulfur enzyme. Inhibited by fluorocitrate (from fluoroacetate)."
+  },
+  "idh": {
+   "name": "Isocitrate dehydrogenase",
+   "short": "IDH",
+   "aliases": [
+    "isocitrate DH"
+   ],
+   "notes": "Rate-limiting. Activated by ADP and Ca²⁺; inhibited by ATP and NADH. First NADH and CO₂ of the cycle."
+  },
+  "akgdh": {
+   "name": "α-Ketoglutarate dehydrogenase",
+   "short": "α-KGDH",
+   "aliases": [
+    "alpha-ketoglutarate dehydrogenase",
+    "alpha ketoglutarate dehydrogenase",
+    "2-oxoglutarate dehydrogenase",
+    "aKG dehydrogenase",
+    "akgdh complex"
+   ],
+   "notes": "Same cofactors as pyruvate dehydrogenase: B1 (TPP), B2 (FAD), B3 (NAD⁺), B5 (CoA), lipoic acid (“Tender Loving Care For Nancy”). Inhibited by succinyl-CoA, NADH, ATP; arsenite blocks lipoic acid."
+  },
+  "scs": {
+   "name": "Succinyl-CoA synthetase",
+   "short": "SCS",
+   "aliases": [
+    "succinate thiokinase",
+    "succinyl CoA synthetase",
+    "succinate-CoA ligase"
+   ],
+   "notes": "The only substrate-level phosphorylation in the cycle (GTP)."
+  },
+  "sdh": {
+   "name": "Succinate dehydrogenase",
+   "short": "SDH",
+   "aliases": [
+    "complex II",
+    "succinate DH"
+   ],
+   "notes": "Embedded in the inner membrane — it is complex II of the electron transport chain. FAD is covalently bound. Competitively inhibited by malonate."
+  },
+  "fumarase": {
+   "name": "Fumarase",
+   "short": "",
+   "aliases": [
+    "fumarate hydratase"
+   ],
+   "notes": "Adds water across the double bond. Deficiency → hereditary leiomyomatosis and renal cell cancer."
+  },
+  "mdh": {
+   "name": "Malate dehydrogenase",
+   "short": "MDH",
+   "aliases": [
+    "malate DH"
+   ],
+   "notes": "Thermodynamically uphill; pulled forward by citrate synthase consuming OAA."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "cs",
+   "from": "oaa",
+   "to": "citrate",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "acetylcoa",
+     "h2o"
+    ],
+    "out": [
+     "coa"
+    ]
+   },
+   "loc": "mitochondrial matrix",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "aconitase",
+   "from": "citrate",
+   "to": "isocitrate",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "mitochondrial matrix"
+  },
+  {
+   "id": "r3",
+   "enzyme": "idh",
+   "from": "isocitrate",
+   "to": "akg",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh",
+     "co2"
+    ]
+   },
+   "loc": "mitochondrial matrix",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "akgdh",
+   "from": "akg",
+   "to": "succoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad",
+     "coa"
+    ],
+    "out": [
+     "nadh",
+     "co2"
+    ]
+   },
+   "loc": "mitochondrial matrix",
+   "tags": [
+    "irreversible"
+   ],
+   "requires": [
+    "B1 (thiamine pyrophosphate)",
+    "B2 (FAD)",
+    "B3 (NAD⁺)",
+    "B5 (CoA)",
+    "lipoic acid"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "scs",
+   "from": "succoa",
+   "to": "succinate",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "gdp",
+     "pi"
+    ],
+    "out": [
+     "gtp",
+     "coa"
+    ]
+   },
+   "loc": "mitochondrial matrix"
+  },
+  {
+   "id": "r6",
+   "enzyme": "sdh",
+   "from": "succinate",
+   "to": "fumarate",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "fad"
+    ],
+    "out": [
+     "fadh2"
+    ]
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "fumarase",
+   "from": "fumarate",
+   "to": "malate",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "loc": "mitochondrial matrix"
+  },
+  {
+   "id": "r8",
+   "enzyme": "mdh",
+   "from": "malate",
+   "to": "oaa",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "mitochondrial matrix"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Pyruvate",
+   "Acetyl-CoA",
+   "cis-Aconitate",
+   "Oxalosuccinate",
+   "Glutamate",
+   "Aspartate",
+   "Acetoacetate",
+   "Propionyl-CoA",
+   "Methylmalonyl-CoA"
+  ],
+  "enzymes": [
+   "Pyruvate dehydrogenase",
+   "Pyruvate carboxylase",
+   "Glutamate dehydrogenase",
+   "ATP citrate lyase",
+   "Malic enzyme",
+   "Succinyl-CoA:3-ketoacid CoA transferase",
+   "Methylmalonyl-CoA mutase",
+   "PEP carboxykinase"
+  ]
+ }
+}

@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pathways</title>
+<meta name="description" content="Study biochemical pathways: fill the blanks, recall whole pathways, drill single steps.">
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%231d5fa8'/%3E%3Cpath d='M16 6v8M16 18v8' stroke='white' stroke-width='3' stroke-linecap='round'/%3E%3Ccircle cx='16' cy='16' r='3' fill='white'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -16,52 +17,54 @@
     <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><rect width="32" height="32" rx="8" class="brand-tile"/><path d="M16 6v8M16 18v8" stroke="#fff" stroke-width="3" stroke-linecap="round"/><circle cx="16" cy="16" r="3" fill="#fff"/></svg>
     <span>Pathways</span>
   </div>
-  <label class="pick">
-    <span class="sr">Pathway</span>
-    <select id="pathway"></select>
-  </label>
+  <label class="pick"><span class="sr">Pathway</span><select id="pathway"></select></label>
+  <div class="top-actions">
+    <button class="btn small" data-top="stats">Weak spots</button>
+    <button class="btn small" data-top="edit">Edit</button>
+    <button class="btn small" data-top="new">New pathway</button>
+    <span class="savemode" id="saveMode"></span>
+  </div>
 </header>
 
-<section class="controls" aria-label="Study settings">
-  <div class="group" role="radiogroup" aria-label="Mode" data-key="mode">
-    <span class="glabel">Mode</span>
-    <button data-v="single">Single blank</button>
-    <button data-v="total">Full recall</button>
-    <button data-v="step">Single step</button>
-  </div>
-  <div class="group" role="radiogroup" aria-label="View" data-key="view">
-    <span class="glabel">View</span>
-    <button data-v="flow">Flow</button>
-    <button data-v="list">List</button>
-  </div>
-  <div class="group" role="radiogroup" aria-label="Answer" data-key="answer">
-    <span class="glabel">Answer</span>
-    <button data-v="type">Type</button>
-    <button data-v="choice">Choice</button>
-    <button data-v="self">Self-check</button>
-  </div>
-  <div class="group chips" id="incGroup" aria-label="Quiz on">
-    <span class="glabel">Quiz on</span>
-    <button data-inc="met" aria-pressed="true">Metabolites</button>
-    <button data-inc="enz" aria-pressed="true">Enzymes</button>
-  </div>
-  <div class="group" role="radiogroup" aria-label="List direction" data-key="dir" id="dirGroup">
-    <span class="glabel">List</span>
-    <button data-v="v">Top–bottom</button>
-    <button data-v="h">Left–right</button>
-  </div>
-</section>
+<div id="studyView">
+  <details class="setup card" id="setup" open>
+    <summary><span class="setup-title">Quiz setup</span><span class="setup-sum" id="setupSummary"></span></summary>
+    <div id="setupBody"></div>
+  </details>
 
-<p class="summary" id="summary"></p>
+  <p class="summary" id="summary"></p>
 
-<main class="layout">
-  <section class="stage card" id="stageCard">
-    <div id="stage"></div>
-    <div class="legend" id="legend"></div>
-  </section>
-  <aside class="panel card" id="panel" aria-live="polite"></aside>
-</main>
+  <main class="layout">
+    <section class="stage-card card">
+      <div class="stage-bar" aria-label="Diagram zoom">
+        <div class="seg">
+          <button data-zoom="out" aria-label="Zoom out">−</button>
+          <span class="zpct" id="zoomPct">100%</span>
+          <button data-zoom="in" aria-label="Zoom in">+</button>
+        </div>
+        <div class="seg">
+          <button data-zoom="width">Fit width</button>
+          <button data-zoom="fit">Fit to frame</button>
+        </div>
+        <button class="chipbtn" data-flag="follow" aria-pressed="true">Follow</button>
+      </div>
+      <div class="stage" id="stage"></div>
+      <div class="legend" id="legend"></div>
+    </section>
+    <aside class="panel card" id="panel" aria-live="polite"></aside>
+  </main>
+</div>
 
-<script src="app.js"></script>
+<section id="editor" class="editor" hidden></section>
+<dialog id="statsDialog"></dialog>
+
+<script src="bundle.js"></script>
+<script src="js/util.js"></script>
+<script src="js/store.js"></script>
+<script src="js/model.js"></script>
+<script src="js/draw.js"></script>
+<script src="js/stats.js"></script>
+<script src="js/editor.js"></script>
+<script src="js/study.js"></script>
 </body>
 </html>

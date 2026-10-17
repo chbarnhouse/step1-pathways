@@ -1,0 +1,160 @@
+{
+ "id": "galactose",
+ "name": "Galactose metabolism",
+ "group": "Carbohydrates",
+ "aliases": [
+  "Leloir pathway",
+  "galactose metabolism"
+ ],
+ "summary": "Liver. Lactose → glucose + galactose; galactose joins glycolysis as glucose-6-phosphate. UDP-galactose 4-epimerase turns the UDP-galactose made by GALT back into UDP-glucose. When the pathway is blocked, aldose reductase makes galactitol, which pulls water into the lens → cataracts.",
+ "metabolites": {
+  "galactose": {
+   "name": "Galactose",
+   "short": "Gal",
+   "aliases": [
+    "D-galactose"
+   ]
+  },
+  "gal1p": {
+   "name": "Galactose-1-phosphate",
+   "short": "Gal-1-P",
+   "aliases": [
+    "Gal1P"
+   ],
+   "notes": "Accumulates and is toxic in classic galactosemia."
+  },
+  "g1p": {
+   "name": "Glucose-1-phosphate",
+   "short": "G1P",
+   "aliases": []
+  },
+  "g6p": {
+   "name": "Glucose-6-phosphate",
+   "short": "G6P",
+   "aliases": []
+  },
+  "galactitol": {
+   "name": "Galactitol",
+   "short": "",
+   "aliases": [
+    "dulcitol"
+   ],
+   "notes": "Osmotically active in the lens → cataracts."
+  }
+ },
+ "enzymes": {
+  "galk": {
+   "name": "Galactokinase",
+   "short": "GALK",
+   "aliases": [],
+   "notes": "Deficiency is mild: galactosemia and galactosuria, infantile cataracts (may present as failure to track objects or develop a social smile)."
+  },
+  "galt": {
+   "name": "Galactose-1-phosphate uridyltransferase",
+   "short": "GALT",
+   "aliases": [
+    "galactose-1-phosphate uridylyltransferase",
+    "galactose 1-phosphate uridyl transferase",
+    "uridyltransferase"
+   ],
+   "notes": "Deficiency = classic galactosemia (AR): failure to thrive, jaundice, hepatomegaly, intellectual disability, cataracts, E. coli sepsis in neonates. Remove galactose and lactose from the diet."
+  },
+  "pgm1": {
+   "name": "Phosphoglucomutase",
+   "short": "PGM",
+   "aliases": [],
+   "notes": "Also links glycogen to glycolysis (G1P ⇌ G6P). Not phosphoglycerate mutase."
+  },
+  "ar": {
+   "name": "Aldose reductase",
+   "short": "AR",
+   "aliases": [],
+   "notes": "Same enzyme that makes sorbitol from glucose (polyol pathway)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "galk",
+   "from": "galactose",
+   "to": "gal1p",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "galt",
+   "from": "gal1p",
+   "to": "g1p",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "udpglc"
+    ],
+    "out": [
+     "udpgal"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "pgm1",
+   "from": "g1p",
+   "to": "g6p",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "ar",
+   "from": "galactose",
+   "to": "galactitol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Lactose",
+   "Glucose",
+   "Sorbitol",
+   "Fructose-1-phosphate",
+   "UDP-galactose",
+   "Glucose-6-phosphate"
+  ],
+  "enzymes": [
+   "UDP-galactose 4-epimerase",
+   "Lactase",
+   "Fructokinase",
+   "Aldolase B",
+   "Sorbitol dehydrogenase",
+   "Hexokinase",
+   "Glycogen phosphorylase"
+  ]
+ }
+}

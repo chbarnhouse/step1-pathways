@@ -1,0 +1,220 @@
+{
+ "id": "ketogenesis",
+ "name": "Ketogenesis",
+ "group": "Lipids",
+ "aliases": [
+  "ketone body synthesis"
+ ],
+ "summary": "Liver mitochondria — prolonged fasting, diabetic ketoacidosis, alcoholism (high NADH shunts OAA to malate, so acetyl-CoA piles up). The liver can't use ketones (no succinyl-CoA:3-ketoacid CoA transferase) and RBCs can't (no mitochondria). The urine nitroprusside test detects acetoacetate, not β-hydroxybutyrate.",
+ "metabolites": {
+  "acetylcoa": {
+   "name": "Acetyl-CoA",
+   "short": "AcCoA",
+   "aliases": [
+    "acetyl CoA"
+   ],
+   "notes": "From β-oxidation of fatty acids. Two molecules condense in the first step."
+  },
+  "aacoa": {
+   "name": "Acetoacetyl-CoA",
+   "short": "AcAc-CoA",
+   "aliases": [
+    "acetoacetyl CoA"
+   ]
+  },
+  "hmgcoa": {
+   "name": "HMG-CoA",
+   "short": "HMG-CoA",
+   "aliases": [
+    "3-hydroxy-3-methylglutaryl-CoA",
+    "β-hydroxy-β-methylglutaryl-CoA",
+    "beta-hydroxy-beta-methylglutaryl-CoA",
+    "hydroxymethylglutaryl-CoA"
+   ],
+   "notes": "Branch point: in the cytosol, HMG-CoA reductase turns it toward cholesterol."
+  },
+  "acac": {
+   "name": "Acetoacetate",
+   "short": "AcAc",
+   "aliases": [
+    "acetoacetic acid"
+   ],
+   "notes": "Detected by the nitroprusside urine test."
+  },
+  "bhb": {
+   "name": "β-Hydroxybutyrate",
+   "short": "β-HB",
+   "aliases": [
+    "beta-hydroxybutyrate",
+    "3-hydroxybutyrate",
+    "BHB",
+    "beta hydroxybutyrate",
+    "β-hydroxybutyric acid"
+   ],
+   "notes": "The main ketone in DKA (high NADH:NAD⁺ favors it) — missed by the nitroprusside test."
+  },
+  "acetone": {
+   "name": "Acetone",
+   "short": "",
+   "aliases": [],
+   "notes": "Not used for fuel; exhaled → fruity breath."
+  }
+ },
+ "enzymes": {
+  "thiolase": {
+   "name": "Thiolase",
+   "short": "",
+   "aliases": [
+    "acetoacetyl-CoA thiolase",
+    "β-ketothiolase",
+    "beta-ketothiolase",
+    "acetyl-CoA acetyltransferase"
+   ],
+   "notes": "Reversible; the last step of β-oxidation runs the other way."
+  },
+  "hmgcs": {
+   "name": "HMG-CoA synthase",
+   "short": "HMGCS",
+   "aliases": [
+    "HMG CoA synthase",
+    "3-hydroxy-3-methylglutaryl-CoA synthase"
+   ],
+   "notes": "Rate-limiting for ketogenesis (mitochondrial isoform; a cytosolic isoform feeds cholesterol synthesis)."
+  },
+  "hmgcl": {
+   "name": "HMG-CoA lyase",
+   "short": "HMGCL",
+   "aliases": [
+    "HMG CoA lyase"
+   ],
+   "notes": "Releases acetoacetate and an acetyl-CoA."
+  },
+  "bdh": {
+   "name": "β-Hydroxybutyrate dehydrogenase",
+   "short": "BDH",
+   "aliases": [
+    "beta-hydroxybutyrate dehydrogenase",
+    "3-hydroxybutyrate dehydrogenase",
+    "β-hydroxybutyrate DH"
+   ],
+   "notes": "Reversible; in extrahepatic tissues it runs back to acetoacetate for use."
+  },
+  "spont": {
+   "name": "Spontaneous decarboxylation",
+   "short": "",
+   "aliases": [
+    "spontaneous",
+    "non-enzymatic",
+    "nonenzymatic",
+    "none",
+    "no enzyme"
+   ],
+   "notes": "Non-enzymatic loss of CO₂ from acetoacetate."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "thiolase",
+   "from": "acetylcoa",
+   "to": "aacoa",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "acetylcoa"
+    ],
+    "out": [
+     "coa"
+    ]
+   },
+   "loc": "mitochondria"
+  },
+  {
+   "id": "r2",
+   "enzyme": "hmgcs",
+   "from": "aacoa",
+   "to": "hmgcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "acetylcoa",
+     "h2o"
+    ],
+    "out": [
+     "coa"
+    ]
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "hmgcl",
+   "from": "hmgcoa",
+   "to": "acac",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "acetylcoa"
+    ]
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "bdh",
+   "from": "acac",
+   "to": "bhb",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nadh"
+    ],
+    "out": [
+     "nad"
+    ]
+   },
+   "loc": "mitochondria"
+  },
+  {
+   "id": "r5",
+   "enzyme": "spont",
+   "from": "acac",
+   "to": "acetone",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "co2"
+    ]
+   },
+   "branch": true,
+   "loc": "mitochondria / blood"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Malonyl-CoA",
+   "Mevalonate",
+   "Citrate",
+   "Palmitoyl-CoA",
+   "Succinyl-CoA",
+   "Propionyl-CoA"
+  ],
+  "enzymes": [
+   "HMG-CoA reductase",
+   "Acetyl-CoA carboxylase",
+   "Carnitine acyltransferase I",
+   "Succinyl-CoA:3-ketoacid CoA transferase",
+   "Fatty acid synthase",
+   "Malonyl-CoA decarboxylase"
+  ]
+ }
+}
