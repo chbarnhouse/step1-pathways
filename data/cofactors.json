@@ -1,0 +1,18 @@
+{
+  "atp":  { "name": "ATP",  "aliases": [] },
+  "adp":  { "name": "ADP",  "aliases": [] },
+  "amp":  { "name": "AMP",  "aliases": [] },
+  "gtp":  { "name": "GTP",  "aliases": [] },
+  "gdp":  { "name": "GDP",  "aliases": [] },
+  "nad":  { "name": "NAD⁺", "aliases": ["NAD+", "NAD"] },
+  "nadh": { "name": "NADH", "aliases": ["NADH+H+", "NADH + H+"] },
+  "nadp": { "name": "NADP⁺", "aliases": ["NADP+", "NADP"] },
+  "nadph":{ "name": "NADPH", "aliases": ["NADPH+H+"] },
+  "fad":  { "name": "FAD",  "aliases": [] },
+  "fadh2":{ "name": "FADH₂", "aliases": ["FADH2"] },
+  "coa":  { "name": "CoA",  "aliases": ["coenzyme A", "CoA-SH"] },
+  "co2":  { "name": "CO₂",  "aliases": ["CO2", "carbon dioxide"] },
+  "pi":   { "name": "Pi",   "aliases": ["phosphate", "inorganic phosphate", "P"] },
+  "ppi":  { "name": "PPi",  "aliases": ["pyrophosphate"] },
+  "h2o":  { "name": "H₂O",  "aliases": ["H2O", "water"] }
+}
