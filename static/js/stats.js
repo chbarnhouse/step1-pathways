@@ -55,5 +55,7 @@ function openStats() {
   d.showModal();
 }
 document.addEventListener('click', e => {
-  if (e.target.closest('[data-stats="reset"]') && confirm(`Clear the history for ${S.m.p.name}?`)) { Stats.reset(S.m.p.id); openStats(); }
+  if (!e.target.closest('[data-stats="reset"]')) return;
+  $('#statsDialog').close();
+  ask({ title: `Clear the history for ${S.m.p.name}?`, ok: 'Clear' }).then(y => { if (y) Stats.reset(S.m.p.id); openStats(); });
 });

@@ -190,18 +190,19 @@ function onEdit(e, structural) {
   if (el.dataset.edAdd && structural) {
     const r = E.draft.reactions[+el.dataset.i];
     let id = el.value;
-    if (id === '__new') { const nm = prompt('Name of the new metabolite'); if (!nm) return renderEditor(); id = newItem('met', nm.trim()); }
-    if (id) r[el.dataset.edAdd] = uniq([...(r[el.dataset.edAdd] || []), id]);
-    return renderEditor();
+    const add = v => { if (v) r[el.dataset.edAdd] = uniq([...(r[el.dataset.edAdd] || []), v]); renderEditor(); };
+    if (id === '__new') return ask({ title: 'New metabolite', input: true, ok: 'Add' }).then(nm => add(nm && newItem('met', nm)));
+    return add(id);
   }
   if (!el.dataset.path) return;
   if (el.tagName === 'SELECT' && el.value === '__new') {
     if (!structural) return;
     const isEnz = el.dataset.path.endsWith('.enzyme');
-    const nm = prompt(`Name of the new ${isEnz ? 'enzyme' : 'metabolite'}`);
-    if (!nm) return renderEditor();
-    setPath(E.draft, el.dataset.path, newItem(isEnz ? 'enz' : 'met', nm.trim()));
-    return renderEditor();
+    const path = el.dataset.path;
+    return ask({ title: `New ${isEnz ? 'enzyme' : 'metabolite'}`, input: true, ok: 'Add' }).then(nm => {
+      if (nm) setPath(E.draft, path, newItem(isEnz ? 'enz' : 'met', nm));
+      renderEditor();
+    });
   }
   setPath(E.draft, el.dataset.path, valueOf(el));
   // Names appear in other menus; checkboxes change card layout — redraw the form on commit.
@@ -216,12 +217,12 @@ document.addEventListener('change', e => {
 
 function importFile(f) {
   if (!f) return;
-  f.text().then(t => {
+  f.text().then(async t => {
     let p;
     try { p = JSON.parse(t); buildModel(p); }
-    catch (err) { alert('That file is not a pathway this app can read:\n' + err.message); return; }
+    catch (err) { return say('Can’t import that file', 'It isn’t a pathway this app can read:\n' + err.message); }
     if (!p.name) p.name = 'Imported pathway';
-    if (p.id && Library.get(p.id) && !confirm(`You already have a pathway with this id (${Library.get(p.id).name}). Replace it when you save?\n\nCancel keeps both.`)) p.id = '';
+    if (p.id && Library.get(p.id) && !(await ask({ title: 'Replace your copy?', text: `You already have “${Library.get(p.id).name}”. Saving the import will replace it.`, ok: 'Replace on save', cancel: 'Keep both' }))) p.id = '';
     openEditor(null, p);
     E.origId = p.id && Library.get(p.id) ? p.id : null;
     renderEditor();
@@ -231,7 +232,7 @@ function importFile(f) {
 function savePathway() {
   const p = clone(E.draft);
   pruneCof(p);
-  try { buildModel(p); } catch (err) { alert('Fix these before saving:\n' + err.message); return; }
+  try { buildModel(p); } catch (err) { return say('Fix these before saving', err.message); }
   if (!p.id) p.id = uniqueId(slug(p.name), new Set(Object.keys(Library.all())));
   Store.data.custom[p.id] = p;
   Store.save();
@@ -247,41 +248,51 @@ document.addEventListener('click', e => {
   const R = p.reactions;
   switch (act) {
     case 'save': return savePathway();
-    case 'cancel': if (confirm('Discard changes?')) closeEditor(); return;
+    case 'cancel': ask({ title: 'Discard changes?', ok: 'Discard', cancel: 'Keep editing' }).then(y => y && closeEditor()); return;
     case 'export': {
+      // Downloads are blocked inside shared artifacts, so Export shows the JSON to copy, with a file download as the extra.
       const name = (p.id || slug(p.name)) + '.json', text = JSON.stringify(p, null, 2);
-      if (!download(name, text)) { E.json = true; renderEditor(); }
+      const canSave = !window.PATHWAYS_ARTIFACT; // the shared artifact's frame blocks file downloads
+      ask({ title: `Export ${p.name}`, text: `Copy this and send it${canSave ? ` (or save it as ${name})` : ''}. The other person opens Edit → JSON, pastes it and presses Apply, then Save.`, input: 'area', value: text, ok: canSave ? 'Download file' : 'Done', cancel: canSave ? 'Close' : null, copy: true })
+        .then(v => v && canSave && download(name, text));
       return;
     }
     case 'import': return $('#edFile').click();
     case 'json': E.json = !E.json; return renderEditor();
     case 'apply-json':
       try { E.draft = JSON.parse($('#edJson').value); E.draft.cofactors = E.draft.cofactors || {}; E.draft.distractors = Object.assign({ metabolites: [], enzymes: [] }, E.draft.distractors); E.json = false; renderEditor(); }
-      catch (err) { alert('Not valid JSON: ' + err.message); }
+      catch (err) { say('That JSON has an error', err.message); }
       return;
     case 'reset':
-      if (confirm('Throw away your edits and restore the built-in version?')) { delete Store.data.custom[E.origId]; Store.save(); const id = E.origId; closeEditor(); renderPicker(); loadPathway(id); }
+      ask({ title: 'Restore the built-in version?', text: 'Your edits to this pathway will be thrown away.', ok: 'Restore' }).then(y => {
+        if (!y) return;
+        delete Store.data.custom[E.origId]; Store.save(); const id = E.origId; closeEditor(); renderPicker(); loadPathway(id);
+      });
       return;
     case 'delete':
-      if (confirm(`Delete ${p.name}? This can't be undone.`)) { delete Store.data.custom[E.origId]; Store.save(); closeEditor(); renderPicker(); loadPathway(Library.list()[0].id); }
+      ask({ title: `Delete ${p.name}?`, text: 'This can’t be undone. Export it first if you might want it back.', ok: 'Delete' }).then(y => {
+        if (!y) return;
+        delete Store.data.custom[E.origId]; Store.save(); closeEditor(); renderPicker(); loadPathway(Library.list()[0].id);
+      });
       return;
     case 'add-step': {
       const last = R.filter(r => !r.branch).slice(-1)[0];
       R.push({ id: newReactionId(), enzyme: '', from: last ? last.to : '', to: '', reversible: false, cofactors: { in: [], out: [] } });
       return renderEditor();
     }
-    case 'add-met': { const nm = prompt('Metabolite name'); if (nm) { newItem('met', nm.trim()); renderEditor(); } return; }
-    case 'add-enz': { const nm = prompt('Enzyme name'); if (nm) { newItem('enz', nm.trim()); renderEditor(); } return; }
+    case 'add-met': case 'add-enz':
+      ask({ title: act === 'add-met' ? 'New metabolite' : 'New enzyme', input: true, ok: 'Add' }).then(nm => { if (nm) { newItem(act === 'add-met' ? 'met' : 'enz', nm); renderEditor(); } });
+      return;
     case 'del-met': case 'del-enz': {
       const id = b.dataset.id, isMet = act === 'del-met';
       const users = R.map((r, k) => (isMet ? [r.from, r.to, ...(r.also_to || []), ...(r.also_from || [])].includes(id) : r.enzyme === id) ? k + 1 : 0).filter(Boolean);
-      if (users.length) { alert(`Still used in step ${users.join(', ')} — change those first.`); return; }
+      if (users.length) return say('Still in use', `Step ${users.join(', ')} uses it. Change those steps first.`);
       delete (isMet ? p.metabolites : p.enzymes)[id];
       return renderEditor();
     }
     case 'up': if (i > 0) [R[i - 1], R[i]] = [R[i], R[i - 1]]; return renderEditor();
     case 'down': if (i < R.length - 1) [R[i + 1], R[i]] = [R[i], R[i + 1]]; return renderEditor();
-    case 'del-step': if (confirm(`Remove step ${i + 1}?`)) { R.splice(i, 1); pruneCof(p); renderEditor(); } return;
+    case 'del-step': ask({ title: `Remove step ${i + 1}?`, ok: 'Remove' }).then(y => { if (y) { R.splice(i, 1); pruneCof(p); renderEditor(); } }); return;
     case 'unside': { const r = R[i]; r[b.dataset.key] = (r[b.dataset.key] || []).filter(x => x !== b.dataset.id); if (!r[b.dataset.key].length) delete r[b.dataset.key]; return renderEditor(); }
   }
 });

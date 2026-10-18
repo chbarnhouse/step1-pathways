@@ -10,7 +10,8 @@ Standard library only. Serves the app from ./static plus:
 The same front end also runs with no server at all: build.py inlines everything into
 dist/pathways.html, which keeps its state in the browser instead.
 
-Env: PORT (default 8000), HOST (default 0.0.0.0), PATHWAYS_DATA (default ./data).
+Env: PORT (default 8000), HOST (default 0.0.0.0), PATHWAYS_DATA (default ./data),
+     PATHWAYS_USER_STATE (default ./data/user/state.json — keep it outside the code on a server).
 """
 import json
 import os
@@ -21,7 +22,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent
 STATIC = ROOT / "static"
 DATA = Path(os.environ.get("PATHWAYS_DATA", ROOT / "data"))
-STATE = DATA / "user" / "state.json"
+STATE = Path(os.environ.get("PATHWAYS_USER_STATE", DATA / "user" / "state.json"))
 MAX_STATE = 8 * 1024 * 1024
 
 

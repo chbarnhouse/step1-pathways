@@ -36,3 +36,32 @@ function download(name, text) {
     return true;
   } catch { return false; }
 }
+
+/* In-page stand-ins for alert / confirm / prompt — the native ones are disabled inside shared artifacts.
+   ask() resolves to the typed text (input), true (confirmed) or null (cancelled). */
+function ask({ title, text = '', input = false, value = '', ok = 'OK', cancel = 'Cancel', copy = false }) {
+  const d = document.getElementById('askDialog');
+  d.innerHTML = `<form method="dialog" class="dlg">
+    <div class="dlg-h"><h2>${esc(title)}</h2></div>
+    ${text ? `<p class="ask-text">${esc(text).replace(/\n/g, '<br>')}</p>` : ''}
+    ${input === 'area' ? `<textarea id="askInput" rows="14" spellcheck="false">${esc(value)}</textarea>` : input ? `<input id="askInput" value="${esc(value)}" autocomplete="off">` : ''}
+    <div class="actions">
+      <button class="btn primary" value="ok">${esc(ok)}</button>
+      ${copy ? '<button class="btn" type="button" id="askCopy">Copy</button>' : ''}
+      ${cancel ? `<button class="btn ghost" value="cancel" formnovalidate>${esc(cancel)}</button>` : ''}
+    </div></form>`;
+  return new Promise(res => {
+    const inp = d.querySelector('#askInput');
+    d.querySelector('#askCopy')?.addEventListener('click', e => {
+      navigator.clipboard?.writeText(inp.value).then(() => { e.target.textContent = 'Copied'; }, () => { inp.select(); e.target.textContent = 'Selected — press ⌘C'; });
+    });
+    d.addEventListener('close', () => {
+      if (d.returnValue !== 'ok') return res(null);
+      res(input ? (inp.value.trim() || null) : true);
+    }, { once: true });
+    d.returnValue = '';
+    d.showModal();
+    if (inp) { inp.focus(); inp.select(); }
+  });
+}
+const say = (title, text) => ask({ title, text, cancel: null });
