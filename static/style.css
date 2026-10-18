@@ -684,3 +684,6 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .report .field { display: grid; gap: 4px; }
 .diag pre { font-size: 11.5px; white-space: pre-wrap; word-break: break-all; background: var(--sunk); padding: 8px; border-radius: 8px; max-height: 160px; overflow: auto; }
 .diag summary { cursor: pointer; font-size: 13px; color: var(--muted); }
+/* Preview badge: this copy runs unreleased changes (self-hosted only). Icon + word, never color alone. */
+.preview-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; padding: 3px 9px; border: 1.5px dashed var(--gold); border-radius: 999px; background: var(--gold-bg); color: var(--gold); font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
+.preview-badge .mi { width: 15px; height: 15px; fill: currentColor; }

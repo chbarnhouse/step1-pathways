@@ -19,10 +19,12 @@ Two ways to run the same app:
 | **Static** | each browser | `python3 build.py` → `docs/index.html` (GitHub Pages) and `dist/pathways.html` (one file, open anywhere) |
 | **Self-hosted** | on the server, shared by every device | `python3 server.py` → http://localhost:8000. Python standard library only. `./deploy.sh` installs it on a Proxmox container (configure `deploy.env`, see `deploy.env.example`). |
 
-## Releasing an update
-1. Bump `APP_VERSION` in `static/js/version.js` and add an entry at the top of `CHANGELOG` (shown once to every returning visitor as "What's new").
-2. `node tools/validate.js`, then `python3 build.py` (rebuilds `docs/`), commit, push.
-3. `./deploy.sh` for the self-hosted copy.
+## Working on changes vs. releasing them
+Classmates use GitHub Pages, which serves `docs/` from **main**. Main only moves when you release, so day-to-day work never reaches them.
+
+- **Work on `dev`.** Commit, push (`git push github dev`), and `./deploy.sh` to try it on your own copy. Add a line per user-visible change to the `{ v: 'next', items: [...] }` entry at the top of `CHANGELOG` in `static/js/version.js` (create it if it's missing). While that entry has notes, your copy shows a **Preview** badge listing them.
+- **Release when a round is ready:** `./release.sh` (or `./release.sh patch`). It stamps the notes with the next version and today's date, validates, builds `docs/`, commits and tags on dev, fast-forwards main, pushes, and redeploys your copy. Returning visitors see the notes once as "What's new".
+- `python3 build.py` refuses to build while there are unreleased notes, so a preview can't reach `docs/` by accident (`--preview` builds a local test file anyway).
 
 ## Pathway files
 `data/pathways/*.json`, one per pathway; `node tools/validate.js` checks them all.

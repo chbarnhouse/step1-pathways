@@ -9,9 +9,12 @@ Inlines the stylesheet, every script and the built-in pathway library. Edits and
 history are kept in the browser (localStorage). Anyone can open it from a file, a static
 host, or a shared link; nothing talks to the homelab.
 
-  python3 build.py
+  python3 build.py              refuses while static/js/version.js has unreleased notes — use ./release.sh
+  python3 build.py --preview    build anyway (a local test file; don't commit docs/ from it)
 """
 import re
+import subprocess
+import sys
 import urllib.parse
 from pathlib import Path
 
@@ -21,6 +24,8 @@ DIST = ROOT / "dist"
 
 
 def main():
+    if "--preview" not in sys.argv and subprocess.run([sys.executable, str(ROOT / "tools" / "stamp_release.py"), "--check"]).returncode:
+        sys.exit("version.js has unreleased notes, so this would publish a preview to GitHub Pages. Run ./release.sh, or build.py --preview for a local test.")
     html = (STATIC / "index.html").read_text()
     css = (STATIC / "style.css").read_text()
     html = html.replace('<link rel="stylesheet" href="style.css">', f"<style>\n{css}</style>")

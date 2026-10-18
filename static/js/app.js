@@ -71,9 +71,14 @@ function activityHTML() {
   }
   return `<ul class="actlist">${out}</ul>`;
 }
+// Your own copy links to the public one, the version classmates use.
+function publicCardHTML() {
+  return `<div class="card hero-data"><span class="hero-ic alt">${mi('public')}</span><span><b>Classmates’ version</b><span class="muted">${isPreview() ? 'You’re previewing changes they don’t have yet. ' : ''}Theirs saves progress in each browser.</span>
+    <span class="btnrow tight"><a class="btn small" href="${PUBLIC_SITE}" target="_blank" rel="noopener">${mi('public', 'sm')} Open it</a><button class="btn small ghost" data-copy-public>${mi('content_copy', 'sm')} Copy link</button></span></span></div>`;
+}
 // Static builds keep everything in this browser, so the dashboard keeps the backup one click away.
 function backupCardHTML() {
-  if (Store.mode === 'server') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Saved on your server</b><span class="muted">Every device sees the same progress.</span></span></div>`;
+  if (Store.mode === 'server') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Saved on your server</b><span class="muted">Every device sees the same progress.</span></span></div>${publicCardHTML()}`;
   if (AutoBackup.status === 'linked') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Backing up automatically</b><span class="muted">Every change is saved to ${esc(AutoBackup.fileName)}.</span></span></div>`;
   if (AutoBackup.status === 'needs-permission' || AutoBackup.status === 'error') return `<div class="card hero-data due"><span class="hero-ic alt">${mi('download')}</span><span><b>Reconnect your backup file</b><span class="muted">After a restart your browser needs permission again to save to ${esc(AutoBackup.fileName)}.</span>
     <span class="btnrow tight"><button class="btn small primary" data-data="reconnect">Reconnect</button><button class="btn small ghost" data-data="download">${mi('download', 'sm')} Download instead</button></span></span></div>`;
@@ -456,11 +461,11 @@ function renderSettings() {
     <section class="card pad"><h2>Guided tour</h2><p class="muted">A one-minute walk through the app.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show it automatically when I open Pathways</label></div></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION} · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p>
-      <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${reportsEnabled() ? `<button class="btn small" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div></section>
+    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''} · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p>
+      <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${Store.mode === 'server' && isPreview() ? `<button class="btn small" data-preview>${mi('science', 'sm')} Not released yet</button>` : ''}${reportsEnabled() ? `<button class="btn small" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div></section>
   </div>`;
 }
-document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(CHANGELOG, 'All changes'); });
+document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(RELEASED, 'All changes'); });
 document.addEventListener('click', e => {
   if (!$('#view .settings')) return;
   const sb = e.target.closest('[data-set]');
@@ -610,6 +615,7 @@ window.addEventListener('hashchange', router);
   const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
   await AutoBackup.init();
   if (reportsEnabled()) $('#navReport').hidden = false;
+  previewBadge();
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
