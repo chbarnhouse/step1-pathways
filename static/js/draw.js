@@ -11,8 +11,8 @@ const pillW = word => Math.max(48, word.length * 7.2 + 26);
 // When set ({draft, bad}), the current blank becomes a text field right on the diagram (Type answers, occlusion modes).
 let INLINE = null;
 const inlineInput = () => INLINE.along ? alongWidget(INLINE.along, INLINE.draft, INLINE.hinted)
-  : INLINE.check ? checkWidget(INLINE.check, INLINE.draft, INLINE.hinted, INLINE.q)
-  : `<input class="ans inl-in${INLINE.bad ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(INLINE.kind || '?')}" aria-label="Your answer${INLINE.kind ? ': ' + esc(INLINE.kind) : ''}" value="${esc(INLINE.draft)}">`;
+  : withLocked(INLINE.q, INLINE.check ? checkWidget(INLINE.check, INLINE.draft, INLINE.hinted, INLINE.q)
+  : `<input class="ans inl-in${INLINE.bad ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(INLINE.q?.locked?.length ? '' : INLINE.kind || '?')}" aria-label="Your answer${INLINE.kind ? ': ' + esc(INLINE.kind) : ''}" value="${esc(INLINE.draft)}">`);
 // The answer field is real HTML floating over an empty slot in the diagram (placeInline in quiz.js keeps it there).
 // Not a <foreignObject>: Safari misplaces those once the diagram is zoomed.
 let INLINE_FORM = '';

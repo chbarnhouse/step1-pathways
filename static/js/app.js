@@ -44,6 +44,13 @@ document.addEventListener('click', e => {
 });
 
 const pageHead = (title, sub = '', actions = '') => `<div class="page-h"><div><h1>${title}</h1>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${actions ? `<div class="btnrow">${actions}</div>` : ''}</div>`;
+/* Name modes: for each kind of name, whether it counts the moment it's typed, on Enter, or not at all.
+   attr: data-cname (New quiz) or data-qname (in-quiz options). */
+const NAME_ROWS = [['full', 'Full names', 'δ-aminolevulinic acid synthase'], ['common', 'Common abbreviations', 'ALA synthase, mito'], ['any', 'Any abbreviation', 'ALAS, PFK-1, G6P']];
+const NAME_MODES = [['auto', 'Auto-accept'], ['enter', 'On Enter'], ['off', 'Don’t accept']];
+const nameModesHTML = (attr, modes) => `<div class="namemodes" role="group" aria-label="Which names count"><span class="glabel">Which names count</span>
+  ${NAME_ROWS.map(([k, l, ex]) => `<div class="nm-row"><span class="nm-l"><b>${l}</b><span class="muted small">${esc(ex)}</span></span>${seg(attr, k, NAME_MODES, modes[k])}</div>`).join('')}
+  <p class="muted small">Auto-accept counts the moment it’s typed; On Enter waits for you to press Enter; Don’t accept asks for a fuller name (not a miss).</p></div>`;
 const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button ${attr}="${key}" data-v="${v}" role="radio" aria-checked="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
 
 /* ================= Dashboard (#/) =================
@@ -366,9 +373,7 @@ function renderCreate() {
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p>
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
           ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” hints (button, or → at the end of your answer)</label>` : ''}
-          ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="autoSubmit" ${d.autoSubmit ? 'checked' : ''}> Submit right answers automatically (no need to press Return)</label>` : ''}
-          ${['type', 'along'].includes(ans) ? `<div class="field"><span>Names that count</span>${seg('data-cs', 'names', [['full', 'Full names only'], ['common', 'Common abbreviations'], ['any', 'Any abbreviation']], nameTierCfg(d))}
-            <p class="muted small">${{ full: 'Only spelled-out names: “δ-aminolevulinic acid synthase”, “mitochondria”.', common: 'Names as usually written, like “ALA synthase”, “HMG-CoA reductase” or “mito”; not bare abbreviations like “ALAS”.', any: 'Any name or abbreviation: “ALAS”, “PFK-1”, “G6P”.' }[nameTierCfg(d)]}</p></div>` : ''}
+          ${ans === 'type' ? nameModesHTML('data-cname', nameModesCfg(d)) : ''}
           ${elOf(d, 'cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-cflag="cofCount" ${d.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (as “1/2” while you type)</label>` : ''}</div>
           ${laterBlanks}
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
@@ -388,7 +393,7 @@ function renderCreate() {
   updateRows();
 }
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
-const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'names', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'nameModes', 'names', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
 const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
 const favorites = () => Store.data.favorites || [];
 const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));
@@ -423,6 +428,8 @@ document.addEventListener('click', e => {
   }
   const sb = e.target.closest('[data-cs]');
   if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; if (sb.dataset.cs === 'names') delete d.fullNames; C.presetId = ''; return renderCreate(); }
+  const nb = e.target.closest('[data-cname]');
+  if (nb) { d.nameModes = { ...nameModesCfg(d), [nb.dataset.cname]: nb.dataset.v }; delete d.names; delete d.fullNames; delete d.autoSubmit; C.presetId = ''; return renderCreate(); }
   const eb = e.target.closest('[data-cel]');
   if (eb) { d.el[eb.dataset.cel] = eb.dataset.v; C.presetId = ''; return renderCreate(); }
   const a = e.target.closest('[data-c]');

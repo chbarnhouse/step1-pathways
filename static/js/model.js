@@ -145,6 +145,13 @@ function cofKeys(m) {
   return out;
 }
 const cofNorm = raw => norm(String(raw).replace(/[,;\/]/g, ' ')).replace(/\+/g, '');
+// Typing cofactors one at a time: the cofactor (still wanted) that this text names outright, or null. Never one that
+// another wanted cofactor's name continues ("NAD" while NADH is also wanted), so a longer name can still be typed.
+function cofLockable(m, raw, want) {
+  const k = cofNorm(raw), { map, keys } = cofKeys(m), id = map[k];
+  if (!k || !id || !want.includes(id)) return null;
+  return keys.some(x => x.length > k.length && x.startsWith(k) && want.includes(map[x]) && map[x] !== id) ? null : id;
+}
 function cofSplits(m, raw) {
   const { map, keys, ign } = cofKeys(m), s = cofNorm(raw), memo = new Map();
   const go = i => {
@@ -216,6 +223,16 @@ function nameSets(x) {
 const NAME_TIERS = { full: 0, common: 1, any: 2 };
 const tierOf = t => (t === true ? 0 : NAME_TIERS[t] ?? 2); // older callers pass true for "full names"
 const nameTierCfg = cfg => cfg?.names || (cfg?.fullNames ? 'full' : 'any'); // presets saved before 3.9 have fullNames
+/* What each tier of name does in a quiz: 'auto' counts the moment it's typed, 'enter' counts when you press Enter,
+   'off' doesn't count (you're asked for a fuller name, never marked wrong). Quizzes saved earlier carry
+   names (full/common/any) and autoSubmit instead; they read as the closest match. */
+const TIER_KEYS = ['full', 'common', 'any'];
+const NAME_MODE_DEFAULTS = { full: 'auto', common: 'enter', any: 'enter' };
+function nameModesCfg(cfg) {
+  if (cfg?.nameModes) return { ...NAME_MODE_DEFAULTS, ...cfg.nameModes };
+  const lim = tierOf(nameTierCfg(cfg)), on = cfg?.autoSubmit ? 'auto' : null;
+  return Object.fromEntries(TIER_KEYS.map((k, i) => [k, i > lim ? 'off' : on || NAME_MODE_DEFAULTS[k]]));
+}
 const hasWord = v => (v.match(/[a-z]{4,}/g) || []).some(w => !/^(alpha|beta|gamma|delta)$/.test(w));
 function nameTiers(x) {
   const { full, nick } = nameSets(x);
@@ -270,18 +287,23 @@ function claimsOf(m) {
   CLAIMS.set(m, own);
   return own;
 }
-// The Names setting (full / common / any): spellings up to that tier count. An element with nothing that plain
-// (no spelled-out name at all) falls back to its plainest names.
-function spellingsFor(item, m, names = 'any') {
+// Every accepted spelling of an element with its tier (0 full, 1 common, 2 any). An element with nothing spelled out
+// (no full name at all) has its plainest names treated as full. Generated spellings another item also claims are dropped.
+function spellingTiers(item, m) {
   const { full, nick } = item.kind === 'loc' ? { full: [item.name], nick: [] } : nameSets(item);
   const data = new Set([...full, ...nick].map(norm));
   const claims = m ? claimsOf(m) : null;
-  const all = variantsOf(item), lim = Math.max(tierOf(names), Math.min(...all.map(x => x.tier)));
-  return all.filter(({ v, tier }) => {
-    if (tier > lim) return false;
-    const n = norm(v);
-    return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name);
-  }).map(x => x.v);
+  const all = variantsOf(item), low = Math.min(...all.map(x => x.tier));
+  return all.filter(({ v }) => { const n = norm(v); return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name); })
+    .map(({ v, tier }) => ({ v, tier: tier === low ? 0 : tier }));
+}
+// Spellings up to a tier ('full' / 'common' / 'any').
+const spellingsFor = (item, m, names = 'any') => spellingTiers(item, m).filter(x => x.tier <= tierOf(names)).map(x => x.v);
+// The tier of a typed answer, or null when it isn't one of the element's names at all.
+function answerTier(item, m, v) {
+  const n = norm(v); let best = null;
+  for (const x of spellingTiers(item, m)) if (norm(x.v) === n && (best === null || x.tier < best)) best = x.tier;
+  return best;
 }
 const acceptedFor = (item, m, names = 'any') => uniq(spellingsFor(item, m, names).map(norm));
 // Every right way to write a reaction's cofactors: each side in any order, ins before outs ("A + B → C", "B, A, C").
