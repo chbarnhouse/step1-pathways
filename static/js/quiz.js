@@ -112,7 +112,7 @@ function itemQ(item, m) {
 function cofQ(r, m, item = null) {
   const t = cofText(m, r.cofactors || {});
   return baseQ({
-    kind: 'cof', label: 'Cofactors', item, factItem: m.items['e:' + r.id], answerText: t, correct: t, statKey: 'c:' + r.id, pid: m.p.id,
+    kind: 'cof', label: 'Cofactors', item, factItem: m.items['e:' + r.id], answerText: t, correct: t, statKey: 'c:' + r.id, pid: m.p.id, cofs: r.cofactors || {}, model: m,
     placeholder: 'e.g. ATP, ADP — or "none"',
     options: answerStyle() === 'choice' ? cofOptions(r, m) : null,
     check: v => v === t || gradeCof(m, v, r.cofactors || {}),
@@ -555,6 +555,20 @@ function focusStep(dir) {
 }
 // Items the editor can open directly (metabolites, enzymes/transporters, cofactor sets).
 const editHref = (item, m) => (/^[mec]:/.test(item?.key || '') ? `#/pathways/${encodeURIComponent(m.p.id)}/edit/${encodeURIComponent(item.key)}` : '');
+// The optional "1/2" in a cofactor field: how many of the step's cofactors you've typed so far, out of how many.
+function updateCofCounts() {
+  if (Q.cfg.cofCount === false) return;
+  document.querySelectorAll('#view .quiz form.ansform, #view .quiz form.inl').forEach(f => {
+    const q = formQ(f);
+    if (!q || q.kind !== 'cof' || q.status !== 'open' || !q.model) return;
+    const { got, total } = cofProgress(q.model, f.querySelector('input')?.value || '', q.cofs);
+    if (!total) return;
+    let c = f.querySelector('.cofcount');
+    if (!c) { c = document.createElement('span'); c.className = 'cofcount'; c.setAttribute('aria-live', 'polite'); f.append(c); }
+    c.textContent = `${got}/${total}`;
+    c.setAttribute('aria-label', `${got} of ${total} cofactors entered`);
+  });
+}
 function zoomBarHTML() {
   return `<div class="zoombar" role="group" aria-label="Diagram zoom">
     <span class="zgroup"><button class="tbtn icon" data-zoom="out" title="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><span class="zpct" id="zoomPct">100%</span><button class="tbtn icon" data-zoom="in" title="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
@@ -572,6 +586,8 @@ function optionsHTML() {
       ${Q.cfg.mode === 'build' ? `<label>Later blanks</label>${seg('ahead', [['hide', 'Hide'], ['show', 'Show']], Q.cfg.ahead === 'show' ? 'show' : 'hide')}` : ''}
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="letterCheck" ${Q.cfg.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
+      ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="autoSubmit" ${Q.cfg.autoSubmit ? 'checked' : ''}> Submit right answers automatically</label>` : ''}
+      ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are</label>` : ''}
       <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
       ${view === 'list' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
       <label class="cb"><input type="checkbox" data-qflag="facts" ${s.facts ? 'checked' : ''}> Show facts after each answer</label>
@@ -630,6 +646,7 @@ function renderQuiz() {
   if (Q.focus && Q.drawer) $(`#stage [data-key="${CSS.escape(Q.focus.item.key)}"]`)?.classList.add('focused');
   const fk = Q.fact?.key;
   if (fk && fk !== Q.pulsed) { Q.pulsed = fk; $(`#stage [data-key="${CSS.escape(fk)}"]`)?.classList.add('just'); }
+  updateCofCounts();
   fitToolbar();
   applyZoom();
   followTarget();
@@ -794,7 +811,7 @@ document.addEventListener('change', e => {
   const f = e.target.dataset.qflag;
   if (!f) return;
   if (f === 'weak') { Q.cfg.weak = e.target.checked; newRound(); }
-  else if (f === 'letterCheck' || f === 'hints') Q.cfg[f] = e.target.checked;
+  else if (['letterCheck', 'hints', 'autoSubmit', 'cofCount'].includes(f)) { Q.cfg[f] = e.target.checked; if (f === 'cofCount') renderQuiz(); }
   else { Store.settings[f] = e.target.checked; Store.save(); }
   renderQuiz();
   $('.qopts') && ($('.qopts').open = true);
@@ -816,6 +833,9 @@ document.addEventListener('input', e => {
   const grew = v.length > q.draft.length;
   q.draft = v;
   if (q.hintLen && v.length < q.hintLen) q.hintLen = v.length; // backspacing into given letters
+  updateCofCounts();
+  // Submit automatically, when that option is on, the moment the answer is right (never when it's wrong).
+  if (Q.cfg.autoSubmit && q.status === 'open' && answerStyle() === 'type' && v.trim() && q.check(v)) { submit(q, v); return; }
   if (e.target.dataset.check) { f.querySelector('.ghost').innerHTML = checkGhost(q.targets, v, q.hintLen || 0); return; }
   if (!q.along || q.status !== 'open') return;
   if (v && q.targets?.length > 1) { const bt = bestTarget(q, v); if (bt !== q.along && alongState(bt, v).errs < alongState(q.along, v).errs) q.along = bt; } // follow the spelling or order being typed

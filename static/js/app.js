@@ -350,7 +350,9 @@ function renderCreate() {
         <div class="field" data-tour="answer"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p>
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
-          ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” hints (button, or → at the end of your answer)</label>` : ''}</div>
+          ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” hints (button, or → at the end of your answer)</label>` : ''}
+          ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="autoSubmit" ${d.autoSubmit ? 'checked' : ''}> Submit right answers automatically (no need to press Return)</label>` : ''}
+          ${elOf(d, 'cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-cflag="cofCount" ${d.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (as “1/2” while you type)</label>` : ''}</div>
           ${laterBlanks}
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
         </details>
@@ -369,7 +371,7 @@ function renderCreate() {
   updateRows();
 }
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
-const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
 const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
 const favorites = () => Store.data.favorites || [];
 const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));

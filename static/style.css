@@ -519,9 +519,9 @@ details.facts .fact-body { padding: 0 14px 12px 40px; }
 /* Check each letter: green right, red wrong (wrong also gets a wavy underline). */
 :root { --good: #1a7f37; --bad: #c62828; --good-bg: rgba(26,127,55,.16); --bad-bg: rgba(198,40,40,.15); }
 /* dark values of --good / --bad live with the dark theme tokens at the top */
-/* Check each letter: right letters on green, wrong ones on red with a wavy underline; letters from "Give me a letter" plain. */
-.along.check .c-ok { color: var(--good); background: var(--good-bg); border-radius: 2px; }
-.along.check .c-err { color: var(--bad); background: var(--bad-bg); border-radius: 2px; text-decoration: underline wavy var(--bad); }
+/* Check each letter: right letters on green (square ends, so a run of letters reads as one band), wrong ones on red with a wavy underline; letters from "Give me a letter" plain. */
+.along.check .c-ok { color: var(--good); background: var(--good-bg); }
+.along.check .c-err { color: var(--bad); background: var(--bad-bg); text-decoration: underline wavy var(--bad); }
 .along.check .c-hint, .along .a-hint { color: var(--ink); background: none; }
 .along.check .c-sep { color: var(--muted); }
 .along.check .ghost:empty::before, .along.check .ghost > .caret:first-child { }
@@ -934,3 +934,7 @@ input.inl-in::placeholder { font-size: var(--fs-xs); font-weight: 700; letter-sp
 .page, .picker, .tiles, .tgroup { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .adv > .field, .adv > label.cb { margin-top: 12px; } .adv .field p.muted { margin: 2px 0 0; text-transform: none; letter-spacing: 0; }
 .flow .legend { fill: var(--card); stroke: var(--line); stroke-width: 1; }
+/* The optional cofactor counter ("1/2"), tucked into the right end of the answer field. */
+form.inl, form.ansform { position: relative; }
+.cofcount { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; color: var(--muted); background: var(--sunk); border-radius: 999px; padding: 1px 7px; pointer-events: none; }
+form.ansform .cofcount { right: 92px; }

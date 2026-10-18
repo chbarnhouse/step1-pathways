@@ -124,18 +124,33 @@ function cofLookup(cofs) {
   phrases.sort((a, b) => b[0].length - a[0].length);
   return { map, phrases };
 }
-const IGNORE = new Set(['', '+', 'h+', 'h', 'mg2+', 'mg', 'and']);
-// Unordered set match: "NAD+, Pi, NADH" ≡ "nad+ + inorganic phosphate -> nadh".
-function gradeCof(m, raw, c) {
-  const want = new Set([...(c.in || []), ...(c.out || [])]);
+const IGNORE = new Set(['', '+', 'h+', 'h', 'mg2+', 'mg', 'and', 'uses', 'releases']); // "uses H₂O" / "releases CO₂" are how one-sided steps read
+// Cofactors: what goes in comes before what comes out (ATP → ADP, never ADP, ATP), but within each side any order counts
+// (ATP, NADH ≡ NADH, ATP). With an arrow, each side is checked on its own; as a plain list, every "in" must come first.
+function cofIds(m, raw) {
   let s = String(raw).toLowerCase().trim();
-  if (!want.size) return /^(none|nothing|no|n\/?a|-|—)?$/.test(s.replace(/\s/g, ''));
   const { map, phrases } = cofLookup(m.cof);
   for (const [ph, id] of phrases) s = s.split(ph).join(' ' + id + ' ');
-  const toks = s.split(/[,;\/\s]+|→|->|=>|⇌/).map(norm).filter(t => !IGNORE.has(t));
-  const got = new Set();
-  for (const t of toks) { if (!map[t]) return false; got.add(map[t]); }
-  return got.size === want.size && [...want].every(x => got.has(x));
+  const toks = s.split(/[,;\/\s]+/).map(norm).filter(t => !IGNORE.has(t));
+  return toks.map(t => map[t] || null);
+}
+const ARROW = /→|->|=>|⇌|>/;
+function gradeCof(m, raw, c) {
+  const ins = new Set(c.in || []), outs = new Set(c.out || []);
+  const str = String(raw);
+  if (!ins.size && !outs.size) return /^(none|nothing|no|n\/?a|-|—)?$/.test(str.toLowerCase().replace(/\s/g, ''));
+  const same = (got, want) => got.every(Boolean) && new Set(got).size === want.size && got.every(x => want.has(x)) && got.length === new Set(got).size;
+  if (ARROW.test(str)) { const [l, r = ''] = str.split(ARROW); return same(cofIds(m, l), ins) && same(cofIds(m, r), outs); }
+  const ids = cofIds(m, str);
+  if (!ids.every(Boolean)) return false;
+  const cut = ids.findIndex(x => !ins.has(x));
+  const left = cut < 0 ? ids : ids.slice(0, cut), right = cut < 0 ? [] : ids.slice(cut);
+  return same(left, ins) && same(right, outs);
+}
+// How many of a reaction's cofactors are typed so far (for the optional "1/2" counter).
+function cofProgress(m, raw, c) {
+  const want = new Set([...(c.in || []), ...(c.out || [])]);
+  return { got: new Set(cofIds(m, String(raw).replace(ARROW, ' ')).filter(x => x && want.has(x))).size, total: want.size };
 }
 
 /* ---------- accepted spellings ----------
@@ -197,15 +212,16 @@ function spellingsFor(item, m) {
   return variantsOf(item).filter(v => { const n = norm(v); return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name); });
 }
 const acceptedFor = (item, m) => uniq(spellingsFor(item, m).map(norm));
-// Every order of a reaction's cofactors, written as "A + B → C + D" or simply listed: all of them are right.
+// Every right way to write a reaction's cofactors: each side in any order, ins before outs ("A + B → C", "B, A, C").
 function cofTargets(m, c) {
   const ins = (c.in || []).map(id => cofName(m, id)), outs = (c.out || []).map(id => cofName(m, id));
   if (!ins.length && !outs.length) return ['none'];
   const perms = a => (a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(r => [x, ...r])));
   const t = new Set([cofText(m, c)]);
-  for (const a of perms(ins)) for (const b of perms(outs)) t.add(outs.length ? `${a.join(' + ')} → ${b.join(' + ')}` : a.join(' + '));
-  const all = [...ins, ...outs];
-  if (all.length <= 6) for (const a of perms(all)) { t.add(a.join(', ')); t.add(a.join(' + ')); }
+  for (const a of perms(ins)) for (const b of perms(outs)) {
+    if (a.length && b.length) t.add(`${a.join(' + ')} → ${b.join(' + ')}`);
+    t.add([...a, ...b].join(', ')); t.add([...a, ...b].join(' + '));
+  }
   return [...t];
 }
 
