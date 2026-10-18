@@ -298,7 +298,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   const bottom = Math.max(top + spineMets.length * (BH + GAP) - GAP, ...Object.values(pos).map(q => q.y + BH));
   // A sideways step on the last row writes its cofactors underneath: leave room for two lines.
   let H = bottom + 14 + (Object.entries(pos).some(([id, q]) => !onSpine.has(id) && q.y + BH === bottom) ? 34 : 0);
-  let s = '', bg = '';
+  let s = '', bg = '', fg = ''; // fg: region name tabs, drawn over the arrows
   // Side steps in another compartment (e.g. pyruvate carboxylase in the mitochondria) get a dashed, labeled region.
   const sideRects = {};
   const laneKeyAt = x => { if (!lanesOn) return L.list[0]?.key; let i = 0; while (i < last && x >= laneLeft(i + 1)) i++; return L.list[i].key; };
@@ -309,17 +309,17 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const r = stepOf(id);
     if (r?.transport) {
       // Across a membrane: the metabolite on the far side sits in its own dashed box, named for that membrane.
-      addRect(zoneOfR(r), { x: pt.x - BW / 2 - 16, y: pt.y - 14, w: BW + 32, h: BH + 44 });
+      addRect(zoneOfR(r), { x: pt.x - BW / 2 - 16, y: pt.y - 16, w: BW + 32, h: BH + 30 });
       continue;
     }
-    addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 30, w: BW + 24, h: BH + 76 });
+    addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 22, w: BW + 24, h: BH + 42 });
     // The step's own label (its enzyme) is in that compartment too.
     const other = r && pos[r.from === id ? r.to : r.from];
-    if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 30, w: g1 - g0 - 40, h: BH + 76 }); }
+    if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 22, w: g1 - g0 - 40, h: BH + 42 }); }
   }
   bypass.forEach((r, k) => {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10, my = (a.cy + b.cy) / 2;
-    addRect(zoneOfR(r), { x: xc - 4, y: my - 34, w: 200, h: 108 });
+    addRect(zoneOfR(r), { x: xc - 4, y: my - 38, w: 200, h: 84 });
   });
   // A transport straight down the main line (citrate leaving the mitochondria): box the end only this step touches.
   const uses = id => p.reactions.filter(x => x.from === id || x.to === id || (x.also_to || []).includes(id) || (x.also_from || []).includes(id)).length;
@@ -327,7 +327,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const a = pos[r.from], b = pos[r.to];
     if (!r.transport || !a || !b || a.x !== b.x) return;
     const far = uses(r.from) === 1 ? a : uses(r.to) === 1 ? b : null;
-    if (far) addRect(zoneOfR(r), { x: far.x - BW / 2 - 16, y: far.y - 14, w: BW + 32, h: BH + 44, end: true });
+    if (far) addRect(zoneOfR(r), { x: far.x - BW / 2 - 16, y: far.y - 16, w: BW + 32, h: BH + 30, end: true });
   });
   // A main-line step that happens somewhere other than the boxes around it (DHODH on the inner mitochondrial
   // membrane, between two cytosolic metabolites) names its compartment under the enzyme, as cycles do.
@@ -344,7 +344,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   const hits = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 2 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 2;
   const all = Object.values(clusters).flat();
   for (const [k, cs] of Object.entries(clusters)) {
-    const lw = (m.items['z:' + k]?.name.length || 0) * 7.4 + 28;
+    const lw = (m.items['z:' + k]?.name.length || 0) * 8.1 + 44;
     clusters[k] = cs.map(c => {
       if (c.w >= lw) return c;
       const right = { ...c, w: lw }, left = { ...c, x: Math.max(4, c.x + c.w - lw), w: lw }, others = all.filter(o => o !== c);
@@ -368,9 +368,15 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     bg += `<rect class="zone t-${zoneTone(k)}" x="0" y="0" width="${W}" height="${H}" rx="14"/>` + zoneLabel(m, statusOf, k, 16, 18, 'start');
     drawn.add(k);
   }
+  // A region's name sits on its top border, on a small tab at the right end, so the dashed line never runs through it.
+  const legend = (c, k) => {
+    const name = m.items['z:' + k]?.name || '', tw = name.length * 8.1 + 16;
+    const x0 = c.x + c.w - 14 - tw; // right end: arrows and enzyme names crowd the left
+    return `<rect class="legend" x="${x0}" y="${c.y - 9}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, k, x0 + 7, c.y + 4, 'start');
+  };
   if (zones) {
     for (const [k, cs] of Object.entries(clusters)) {
-      cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>` + (c.end ? zoneLabel(m, statusOf, k, c.x + c.w - 12, c.y + c.h - 9, 'end') : zoneLabel(m, statusOf, k, c.x + 12, c.y + c.h - 9, 'start')); }); // named along the bottom edge
+      cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>`; fg += legend(c, k); });
       drawn.add(k);
     }
     // A transport on the main line that crosses into the next lane is named where it crosses.
@@ -426,7 +432,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   });
   branches.filter(b => !bypass.includes(b)).forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, ctr(r.from), ctr(r.to)); });
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
-  return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}</svg>`;
+  return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}${fg}</svg>`;
 }
 
 // Cycles: metabolites on an ellipse (clockwise from the top; wider than tall, like the boxes) joined by curved arrows.

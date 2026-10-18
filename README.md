@@ -1,6 +1,6 @@
-# STEP 1 Pathways
+# Step 1 Pathways
 
-Study biochemical pathways for STEP 1: fill the blanks on the diagram, rebuild whole pathways from memory, or drill single steps from either side.
+Study biochemical pathways for Step 1: fill the blanks on the diagram, rebuild whole pathways from memory, or drill single steps from either side.
 
 **Use it:** https://chbarnhouse.github.io/step1-pathways/ — nothing to install or sign into. Your progress, presets and any pathways you add stay in your own browser (Settings → Export backup to move them).
 

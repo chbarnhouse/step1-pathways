@@ -21,6 +21,9 @@ const CHANGELOG = [
     'When a whole pathway happens in one compartment, New quiz says so, and the quiz asks it once.',
     'Zooming during a quiz no longer moves the typing box off its spot (most noticeable in Safari).',
     'One typeface and one set of text sizes throughout.',
+    'Compartment names sit on the top edge of their boxes, as tabs.',
+    'New quiz opens with Advanced collapsed.',
+    'The name is now written Step 1 Pathways.',
     '“Give me a letter”: press → at the end of your answer too. The letter is filled in for you, and given letters are never marked right or wrong.',
     'Check each letter now highlights right letters in green and wrong ones in red (wrong ones are also underlined).',
     'Blanks say what goes there: metabolite, enzyme, transporter, cofactors or compartment.',
@@ -50,7 +53,7 @@ const CHANGELOG = [
   ] },
   { v: '3.4.0', date: '2026-10-17', items: [
     'Favorites: star any quiz to start it from the dashboard in one click.',
-    'Renamed to STEP 1 Pathways.',
+    'Renamed to Step 1 Pathways.',
   ] },
   { v: '3.3.0', date: '2026-10-17', items: [
     'Guided tour for first-time visitors (the Tour button brings it back).',

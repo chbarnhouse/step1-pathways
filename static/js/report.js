@@ -4,7 +4,7 @@
    another site can't submit a sign-in-required form for them. With no form set, the Report button (Settings → Help and feedback) stays hidden. */
 'use strict';
 
-// The report Google Form ("STEP 1 Pathways Issue Report"); responses stay private in Google Forms/Sheets.
+// The report Google Form ("Step 1 Pathways Issue Report"); responses stay private in Google Forms/Sheets.
 const REPORT_FORM = {
   url: 'https://docs.google.com/forms/d/e/1FAIpQLSepiSeEgCt3DFbUpAcP1SDRFRemRIC-EW31ITNkiqWm6Qp1zQ/viewform',
   kind: 'entry.1795629836', what: 'entry.1978413845', expected: 'entry.1823269642', date: 'entry.669806587', details: 'entry.1658303553',
@@ -17,7 +17,7 @@ const reportsEnabled = () => !!REPORT_FORM.url;
    rest filled in; the classmate attaches the file and submits. Each submission is reviewed; approved pathways ship in the
    library under "Shared by classmates", credited by display name (no accounts). Hidden until the form is set. */
 const SHARE_FORM = {
-  url: '', // The sharing Google Form ("STEP 1 Pathways — share a pathway"), …/viewform
+  url: '', // The sharing Google Form ("Step 1 Pathways — share a pathway"), …/viewform
   name: '', pathway: '', kind: '', note: '', // entry.NNN ids from a pre-filled link
 };
 const sharingEnabled = () => !!SHARE_FORM.url;

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Deploy STEP 1 Pathways to a Proxmox homelab.
+# Deploy Step 1 Pathways to a Proxmox homelab.
 #
 # Runs as its own user and systemd unit inside a Proxmox container, reached through the
 # Proxmox host with pct (the containers have no authorized_keys). Host, container and
@@ -40,7 +40,7 @@ if [[ "$MODE" == "--setup" ]]; then
     mkdir -p $APPDIR/app $APPDIR/data/user
     cat > /etc/systemd/system/step1-pathways.service <<UNIT
 [Unit]
-Description=STEP 1 Pathways study app
+Description=Step 1 Pathways study app
 After=network.target
 
 [Service]
@@ -80,7 +80,7 @@ REMOTE
 
 echo "==> Verifying"
 sleep 2
-curl -fsS --max-time 10 "http://$CT_IP:$PORT/" | grep -q "<title>STEP 1 Pathways</title>" || { echo "!! page did not render" >&2; exit 1; }
+curl -fsS --max-time 10 "http://$CT_IP:$PORT/" | grep -q "<title>Step 1 Pathways</title>" || { echo "!! page did not render" >&2; exit 1; }
 curl -fsS --max-time 10 "http://$CT_IP:$PORT/bundle.js" | grep -q '"glycolysis"' || { echo "!! bundle missing pathways" >&2; exit 1; }
 curl -fsS --max-time 10 "http://$CT_IP:$PORT/api/state" >/dev/null || { echo "!! state API down" >&2; exit 1; }
 echo "==> OK — http://$CT_IP:$PORT  ${PUBLIC_URL:+·  $PUBLIC_URL}"

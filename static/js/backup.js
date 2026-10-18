@@ -38,7 +38,7 @@ const AutoBackup = {
   },
   async link() {
     try {
-      this.handle = await window.showSaveFilePicker({ suggestedName: 'step1-pathways-backup.json', types: [{ description: 'STEP 1 Pathways backup', accept: { 'application/json': ['.json'] } }] });
+      this.handle = await window.showSaveFilePicker({ suggestedName: 'step1-pathways-backup.json', types: [{ description: 'Step 1 Pathways backup', accept: { 'application/json': ['.json'] } }] });
     } catch { return false; } // cancelled
     await this.idb('put', this.handle).catch(() => {});
     this.status = 'linked';

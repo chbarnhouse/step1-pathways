@@ -35,7 +35,7 @@ node tools/validate.js
 python3 build.py
 node tools/test-data.js --write-ids   # these ids are now promised to users
 git add static/js/version.js docs tools/released-ids.json
-git -c user.name=Claude -c user.email=claude@cowork.local commit -q -m "STEP 1 Pathways $VER"
+git -c user.name=Claude -c user.email=claude@cowork.local commit -q -m "Step 1 Pathways $VER"
 git tag "v$VER"
 
 echo "==> Publishing"

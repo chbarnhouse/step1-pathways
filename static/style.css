@@ -933,3 +933,4 @@ input.inl-in::placeholder { font-size: var(--fs-xs); font-weight: 700; letter-sp
 /* Grids whose single column must not grow to fit a sideways-scrolling row. */
 .page, .picker, .tiles, .tgroup { grid-template-columns: minmax(0, 1fr); min-width: 0; }
 .adv > .field, .adv > label.cb { margin-top: 12px; } .adv .field p.muted { margin: 2px 0 0; text-transform: none; letter-spacing: 0; }
+.flow .legend { fill: var(--card); stroke: var(--line); stroke-width: 1; }

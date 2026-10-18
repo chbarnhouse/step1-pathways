@@ -346,7 +346,7 @@ function renderCreate() {
         ${modeOpts}
         <div class="field"><span>What to show, quiz or hide</span><div class="el-grid">${els}</div>
           ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}</div>
-        <details class="adv"${local.get('pathways.advOpen') ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: answering, hints and more${mi('expand_more', 'chev')}</summary>
+        <details class="adv"${C.advOpen ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: answering, hints and more${mi('expand_more', 'chev')}</summary>
         <div class="field" data-tour="answer"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p>
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
@@ -430,7 +430,8 @@ document.addEventListener('change', e => {
   else return;
   renderCreate();
 });
-document.addEventListener('toggle', e => { if (e.target.matches?.('details.adv')) local.set('pathways.advOpen', e.target.open); }, true);
+// Advanced starts collapsed on every visit to New quiz, and stays as you left it while you set the quiz up.
+document.addEventListener('toggle', e => { if (e.target.matches?.('details.adv')) C.advOpen = e.target.open; }, true);
 
 const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide');
 
@@ -521,14 +522,14 @@ function renderSettings() {
         : '<p class="muted">None yet. On Home, set up a quiz and press Save as preset.</p>'}
     </section>
     <section class="card pad"><h2>Your data</h2>
-      <p class="muted">${Store.mode === 'server' ? 'Saved on your STEP 1 Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
+      <p class="muted">${Store.mode === 'server' ? 'Saved on your Step 1 Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
       ${Store.mode === 'local' ? `<div class="autobk"><h3>Automatic backups</h3>
         ${AutoBackup.supported ? (AutoBackup.status === 'linked'
           ? `<p>${icon('ok')} Saving every change to <b>${esc(AutoBackup.fileName)}</b>${AutoBackup.savedAt ? `, last at ${new Date(AutoBackup.savedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ''}.</p><div class="btnrow"><button class="btn small ghost" data-data="unlink">Stop and unlink the file</button></div>`
           : AutoBackup.status === 'off'
             ? `<p class="muted">Pick a file once and every change is saved to it automatically. Choose a synced folder (iCloud Drive, Dropbox, OneDrive) and your backup follows you across devices.</p><div class="btnrow"><button class="btn small primary" data-data="link">${mi('download', 'sm')} Link a backup file</button></div>`
             : `<p class="muted">Your browser needs permission again to save to <b>${esc(AutoBackup.fileName)}</b>.</p><div class="btnrow"><button class="btn small primary" data-data="reconnect">Reconnect</button><button class="btn small ghost" data-data="unlink">Unlink</button></div>`)
-          : `<p class="muted">This browser can’t save to a file automatically (only Chrome and Edge can). Use the automatic download below instead, or open STEP 1 Pathways in Chrome or Edge.</p>`}
+          : `<p class="muted">This browser can’t save to a file automatically (only Chrome and Edge can). Use the automatic download below instead, or open Step 1 Pathways in Chrome or Edge.</p>`}
         <label class="cb"><input type="checkbox" data-autodl ${autoDownloadOn() ? 'checked' : ''}> Download a backup automatically when I leave a quiz</label></div>` : ''}
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
@@ -538,7 +539,7 @@ function renderSettings() {
       <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>${reportsEnabled() ? `<button class="btn" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show the tour automatically when I open Pathways</label></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''}. Icons: Material Symbols.</p>
+    <section class="card pad about"><h2>About</h2><p class="muted">Step 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''}. Icons: Material Symbols.</p>
       <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${Store.mode === 'server' && isPreview() ? `<button class="btn small" data-preview>${mi('science', 'sm')} Not released yet</button>` : ''}</div></section>
   </div>`;
 }
@@ -591,7 +592,7 @@ function dataGate() {
           : `<ol class="gate-steps"><li>Press <b>Choose backup file</b>.</li><li>In the window that opens, pick a folder you won’t clear out: <b>Documents</b>, <b>iCloud Drive</b> or <b>Dropbox</b>. Not Downloads.</li><li>Press <b>Save</b>. From then on, every change is saved to that file automatically.</li></ol>
             <div class="btnrow"><button type="button" class="btn" id="gateLink">${mi('download', 'sm')} Choose backup file</button><button type="button" class="btn ghost" id="gateDl">${mi('download', 'sm')} Just download a copy</button></div>`;
       } else {
-        box.innerHTML = `<p>This browser can’t keep a file up to date by itself, so STEP 1 Pathways downloads a fresh copy instead.</p>
+        box.innerHTML = `<p>This browser can’t keep a file up to date by itself, so Step 1 Pathways downloads a fresh copy instead.</p>
           <label class="cb"><input type="checkbox" id="gateAutoDl" ${autoDownloadOn() ? 'checked' : ''}> Download a backup each time I leave a quiz</label>
           <ol class="gate-steps"><li>Backups arrive in your <b>Downloads</b> folder, named <b>step1-pathways-backup-</b> and the date.</li><li>Move them to a folder you won’t clear out: <b>Documents</b>, <b>iCloud Drive</b> or <b>Dropbox</b>.</li><li>To restore: Settings → Import backup → choose the newest file.</li></ol>
           <div class="btnrow"><button type="button" class="btn" id="gateDl">${mi('download', 'sm')} Download a backup now</button></div>`;
@@ -618,7 +619,7 @@ async function openingPrompt() {
   if (Store.mode !== 'local') return;
   if (isFresh()) {
     local.set('pathways.seen', Date.now());
-    const v = await ask({ title: 'Welcome to STEP 1 Pathways', text: 'Everything you do here is saved in this browser. If you’ve used STEP 1 Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
+    const v = await ask({ title: 'Welcome to Step 1 Pathways', text: 'Everything you do here is saved in this browser. If you’ve used Step 1 Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
     if (v === 'alt') $('#backupFile')?.click() || pickBackupFile();
     return;
   }
@@ -658,12 +659,12 @@ document.addEventListener('change', e => {
   if (e.target.id !== 'backupFile') return;
   e.target.files[0]?.text().then(async t => {
     let b; try { b = JSON.parse(t); } catch (err) { return say('Can’t read that file', err.message); }
-    if (!b.pathwaysBackup) return say('Not a STEP 1 Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
+    if (!b.pathwaysBackup) return say('Not a Step 1 Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
     if (!(await ask({ title: 'Replace your data with this backup?', text: `Saved ${b.savedAt ? new Date(b.savedAt).toLocaleString() : 'earlier'}. Your current pathways, presets, settings and history will be replaced.`, ok: 'Replace' }))) return;
     delete b.pathwaysBackup; delete b.savedAt;
     // Old backups are upgraded like saved data; one from a newer version can't be read safely by this one.
     const up = upgradeData(b, window.PATHWAYS_BUNDLE && window.PATHWAYS_BUNDLE.renames);
-    if (up.newer) return say('Made by a newer version', 'This backup was saved by a newer version of STEP 1 Pathways. Reload the page to update, then import it again.');
+    if (up.newer) return say('Made by a newer version', 'This backup was saved by a newer version of Step 1 Pathways. Reload the page to update, then import it again.');
     Store.data = up.data;
     Store.save(); C.draft = null; route();
     say('Backup restored', 'Your pathways, presets and history are back.');
@@ -710,7 +711,7 @@ function router() {
   let page = 'home', m;
   closeOpenDialogs();
   if (h === '#/' || h === '#' || h === '') renderDashboard();
-  else if (h === '#/new') { page = 'new'; renderCreate(); }
+  else if (h === '#/new') { page = 'new'; if (lastPage !== 'new') C.advOpen = false; renderCreate(); }
   else if (h === '#/quiz') {
     page = 'quiz';
     if (!Q.cfg) { const c = local.get(CURRENT_QUIZ); if (c) startQuiz(c); }

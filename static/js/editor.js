@@ -188,7 +188,7 @@ function renderEditor() {
       ${st === 'custom' ? '<button class="btn ghost" data-ed="delete">Delete</button>' : ''}
     </div>
   </div>
-  <p class="muted">${Store.mode === 'server' ? 'Saves to your STEP 1 Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}${edBase() ? ' Fields that differ from the built-in are marked Edited, each with its own Revert.' : ''}</p>
+  <p class="muted">${Store.mode === 'server' ? 'Saves to your Step 1 Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}${edBase() ? ' Fields that differ from the built-in are marked Edited, each with its own Revert.' : ''}</p>
   ${mode === 'visual' ? `${vxHTML()}
     <details class="card ed-sec vx-prev"${E.prevOpen ? ' open' : ''}><summary>Diagram preview (as quizzes draw it)</summary><div id="edPreview"></div></details>` : `
   <div class="ed-cols">
