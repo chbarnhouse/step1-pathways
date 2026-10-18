@@ -11,9 +11,8 @@ const CHANGELOG = [
   { v: 'next', items: [
     'Every pathway is tagged by body system (Fundamentals, Skin, MSK, Neuro, Cardio, Renal, Endo/Repro, Heme, GI) plus a few study tags (Fed state, Fasting, Energy, Storage, Amino acids, Drug targets, Vitamins). Filter the Library and New quiz by them; your own tags still work alongside.',
     'Pathways show where they connect to others: a dotted line to a tag like “→ TCA cycle” or “from Glycolysis”. On a pathway page, click the tag to open that pathway. In a quiz a tag appears once its box is answered.',
-    'Activity on the dashboard: a star on each session adds that quiz to your favorites.',
-    'When a quiz is done, a summary pops up: your score, time, and anything to look at again, with Go again, Change settings (opens New quiz with this quiz loaded) and Review facts.',
-    'Dashboard: Recent quizzes, the last few different quizzes you took, ready to start again (▶), open in New quiz, or star as a favorite.',
+    'Activity on the dashboard: each session has ▶ to run that quiz again and a star to add it to your favorites.',
+    'When a quiz is done, a summary pops up: your score, time, and anything to look at again, with Go again, Change settings (opens New quiz with this quiz loaded), Review facts, and the same quiz on any connected pathway.',
     'New pathway: VOMIT (propionyl-CoA → succinyl-CoA). Valine, Odd-chain fatty acids, Methionine, Isoleucine and Threonine feed propionyl-CoA; then propionyl-CoA carboxylase (biotin), methylmalonyl-CoA epimerase and methylmalonyl-CoA mutase (B12).',
   ] },
   { v: '3.9.0', date: '2026-10-18', items: [

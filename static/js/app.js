@@ -67,31 +67,6 @@ function favoritesCardHTML() {
       : `<p class="muted small">${mi('star', 'sm')} Star a quiz on New quiz, or while you're in one, to keep it here.</p>`}
   </section>`;
 }
-// Recent quizzes: the last few different quizzes you took (from the activity log), newest first, ready to run again.
-function recentQuizzes(n = 6) {
-  const seen = new Set(), out = [];
-  for (const e of Store.data.log || []) {
-    if (!e.d) continue;
-    const d = normalizeDraft(e.d), sig = favSig(d), pid = d.combine && pairOf(d.pathway) ? pairOf(d.pathway).id : d.pathway, p = Library.get(pid);
-    if (seen.has(sig) || !p) continue;
-    seen.add(sig); out.push({ e, d, p });
-    if (out.length >= n) break;
-  }
-  return out;
-}
-function ago(t) {
-  const m = Math.round((Date.now() - t) / 60000);
-  return m < 1 ? 'just now' : m < 60 ? `${m} min ago` : m < 1440 ? `${Math.round(m / 60)} h ago` : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-}
-function recentCardHTML() {
-  const list = recentQuizzes();
-  return `<section class="card pad quick-card"><div class="sec-h"><h2>${mi('history', 'h-ic')} Recent quizzes</h2></div>
-    ${list.length ? `<ul class="quick-list">${list.map(({ e, d, p }, i) => { const fav = !!findFav(d);
-      return `<li><button class="quick-go" data-dash="recent" data-i="${i}" title="Open in New quiz to check the settings, then start">${tileArt(p, 'sm')}<span class="quick-text"><b>${esc(favName(d))}</b><span class="muted small">${esc(ago(e.last || e.t))} · ${e.right}/${e.total}${e.done ? ' · finished' : ''} · ${esc(quizSummary(normalizeQuiz(d)))}</span></span></button>
-        <span class="quick-actions"><button class="iconbtn" data-dash="recentstart" data-i="${i}" data-tip="Start it again" aria-label="Start ${esc(favName(d))} again">${mi('play_arrow')}</button><button class="iconbtn" data-dash="recentfav" data-i="${i}" aria-pressed="${fav}" data-tip="${fav ? 'Remove from favorites' : 'Add to favorites'}" aria-label="${fav ? 'Remove from favorites' : 'Add to favorites'}">${mi(fav ? 'star_fill1' : 'star', 'sm')}</button></span></li>`; }).join('')}</ul>`
-      : `<p class="muted small">${mi('history', 'sm')} Quizzes you take will show up here, ready to run again.</p>`}
-  </section>`;
-}
 function presetsCardHTML() {
   const all = Presets.all();
   return `<section class="card pad quick-card"><div class="sec-h"><h2>${mi('tune', 'h-ic')} Presets</h2><a class="linkbtn" href="#/settings">Manage</a></div>
@@ -109,7 +84,7 @@ function renderDashboard() {
       ${lastP ? `<button class="card hero-resume" data-dash="resume">${tileArt(lastP)}<span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(lastD)))}</span></span></button>` : ''}
       ${backupCardHTML()}
     </div>
-    <div class="dash-quick">${favoritesCardHTML()}${recentCardHTML()}${presetsCardHTML()}</div>
+    <div class="dash-quick">${favoritesCardHTML()}${presetsCardHTML()}</div>
     <div class="dash-cols">
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
@@ -129,11 +104,11 @@ function renderDashboard() {
 // What you studied, when, how, and how it went — newest first, grouped by day.
 const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
-// A star on each session that remembers its quiz (from this version on): favorite it straight from your history.
+// Sessions that remember their quiz (newer ones) can be run again (▶) or kept as a favorite (☆) right from your history.
 function actFavBtn(e) {
-  if (!e.d) return '<span class="act-fav"></span>';
+  if (!e.d) return '<span class="act-btns"></span>';
   const on = !!findFav(normalizeDraft(e.d));
-  return `<button class="iconbtn act-fav" data-dash="actfav" data-id="${esc(e.id)}" aria-pressed="${on}" data-tip="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}" aria-label="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}">${mi(on ? 'star_fill1' : 'star', 'sm')}</button>`;
+  return `<span class="act-btns"><button class="iconbtn act-fav" data-dash="actstart" data-id="${esc(e.id)}" data-tip="Run this quiz again" aria-label="Run this quiz again">${mi('play_arrow', 'sm')}</button><button class="iconbtn act-fav" data-dash="actfav" data-id="${esc(e.id)}" aria-pressed="${on}" data-tip="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}" aria-label="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}">${mi(on ? 'star_fill1' : 'star', 'sm')}</button></span>`;
 }
 function activityHTML() {
   const log = Store.data.log || [];
@@ -176,15 +151,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-dash]');
   if (!b) return;
   if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'actstart') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id); if (e?.d) { const d = normalizeDraft(e.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), clone(d)); } return; }
   if (b.dataset.dash === 'actfav') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id); if (e?.d) toggleFav(normalizeDraft(e.d), renderDashboard); return; }
-  if (['recent', 'recentstart', 'recentfav'].includes(b.dataset.dash)) {
-    const r = recentQuizzes()[+b.dataset.i];
-    if (!r) return;
-    if (b.dataset.dash === 'recent') { C.draft = clone(r.d); C.presetId = ''; location.hash = '#/new'; }
-    if (b.dataset.dash === 'recentstart') { local.set(LAST_QUIZ, { cfg: r.d }); launchQuiz(quizFromDraft(r.d), clone(r.d)); }
-    if (b.dataset.dash === 'recentfav') toggleFav(r.d, renderDashboard);
-    return;
-  }
   if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { C.draft = normalizeDraft(f.d); C.presetId = ''; location.hash = '#/new'; } }
   if (b.dataset.dash === 'favstart') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
   if (b.dataset.dash === 'favrename') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: 'Rename favorite', input: true, value: f.name, ok: 'Rename' }).then(name => { if (name && name.trim()) { f.name = name.trim(); Store.save(); renderDashboard(); } }); }
@@ -482,7 +450,7 @@ function launchQuiz(cfg, draft = null) {
   local.set(CURRENT_QUIZ, cfg);
   startQuiz(cfg);
   Q.draft = draft;
-  if (draft && Q.log) Q.log.d = clone(draft); // so Recent quizzes can run it again
+  if (draft && Q.log) Q.log.d = clone(draft); // so Activity can run it again or star it
   if (location.hash === '#/quiz') renderQuiz(); else location.hash = '#/quiz';
 }
 document.addEventListener('click', e => {

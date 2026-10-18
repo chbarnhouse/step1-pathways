@@ -199,6 +199,8 @@ const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'mi
    label, and it waits until its box is answered so it never hints at a blank.
    boxes: metabolite id → { x, y, w, h } (top-left); prefer(id): 'right' (default), 'left', 'up' or 'down'. */
 let LINK_NAV = false;
+const tagLabel = l => (l.dir === 'in' ? 'from ' : '→ ') + (Library.get(l.to)?.name || l.to) + (l.via ? ` (${l.via})` : '');
+const tagLabelW = l => tagLabel(l).length * 6.3 + 24;
 function linkTags(m, statusOf, boxes, prefer = () => 'right') {
   const out = { s: '', maxX: 0 }, byAt = {}, all = Object.values(boxes), taken = [];
   for (const l of m.p.links || []) (byAt[l.at] = byAt[l.at] || []).push(l);
@@ -209,14 +211,17 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right') {
     ls.forEach((l, i) => {
       const to = Library.get(l.to);
       if (!to) return;
-      const label = (l.dir === 'in' ? 'from ' : '→ ') + to.name + (l.via ? ` (${l.via})` : ''), w = label.length * 6.3 + 24, h = 22;
+      const label = tagLabel(l), w = tagLabelW(l), h = 22;
       const pref = prefer(at), bx = b.x + b.w / 2, yb = b.y + b.h / 2;
       let r, line;
       if (pref === 'up' || pref === 'down') {
-        // Straight above or below the box (cycles: the top and bottom boxes have enzyme labels on both sides).
-        const d = pref === 'up' ? -1 : 1, y = d < 0 ? b.y - 30 - h - i * (h + 6) : b.y + b.h + 30 + i * (h + 6);
-        r = { x: bx - w / 2, y, w, h };
-        line = `M${bx},${d < 0 ? b.y - 2 : b.y + b.h + 2}V${d < 0 ? y + h : y}`;
+        // Above or below the box (cycles: the top and bottom boxes have enzyme labels on both sides). Several tags sit
+        // side by side, each with its own line, so no line ever runs through another tag.
+        const ws = ls.map(x => tagLabelW(x)), gap = 10, total = ws.reduce((a, c) => a + c, 0) + gap * (ls.length - 1);
+        const x0 = bx - total / 2 + ws.slice(0, i).reduce((a, c) => a + c + gap, 0), d = pref === 'up' ? -1 : 1;
+        const y = d < 0 ? b.y - 30 - h : b.y + b.h + 30, lx = Math.min(b.x + b.w - 14, Math.max(b.x + 14, x0 + w / 2));
+        r = { x: x0, y, w, h };
+        line = `M${lx},${d < 0 ? b.y - 2 : b.y + b.h + 2}C${lx},${(d < 0 ? b.y : b.y + b.h) + d * 16} ${x0 + w / 2},${(d < 0 ? y + h : y) - d * 14} ${x0 + w / 2},${d < 0 ? y + h : y}`;
       } else {
         const cy = yb + (i - (ls.length - 1) / 2) * (h + 6);
         const R = { x: b.x + b.w + 36, y: cy - h / 2, w, h }, L = { x: b.x - 36 - w, y: cy - h / 2, w, h };

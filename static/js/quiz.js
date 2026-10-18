@@ -685,6 +685,21 @@ function tally(q, firstTry) {
 }
 /* Quiz complete: a popup with how it went, what to look at again, and the ways on: the same quiz again, the same
    quiz with its settings open to change, the facts, or the dashboard. Shown once per run, a moment after the last answer. */
+// Pathways this one connects to (its own links, and others' links into it): the same quiz, run on one of them.
+function connectedIds() {
+  const ids = Q.models.map(m => m.p.id), out = new Set();
+  for (const id of ids) {
+    for (const l of Library.get(id)?.links || []) out.add(l.to);
+    for (const p of Object.values(Library.all())) if ((p.links || []).some(l => l.to === id)) out.add(p.id);
+  }
+  return [...out].filter(id => !ids.includes(id) && Library.get(id) && !Library.get(id).compose);
+}
+function connectedHTML() {
+  if (!Q.draft) return '';
+  const ids = connectedIds();
+  if (!ids.length) return '';
+  return `<div class="fin-next"><span class="glabel">Same quiz on a connected pathway</span><div class="fin-links">${ids.map(id => { const p = Library.get(id); return `<button class="btn small" data-fin="link" data-id="${esc(id)}">${tileArt(p, 'xs')} ${esc(p.name)}</button>`; }).join('')}</div></div>`;
+}
 function showFinish() {
   if (Q.finishShown) return;
   Q.finishShown = true;
@@ -704,6 +719,7 @@ function showFinish() {
       </div>
       ${miss.length ? `<div class="fin-miss"><span class="glabel">To look at again (${miss.length})</span><ul>${miss.slice(0, 12).map(x => `<li>${icon('no')} ${esc(x)}</li>`).join('')}${miss.length > 12 ? `<li class="muted">and ${miss.length - 12} more</li>` : ''}</ul></div>`
         : `<p class="fin-clean">${icon('ok')} Everything right on the first try.</p>`}
+      ${connectedHTML()}
       <div class="actions">
         <button class="btn primary" data-fin="again">${mi('restart_alt', 'sm')} Go again</button>
         ${Q.draft ? `<button class="btn" data-fin="adjust">${mi('tune', 'sm')} Change settings</button>` : ''}
@@ -723,6 +739,13 @@ document.addEventListener('click', e => {
   if (v === 'again') restartQuiz();
   if (v === 'adjust' && Q.draft) { C.draft = normalizeDraft(clone(Q.draft)); C.presetId = ''; location.hash = '#/new'; }
   if (v === 'facts') { Q.drawer = true; Q.focus = null; renderQuiz(); }
+  if (v === 'link' && Q.draft) {
+    const d = clone(Q.draft);
+    d.pathway = b.dataset.id; d.combine = false; d.allPathways = false;
+    if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; // a start point named in the old pathway doesn't exist here
+    local.set(LAST_QUIZ, { cfg: d });
+    launchQuiz(quizFromDraft(d), clone(d));
+  }
 });
 function logAnswer(done = false) {
   const L = Q.log; if (!L) return;
