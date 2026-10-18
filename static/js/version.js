@@ -21,6 +21,7 @@ const CHANGELOG = [
     'When a whole pathway happens in one compartment, New quiz says so, and the quiz asks it once.',
     'Zooming during a quiz no longer moves the typing box off its spot (most noticeable in Safari).',
     'One typeface and one set of text sizes throughout.',
+    'Appearance in Settings: Auto, Light or Dark, with two looks for each: Default (blue page) or Light, and Dark or Black (pure black).',
     'The guided tour turns itself off once you finish it; skipping keeps it for next time.',
     'In Safari and Firefox, the progress notice also asks you to confirm that backups have to be downloaded by hand there.',
     'Your saved progress is now protected across updates: it is upgraded step by step with a safety copy kept first, and an out-of-date tab can never overwrite newer data.',

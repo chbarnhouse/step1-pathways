@@ -12,6 +12,37 @@ const local = {
   get(k) { try { return JSON.parse(localStorage.getItem(k) || 'null'); } catch { return null; } },
   set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
 };
+/* ---------- appearance: Auto / Light / Dark, plus which light and which dark theme (this device only) ---------- */
+const APPEARANCE_DEFAULT = { mode: 'auto', light: 'default', dark: 'dark' };
+const appearance = () => Object.assign({}, APPEARANCE_DEFAULT, local.get('pathways.appearance') || {});
+const darkScheme = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
+function applyTheme() {
+  const a = appearance(), dark = a.mode === 'dark' || (a.mode === 'auto' && !!darkScheme?.matches);
+  document.documentElement.setAttribute('data-theme', dark ? a.dark : a.light);
+}
+darkScheme?.addEventListener?.('change', () => { if (appearance().mode === 'auto') applyTheme(); });
+const THEME_SWATCH = { light: ['#f6f7f9', '#ffffff', '#1d5fa8'], default: ['#1d5fa8', '#ffffff', '#1d5fa8'], dark: ['#0f1217', '#181d25', '#7fb2ea'], black: ['#000000', '#0e0f12', '#7fb2ea'] };
+// A theme choice drawn as a tiny page: background, a card, an accent bar — plus its name, so it never rests on color alone.
+const themeChoice = (group, v, label, cur) => { const [bg, card, acc] = THEME_SWATCH[v];
+  return `<button class="theme-pick" data-theme-set="${group}" data-v="${v}" role="radio" aria-checked="${cur === v}"><span class="theme-sw" style="background:${bg}"><span style="background:${card}"><i style="background:${acc}"></i></span></span><span>${label}${cur === v ? ` ${mi('check', 'sm')}` : ''}</span></button>`; };
+function appearanceHTML() {
+  const a = appearance();
+  return `<section class="card pad"><h2>Appearance</h2><p class="muted">Applies to this device.</p>
+    <div class="set-row"><span class="glabel">Mode</span>${seg('data-theme-set', 'mode', [['auto', 'Auto (match system)'], ['light', 'Light'], ['dark', 'Dark']], a.mode)}</div>
+    <div class="set-row"><span class="glabel">Light theme</span><div class="theme-row" role="radiogroup">${themeChoice('light', 'default', 'Default', a.light)}${themeChoice('light', 'light', 'Light', a.light)}</div></div>
+    <div class="set-row"><span class="glabel">Dark theme</span><div class="theme-row" role="radiogroup">${themeChoice('dark', 'dark', 'Dark', a.dark)}${themeChoice('dark', 'black', 'Black', a.dark)}</div></div>
+  </section>`;
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-theme-set]');
+  if (!b) return;
+  const a = appearance(), key = b.getAttribute('data-theme-set'), v = b.dataset.v;
+  if (key === 'mode') a.mode = v;
+  else { a[key] = v; if (a.mode !== 'auto') a.mode = key; } // picking a light theme while in Dark shows it
+  local.set('pathways.appearance', a); applyTheme();
+  if ($('#view .settings')) renderSettings();
+});
+
 const pageHead = (title, sub = '', actions = '') => `<div class="page-h"><div><h1>${title}</h1>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${actions ? `<div class="btnrow">${actions}</div>` : ''}</div>`;
 const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button ${attr}="${key}" data-v="${v}" role="radio" aria-checked="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
 
@@ -448,6 +479,7 @@ function renderSettings() {
   const opt = (key, opts) => seg('data-set', key, opts, s[key]);
   $('#view').innerHTML = `<div class="page settings">
     ${pageHead('Settings')}
+    ${appearanceHTML()}
     <section class="card pad"><h2>Quiz defaults</h2><p class="muted">Used whenever a quiz doesn't set its own.</p>
       <div class="setup">
         <div class="set-row"><span class="glabel">Answer</span><div class="set-ctl">${opt('answer', [['type', 'Type'], ['along', 'Type along'], ['choice', 'Choice'], ['self', 'Self-check']])}</div></div>

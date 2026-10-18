@@ -19,10 +19,14 @@
   --gut: max(16px, env(safe-area-inset-left, 0px));
   --gut-r: max(16px, env(safe-area-inset-right, 0px));
   --gold: #8a6500; --gold-bg: #f8efd6;
+  --bg: var(--paper); /* the page itself (only Default changes it) */
   color-scheme: light;
 }
+/* Themes (Settings → Appearance): Light, Default (light with a blue page), Dark, Black (pure black).
+   A small script in index.html sets data-theme on <html> before the page draws; Auto follows the system.
+   Without it (never, in practice) the system setting still picks Light or Dark. */
 @media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) {
+  :root:not([data-theme]) {
     --paper: #0f1217; --sunk: #161a21; --card: #181d25; --raise: rgba(24,29,37,.86);
     --line: #2b323d; --line-soft: #222933;
     --ink: #e9edf3; --ink-2: #b9c2cf; --muted: #8e98a8;
@@ -32,27 +36,53 @@
     --teal: #5cc6cc; --teal-bg: #0f2c2e;
     --slate: #98a3b3; --slate-bg: #1d222a;
     --gold: #e3bd55; --gold-bg: #2f2710;
+    --good: #4ac26b; --bad: #ff6b6b;
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
+    --bg: var(--paper);
     color-scheme: dark;
   }
 }
-:root[data-theme="dark"] {
-  --gold: #e3bd55; --gold-bg: #2f2710;
-  --paper: #0f1217; --sunk: #161a21; --card: #181d25; --raise: rgba(24,29,37,.86);
-  --line: #2b323d; --line-soft: #222933;
-  --ink: #e9edf3; --ink-2: #b9c2cf; --muted: #8e98a8;
-  --blue: #7fb2ea; --blue-bg: #17283d; --blue-ink: #0f1217;
-  --orange: #f0a05a; --orange-bg: #33220f;
-  --pink: #e58cb4; --pink-bg: #351f2b;
-  --teal: #5cc6cc; --teal-bg: #0f2c2e;
-  --slate: #98a3b3; --slate-bg: #1d222a;
-  --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
-  color-scheme: dark;
+:root[data-theme="dark"], :root[data-theme="black"] {
+    --paper: #0f1217; --sunk: #161a21; --card: #181d25; --raise: rgba(24,29,37,.86);
+    --line: #2b323d; --line-soft: #222933;
+    --ink: #e9edf3; --ink-2: #b9c2cf; --muted: #8e98a8;
+    --blue: #7fb2ea; --blue-bg: #17283d; --blue-ink: #0f1217;
+    --orange: #f0a05a; --orange-bg: #33220f;
+    --pink: #e58cb4; --pink-bg: #351f2b;
+    --teal: #5cc6cc; --teal-bg: #0f2c2e;
+    --slate: #98a3b3; --slate-bg: #1d222a;
+    --gold: #e3bd55; --gold-bg: #2f2710;
+    --good: #4ac26b; --bad: #ff6b6b;
+    --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
+    --bg: var(--paper);
+    color-scheme: dark;
 }
+/* Black: pure black page, near-black surfaces. */
+:root[data-theme="black"] {
+  --paper: #000000; --sunk: #0b0b0d; --card: #0e0f12; --raise: rgba(0,0,0,.86);
+  --line: #24262b; --line-soft: #17181b; --slate-bg: #121318;
+  --blue-bg: #0d1a29; --orange-bg: #221607; --pink-bg: #24121c; --teal-bg: #08201f; --gold-bg: #1f1a08;
+}
+/* Default: Light, but the page itself is the blue accent. Text sitting straight on the page turns white;
+   every surface (cards, buttons, inputs, dialogs, the quiz) puts the light-theme ink back. */
+:root[data-theme="default"] { --bg: #1d5fa8; }
+:root[data-theme="default"] .view {
+  --ink: #ffffff; --ink-2: #eaf1fb; --muted: #d6e4f6; --blue: #ffffff; --line: rgba(255,255,255,.45); --line-soft: rgba(255,255,255,.25); --sunk: rgba(255,255,255,.14);
+  color: var(--ink);
+}
+:root[data-theme="default"] :is(.card, .ptile, .favtile, .btn, .chip-tg, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
+  --ink: #14181f; --ink-2: #3d4654; --muted: #5d6877; --blue: #1d5fa8; --line: #dde2ea; --line-soft: #e9edf2; --sunk: #eef0f4;
+}
+/* Containers also put the text color back (buttons and inputs keep their own rules). */
+:root[data-theme="default"] :is(.card, .ptile, .favtile, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) { color: var(--ink); }
+:root[data-theme="default"] .quiz .stage { background: var(--card); }
+/* See-through buttons sitting straight on the blue page stay white. */
+:root[data-theme="default"] .view .btn.ghost:not(:is(.card, .ptile, .favtile, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) *) { --ink: #ffffff; --line: rgba(255,255,255,.55); }
+:root[data-theme="default"] .page-h .btn.primary { background: #ffffff; border-color: #ffffff; color: #1d5fa8; }
 
 * { box-sizing: border-box; }
 html { -webkit-text-size-adjust: 100%; }
-body { margin: 0; background: var(--paper); color: var(--ink); font: var(--fs-md)/1.45 var(--display); -webkit-font-smoothing: antialiased; }
+body { margin: 0; background: var(--bg); color: var(--ink); font: var(--fs-md)/1.45 var(--display); -webkit-font-smoothing: antialiased; }
 a { color: var(--blue); }
 h1, h2, h3 { text-wrap: balance; margin: 0; letter-spacing: -.012em; }
 h1 { font-size: var(--fs-title); font-weight: 800; }
@@ -489,8 +519,7 @@ details.facts .fact-body { padding: 0 14px 12px 40px; }
 .flow .mbox.blank, .flow .mbox.target, .flow .elab.blank, .flow .elab.target { cursor: default; }
 /* Check each letter: green right, red wrong (wrong also gets a wavy underline). */
 :root { --good: #1a7f37; --bad: #c62828; }
-@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) { --good: #4ac26b; --bad: #ff6b6b; } }
-:root[data-theme="dark"] { --good: #4ac26b; --bad: #ff6b6b; }
+/* dark values of --good / --bad live with the dark theme tokens at the top */
 .along.check .c-ok { color: var(--good); }
 .along.check .c-err { color: var(--bad); text-decoration: underline wavy var(--bad); }
 .along.check .c-sep { color: var(--muted); }
@@ -832,3 +861,12 @@ form.inl.inl-float { position: absolute; z-index: 2; transform-origin: 0 0; marg
 .gate-ok { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
 .ro-banner { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px max(16px, env(safe-area-inset-left, 0px)); background: var(--gold-bg); color: var(--ink); border-bottom: 2px solid var(--gold); }
 .ro-banner .mi { fill: var(--gold); }
+/* Appearance: theme picks drawn as tiny pages, each named. */
+.theme-row { display: flex; gap: 10px; flex-wrap: wrap; }
+.theme-pick { display: grid; gap: 6px; justify-items: start; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--ink); background: var(--card); border: 1.5px solid var(--line); border-radius: 12px; padding: 8px; cursor: pointer; }
+.theme-pick[aria-checked="true"] { border-color: var(--blue); box-shadow: inset 0 0 0 1px var(--blue); }
+.theme-pick > span:last-child { display: inline-flex; align-items: center; gap: 4px; }
+.theme-pick .mi { fill: var(--blue); }
+.theme-sw { display: grid; place-items: center; width: 92px; height: 58px; border-radius: 8px; border: 1px solid var(--line); }
+.theme-sw > span { display: grid; align-items: end; width: 62px; height: 36px; border-radius: 5px; padding: 5px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
+.theme-sw i { display: block; height: 6px; width: 70%; border-radius: 3px; }
