@@ -837,12 +837,18 @@ function stillOpen(m, key) {
 }
 const spoiler = html => `<span class="spoiler" role="button" tabindex="0" data-tip="Not answered yet: click to reveal" aria-label="Hidden until you answer it. Click to reveal.">${html}</span>`;
 const maybeSpoil = (open, html) => (open && html ? spoiler(html) : html);
-// Free text (notes) with the names of still-unanswered items covered.
+// Free text (notes) with the names of still-unanswered items covered: metabolites, enzymes, cofactors still to type
+// (succinyl-CoA in glycine's notes), and compartments, whatever form the word takes (mitochondrion, mitochondrial).
 function maskNames(text, m) {
-  const terms = uniq(Object.values(m.items).filter(it => ['met', 'enz', 'trn'].includes(it.kind) && stillOpen(m, it.key))
-    .flatMap(it => [it.name, it.short, ...(it.aliases || []), ...(it.nicknames || [])]).filter(t => t && t.trim().length >= 3)).sort((a, b) => b.length - a.length);
+  const open = Object.values(m.items).filter(it => stillOpen(m, it.key));
+  const lit = uniq(open.flatMap(it => it.kind === 'cof'
+      ? [...(it.cofs.in || []), ...(it.cofs.out || [])].flatMap(id => [m.cof[id]?.name, ...(m.cof[id]?.aliases || [])])
+      : [it.name, it.short, ...(it.aliases || []), ...(it.nicknames || [])])
+    .filter(t => t && t.trim().length >= 3)).sort((a, b) => b.length - a.length).map(escRe);
+  const stems = uniq(open.filter(it => it.kind === 'loc').flatMap(it => [it.name, it.canon]).filter(t => t && t.length >= 6).map(t => escRe(t.slice(0, 6)) + '[A-Za-z]*'));
+  const terms = [...lit, ...stems];
   if (!terms.length) return esc(text);
-  const re = new RegExp(`(^|[^A-Za-z0-9])(${terms.map(escRe).join('|')})(?=$|[^A-Za-z0-9])`, 'gi');
+  const re = new RegExp(`(^|[^A-Za-z0-9])(${terms.join('|')})(?=$|[^A-Za-z0-9])`, 'gi');
   let out = '', last = 0;
   for (const mt of text.matchAll(re)) { const st = mt.index + mt[1].length; out += esc(text.slice(last, st)) + spoiler(esc(mt[2])); last = st + mt[2].length; }
   return out + esc(text.slice(last));

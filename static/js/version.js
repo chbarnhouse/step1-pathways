@@ -28,7 +28,7 @@ const CHANGELOG = [
     'Cofactors on sideways steps and steps across a membrane also get the curved arrow, bowing in toward the step.',
     'Building blocks starts with the first two blanks (1, 2 · 1, 2, 3 · …), so the first one isn’t typed twice in a row.',
     'Cofactors that go in and cofactors that come out are now two separate blanks (“cofactors in → out”), each answered in any order.',
-    'The answer panel no longer gives away what you haven’t answered yet: those parts are covered until you click them.',
+    'The answer panel no longer gives away what you haven’t answered yet (including cofactors and compartments mentioned in the notes): those parts are covered until you click them.',
     'Quiz top bar: Step back (undo the last answer, which is asked again and not counted twice) and Restart.',
     'Blank shapes on the diagram are filled white.',
     'Dashboard: Favorites fills its space beside Presets, and favorites can be renamed (pencil button).',

@@ -131,7 +131,9 @@ function cofArcLine(p1, p2, n, parts) {
   const at = (t, off) => [p1[0] + u[0] * L * t + n[0] * off, p1[1] + u[1] * L * t + n[1] * off];
   // A compact curve around the middle of the step (long slanted steps would otherwise stretch it box to box).
   const h = Math.min(0.3, 55 / L), tS = 0.5 - h, tE = 0.5 + h;
-  const S = pin ? at(tS, 30) : at(0.5 - h / 4, 8), E = pout ? at(tE, 30) : at(0.5 + h / 4, 8), C = at(0.5, pin && pout ? 2 : 12);
+  // Both sides: a bow from one end to the other. One side: a hook that leaves (or joins) the arrow and turns out to its label.
+  const S = pin ? at(tS, 30) : at(0.5 - h / 2, 4), E = pout ? at(tE, 30) : at(0.5 + h / 2, 4);
+  const C = pin && pout ? at(0.5, 2) : pin ? at(tS + h * 0.5, 6) : at(tE - h * 0.5, 6);
   const ang = Math.atan2(E[1] - C[1], E[0] - C[0]);
   let s = `<path class="cof" d="M${S[0]},${S[1]}Q${C[0]},${C[1]} ${E[0] - Math.cos(ang) * 4},${E[1] - Math.sin(ang) * 4}"/>` + head(E[0], E[1], ang, 7, 'cofh');
   const two = !!(pin && pout), cw = 7;
