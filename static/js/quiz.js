@@ -7,7 +7,7 @@
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
 const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment' };
-const kindLabel = q => (q.kind === 'cof' && q.side ? (q.side === 'in' ? 'cofactors in' : 'cofactors out') : KIND[q.kind]);
+const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? (q.side === 'in' ? 'cofactors in' : 'cofactors out') : KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- elements: show / quiz / hide ---------- */
@@ -443,6 +443,7 @@ function snapshot(q) {
   if (R.intro) c.intro = new Set(R.intro);
   if (R.q) c.q = cloneQ(R.q);
   if (R.qs) c.qs = R.qs.map(cloneQ);
+  if (R.cofShape) c.cofShape = new Set(R.cofShape);
   const stat = q && Store.data.stats[q.pid]?.[q.statKey];
   Q.undo = Q.undo || [];
   Q.undo.push({ round: c, m: Q.m, score: { ...Q.score }, history: (Q.history || []).slice(), fact: Q.fact, factM: Q.factM,
@@ -654,7 +655,24 @@ function offNoteHTML(q, idx) {
   const what = q.offTier === 1 ? 'a common abbreviation' : 'an abbreviation';
   return `<div class="hint-line off-note"><span>${mi('help', 'sm')} “${esc(q.draft)}” is ${what}, which this quiz doesn’t accept. Type a fuller name, or</span><button class="btn small" data-act="enableabbr" data-q="${idx}">Enable ${q.offTier === 1 ? 'common abbreviations' : 'abbreviations'}</button></div>`;
 }
-function answerHTML(q, idx, ...rest) { return offNoteHTML(q, idx) + answerWidgetHTML(q, idx, ...rest); }
+function answerHTML(q, idx, ...rest) { return shapePending(q) ? shapeHTML(q, idx) : offNoteHTML(q, idx) + answerWidgetHTML(q, idx, ...rest); }
+/* Arrow type: with "Show how many cofactors" off, a step's cofactor blanks don't give away its shape. Before typing any
+   of them you say which arrow it has; a wrong pick costs the first try, then you pick again. */
+const cofShapeOf = r => { const c = r.cofactors || {}, i = (c.in || []).length, o = (c.out || []).length; return i && o ? 'both' : i ? 'in' : 'out'; };
+const shapeAsked = () => Q.cfg?.cofCount === false && ['type', 'along'].includes(answerStyle()) && ['single', 'total', 'build'].includes(Q.round?.type);
+cofShapeHidden = r => shapeAsked() && !(Q.round.cofShape && Q.round.cofShape.has(r.id));
+const shapePending = q => q?.kind === 'cof' && !!q.item && q.status === 'open' && cofShapeHidden(q.item.rxn);
+const SHAPES = [['both', 'In and out', 'cofactors in → out'], ['in', 'In only', 'cofactors in →'], ['out', 'Out only', '→ cofactors out']];
+function shapeHTML(q, idx) {
+  const bad = q.shapeWrong || [];
+  return `<div class="hint-line">Which arrow does this step’s cofactors have?${bad.length ? ` <span class="bad-note">${icon('no')} Not that one.</span>` : ''}</div>
+    <div class="opts row">${SHAPES.map(([v, l, sub], i) => `<button class="opt${bad.includes(v) ? ' wrong' : ''}" data-act="cofshape" data-q="${idx}" data-v="${v}" ${bad.includes(v) ? 'disabled' : ''}><kbd>${i + 1}</kbd><span>${l}<small>${esc(sub)}</small></span>${bad.includes(v) ? icon('no') : ''}</button>`).join('')}</div>`;
+}
+function pickShape(q, v, rect) {
+  if (v === cofShapeOf(q.item.rxn)) { (Q.round.cofShape = Q.round.cofShape || new Set()).add(q.item.rxn.id); flash(true, rect); }
+  else { q.tries++; q.shapeWrong = [...(q.shapeWrong || []), v]; flash(false, rect); }
+  renderQuiz();
+}
 function answerWidgetHTML(q, idx, compact) {
   const style = answerStyle();
   const optsFor = q.kind === 'dir' ? q.dirOptions : q.options ? q.options.map(o => ({ v: o, label: o })) : null;
@@ -743,7 +761,7 @@ function optionsHTML() {
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="letterCheck" ${Q.cfg.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       ${ans === 'type' ? nameModesHTML('data-qname', nameModesCfg(Q.cfg)) : ''}
-      ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are</label>` : ''}
+      ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (off: pick the arrow type first)</label>` : ''}
       <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
       ${view === 'list' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
       <label class="cb"><input type="checkbox" data-qflag="facts" ${s.facts ? 'checked' : ''}> Show facts after each answer</label>
@@ -760,7 +778,7 @@ function renderQuiz() {
   const R = Q.round;
   const occ = R.type === 'single' || R.type === 'total' || R.type === 'build';
   const cq = occ && R.q;
-  INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open'
+  INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
   if (cq) cq.inline = !!INLINE;
   const flow = viewStyle() === 'flow', horiz = Store.settings.dir === 'h';
@@ -864,7 +882,7 @@ function factsCard(item, m) {
     if (item.kind === 'enz') {
       const c = r.cofactors || {}, ins = cofSideText(m, { in: c.in }), outs = cofSideText(m, { out: c.out });
       const open = k => stillOpen(m, k + r.id), cin = maybeSpoil(open('c:'), esc(ins)), cout = maybeSpoil(ins ? open('o:') : open('c:'), esc(outs));
-      const ct = !ins && !outs ? 'None' : !ins ? 'releases ' + cout : !outs ? 'uses ' + cin : cin + ' → ' + cout;
+      const ct = !ins && !outs ? 'None' : cofShapeHidden(r) && (open('c:') || open('o:')) ? spoiler(esc(cofText(m, c))) : !ins ? '→ ' + cout : !outs ? cin + ' →' : cin + ' → ' + cout;
       extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Requires ${esc(r.requires.join(', '))}` : ''}</p>`;
     }
     if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${maybeSpoil(stillOpen(m, 'w:' + r.id), esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · ')))}</p>`;
@@ -1005,6 +1023,7 @@ document.addEventListener('click', e => {
     case 'peekall': R.qs.filter(x => x.status === 'open').forEach(x => (x.status = 'peek')); renderQuiz(); break;
     case 'next': case 'skip': if (qs.some(x => x && x.status === 'open')) snapshot(null); nextQuestion(); break;
     case 'back': stepBack(); break;
+    case 'cofshape': pickShape(q, b.dataset.v, b.getBoundingClientRect()); break;
     case 'togglefacts': Store.settings.facts = !Store.settings.facts; Store.save(); renderQuiz(); break;
     case 'enableabbr': { const modes = nameModesCfg(Q.cfg); TIER_KEYS.forEach((k, i) => { if (i <= q.offTier && modes[k] === 'off') modes[k] = 'enter'; });
       Q.cfg.nameModes = modes; delete Q.cfg.names; delete Q.cfg.fullNames; const v = q.draft; q.offTier = null; submit(q, v); break; }
@@ -1065,6 +1084,7 @@ document.addEventListener('keydown', e => {
   const V = $('#view');
   if (e.key === 'Escape' && inInput && Q.round.q) { reveal(Q.round.q); return; }
   if (e.key === 'Backspace' && inInput && !e.target.value) { const f = e.target.closest('form'), q = f && formQ(f); if (q?.locked?.length) { e.preventDefault(); q.draft = cofName(q.model, q.locked.pop()); q.locked = [...q.locked]; withAlong(q, q.model); q.targets = cofTargets(q.model, cofsLeft(q)); q.targetTier = Object.fromEntries(q.targets.map(t => [t, 0])); renderQuiz(); return; } }
+  if (!inInput && /^[1-3]$/.test(e.key)) { const b = V.querySelectorAll('[data-act="cofshape"]')[+e.key - 1]; if (b && !b.disabled) { e.preventDefault(); b.click(); return; } } // arrow type (the key mustn't also land in the field that opens)
   if (Q.round.type === 'build') return;
   if (e.key === 'Enter' && !inInput) {
     const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');

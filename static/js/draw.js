@@ -101,6 +101,7 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
 // a side's mark just after its text (never on the curve). parts: from cofParts (or the step quiz's questions).
 function cofArcParts(x, y1, y2, parts, up = false) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
+  if (parts.length === 1 && !parts[0].side) return cofRow(x + 22, (y1 + y2) / 2, 'start', parts); // arrow not chosen yet: no arc
   const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out');
   if (!pin && !pout) return '';
   const d = up ? -1 : 1, yF = up ? y2 : y1, yT = up ? y1 : y2, mid = (y1 + y2) / 2;
@@ -125,6 +126,7 @@ function cofArcParts(x, y1, y2, parts, up = false) {
 // line p1→p2, inputs where it starts, outputs where it ends, and its middle bows in toward the step's arrow.
 function cofArcLine(p1, p2, n, parts) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
+  if (parts.length === 1 && !parts[0].side) return cofRow((p1[0] + p2[0]) / 2 + n[0] * 30, (p1[1] + p2[1]) / 2 + n[1] * 30, Math.abs(n[0]) > 0.5 ? (n[0] > 0 ? 'start' : 'end') : 'middle', parts);
   const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out');
   if (!pin && !pout) return '';
   const dx = p2[0] - p1[0], dy = p2[1] - p1[1], L = Math.hypot(dx, dy) || 1, u = [dx / L, dy / L];
@@ -154,7 +156,13 @@ function cofArcLine(p1, p2, n, parts) {
 }
 // A step's cofactors are items too, one per side ('c:' in, 'o:' out): shown, hidden altogether ('hide'), or blanks.
 // parts: [{key, side, st, text}]; cofSt sums them up (any blank → blank, the current one → target).
-const cofParts = (m, statusOf, r) => cofItemsOf(m, r).map(it => ({ key: it.key, side: it.side, st: statusOf(it.key), text: cofSideText(m, it.cofs) }));
+// cofShapeHidden(r): the quiz hasn't revealed which arrow this step has (in and out, in only, out only), so while any
+// of its cofactors is still a blank they show as one plain "cofactors" pill. The quiz sets it; elsewhere it's never hidden.
+let cofShapeHidden = () => false;
+const cofParts = (m, statusOf, r) => {
+  const ps = cofItemsOf(m, r).map(it => ({ key: it.key, side: it.side, st: statusOf(it.key), text: cofSideText(m, it.cofs) }));
+  return ps.length && cofShapeHidden(r) && ps.some(p => hidden(p.st)) ? [{ key: ps[0].key, side: null, st: cofCombined(ps), text: '' }] : ps;
+};
 function cofCombined(parts) {
   const sts = parts.map(p => p.st);
   if (!sts.length) return 'none';
@@ -172,7 +180,7 @@ function cofRow(x, y, anchor, parts) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
   const two = parts.length > 1, gap = 6, aw = 14, cw = 7;
   const ps = parts.map(p => ({ ...p, live: isLive(p),
-    w: isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
+    w: isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) + (p.st === 'target' ? 16 : 0) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
   const total = ps.reduce((a, p) => a + p.w, 0) + (ps.length - 1) * (aw + 2 * gap);
   let cx = anchor === 'end' ? x - total : anchor === 'middle' ? x - total / 2 : x, s = '';
   ps.forEach((p, i) => {

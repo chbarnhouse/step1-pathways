@@ -115,8 +115,9 @@ const cofSideText = (m, c) => [...(c.in || []), ...(c.out || [])].map(id => cofN
 function cofText(m, c) {
   const i = (c.in || []).map(id => cofName(m, id)), o = (c.out || []).map(id => cofName(m, id));
   if (!i.length && !o.length) return 'None';
-  if (!i.length) return 'releases ' + o.join(' + ');
-  if (!o.length) return 'uses ' + i.join(' + ');
+  // One side only: just the molecules, with the arrow saying which side ("ATP →" goes in, "→ H₂O" comes out).
+  if (!i.length) return '→ ' + o.join(' + ');
+  if (!o.length) return i.join(' + ') + ' →';
   return i.join(' + ') + ' → ' + o.join(' + ');
 }
 function cofLookup(cofs) {

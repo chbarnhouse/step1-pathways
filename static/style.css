@@ -999,3 +999,4 @@ button.zpct:hover { background: var(--sunk); color: var(--ink); }
 @keyframes fbpop { 0% { opacity: 0; transform: scale(.85); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
 @media (prefers-reduced-motion: reduce) { .fb { animation-name: fbfade; } }
 @keyframes fbfade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+.flow .elab.cofb.target text { font-size: var(--fs-sm); } /* a plain "cofactors" pill that's current: same size as the others */
