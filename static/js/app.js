@@ -532,7 +532,7 @@ function renderSettings() {
           : `<p class="muted">This browser can’t save to a file automatically (only Chrome and Edge can). Use the automatic download below instead, or open Step 1 Pathways in Chrome or Edge.</p>`}
         <label class="cb"><input type="checkbox" data-autodl ${autoDownloadOn() ? 'checked' : ''}> Download a backup automatically when I leave a quiz</label></div>` : ''}
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
-      <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
+      <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history…</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
     </section>
     <section class="card pad help"><h2>Help and feedback</h2>
@@ -653,7 +653,7 @@ document.addEventListener('click', e => {
       .then(v => { if (v) { downloadBackup(); route(); } });
   }
   if (db.dataset.data === 'import') pickBackupFile();
-  if (db.dataset.data === 'resetstats') ask({ title: 'Clear all answer history?', text: 'Weak spots and accuracy start over. Pathways and presets stay.', ok: 'Clear' }).then(y => { if (y) { Stats.reset(); route(); } });
+  if (db.dataset.data === 'resetstats') startOver();
 });
 document.addEventListener('change', e => {
   if (e.target.id !== 'backupFile') return;
@@ -692,6 +692,29 @@ document.addEventListener('click', e => {
   if (!$('#helpPop')?.hidden && (!e.target.closest('#helpPop') || e.target.closest('#helpPop button'))) setHelp(false);
 });
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#helpPop')?.hidden) { setHelp(false); $('#helpBtn').focus(); } });
+
+/* Clear all history: a true fresh start, as on a first visit (welcome, tour, the progress notice).
+   Erases everything saved for this app here, except the Appearance choice. A linked backup file is disconnected
+   first and left untouched, so the empty data never overwrites it. */
+async function startOver() {
+  const where = Store.mode === 'server' ? 'on your server' : 'in this browser';
+  const v = await ask({ title: 'Clear all history and start over?', ok: 'Erase everything', alt: 'Download a backup first', cancel: 'Cancel',
+    text: `This erases everything saved ${where}: answer history, activity, favorites, presets, tags, settings, and pathways you made or edited. Then Step 1 Pathways starts again as on your first visit, with the welcome and the tour.\n\nIt can’t be undone, except from a backup.` });
+  if (v === 'alt') { downloadBackup(); return startOver(); }
+  if (v !== true) return;
+  await AutoBackup.unlink().catch(() => {});
+  clearTimeout(Store.t);
+  Store.readOnly = false;
+  Store.data = upgradeData({}, window.PATHWAYS_BUNDLE && window.PATHWAYS_BUNDLE.renames).data;
+  await Store.flush();
+  try {
+    const keep = new Set(['pathways.appearance', 'pathways.data']);
+    Object.keys(localStorage).filter(k => k.startsWith('pathways.') && !keep.has(k)).forEach(k => localStorage.removeItem(k));
+    sessionStorage.clear();
+  } catch {}
+  location.hash = '#/';
+  location.reload();
+}
 
 /* ================= Router ================= */
 const route = () => router();

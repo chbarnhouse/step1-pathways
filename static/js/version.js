@@ -8,6 +8,9 @@
 const APP_VERSION = '3.8.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+    'Clear all history (Settings) now really starts over: everything saved here is erased, after an offer to download a backup first, and the app opens as on your first visit.',
+  ] },
   { v: '3.8.0', date: '2026-10-18', items: [
     'Diagrams are now a canvas: drag to move around, pinch (or Ctrl/⌘ and scroll) to zoom. The typing box stays on its spot at any zoom, in every browser.',
     'Clearer compartments: each has its own tint with its name on a tab, membranes are dashed, and a step that happens somewhere else (glucose in the blood, pyruvate carboxylase in the mitochondria) gets its own labeled box.',
