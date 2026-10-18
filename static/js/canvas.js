@@ -51,6 +51,7 @@ function applyZoom(scope = document) {
   const st = canvasStage(scope), list = scope.querySelector('.stage .list'), z = Store.settings.zoom;
   scope.querySelectorAll('[data-zoom]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.zoom === String(z))));
   scope.querySelectorAll('[data-flag="follow"]').forEach(b => b.setAttribute('aria-pressed', String(!!Store.settings.follow)));
+  scope.querySelectorAll('.peekbtn').forEach(b => { b.hidden = !Store.settings.follow; });
   if (!st || !svgOf(st)) {
     if (list) { const k = typeof z === 'number' ? z : 1; list.style.zoom = k; const zp = scope.querySelector('#zoomPct'); if (zp) zp.textContent = Math.round(k * 100) + '%'; }
     return;
@@ -107,6 +108,30 @@ function placeInline() {
   if (!slot || !f) return;
   Object.assign(f.style, { left: slot.x.baseVal.value + 'px', top: slot.y.baseVal.value + 'px', width: slot.width.baseVal.value + 'px', height: slot.height.baseVal.value + 'px', transform: '' });
 }
+
+/* ---------- peek: hold to see the whole pathway ----------
+   While Follow is on, pressing and holding the button above it shows the whole diagram; letting go goes back to the
+   exact view you had. The zoom setting itself never changes. */
+let PEEK = null;
+function peekStart() {
+  const st = canvasStage();
+  if (!st || !st._v || PEEK) return;
+  PEEK = { st, v: { ...st._v } };
+  const { w, h } = contentSize(st), k = fitK(st, 'fit');
+  setView(st, { k, x: Math.max(CANVAS.pad, (st.clientWidth - w * k) / 2), y: Math.max(CANVAS.pad, (st.clientHeight - h * k) / 2) }, true);
+  document.querySelectorAll('.peekbtn').forEach(b => b.setAttribute('aria-pressed', 'true'));
+}
+function peekEnd() {
+  if (!PEEK) return;
+  const { st, v } = PEEK; PEEK = null;
+  if (st.isConnected) setView(st, v, true);
+  document.querySelectorAll('.peekbtn').forEach(b => b.setAttribute('aria-pressed', 'false'));
+}
+document.addEventListener('pointerdown', e => { if (e.button === 0 && e.target.closest?.('[data-peek]')) { e.preventDefault(); peekStart(); } });
+for (const ev of ['pointerup', 'pointercancel', 'blur']) window.addEventListener(ev, peekEnd);
+document.addEventListener('keydown', e => { if ((e.key === ' ' || e.key === 'Enter') && e.target.closest?.('[data-peek]')) { e.preventDefault(); if (!e.repeat) peekStart(); } });
+document.addEventListener('keyup', e => { if ((e.key === ' ' || e.key === 'Enter') && e.target.closest?.('[data-peek]')) peekEnd(); });
+document.addEventListener('contextmenu', e => { if (e.target.closest?.('[data-peek]')) e.preventDefault(); }); // a long press on a phone isn't a menu
 
 /* ---------- dragging, scrolling, pinching ---------- */
 function wireCanvas(st) {

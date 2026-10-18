@@ -11,11 +11,12 @@ const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? (q.side
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- elements: show / quiz / hide ---------- */
-function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
+function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : cfg.mode === 'zones' ? 'zones' : 'occ'; }
 function elSpecFor(cfg) {
   return {
     occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
+    zones: [['loc', 'Compartments', ['quiz']], ['cof', 'Cofactors', ['show', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)];
 }
@@ -33,7 +34,7 @@ const viewStyle = () => Q.cfg.view || Store.settings.view;
 function quizSummary(cfg) {
   const by = { quiz: [], show: [], hide: [] };
   elSpecFor(cfg).forEach(([k, label]) => by[elOf(cfg, k)].push(label.toLowerCase()));
-  const mode = cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
+  const mode = cfg.mode === 'zones' ? 'Compartments' : cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
   return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
 }
 
@@ -229,6 +230,7 @@ function newRound() {
   else if (Q.cfg.mode === 'single') { Q.round = { type: 'single', deck: [], target: null, q: null }; nextSingle(); }
   else if (Q.cfg.mode === 'total') { Q.round = { type: 'total', queue: Q.models.slice(1) }; Q.m = Q.models[0]; startTotal(); }
   else if (Q.cfg.mode === 'build') startBuild();
+  else if (Q.cfg.mode === 'zones') startZones();
   else if (Q.cfg.given === 'enz') { Q.round = { type: 'stepE', deck: [], qs: [] }; nextStepE(); }
   else { Q.round = { type: 'step', deck: [], pair: null, qs: [] }; nextStep(); }
 }
@@ -304,6 +306,126 @@ function buildResolved(q) {
   } else R.roundMsg = '';
   loadBuildQ();
   renderQuiz();
+}
+
+/* ---------- Compartments ----------
+   No lanes, tints or compartment names, and list view only. First mark every place the pathway crosses a membrane
+   (a gap between two steps, in reading order), then name each part the membranes cut it into, one at a time.
+   A step that carries something across a membrane (a transport) is a crossing already: it's drawn as one, never asked.
+   History: 'b:<step>' = the membrane just before that step (in a cycle, the first step's is the one on the way back
+   round); each part is its compartment, 'z:<zone>', as in the other modes. Parts follow the real membranes, so a
+   wrong mark doesn't change what you're asked to name. */
+function zonePlan(m) {
+  const zoneOf = r => (r.loc ? zoneKey(m, r.loc, r.tissue) : '');
+  const tis = r => r.tissue || m.p.tissue || '';
+  const steps = m.seq.filter(k => k[0] === 'e').map(k => m.items[k]);
+  const gaps = [], secs = [];
+  let prev = null, first = null, lastT = null;
+  for (const it of steps) {
+    const r = it.rxn;
+    if (r.transport) { lastT = it.key; prev = null; continue; }
+    const z = zoneOf(r);
+    if (!z) continue;
+    if (prev) {
+      const g = { key: 'b:' + r.id, at: it.key, truth: zoneOf(prev.rxn) !== z, cells: tis(prev.rxn) !== tis(r) };
+      gaps.push(g);
+      if (g.truth) secs.push({ zone: z, at: it.key });
+    } else secs.push(secs.length && lastT ? { zone: z, afterKey: lastT } : { zone: z, top: true });
+    first = first || it; prev = it;
+  }
+  // A cycle's last part runs back into its first one (unless a transport sits in between).
+  const ti = steps.findIndex(it => it.rxn.transport);
+  if (m.p.circular && prev && first && prev !== first && ti < 0)
+    gaps.push({ key: 'b:' + first.rxn.id, at: 'wrap', truth: zoneOf(prev.rxn) !== zoneOf(first.rxn), cells: tis(prev.rxn) !== tis(first.rxn) });
+  return { gaps, secs: secs.filter(s => m.items['z:' + s.zone]) };
+}
+function startZones() {
+  const m = Q.m = Q.models[0], plan = zonePlan(m);
+  if (!plan.secs.length) { Q.round = { type: 'none', msg: `No compartments are recorded for <b>${esc(m.p.name)}</b>, so there’s nothing to place. Pick another pathway.` }; return; }
+  Q.round = { type: 'zones', phase: 'mark', plan, marks: {}, secs: plan.secs, pos: 0, secSt: {}, q: null, done: false, memNote: '' };
+}
+function checkMembranes(revealed) {
+  const R = Q.round, pid = Q.m.p.id;
+  if (R.phase !== 'mark') return;
+  const real = R.plan.gaps.filter(g => g.truth), extra = revealed ? [] : R.plan.gaps.filter(g => !g.truth && R.marks[g.key]);
+  snapshot(null, [...real, ...extra].map(g => [pid, g.key]));
+  let found = 0;
+  for (const g of real) { const ok = !revealed && !!R.marks[g.key]; if (ok) found++; Stats.record(pid, g.key, ok); }
+  for (const g of extra) Stats.record(pid, g.key, false);
+  Q.score.total += real.length + extra.length; Q.score.right += found;
+  logAnswer();
+  R.revealed = revealed;
+  const n = real.length, w = n === 1 ? 'membrane' : 'membranes';
+  R.memNote = revealed ? `${n} ${w} shown.` : !n && !extra.length ? 'Right: it all happens in one place.'
+    : `${found} of ${n} ${w} found${extra.length ? `, ${extra.length} marked where there isn’t one` : ''}.`;
+  R.phase = 'name'; R.pos = 0;
+  if (!revealed) flash(found === n && !extra.length, answerRect() || $('#view .dock [data-act="checkmem"]')?.getBoundingClientRect(), found === n && !extra.length ? 'All right' : 'Not quite');
+  loadZoneQ();
+  renderQuiz();
+}
+function loadZoneQ() {
+  const R = Q.round;
+  if (R.pos >= R.secs.length) { R.done = true; R.q = null; logAnswer(true); return; }
+  R.q = withAlong(itemQ(Q.m.items['z:' + R.secs[R.pos].zone], Q.m), Q.m);
+}
+function advanceZones() { Q.round.pos++; loadZoneQ(); renderQuiz(); }
+function zonesStage() {
+  const R = Q.round, m = Q.m, P = R.plan, mark = R.phase === 'mark';
+  const gapAt = {}, wrap = P.gaps.findIndex(g => g.at === 'wrap');
+  P.gaps.forEach((g, i) => { if (g.at !== 'wrap') gapAt[g.at] = i; });
+  const before = {}, after = {}; let top = -1;
+  R.secs.forEach((s, i) => { if (s.top) top = i; else if (s.afterKey) after[s.afterKey] = i; else if (s.at) before[s.at] = i; });
+  const gap = i => {
+    const g = P.gaps[i], on = !!R.marks[g.key], word = g.cells ? 'membrane (into another cell)' : 'membrane';
+    if (mark) return `<button type="button" class="mgap${on ? ' on' : ''}" data-act="mgap" data-g="${i}" aria-pressed="${on}" aria-label="${on ? 'Membrane marked here; click to remove it' : 'Mark a membrane between these two steps'}"><span class="gl"></span><span class="gt">${on ? esc(word) : '+ membrane here'}</span></button>`;
+    if (!g.truth && !on) return '<div class="mgap none" aria-hidden="true"><span class="gl"></span></div>';
+    const st = g.truth ? (R.revealed ? 'shown' : on ? 'right' : 'missed') : 'extra';
+    const text = st === 'extra' ? 'no membrane here' : st === 'missed' ? `${word}: missed` : word;
+    return `<div class="mgap res ${st}"><span class="gl"></span><span class="gt">${esc(text)}${st === 'right' ? icon('ok') : st === 'shown' ? '' : icon('no')}</span></div>`;
+  };
+  const sec = i => {
+    if (mark) return '';
+    const it = m.items['z:' + R.secs[i].zone];
+    const st = R.done || i < R.pos ? R.secSt[i] || 'missed' : i > R.pos ? 'blank' : R.q.status === 'open' || R.q.status === 'peek' ? 'target' : R.q.status;
+    if (st === 'target' && INLINE) return `<form class="locrow inl" data-q="0">${inlineInput()}</form>`;
+    if (hidden(st)) return `<div class="locrow blank${st === 'target' ? ' target' : ''}"><span class="bk">${st === 'target' ? 'name this part' : 'compartment'}</span></div>`;
+    return `<div class="locrow ${st}" data-key="${it.key}">${esc(it.name)} ${st === 'right' ? icon('ok') : icon('no')}</div>`;
+  };
+  let h = top >= 0 ? sec(top) : '';
+  for (const k of m.seq) {
+    const it = m.items[k];
+    if (it.kind === 'loc' || it.kind === 'cof') continue;
+    if (it.kind === 'met') { h += chip(it, 'shown'); continue; }
+    if (gapAt[k] != null) h += gap(gapAt[k]);
+    if (before[k] != null) h += sec(before[k]);
+    h += `<div class="zrow${it.rxn.transport ? ' across' : ''}" data-key="${k}">${conn(m, it, 'shown', false, statusOf)}${it.rxn.transport ? '<span class="across-t">crosses a membrane</span>' : ''}</div>`;
+    if (after[k] != null) h += sec(after[k]);
+  }
+  if (wrap >= 0) h += gap(wrap);
+  if (m.p.circular) h += `<div class="conn"><span class="arr">↺</span><div class="meta"><span class="cofs">back to the start</span></div></div>`;
+  return `<div class="list v zones${mark ? ' marking' : ''}">${h}</div>`;
+}
+function zonesDock() {
+  const R = Q.round, q = R.q;
+  if (R.done) return `<div class="dock done-dock"><div class="dock-row">
+      <div class="dock-text"><div class="big">${Q.score.right} / ${Q.score.total}</div><div class="muted">right on the first try: ${esc(R.memNote)}</div></div>
+      <div class="dock-actions">${factsToggle()}<button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
+    </div>${lastFactsHTML()}</div>`;
+  if (R.phase === 'mark') {
+    const n = R.plan.gaps.filter(g => R.marks[g.key]).length;
+    return `<div class="dock"><div class="dock-row">
+      <div class="dock-text"><span class="kind kind-loc">membranes</span><span class="muted"> ${n} marked</span></div>
+      <div class="dock-answer"><div class="hint-line">Click between two steps wherever the pathway crosses a membrane. Then you’ll name each part.</div></div>
+      <div class="dock-actions"><button class="btn ghost" data-act="showmem" title="Show where the membranes are (they count as missed)">${mi('visibility', 'sm')} Show me</button><button class="btn primary" data-act="checkmem">Check membranes <kbd>↵</kbd></button></div>
+    </div></div>`;
+  }
+  const open = q.status === 'open' || q.status === 'peek';
+  const next = q.status === 'missed' || (q.status === 'right' && !Store.settings.autoAdvance) ? `<button class="btn primary" data-act="continue">Continue <kbd>↵</kbd></button>` : '';
+  return `<div class="dock"><div class="dock-row">
+    <div class="dock-text"><span class="kind kind-loc">compartment</span><span class="muted"> part ${R.pos + 1} of ${R.secs.length}</span>${R.memNote && R.pos === 0 ? `<div class="round-note">${esc(R.memNote)}</div>` : ''}</div>
+    <div class="dock-answer">${answerHTML(q, 0, true)}</div>
+    <div class="dock-actions">${factsToggle()}${open && answerStyle() !== 'self' ? `<button class="btn ghost" data-act="reveal" title="Reveal (Esc)">${mi('visibility', 'sm')} Reveal</button>` : ''}${next}</div>
+  </div>${lastFactsHTML()}</div>`;
 }
 
 function advanceTotal() { Q.round.pos++; loadTotalQ(); renderQuiz(); }
@@ -436,10 +558,12 @@ function nextQuestion() {
    Before each answer counts (or a question is skipped), the quiz keeps a snapshot: the round, the score, the facts list
    and that question's saved history. Step back restores the last one, so the answer is asked again and never counted twice. */
 const cloneQ = q => q && { ...q, wrong: [...(q.wrong || [])], locked: [...(q.locked || [])] };
-function snapshot(q) {
+function snapshot(q, keys = null) {
   const R = Q.round, c = { ...R };
   for (const k of ['deck', 'order', 'queue']) if (Array.isArray(R[k])) c[k] = R[k].slice();
   if (R.st) c.st = { ...R.st };
+  if (R.marks) c.marks = { ...R.marks };
+  if (R.secSt) c.secSt = { ...R.secSt };
   if (R.intro) c.intro = new Set(R.intro);
   if (R.q) c.q = cloneQ(R.q);
   if (R.qs) c.qs = R.qs.map(cloneQ);
@@ -447,14 +571,15 @@ function snapshot(q) {
   const stat = q && Store.data.stats[q.pid]?.[q.statKey];
   Q.undo = Q.undo || [];
   Q.undo.push({ round: c, m: Q.m, score: { ...Q.score }, history: (Q.history || []).slice(), fact: Q.fact, factM: Q.factM,
-    stat: q && { pid: q.pid, key: q.statKey, v: stat ? JSON.parse(JSON.stringify(stat)) : null }, log: Q.log && { ...Q.log } });
+    stat: q && { pid: q.pid, key: q.statKey, v: stat ? JSON.parse(JSON.stringify(stat)) : null }, log: Q.log && { ...Q.log },
+    stats: keys && keys.map(([pid, key]) => { const v = Store.data.stats[pid]?.[key]; return { pid, key, v: v ? JSON.parse(JSON.stringify(v)) : null }; }) });
   if (Q.undo.length > 200) Q.undo.shift();
 }
 function stepBack() {
   const u = Q.undo?.pop();
   if (!u) return;
   Q.round = u.round; Q.m = u.m; Q.score = u.score; Q.history = u.history; Q.fact = u.fact; Q.factM = u.factM;
-  if (u.stat) { const S = Store.data.stats; S[u.stat.pid] = S[u.stat.pid] || {}; if (u.stat.v) S[u.stat.pid][u.stat.key] = u.stat.v; else delete S[u.stat.pid][u.stat.key]; }
+  for (const st of [u.stat, ...(u.stats || [])]) { if (!st) continue; const S = Store.data.stats; S[st.pid] = S[st.pid] || {}; if (st.v) S[st.pid][st.key] = st.v; else delete S[st.pid][st.key]; }
   if (u.log) { Q.log = u.log; const log = Store.data.log || [], i = log.findIndex(x => x.id === u.log.id); if (i >= 0) { if (u.log.total) log[i] = { ...u.log }; else log.splice(i, 1); } }
   Store.save();
   for (const q of Q.round.qs || [Q.round.q]) if (q && q.status === 'open') { q.draft = ''; q.justWrong = false; }
@@ -540,6 +665,15 @@ function resolved(q) {
   Q.factM = Q.m;
   Q.history = (Q.history || []).filter(h => !(h.item === Q.fact && h.m === Q.m));
   Q.history.unshift({ item: Q.fact, m: Q.m, status: q.status });
+  if (R.type === 'zones') {
+    R.secSt[R.pos] = q.status;
+    if ((q.status === 'right' && Store.settings.autoAdvance) || q.self) {
+      const pos = R.pos;
+      renderQuiz();
+      setTimeout(() => { if (Q.round === R && R.pos === pos && location.hash.startsWith('#/quiz')) advanceZones(); }, q.self ? 0 : 450);
+      return;
+    }
+  }
   if (R.type === 'total') {
     R.st[q.item.key] = q.status;
     if ((q.status === 'right' && Store.settings.autoAdvance) || q.self) {
@@ -708,6 +842,7 @@ function noteInlineRight(q) { if (q.inline) local.set('pathways.inlineRight', (l
 function progressFrac() {
   const R = Q.round;
   if (R.type === 'total') return R.done ? 1 : R.pos / Math.max(1, R.order.length);
+  if (R.type === 'zones') return R.done ? 1 : R.phase === 'mark' ? 0 : (1 + R.pos) / (1 + R.secs.length);
   if (R.type === 'build') { const k0 = R.k0 || 1; return R.done ? 1 : ((R.k - k0) + R.pos / R.k) / Math.max(1, R.order.length - k0 + 1); }
   return null;
 }
@@ -742,13 +877,13 @@ function updateCofCounts() {
     c.setAttribute('aria-label', `${got} of ${total} cofactors entered`);
   });
 }
-function zoomBarHTML() {
+function zoomBarHTML(floating = false) {
   return `<div class="zoombar" role="group" aria-label="Diagram zoom">
     <span class="zgroup"><button class="tbtn icon" data-zoom="out" data-tip="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><button type="button" class="zpct" id="zoomPct" data-zoom="actual" data-tip="Actual size (100%)" aria-label="Zoom level; set to 100%">100%</button><button class="tbtn icon" data-zoom="in" data-tip="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
     ${tbtn('data-zoom="width"', 'fit_width', 'Fit width', 'Fit to width')}
     ${tbtn('data-zoom="height"', 'fit_height', 'Fit height', 'Fit to height')}
     ${tbtn('data-zoom="fit"', 'fit_screen', 'Fit all', 'Fit the whole diagram (turns off Follow)')}
-    ${tbtn('data-flag="follow"', 'center_focus_strong', 'Follow', 'Follow: keep the current blank centered')}
+    ${floating ? `<span class="follow-wrap"><button type="button" class="tbtn icon peekbtn" data-peek ${Store.settings.follow ? '' : 'hidden'} data-tip="Hold to see the whole pathway" aria-label="Hold to see the whole pathway">${mi('visibility')}</button>` : ''}${tbtn('data-flag="follow"', 'center_focus_strong', 'Follow', 'Follow: keep the current blank centered')}${floating ? '</span>' : ''}
   </div>`;
 }
 function optionsHTML() {
@@ -762,11 +897,11 @@ function optionsHTML() {
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       ${ans === 'type' ? nameModesHTML('data-qname', nameModesCfg(Q.cfg)) : ''}
       ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (off: pick the arrow type first)</label>` : ''}
-      <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
-      ${view === 'list' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
+      ${Q.cfg.mode === 'zones' ? '' : `<label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}`}
+      ${view === 'list' && Q.cfg.mode !== 'zones' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
       <label class="cb"><input type="checkbox" data-qflag="facts" ${s.facts ? 'checked' : ''}> Show facts after each answer</label>
-      ${Q.cfg.mode === 'total' ? `<label class="cb"><input type="checkbox" data-qflag="autoAdvance" ${s.autoAdvance ? 'checked' : ''}> Move on after a right answer</label>` : ''}
-      ${Q.cfg.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-qflag="weak" ${Q.cfg.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
+      ${['total', 'zones'].includes(Q.cfg.mode) ? `<label class="cb"><input type="checkbox" data-qflag="autoAdvance" ${s.autoAdvance ? 'checked' : ''}> Move on after a right answer</label>` : ''}
+      ${!['total', 'zones'].includes(Q.cfg.mode) ? `<label class="cb"><input type="checkbox" data-qflag="weak" ${Q.cfg.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
     </div></details>`;
 }
 // A cofactor slot's facts are its reaction's.
@@ -776,20 +911,24 @@ function renderQuiz() {
   const V = $('#view');
   if (!Q.cfg) { location.hash = '#/'; return; }
   const R = Q.round;
-  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build';
+  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones';
   const cq = occ && R.q;
   INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
   if (cq) cq.inline = !!INLINE;
-  const flow = viewStyle() === 'flow', horiz = Store.settings.dir === 'h';
+  const flow = viewStyle() === 'flow' && R.type !== 'zones', horiz = Store.settings.dir === 'h';
   const sub = R.type === 'stepE' && el('path') !== 'show' && Q.models.length > 1 ? `${Q.models.length} pathways` : esc(Q.m.p.name) + (Q.models.length > 1 && R.type !== 'stepE' ? ` <span class="muted">· ${Q.models.length} in this quiz</span>` : '');
   const progress = R.type === 'total' && !R.done ? `<span class="prog">${R.pos + 1} / ${R.order.length}</span>`
+    : R.type === 'zones' && !R.done ? `<span class="prog">${R.phase === 'mark' ? 'Membranes' : `Part ${R.pos + 1} / ${R.secs.length}`}</span>`
     : R.type === 'build' && !R.done ? `<span class="prog" title="Round ${R.k - (R.k0 || 1) + 1} of ${R.order.length - (R.k0 || 1) + 1}">Round ${R.k - (R.k0 || 1) + 1} / ${R.order.length - (R.k0 || 1) + 1}</span>` : '';
 
   let stage = '', dock = '', below = '';
   INLINE_FORM = '';
   if (R.type === 'none') {
-    stage = `<div class="empty">${mi('tune')}<p>Nothing is set to <b>Quiz</b>. Go back and pick at least one thing to quiz.</p><a class="btn primary" href="#/new">Back to the quiz setup</a></div>`;
+    stage = `<div class="empty">${mi('tune')}<p>${R.msg || 'Nothing is set to <b>Quiz</b>. Go back and pick at least one thing to quiz.'}</p><a class="btn primary" href="#/new">Back to the quiz setup</a></div>`;
+  } else if (R.type === 'zones') {
+    stage = zonesStage();
+    dock = zonesDock();
   } else if (occ) {
     const zones = el('loc') !== 'hide';
     stage = flow ? flowSVG(Q.m, statusOf, { zones }) : listHTML(Q.m, statusOf, { horiz, zones });
@@ -813,7 +952,7 @@ function renderQuiz() {
       ${progressFrac() !== null ? `<div class="qprog" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progressFrac() * 100)}"><span style="width:${(progressFrac() * 100).toFixed(1)}%"></span></div>` : ''}
     </header>
     <div class="qbody">
-      <div class="qmain">${occ && flow && R.type !== 'none' ? `<div class="stage canvas" id="stage" data-view="quiz:${esc(Q.m.p.id)}">${canvasHTML(stage, INLINE_FORM)}</div>` : `<div class="stage" id="stage">${stage}${INLINE_FORM}</div>`}${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML()}</div>` : ''}${below}</div>
+      <div class="qmain">${occ && flow && R.type !== 'none' ? `<div class="stage canvas" id="stage" data-view="quiz:${esc(Q.m.p.id)}">${canvasHTML(stage, INLINE_FORM)}</div>` : `<div class="stage" id="stage">${stage}${INLINE_FORM}</div>`}${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML(true)}</div>` : ''}${below}</div>
       ${Q.drawer ? drawerHTML() : ''}
     </div>
     ${dock}
@@ -850,6 +989,7 @@ function stillOpen(m, key) {
   const R = Q.round;
   if (!R || !Q.m || !m || m.p.id !== Q.m.p.id) return false;
   if (R.qs) return R.qs.some(q => q.statKey === key && q.status === 'open');
+  if (R.type === 'zones') return !R.done && /^[zl]:/.test(key);
   if (!['single', 'total', 'build'].includes(R.type) || !m.items[key]) return false;
   return hidden(statusOf(key));
 }
@@ -1028,11 +1168,14 @@ document.addEventListener('click', e => {
     case 'enableabbr': { const modes = nameModesCfg(Q.cfg); TIER_KEYS.forEach((k, i) => { if (i <= q.offTier && modes[k] === 'off') modes[k] = 'enter'; });
       Q.cfg.nameModes = modes; delete Q.cfg.names; delete Q.cfg.fullNames; const v = q.draft; q.offTier = null; submit(q, v); break; }
     case 'restartq': restartQuiz(); break;
-    case 'continue': advanceTotal(); break;
+    case 'continue': if (R.type === 'zones') advanceZones(); else advanceTotal(); break;
+    case 'mgap': if (R.type === 'zones' && R.phase === 'mark') { const g = R.plan.gaps[+b.dataset.g]; R.marks[g.key] = !R.marks[g.key]; renderQuiz(); $(`#stage [data-g="${b.dataset.g}"]`)?.focus({ preventScroll: true }); } break;
+    case 'checkmem': checkMembranes(false); break;
+    case 'showmem': checkMembranes(true); break;
     case 'nextpath': nextTotalPathway(); renderQuiz(); break;
     case 'restart':
       Q.score = { right: 0, total: 0 };
-      if (Q.round.type === 'build') startBuild(); else { Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; startTotal(); }
+      if (Q.round.type === 'build') startBuild(); else if (Q.round.type === 'zones') startZones(); else { Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; startTotal(); }
       renderQuiz(); break;
   }
 });
@@ -1087,7 +1230,8 @@ document.addEventListener('keydown', e => {
   if (!inInput && /^[1-3]$/.test(e.key)) { const b = V.querySelectorAll('[data-act="cofshape"]')[+e.key - 1]; if (b && !b.disabled) { e.preventDefault(); b.click(); return; } } // arrow type (the key mustn't also land in the field that opens)
   if (Q.round.type === 'build') return;
   if (e.key === 'Enter' && !inInput) {
-    const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
+    if (e.target.closest?.('.mgap')) return; // Enter on a gap marks it
+    const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="checkmem"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
     if (btn) { e.preventDefault(); btn.click(); }
     return;
   }
