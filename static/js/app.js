@@ -51,7 +51,8 @@ const NAME_MODES = [['auto', 'Auto-accept'], ['enter', 'On Enter'], ['off', 'Don
 const nameModesHTML = (attr, modes) => `<div class="namemodes" role="group" aria-label="Which names count"><span class="glabel">Which names count</span>
   ${NAME_ROWS.map(([k, l, ex]) => `<div class="nm-row"><span class="nm-l"><b>${l}</b><span class="muted small">${esc(ex)}</span></span>${seg(attr, k, NAME_MODES, modes[k])}</div>`).join('')}
   <p class="muted small">Auto-accept counts the moment it’s typed; On Enter waits for you to press Enter; Don’t accept asks for a fuller name (not a miss).</p></div>`;
-const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button ${attr}="${key}" data-v="${v}" role="radio" aria-checked="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
+// opts: [value, label, tooltip?]
+const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l, tip]) => `<button ${attr}="${key}" data-v="${v}" role="radio" aria-checked="${String(cur) === String(v)}"${tip ? ` data-tip="${esc(tip)}" aria-description="${esc(tip)}"` : ''}>${l}</button>`).join('')}</div>`;
 
 /* ================= Dashboard (#/) =================
    Laid out to fit one screen: actions on top, then weak spots and progress side by side (each scrolls inside). */
@@ -333,6 +334,13 @@ function editTags(id) {
     .then(v => { if (v === null) return; setTags(id, String(v).split(',')); router(); });
 }
 
+// What each Show / Quiz / Place / Hide choice does (tooltips on New quiz).
+const elTip = (v, mode) => ({
+  show: 'Shown with names the whole time',
+  quiz: mode === 'step' ? 'Asked as a question for each step' : 'Hidden as blanks for you to fill in',
+  place: 'No compartment colors or names: you mark where the pathway crosses a membrane, then name each part',
+  hide: 'Left out: not shown and not asked',
+}[v]);
 function renderCreate() {
   const d = homeDraft(), sel = Library.get(d.pathway), pair = pairOf(d.pathway);
   const partner = pair && pair.compose.filter(x => x !== d.pathway).map(x => Library.get(x)?.name).filter(Boolean).join(' and ');
@@ -350,7 +358,7 @@ function renderCreate() {
   };
   const elNote = k => (k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
   const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length))
-    .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', place: 'Place', hide: 'Hide' }[v]]), elOf(d, k))}${elNote(k)}</div>`).join('');
+    .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', place: 'Place', hide: 'Hide' }[v], elTip(v, d.mode)]), elOf(d, k))}${elNote(k)}</div>`).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
     const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
