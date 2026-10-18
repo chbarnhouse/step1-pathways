@@ -181,6 +181,7 @@
     "g1p",
     "g6p",
     "glucose",
+    "glucosec",
     "glycogen",
     "limit"
    ],
@@ -286,6 +287,25 @@
     "r3",
     "r4",
     "r5"
+   ]
+  },
+  "propionyl-coa": {
+   "metabolites": [
+    "dmmcoa",
+    "isoleucine",
+    "lmmcoa",
+    "methionine",
+    "oddfa",
+    "propcoa",
+    "succoa",
+    "threonine",
+    "valine"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
    ]
   },
   "purine-synthesis": {
