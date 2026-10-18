@@ -593,6 +593,7 @@ function renderQuiz() {
     : R.type === 'build' && !R.done ? `<span class="prog" title="Round ${R.k} of ${R.order.length}">Round ${R.k} / ${R.order.length}</span>` : '';
 
   let stage = '', dock = '', below = '';
+  INLINE_FORM = '';
   if (R.type === 'none') {
     stage = `<div class="empty">${mi('tune')}<p>Nothing is set to <b>Quiz</b>. Go back and pick at least one thing to quiz.</p><a class="btn primary" href="#/new">Back to the quiz setup</a></div>`;
   } else if (occ) {
@@ -617,7 +618,7 @@ function renderQuiz() {
       ${progressFrac() !== null ? `<div class="qprog" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progressFrac() * 100)}"><span style="width:${(progressFrac() * 100).toFixed(1)}%"></span></div>` : ''}
     </header>
     <div class="qbody">
-      <div class="qmain"><div class="stage" id="stage">${stage}</div>${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML()}</div>` : ''}${below}</div>
+      <div class="qmain"><div class="stage" id="stage">${stage}${INLINE_FORM}</div>${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML()}</div>` : ''}${below}</div>
       ${Q.drawer ? drawerHTML() : ''}
     </div>
     ${dock}
@@ -737,6 +738,16 @@ function fitToolbar() {
   for (const c of ['compact', 'tight']) { if (bar.scrollWidth <= bar.clientWidth) return; bar.classList.add(c); }
 }
 window.addEventListener('resize', () => { if ($('.quiz')) fitToolbar(); });
+// Keep the floating answer field exactly on its slot: same place, same size, scaled like the diagram.
+function placeInline() {
+  const st = $('#stage'), slot = st?.querySelector('.inl-slot'), f = st?.querySelector('.inl-float');
+  if (!slot || !f) return;
+  const svg = slot.ownerSVGElement, k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
+  const r = slot.getBoundingClientRect(), s = st.getBoundingClientRect();
+  Object.assign(f.style, { left: r.left - s.left - st.clientLeft + st.scrollLeft + 'px', top: r.top - s.top - st.clientTop + st.scrollTop + 'px',
+    width: slot.width.baseVal.value + 'px', height: slot.height.baseVal.value + 'px', transform: `scale(${k})` });
+}
+window.addEventListener('resize', () => { if ($('.quiz')) placeInline(); });
 function applyZoom(scope = document) {
   const frame = scope.querySelector('.stage'), svg = frame && frame.querySelector('svg.flow'), list = frame && frame.querySelector('.list');
   const z = Store.settings.zoom;
@@ -749,6 +760,7 @@ function applyZoom(scope = document) {
   const zp = scope.querySelector('#zoomPct'); if (zp) zp.textContent = Math.round(pct * 100) + '%';
   scope.querySelectorAll('[data-zoom]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.zoom === String(z))));
   scope.querySelectorAll('[data-flag="follow"]').forEach(b => b.setAttribute('aria-pressed', String(!!Store.settings.follow)));
+  placeInline();
 }
 function zoomBy(d) {
   const frame = $('.stage'), svg = frame && frame.querySelector('svg.flow');

@@ -510,8 +510,29 @@ function dataGate() {
     d.innerHTML = `<div class="dlg gate">
       <div class="dlg-h"><h2>${mi('download', 'h-ic')} ${DATA_NOTICE_TITLE}</h2></div>
       <div class="ask-text">${DATA_NOTICE_HTML}</div>
+      <section class="gate-backup" aria-labelledby="gbH"><h3 id="gbH">${mi('download', 'sm')} Set up your backup file now <span class="muted small">(recommended)</span></h3><div id="gateBackup"></div></section>
       <label class="cb ack"><input type="checkbox" id="gateAck"> ${DATA_ACK_LABEL}</label>
       <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
+    // The backup step, written out click by click; it redraws itself after linking.
+    const drawBackup = () => {
+      const box = d.querySelector('#gateBackup');
+      if (AutoBackup.supported) {
+        box.innerHTML = AutoBackup.status === 'linked'
+          ? `<p class="gate-ok">${icon('ok')} <span><b>Done.</b> Every change is saved to <b>${esc(AutoBackup.fileName)}</b>, in the folder you picked. To restore it on another computer or browser: Settings → Import backup → choose that file.</span></p>`
+          : `<ol class="gate-steps"><li>Press <b>Choose backup file</b>.</li><li>In the window that opens, pick a folder you won’t clear out: <b>Documents</b>, <b>iCloud Drive</b> or <b>Dropbox</b>. Not Downloads.</li><li>Press <b>Save</b>. From then on, every change is saved to that file automatically.</li></ol>
+            <div class="btnrow"><button type="button" class="btn" id="gateLink">${mi('download', 'sm')} Choose backup file</button><button type="button" class="btn ghost" id="gateDl">${mi('download', 'sm')} Just download a copy</button></div>`;
+      } else {
+        box.innerHTML = `<p>This browser can’t keep a file up to date by itself, so STEP 1 Pathways downloads a fresh copy instead.</p>
+          <label class="cb"><input type="checkbox" id="gateAutoDl" ${autoDownloadOn() ? 'checked' : ''}> Download a backup each time I leave a quiz</label>
+          <ol class="gate-steps"><li>Backups arrive in your <b>Downloads</b> folder, named <b>step1-pathways-backup-</b> and the date.</li><li>Move them to a folder you won’t clear out: <b>Documents</b>, <b>iCloud Drive</b> or <b>Dropbox</b>.</li><li>To restore: Settings → Import backup → choose the newest file.</li></ol>
+          <div class="btnrow"><button type="button" class="btn" id="gateDl">${mi('download', 'sm')} Download a backup now</button></div>`;
+      }
+      const link = box.querySelector('#gateLink'), dl = box.querySelector('#gateDl'), auto = box.querySelector('#gateAutoDl');
+      if (link) link.onclick = () => AutoBackup.link().then(drawBackup);
+      if (dl) dl.onclick = () => { downloadBackup(); toast('Saved to Downloads. Move it to a folder you keep.'); };
+      if (auto) auto.onchange = () => local.set('pathways.autoDownload', auto.checked ? Date.now() : null);
+    };
+    drawBackup();
     d.oncancel = e => e.preventDefault(); // Esc can't dismiss it
     d.querySelector('#gateAck').onchange = e => { d.querySelector('#gateGo').disabled = !e.target.checked; };
     d.querySelector('#gateGo').onclick = () => {

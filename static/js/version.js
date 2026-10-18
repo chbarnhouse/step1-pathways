@@ -19,6 +19,8 @@ const CHANGELOG = [
     'Pathways that can be studied together (glycolysis and gluconeogenesis) are no longer listed as a third pathway; each has a “Study with…” button instead.',
     'The library shows each group as one row you can scroll sideways, and Settings is centered.',
     'When a whole pathway happens in one compartment, New quiz says so, and the quiz asks it once.',
+    'Zooming during a quiz no longer moves the typing box off its spot (most noticeable in Safari).',
+    'The “progress is saved only in this browser” notice now walks you through setting up a backup file, step by step.',
     'Every diagram was checked for overlapping labels and fixed: side branches get room for their enzyme and cofactor names, a second branch from the same box (IMP to AMP and to GMP) gets its own row, and long cofactor lists wrap.',
     'Visual pathway editor: drag metabolites around, drag from one box to another to add a step, and edit whatever you select in the side panel, with Undo and Redo. Form and JSON views are still there. On an edited built-in pathway, every field that differs is marked Edited and has its own Revert.',
   ] },

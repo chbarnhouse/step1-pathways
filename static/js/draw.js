@@ -9,8 +9,12 @@ let INLINE = null;
 const inlineInput = () => INLINE.along ? alongWidget(INLINE.along, INLINE.draft)
   : INLINE.check ? checkWidget(INLINE.check, INLINE.draft)
   : `<input class="ans inl-in${INLINE.bad ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="?" aria-label="Your answer" value="${esc(INLINE.draft)}">`;
+// The answer field is real HTML floating over an empty slot in the diagram (placeInline in quiz.js keeps it there).
+// Not a <foreignObject>: Safari misplaces those once the diagram is zoomed.
+let INLINE_FORM = '';
 function inlineField(x, y, w, h) {
-  return `<foreignObject x="${x}" y="${y}" width="${w}" height="${h}"><form xmlns="http://www.w3.org/1999/xhtml" class="inl" data-q="0">${inlineInput()}</form></foreignObject>`;
+  INLINE_FORM = `<form class="inl inl-float" data-q="0">${inlineInput()}</form>`;
+  return `<rect class="inl-slot" x="${x}" y="${y}" width="${w}" height="${h}" fill="none"/>`;
 }
 const BW = 212, BH = 40, GAP = 72, CX = 222, SIDEX = 556, TOP = 18;
 
