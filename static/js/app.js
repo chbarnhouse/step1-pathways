@@ -261,6 +261,7 @@ function renderCreate() {
     const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
     modeOpts = `<label class="field">Start<select id="cStart"><option value="random">A random point</option><option value="begin">The beginning, nothing shown</option><optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup></select></label>`;
   }
+  if (d.mode === 'build') modeOpts = `<div class="field"><span>Later blanks</span>${seg('data-cs', 'ahead', [['show', 'Show them'], ['hide', 'Hide them']], d.ahead || 'show')}<span class="muted small">${d.ahead === 'hide' ? 'Blanks you haven’t reached yet are empty boxes, so you recall the whole pathway.' : 'Blanks you haven’t reached yet show their answers.'}</span></div>`;
   if (d.mode === 'step') modeOpts = `<div class="field"><span>You're given</span>${seg('data-cs', 'given', [['mets', 'Two metabolites'], ['enz', 'An enzyme']], d.given)}</div>
     ${d.given === 'enz' ? `<label class="cb"><input type="checkbox" data-cflag="allPathways" ${d.allPathways ? 'checked' : ''}> Draw enzymes from every pathway</label>` : ''}`;
   $('#view').innerHTML = `<div class="page create">
@@ -296,7 +297,7 @@ function renderCreate() {
   const st = $('#cStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
 }
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
-const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
 const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
 const favorites = () => Store.data.favorites || [];
 const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));

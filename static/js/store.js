@@ -87,7 +87,7 @@ const BUILTIN_PRESETS = [
   { id: 'b-direction', name: 'Which way?', blurb: 'Reversible or one-way, and in which direction.',
     mode: 'step', given: 'mets', el: { enz: 'show', cof: 'show', dir: 'quiz' } },
 ];
-const QUIZ_DEFAULTS = { mode: 'single', given: 'mets', start: 'random', weak: false, answer: null, view: null,
+const QUIZ_DEFAULTS = { mode: 'single', given: 'mets', start: 'random', ahead: 'show', weak: false, answer: null, view: null,
   el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'show', loc: 'show', dir: 'quiz', path: 'quiz' } };
 function normalizeQuiz(q) {
   const out = Object.assign(clone(QUIZ_DEFAULTS), clone(q || {}));

@@ -232,7 +232,8 @@ function loadTotalQ() {
   R.q = withAlong(itemQ(Q.m.items[Q.m.seq[R.order[R.pos]]], Q.m), Q.m);
 }
 /* ---------- Building blocks ----------
-   Round k: the first k blanks (in reading order) from the top; everything after them is shown.
+   Round k: the first k blanks (in reading order) from the top; the ones after them are shown, or empty
+   boxes when "Later blanks: Hide them" is set (cfg.ahead).
    A blank only counts when its answer is typed cleanly — a wrong answer, a hint or a reveal clears just that blank. */
 function startBuild() {
   Q.m = Q.models[0];
@@ -411,7 +412,8 @@ function statusOf(key) {
   }
   if (R.type === 'build') {
     const j = R.order.indexOf(Q.m.seq.indexOf(key));
-    if (j < 0 || j >= R.k || R.done) return 'shown';
+    if (j < 0 || R.done) return 'shown';
+    if (j >= R.k) return Q.cfg.ahead === 'hide' ? 'blank' : 'shown'; // not reached this round
     if (j < R.pos) return 'right';
     if (j === R.pos) return R.q && R.q.status === 'open' ? 'target' : 'right';
     return 'blank';
@@ -534,7 +536,8 @@ function optionsHTML() {
   const seg = (key, opts, cur) => `<div class="seg">${opts.map(([v, l]) => `<button data-qopt="${key}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join('')}</div>`;
   return `<details class="qopts"><summary class="tbtn" title="Options" aria-label="Options">${mi('tune')}<span>Options</span></summary>
     <div class="pop">
-      <label>Answer by</label>${seg('answer', [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
+      <label>Answer by</label>${seg('answer', Q.cfg.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
+      ${Q.cfg.mode === 'build' ? `<label>Later blanks</label>${seg('ahead', [['show', 'Show'], ['hide', 'Hide']], Q.cfg.ahead || 'show')}` : ''}
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="letterCheck" ${Q.cfg.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
@@ -591,6 +594,7 @@ function renderQuiz() {
     ${dock}
   </div>`;
   if (INLINE && cq.justWrong) $('#stage form.inl input')?.classList.add('shake');
+  fitToolbar();
   applyZoom();
   followTarget();
   const inp = $('#stage input.ans') || $('#view .ansform input');
@@ -690,6 +694,15 @@ function fitScale(svg, frame) {
   const availH = (parseFloat(getComputedStyle(frame).maxHeight) || window.innerHeight * 0.7) - 8;
   return Math.max(0.15, Math.min((frame.clientWidth - 8) / vb.width, availH / vb.height, 1.6));
 }
+// The quiz toolbar never pushes the page sideways: if it doesn't fit, drop button labels, then the less-used zoom controls.
+function fitToolbar() {
+  const bar = $('.qbar');
+  if (!bar) return;
+  bar.classList.remove('compact', 'tight');
+  if (window.innerWidth <= 600) return; // phones: the tools wrap under the title instead
+  for (const c of ['compact', 'tight']) { if (bar.scrollWidth <= bar.clientWidth) return; bar.classList.add(c); }
+}
+window.addEventListener('resize', () => { if ($('.quiz')) fitToolbar(); });
 function applyZoom(scope = document) {
   const frame = scope.querySelector('.stage'), svg = frame && frame.querySelector('svg.flow'), list = frame && frame.querySelector('.list');
   const z = Store.settings.zoom;
@@ -745,7 +758,7 @@ document.addEventListener('click', e => {
   // Click anything showing on the diagram to read its facts (never a blank: that would give it away).
   const k = e.target.closest('#stage [data-key]');
   if (k && !e.target.closest('form')) {
-    const st = Q.round.type === 'single' || Q.round.type === 'total' ? statusOf(k.dataset.key) : 'shown';
+    const st = ['single', 'total', 'build'].includes(Q.round.type) ? statusOf(k.dataset.key) : 'shown';
     if (!['blank', 'target', 'hide'].includes(st) && Q.m.items[k.dataset.key]) { Q.focus = { item: Q.m.items[k.dataset.key], m: Q.m }; Q.drawer = true; renderQuiz(); }
     return;
   }

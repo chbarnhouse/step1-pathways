@@ -11,6 +11,8 @@ const CHANGELOG = [
   { v: 'next', items: [
     'The guided tour now runs straight through; the note about where your progress is saved comes right after it (or right away if you skip the tour).',
     'Take the tour and Report a problem moved from the top bar to Settings → Help and feedback.',
+    'Building blocks: choose whether blanks you haven’t reached yet show their answers or stay as empty boxes (Later blanks, on New quiz or in Options).',
+    'The diagram no longer gets cut off at the bottom, and the quiz toolbar no longer pushes the page sideways on narrower windows.',
   ] },
   { v: '3.7.0', date: '2026-10-17', items: [
     'Report a problem: describe a bug, a fact that looks wrong, or a suggestion from the Report button at the top. It opens a Google Form with your report filled in; sign in with Google and press Submit. Reports are private.',

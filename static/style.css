@@ -687,3 +687,19 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 /* Preview badge: this copy runs unreleased changes (self-hosted only). Icon + word, never color alone. */
 .preview-badge { display: inline-flex; align-items: center; gap: 4px; margin-left: 10px; padding: 3px 9px; border: 1.5px dashed var(--gold); border-radius: 999px; background: var(--gold-bg); color: var(--gold); font: inherit; font-size: 12px; font-weight: 700; letter-spacing: .04em; text-transform: uppercase; cursor: pointer; }
 .preview-badge .mi { width: 15px; height: 15px; fill: currentColor; }
+/* Diagram quizzes fill the window exactly: toolbar, diagram, answer bar. The diagram scrolls inside its own
+   row, so its bottom is always reachable however tall the answer bar grows (facts open, hints, wrapping). */
+.quiz.occ { height: 100vh; height: 100dvh; min-height: 0; grid-template-rows: auto minmax(0, 1fr) auto; }
+.quiz.occ .qbody { min-height: 0; }
+.quiz.occ .qmain { display: flex; flex-direction: column; min-height: 0; }
+.quiz.occ .stage { flex: 1; min-height: 0; max-height: none; padding-bottom: 32px; }
+@media (min-width: 861px) { .quiz.occ .drawer { position: static; max-height: none; min-height: 0; } }
+.qbar.compact .tbtn span:not(.count) { display: none; }
+.qbar.compact .tbtn .count { display: inline-grid; }
+.qbar.tight .zoombar [data-zoom="width"], .qbar.tight .zoombar [data-zoom="fit"], .qbar.tight .zpct, .qbar.tight .qsub { display: none; }
+.quiz .qtitle { min-width: 260px; } /* the title keeps room; fitToolbar trims the tools instead */
+@media (max-width: 600px) { .quiz .qtitle { min-width: 0; } }
+.quiz { grid-template-columns: minmax(0, 1fr); } /* bars can't stretch the page; fitToolbar sees the overflow */
+@media (min-width: 601px) { .quiz .qtools, .quiz .zoombar { flex-wrap: nowrap; flex: none; } }
+/* Phones: back arrow + title on the first row, progress and tools below it. */
+@media (max-width: 600px) { .quiz .qbar { flex-wrap: wrap; row-gap: 4px; } .quiz .qtitle { flex: 1 1 calc(100% - 64px); } .quiz .qtools { margin-left: auto; } }
