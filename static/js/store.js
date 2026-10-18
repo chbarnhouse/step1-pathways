@@ -39,6 +39,7 @@ const Store = {
       try { await fetch('api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); return; } catch {}
     }
     try { localStorage.setItem('pathways.data', body); } catch {}
+    if (typeof AutoBackup !== 'undefined') AutoBackup.schedule(); // linked backup file (Chrome/Edge)
   },
   get settings() { return this.data.settings; },
 };
@@ -160,5 +161,6 @@ const needsDataAck = () => Store.mode === 'local' && !local.get('pathways.dataAc
 const DATA_NOTICE_TITLE = 'Your progress is saved only in this browser';
 const DATA_NOTICE_HTML = `<p>STEP 1 Pathways has no accounts and no server, so nothing you do here is saved online. Your history, presets, favorites, tags and settings live in this browser’s storage.</p>
   <p>Browsers can erase that storage without warning: clearing history or site data, private windows, running low on space, or switching browsers or devices. If that happens, everything is lost and can’t be recovered.</p>
-  <p><b>To keep your progress, download a backup often, and always at the end of a study session.</b> You can restore it in any browser from the dashboard or Settings.</p>`;
+  <p><b>To keep your progress, download a backup often, and always at the end of a study session.</b> You can restore it in any browser from the dashboard or Settings.</p>
+  <p>Settings can do this for you: in Chrome or Edge, link a backup file and every change is saved to it; in any browser, have a backup downloaded each time you leave a quiz.</p>`;
 const DATA_ACK_LABEL = 'I understand my progress is saved only in this browser, and that I need to back it up.';

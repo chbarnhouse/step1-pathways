@@ -665,3 +665,22 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .gate .ask-text p + p { margin-top: 8px; }
 .tour-pop:has(.tour-gate) { width: min(520px, calc(100vw - 24px)); }
 #gateDialog { width: min(560px, calc(100vw - 32px)); }
+
+/* toast + automatic backups */
+#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 120;
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px); }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+.autobk { display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px; background: var(--sunk); }
+.autobk h3 { font-size: 14px; }
+.autobk p { font-size: 14px; display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; }
+
+/* changelog + report */
+.changelog { display: grid; gap: 12px; max-height: 60vh; overflow: auto; }
+.cl-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cl-entry ul { margin: 6px 0 0; padding-left: 20px; font-family: var(--body); font-size: 14.5px; line-height: 1.5; }
+.cl-entry li + li { margin-top: 4px; }
+#reportDialog { width: min(600px, calc(100vw - 32px)); }
+.report .field textarea, .report .field input, .report .field select { width: 100%; font: inherit; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: var(--ctrl); padding: 8px 10px; }
+.report .field { display: grid; gap: 4px; }
+.diag pre { font-size: 11.5px; white-space: pre-wrap; word-break: break-all; background: var(--sunk); padding: 8px; border-radius: 8px; max-height: 160px; overflow: auto; }
+.diag summary { cursor: pointer; font-size: 13px; color: var(--muted); }

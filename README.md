@@ -19,6 +19,11 @@ Two ways to run the same app:
 | **Static** | each browser | `python3 build.py` → `docs/index.html` (GitHub Pages) and `dist/pathways.html` (one file, open anywhere) |
 | **Self-hosted** | on the server, shared by every device | `python3 server.py` → http://localhost:8000. Python standard library only. `./deploy.sh` installs it on a Proxmox container (configure `deploy.env`, see `deploy.env.example`). |
 
+## Releasing an update
+1. Bump `APP_VERSION` in `static/js/version.js` and add an entry at the top of `CHANGELOG` (shown once to every returning visitor as "What's new").
+2. `node tools/validate.js`, then `python3 build.py` (rebuilds `docs/`), commit, push.
+3. `./deploy.sh` for the self-hosted copy.
+
 ## Pathway files
 `data/pathways/*.json`, one per pathway; `node tools/validate.js` checks them all.
 - `metabolites` / `enzymes`: `{id: {name, short, aliases[], notes}}` (+ `pos: [col,row]` on metabolites in a grid)

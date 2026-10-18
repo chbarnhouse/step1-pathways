@@ -72,3 +72,10 @@ function ask({ title, text = '', input = false, value = '', ok = 'OK', cancel = 
   });
 }
 const say = (title, text) => ask({ title, text, cancel: null });
+// A short message at the bottom of the screen that goes away by itself.
+function toast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.append(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3200);
+}

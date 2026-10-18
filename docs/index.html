@@ -678,6 +678,25 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .gate .ask-text p + p { margin-top: 8px; }
 .tour-pop:has(.tour-gate) { width: min(520px, calc(100vw - 24px)); }
 #gateDialog { width: min(560px, calc(100vw - 32px)); }
+
+/* toast + automatic backups */
+#toast { position: fixed; left: 50%; bottom: calc(24px + env(safe-area-inset-bottom, 0px)); transform: translate(-50%, 20px); opacity: 0; pointer-events: none; z-index: 120;
+  background: var(--ink); color: var(--paper); padding: 10px 16px; border-radius: 10px; font-weight: 600; font-size: 14px; box-shadow: var(--shadow); transition: opacity .2s, transform .2s; max-width: calc(100vw - 32px); }
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+.autobk { display: grid; gap: 8px; padding: 12px 14px; border-radius: 10px; background: var(--sunk); }
+.autobk h3 { font-size: 14px; }
+.autobk p { font-size: 14px; display: flex; gap: 6px; align-items: flex-start; flex-wrap: wrap; }
+
+/* changelog + report */
+.changelog { display: grid; gap: 12px; max-height: 60vh; overflow: auto; }
+.cl-h { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
+.cl-entry ul { margin: 6px 0 0; padding-left: 20px; font-family: var(--body); font-size: 14.5px; line-height: 1.5; }
+.cl-entry li + li { margin-top: 4px; }
+#reportDialog { width: min(600px, calc(100vw - 32px)); }
+.report .field textarea, .report .field input, .report .field select { width: 100%; font: inherit; font-size: 15px; text-transform: none; letter-spacing: 0; color: var(--ink); background: var(--paper); border: 1.5px solid var(--line); border-radius: var(--ctrl); padding: 8px 10px; }
+.report .field { display: grid; gap: 4px; }
+.diag pre { font-size: 11.5px; white-space: pre-wrap; word-break: break-all; background: var(--sunk); padding: 8px; border-radius: 8px; max-height: 160px; overflow: auto; }
+.diag summary { cursor: pointer; font-size: 13px; color: var(--muted); }
 </style>
 </head>
 <body data-page="home">
@@ -690,6 +709,7 @@ body[data-page="home"] .view { padding-bottom: 20px; }
       <a href="#/pathways" data-nav="pathways" data-icon="menu_book">Pathways</a>
       <a href="#/settings" data-nav="settings" data-icon="settings">Settings</a>
       <a href="#/" data-tour-start data-icon="tour" title="Take the guided tour">Tour</a>
+      <a href="#/" data-report="open" data-icon="flag" title="Report a problem" id="navReport" hidden>Report</a>
     </nav>
   </div>
 </header>
@@ -775,6 +795,61 @@ function ask({ title, text = '', input = false, value = '', ok = 'OK', cancel = 
   });
 }
 const say = (title, text) => ask({ title, text, cancel: null });
+// A short message at the bottom of the screen that goes away by itself.
+function toast(msg) {
+  let t = document.getElementById('toast');
+  if (!t) { t = document.createElement('div'); t.id = 'toast'; t.setAttribute('role', 'status'); document.body.append(t); }
+  t.textContent = msg; t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3200);
+}
+</script>
+<script>
+/* Version + changelog. To ship an update: bump APP_VERSION and add an entry at the top of CHANGELOG.
+   Each browser remembers the last version it saw; the first visit after an update shows "What's new"
+   with every entry since then. Brand-new visitors get the tour instead. */
+'use strict';
+
+const APP_VERSION = '3.6.0';
+const CHANGELOG = [
+  { v: '3.6.0', date: '2026-10-17', items: [
+    'Automatic backups. In Chrome or Edge, link a backup file in Settings and every change is saved to it. In any browser, turn on a backup download each time you leave a quiz.',
+    'What’s new: after an update, this window shows what changed.',
+  ] },
+  { v: '3.5.0', date: '2026-10-17', items: [
+    'A clear notice that progress is saved only in your browser, with an offer to back up when you leave a quiz.',
+    'Pathways that can be studied together now say “combines with…”.',
+  ] },
+  { v: '3.4.0', date: '2026-10-17', items: [
+    'Favorites: star any quiz to start it from the dashboard in one click.',
+    'Renamed to STEP 1 Pathways.',
+  ] },
+  { v: '3.3.0', date: '2026-10-17', items: [
+    'Guided tour for first-time visitors (the Tour button brings it back).',
+    'Activity log on the dashboard: what you studied, when, how, and how it went.',
+    'The urea cycle shows which step happens in the mitochondria.',
+  ] },
+  { v: '3.2.0', date: '2026-10-17', items: [
+    'Building blocks mode: one blank, then two, then three… from the top, until you can type the whole pathway.',
+    'Compartments can be quizzed in every mode.',
+    'Search, filter, sort and tag pathways.',
+  ] },
+];
+const cmpVer = (a, b) => { const x = String(a).split('.').map(Number), y = String(b).split('.').map(Number); for (let i = 0; i < 3; i++) if ((x[i] || 0) !== (y[i] || 0)) return (x[i] || 0) - (y[i] || 0); return 0; };
+function changelogHTML(entries) {
+  return entries.map(e => `<div class="cl-entry"><div class="cl-h"><b>Version ${esc(e.v)}</b><span class="muted small">${new Date(e.date + 'T12:00').toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</span></div>
+    <ul>${e.items.map(i => `<li>${esc(i)}</li>`).join('')}</ul></div>`).join('');
+}
+function showChangelog(entries = CHANGELOG, title = 'What’s new') {
+  return ask({ title, html: `<div class="changelog">${changelogHTML(entries)}</div>`, ok: 'Got it', cancel: null });
+}
+// Called once on boot (after the tour / data notice). hadData = this browser was used before versions existed.
+async function announceUpdate(hadData) {
+  const seen = local.get('pathways.seenVersion');
+  local.set('pathways.seenVersion', APP_VERSION);
+  if (!seen) { if (hadData) await showChangelog(CHANGELOG.slice(0, 1)); return; }
+  const fresh = CHANGELOG.filter(e => cmpVer(e.v, seen) > 0);
+  if (fresh.length) await showChangelog(fresh);
+}
 </script>
 <script>
 /* Material Symbols (Outlined, 24px) — the app's one icon set. Paths from fonts.gstatic.com, Apache 2.0. */
@@ -887,6 +962,7 @@ const Store = {
       try { await fetch('api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); return; } catch {}
     }
     try { localStorage.setItem('pathways.data', body); } catch {}
+    if (typeof AutoBackup !== 'undefined') AutoBackup.schedule(); // linked backup file (Chrome/Edge)
   },
   get settings() { return this.data.settings; },
 };
@@ -1008,8 +1084,77 @@ const needsDataAck = () => Store.mode === 'local' && !local.get('pathways.dataAc
 const DATA_NOTICE_TITLE = 'Your progress is saved only in this browser';
 const DATA_NOTICE_HTML = `<p>STEP 1 Pathways has no accounts and no server, so nothing you do here is saved online. Your history, presets, favorites, tags and settings live in this browser’s storage.</p>
   <p>Browsers can erase that storage without warning: clearing history or site data, private windows, running low on space, or switching browsers or devices. If that happens, everything is lost and can’t be recovered.</p>
-  <p><b>To keep your progress, download a backup often, and always at the end of a study session.</b> You can restore it in any browser from the dashboard or Settings.</p>`;
+  <p><b>To keep your progress, download a backup often, and always at the end of a study session.</b> You can restore it in any browser from the dashboard or Settings.</p>
+  <p>Settings can do this for you: in Chrome or Edge, link a backup file and every change is saved to it; in any browser, have a backup downloaded each time you leave a quiz.</p>`;
 const DATA_ACK_LABEL = 'I understand my progress is saved only in this browser, and that I need to back it up.';
+</script>
+<script>
+/* Automatic backups for the static copy (the server copy saves on the server and needs none).
+   1. Linked file (Chrome, Edge): you pick a file once; every change is written to it a moment later.
+      The browser remembers the file but asks for permission again after a restart, so the dashboard
+      shows a one-click Reconnect when that happens. Firefox and Safari have no way for a page to write
+      to a file you chose, so this option doesn't appear there.
+   2. Auto-download (every browser): a dated backup lands in Downloads when you leave a quiz. */
+'use strict';
+
+const AutoBackup = {
+  supported: typeof window.showSaveFilePicker === 'function',
+  handle: null,
+  status: 'off', // off | linked | needs-permission | error
+  savedAt: 0,
+  t: null,
+  db() {
+    return new Promise((res, rej) => {
+      const r = indexedDB.open('step1-pathways', 1);
+      r.onupgradeneeded = () => r.result.createObjectStore('handles');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  },
+  async idb(op, value) {
+    const db = await this.db();
+    return new Promise((res, rej) => {
+      const tx = db.transaction('handles', op === 'get' ? 'readonly' : 'readwrite'), st = tx.objectStore('handles');
+      const r = op === 'get' ? st.get('backup') : op === 'put' ? st.put(value, 'backup') : st.delete('backup');
+      r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error);
+    });
+  },
+  async init() {
+    if (!this.supported || Store.mode !== 'local') return;
+    try {
+      this.handle = await this.idb('get') || null;
+      if (!this.handle) return;
+      this.status = (await this.handle.queryPermission({ mode: 'readwrite' })) === 'granted' ? 'linked' : 'needs-permission';
+      this.savedAt = local.get('pathways.autoFileAt') || 0;
+    } catch { this.status = 'off'; }
+  },
+  async link() {
+    try {
+      this.handle = await window.showSaveFilePicker({ suggestedName: 'step1-pathways-backup.json', types: [{ description: 'STEP 1 Pathways backup', accept: { 'application/json': ['.json'] } }] });
+    } catch { return false; } // cancelled
+    await this.idb('put', this.handle).catch(() => {});
+    this.status = 'linked';
+    return this.write();
+  },
+  async reconnect() {
+    if (!this.handle) return false;
+    try { this.status = (await this.handle.requestPermission({ mode: 'readwrite' })) === 'granted' ? 'linked' : 'needs-permission'; } catch { this.status = 'needs-permission'; }
+    return this.status === 'linked' && this.write();
+  },
+  async unlink() { this.handle = null; this.status = 'off'; await this.idb('delete').catch(() => {}); },
+  schedule() { if (this.status === 'linked') { clearTimeout(this.t); this.t = setTimeout(() => this.write(), 1500); } },
+  async write() {
+    if (this.status !== 'linked') return false;
+    try {
+      const w = await this.handle.createWritable();
+      await w.write(backupText()); await w.close();
+      this.savedAt = Date.now();
+      local.set('pathways.autoFileAt', this.savedAt); local.set('pathways.lastBackup', this.savedAt);
+      return true;
+    } catch { this.status = 'error'; return false; }
+  },
+  get fileName() { return this.handle?.name || ''; },
+};
+const autoDownloadOn = () => Store.mode === 'local' && !!local.get('pathways.autoDownload');
 </script>
 <script>
 /* Pathway JSON → study model.
@@ -3022,6 +3167,60 @@ function maybeAutoTour() {
 }
 </script>
 <script>
+/* "Report a problem": a form for people who don't use GitHub. Diagnostics (version, browser, page, current quiz)
+   are attached so a report can be reproduced. Where reports go is set by REPORT_ENDPOINT; until one is set
+   the form stays hidden, so nobody fills in a form that can't be sent. */
+'use strict';
+
+const REPORT_ENDPOINT = ''; // POST JSON {kind, what, expected, steps, email, diagnostics}; set when a destination is chosen
+const reportsEnabled = () => !!REPORT_ENDPOINT;
+
+function diagnostics() {
+  return {
+    version: APP_VERSION, copy: Store.mode === 'server' ? 'self-hosted' : 'browser', page: location.hash || '#/',
+    browser: navigator.userAgent, screen: `${window.innerWidth}×${window.innerHeight}`, time: new Date().toISOString(),
+    quiz: Q.cfg ? { name: Q.cfg.name, pathways: Q.cfg.pathways, mode: Q.cfg.mode, answer: Q.cfg.answer || Store.settings.answer } : null,
+  };
+}
+function openReport() {
+  let d = $('#reportDialog');
+  if (!d) { d = document.createElement('dialog'); d.id = 'reportDialog'; document.body.append(d); }
+  const diag = diagnostics();
+  d.innerHTML = `<form class="dlg report" id="reportForm">
+    <div class="dlg-h"><h2>${mi('flag', 'h-ic')} Report a problem</h2></div>
+    <p class="muted">Something wrong, confusing, or a fact that looks off? Tell us here; no account needed.</p>
+    <label class="field">What kind<select name="kind"><option value="bug">Something isn’t working</option><option value="content">A fact or answer looks wrong</option><option value="idea">Suggestion</option></select></label>
+    <label class="field">What happened<textarea name="what" rows="4" required placeholder="e.g. Typing “PFK-1” wasn’t accepted for phosphofructokinase"></textarea></label>
+    <label class="field">What you expected (optional)<textarea name="expected" rows="2"></textarea></label>
+    <label class="field">Your email, if you’d like a reply (optional)<input name="email" type="email" autocomplete="email"></label>
+    <details class="diag"><summary>Technical details sent with the report</summary><pre>${esc(JSON.stringify(diag, null, 1))}</pre></details>
+    <p class="bad-note" id="reportErr" hidden></p>
+    <div class="actions"><button class="btn primary" type="submit">${mi('flag', 'sm')} Send report</button><button class="btn ghost" type="button" data-report="close">Cancel</button></div>
+  </form>`;
+  d.showModal();
+  d.querySelector('textarea').focus();
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('[data-report="open"]')) { e.preventDefault(); openReport(); }
+  if (e.target.closest('[data-report="close"]')) $('#reportDialog')?.close();
+});
+document.addEventListener('submit', async e => {
+  if (e.target.id !== 'reportForm') return;
+  e.preventDefault();
+  const f = e.target, data = Object.fromEntries(new FormData(f)), btn = f.querySelector('[type=submit]'), err = f.querySelector('#reportErr');
+  btn.disabled = true; err.hidden = true;
+  try {
+    const r = await fetch(REPORT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, diagnostics: diagnostics() }) });
+    if (!r.ok) throw new Error(`The report service answered ${r.status}.`);
+    $('#reportDialog').close();
+    toast('Thanks! Your report was sent.');
+  } catch (x) {
+    btn.disabled = false; err.hidden = false;
+    err.textContent = `Couldn’t send the report (${x.message}). Check your connection and try again.`;
+  }
+});
+</script>
+<script>
 /* App shell: hash router + the dashboard, library, pathway and settings pages.
    #/                     Home — start a quiz (pathways × style), weak spots, pathway overview
    #/quiz                 the quiz itself (quiz.js)
@@ -3098,6 +3297,9 @@ function activityHTML() {
 // Static builds keep everything in this browser, so the dashboard keeps the backup one click away.
 function backupCardHTML() {
   if (Store.mode === 'server') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Saved on your server</b><span class="muted">Every device sees the same progress.</span></span></div>`;
+  if (AutoBackup.status === 'linked') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Backing up automatically</b><span class="muted">Every change is saved to ${esc(AutoBackup.fileName)}.</span></span></div>`;
+  if (AutoBackup.status === 'needs-permission' || AutoBackup.status === 'error') return `<div class="card hero-data due"><span class="hero-ic alt">${mi('download')}</span><span><b>Reconnect your backup file</b><span class="muted">After a restart your browser needs permission again to save to ${esc(AutoBackup.fileName)}.</span>
+    <span class="btnrow tight"><button class="btn small primary" data-data="reconnect">Reconnect</button><button class="btn small ghost" data-data="download">${mi('download', 'sm')} Download instead</button></span></span></div>`;
   const lb = local.get('pathways.lastBackup'), ago = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
   const when = lb ? (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`) : 'never';
   return `<div class="card hero-data${unsavedChanges() ? ' due' : ''}"><span class="hero-ic alt">${mi('download')}</span><span><b>Last backup: ${when}</b><span class="muted">${unsavedChanges() ? 'You have progress that isn’t in a backup yet.' : lb ? 'Your progress is backed up.' : 'Nothing to back up yet.'}</span>
@@ -3462,6 +3664,14 @@ function renderSettings() {
     </section>
     <section class="card pad"><h2>Your data</h2>
       <p class="muted">${Store.mode === 'server' ? 'Saved on your STEP 1 Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
+      ${Store.mode === 'local' ? `<div class="autobk"><h3>Automatic backups</h3>
+        ${AutoBackup.supported ? (AutoBackup.status === 'linked'
+          ? `<p>${icon('ok')} Saving every change to <b>${esc(AutoBackup.fileName)}</b>${AutoBackup.savedAt ? `, last at ${new Date(AutoBackup.savedAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}` : ''}.</p><div class="btnrow"><button class="btn small ghost" data-data="unlink">Stop and unlink the file</button></div>`
+          : AutoBackup.status === 'off'
+            ? `<p class="muted">Pick a file once and every change is saved to it automatically. Choose a synced folder (iCloud Drive, Dropbox, OneDrive) and your backup follows you across devices.</p><div class="btnrow"><button class="btn small primary" data-data="link">${mi('download', 'sm')} Link a backup file</button></div>`
+            : `<p class="muted">Your browser needs permission again to save to <b>${esc(AutoBackup.fileName)}</b>.</p><div class="btnrow"><button class="btn small primary" data-data="reconnect">Reconnect</button><button class="btn small ghost" data-data="unlink">Unlink</button></div>`)
+          : `<p class="muted">This browser can’t save to a file automatically (only Chrome and Edge can). Use the automatic download below instead, or open STEP 1 Pathways in Chrome or Edge.</p>`}
+        <label class="cb"><input type="checkbox" data-autodl ${autoDownloadOn() ? 'checked' : ''}> Download a backup automatically when I leave a quiz</label></div>` : ''}
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
@@ -3469,9 +3679,11 @@ function renderSettings() {
     <section class="card pad"><h2>Guided tour</h2><p class="muted">A one-minute walk through the app.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show it automatically when I open Pathways</label></div></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p></section>
+    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION} · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p>
+      <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${reportsEnabled() ? `<button class="btn small" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div></section>
   </div>`;
 }
+document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(CHANGELOG, 'All changes'); });
 document.addEventListener('click', e => {
   if (!$('#view .settings')) return;
   const sb = e.target.closest('[data-set]');
@@ -3487,6 +3699,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   if (!$('#view .settings')) return;
   if (e.target.hasAttribute('data-remind')) local.set('pathways.remind', e.target.checked ? 'on' : 'off');
+  if (e.target.hasAttribute('data-autodl')) local.set('pathways.autoDownload', e.target.checked ? Date.now() : null);
   if (e.target.id === 'tourNeverSetting') local.set('pathways.tourNever', e.target.checked ? null : Date.now());
   if (e.target.dataset.sflag) { Store.settings[e.target.dataset.sflag] = e.target.checked; Store.save(); }
 });
@@ -3539,7 +3752,7 @@ function pickBackupFile() {
   f.click();
 }
 // Leaving with progress that isn't in a backup: the browser shows its own "Leave site?" prompt.
-window.addEventListener('beforeunload', e => { if (remindersOn() && unsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
+window.addEventListener('beforeunload', e => { if (remindersOn() && unsavedChanges() && AutoBackup.status !== 'linked') { e.preventDefault(); e.returnValue = ''; } });
 function backupText() { return JSON.stringify({ pathwaysBackup: 1, savedAt: new Date().toISOString(), ...Store.data }, null, 1); }
 function downloadBackup() {
   if (download(`step1-pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
@@ -3548,6 +3761,9 @@ document.addEventListener('click', e => {
   const db = e.target.closest('[data-data]');
   if (!db) return;
   if (db.dataset.data === 'download') { downloadBackup(); route(); }
+  if (db.dataset.data === 'link') AutoBackup.link().then(ok => { route(); if (ok) toast(`Backing up to ${AutoBackup.fileName} automatically.`); });
+  if (db.dataset.data === 'reconnect') AutoBackup.reconnect().then(ok => { route(); toast(ok ? 'Backup file reconnected.' : 'Permission wasn’t granted.'); });
+  if (db.dataset.data === 'unlink') AutoBackup.unlink().then(() => { route(); toast('Backup file unlinked. The file itself is kept.'); });
   if (db.dataset.data === 'export') {
     ask({ title: 'Export backup', text: 'Your pathways, presets, settings and history. Download it, or copy it somewhere safe.', input: 'area', value: backupText(), ok: 'Download file', cancel: 'Close', copy: true })
       .then(v => { if (v) { downloadBackup(); route(); } });
@@ -3574,7 +3790,10 @@ const route = () => router();
 let lastPage = null;
 // Leaving a quiz is the natural end of a session: offer a backup then (the browser itself won't allow a prompt on close).
 async function endOfSessionPrompt() {
-  if (!remindersOn() || !unsavedChanges() || document.querySelector('dialog[open]')) return;
+  if (Store.mode !== 'local' || !unsavedChanges()) return;
+  if (AutoBackup.status === 'linked') return AutoBackup.write();
+  if (autoDownloadOn()) { downloadBackup(); route(); return toast('Backup downloaded to your Downloads folder.'); }
+  if (!remindersOn() || document.querySelector('dialog[open]')) return;
   const v = await ask({ title: 'Download a backup before you go?', text: 'This session’s progress is only in this browser. A backup keeps it safe if the browser’s storage is ever cleared.', ok: 'Download backup', alt: 'Stop reminding me', cancel: 'Not now' });
   if (v === true) { downloadBackup(); route(); }
   if (v === 'alt') { local.set('pathways.remind', 'off'); say('Reminders off', 'You can still back up from the dashboard or Settings, and turn reminders back on in Settings.'); }
@@ -3611,11 +3830,15 @@ window.addEventListener('hashchange', router);
   $('#brandIcon').innerHTML = mi('signpost');
   $$('[data-icon]').forEach(el => el.insertAdjacentHTML('afterbegin', mi(el.dataset.icon, 'sm')));
   await Store.init();
+  const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
+  await AutoBackup.init();
+  if (reportsEnabled()) $('#navReport').hidden = false;
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
   await openingPrompt();
   if (!maybeAutoTour() && needsDataAck()) await dataGate();
+  if (!Tour.active) await announceUpdate(hadData); else local.set('pathways.seenVersion', APP_VERSION);
 })();
 </script>
 </body>
