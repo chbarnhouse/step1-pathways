@@ -561,11 +561,11 @@ function stepFlow() {
   if (el('enz') !== 'hide') s += enzLabel(cx - 34, mid, items['e:' + r.id], qState(qe), 'end', 24);
   if (el('cof') !== 'hide') {
     const cs = qCofState(), ct = cofText(m, r.cofactors || {});
-    if (hidden(cs)) s += cofRow(cx + 22, mid, 'start', qCofParts());
-    else if (ct === 'None') s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">no cofactors</text>` + cofMark(cx + 12, mid - 14, cs);
-    // Until direction is answered, cofactors are plain text: the arc's arrowhead would give the direction away.
-    else if (!dirKnown) s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">${esc(ct)}</text>` + cofMark(cx + 12, mid - 14, cs);
-    else s += cofArc(m, cx, y1 + BH, y2, r.cofactors, !down) + cofMark(cx + 30, mid, cs);
+    const parts = qCofParts();
+    if (ct === 'None' && !hidden(cs)) s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">no cofactors</text>` + cofMark(cx + 12, mid - 14, cs);
+    // Until direction is answered, cofactors are a plain row: the arc's arrowhead would give the direction away.
+    else if (!dirKnown || !parts.some(p => p.side)) s += hidden(cs) ? cofRow(cx + 22, mid, 'start', parts) : `<text class="coft" x="${cx + 22}" y="${mid + 4}">${esc(ct)}</text>` + cofMark(cx + 12, mid - 14, cs);
+    else s += cofArcParts(cx, y1 + BH, y2, parts, !down);
   }
   if (el('loc') === 'show' && locLabel(m, r)) s += `<text class="zonet" x="8" y="12">${esc(locLabel(m, r))}</text>`;
   return `<svg class="flow" viewBox="0 0 470 ${y2 + BH + 16}" role="img" aria-label="Single step">${s}</svg>`;
@@ -593,9 +593,9 @@ function stepEFlow() {
   s += `<g class="elab given">${wrap(m.items['e:' + r.id].name, 24).map((l, i, all) => `<text x="${cx - 24}" y="${mid + (i - (all.length - 1) / 2) * 17}" text-anchor="end" dominant-baseline="central">${esc(l)}</text>`).join('')}</g>`;
   if (el('cof') !== 'hide') {
     const cs = qCofState();
-    if (hidden(cs)) s += cofRow(cx + 22, mid, 'start', qCofParts());
-    else if (cofText(m, r.cofactors || {}) === 'None') s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">no cofactors</text>` + cofMark(cx + 12, mid - 14, cs);
-    else s += cofArc(m, cx, y1 + BH, y2, r.cofactors) + cofMark(cx + 30, mid, cs);
+    const parts = qCofParts();
+    if (!parts.some(p => p.side)) s += hidden(cs) ? cofRow(cx + 22, mid, 'start', parts) : `<text class="coft" x="${cx + 22}" y="${mid + 4}">no cofactors</text>` + cofMark(cx + 12, mid - 14, cs);
+    else s += cofArcParts(cx, y1 + BH, y2, parts);
   }
   if (el('loc') === 'show' && locLabel(m, r)) s += `<text class="zonet" x="8" y="12">${esc(locLabel(m, r))}</text>`;
   return `<svg class="flow" viewBox="0 0 ${cx + w / 2 + 20} ${y2 + BH + 16}" role="img" aria-label="Enzyme step">${s}</svg>`;

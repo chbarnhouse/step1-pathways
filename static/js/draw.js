@@ -97,21 +97,30 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   if (st === 'start') s += `<text class="startt" x="${x}" y="${y0 - 16}" text-anchor="${anchor}">START</text>`;
   return s;
 }
-// Curved side arrow: inputs enter near the substrate, outputs leave near the product. up = drawn bottom-to-top.
-function cofArc(m, x, y1, y2, c, up = false) {
-  const ins = (c.in || []).map(id => cofName(m, id)).join(' + '), outs = (c.out || []).map(id => cofName(m, id)).join(' + ');
-  if (!ins && !outs) return '';
+// The curved side arrow with each side shown, blank or being typed: inputs at the top, outputs at the bottom,
+// a side's mark just after its text (never on the curve). parts: from cofParts (or the step quiz's questions).
+function cofArcParts(x, y1, y2, parts, up = false) {
+  parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
+  const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out');
+  if (!pin && !pout) return '';
   const d = up ? -1 : 1, yF = up ? y2 : y1, yT = up ? y1 : y2, mid = (y1 + y2) / 2;
-  const a = [x + 44, yF + 12 * d], b = [x + 44, yT - 12 * d];
-  const start = ins ? a : [x + 3, mid], end = outs ? b : [x + 3, mid];
-  const ctrl = ins && outs ? [x + 2, mid] : ins ? [x + 12, yF + 20 * d] : [x + 12, yT - 20 * d];
+  // A blank (a pill) needs more room than a line of text: keep it inside the gap between the two boxes.
+  const off = p => (p && hidden(p.st) ? 15 : 12);
+  const a = [x + 44, yF + off(pin) * d], b = [x + 44, yT - off(pout) * d];
+  const start = pin ? a : [x + 3, mid], end = pout ? b : [x + 3, mid];
+  const ctrl = pin && pout ? [x + 2, mid] : pin ? [x + 12, yF + 20 * d] : [x + 12, yT - 20 * d];
   const ang = Math.atan2(end[1] - ctrl[1], end[0] - ctrl[0]);
   let s = `<path class="cof" d="M${start[0]},${start[1]}Q${ctrl[0]},${ctrl[1]} ${end[0] - Math.cos(ang) * 4},${end[1] - Math.sin(ang) * 4}"/>` + head(end[0], end[1], ang, 7, 'cofh');
-  if (ins) s += `<text class="coft" x="${x + 50}" y="${a[1] + 4}">${esc(ins)}</text>`;
-  if (outs) s += `<text class="coft" x="${x + 50}" y="${b[1] + 4}">${esc(outs)}</text>`;
+  const two = !!(pin && pout), cw = 7;
+  for (const [p, y] of [[pin, a[1]], [pout, b[1]]]) {
+    if (!p) continue;
+    const x0 = x + 50;
+    if (isLive(p)) { const w = Math.max(150, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64); s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24); }
+    else if (hidden(p.st)) { const w = pillW(cofWord(p, two)); s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`; }
+    else s += `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(x0 + p.text.length * cw + 14, y, p.st);
+  }
   return s;
 }
-
 // A step's cofactors are items too, one per side ('c:' in, 'o:' out): shown, hidden altogether ('hide'), or blanks.
 // parts: [{key, side, st, text}]; cofSt sums them up (any blank → blank, the current one → target).
 const cofParts = (m, statusOf, r) => cofItemsOf(m, r).map(it => ({ key: it.key, side: it.side, st: statusOf(it.key), text: cofSideText(m, it.cofs) }));
@@ -271,7 +280,9 @@ function zoneLabel(m, statusOf, key, x, y, anchor = 'middle', fallback = '') {
     const w = pillW('compartment'), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
     return `<g class="elab zone-blank ${st}" data-key="${item.key}"><rect x="${rx}" y="${y - 17}" width="${w}" height="24" rx="4"/>${blankText(rx + w / 2, y - 5, 'compartment')}</g>`;
   }
-  const mark = st === 'right' ? svgIcon(anchor === 'end' ? x + 12 : x - 12 - (anchor === 'middle' ? item.name.length * 3.5 : 0), y - 4, 'ok') : st === 'missed' ? svgIcon(anchor === 'end' ? x + 12 : x - 12 - (anchor === 'middle' ? item.name.length * 3.5 : 0), y - 4, 'no') : '';
+  // The mark sits clear of the label: uppercase, letter-spaced text runs about 9 px a letter.
+  const mx = anchor === 'end' ? x + 14 : x - 14 - (anchor === 'middle' ? item.name.length * 4.6 : 0);
+  const mark = st === 'right' ? svgIcon(mx, y - 4, 'ok') : st === 'missed' ? svgIcon(mx, y - 4, 'no') : '';
   return `<text class="zonet" data-key="${item.key}" x="${x}" y="${y}" text-anchor="${anchor}">${esc(item.name)}</text>${mark}`;
 }
 function linearSVG(m, statusOf, { zones = true } = {}) {
@@ -436,8 +447,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r));
       s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
       const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
-      if (hidden(cs)) s += cofRow(X + 16, ym, 'start', cofParts(m, statusOf, r));
-      else if (cofVisible(cs)) s += cofArc(m, X, y1, y2, r.cofactors) + cofMark(X + 30, ym, cs);
+      if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, y1, y2, cofParts(m, statusOf, r));
     } else {
       // Crosses a membrane: slant from one lane to the other.
       const p1 = [xa + Math.sign(xb - xa) * 40, y1 + 4], p2 = [xb - Math.sign(xb - xa) * 40, y2 - 4];

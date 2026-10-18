@@ -22,6 +22,7 @@ const CHANGELOG = [
     'New setting, Which names count: for full names (“δ-aminolevulinic acid synthase”), common abbreviations (“ALA synthase”, “mito”) and any abbreviation (“ALAS”, “PFK-1”), choose Auto-accept (counts as soon as it’s typed), On Enter, or Don’t accept. By default full names auto-accept and abbreviations count on Enter. A name that isn’t accepted isn’t a miss: you’re asked for a fuller one, with a button to enable abbreviations. This replaces Require full names and Submit automatically.',
     'Check each letter shows which kind of name you’re typing: green with a solid underline (counts by itself), gold with a dotted underline (counts on Enter), red with a wavy underline (not accepted, or a typo).',
     'Cofactors lock in one at a time: type “CoA” and it turns green (1/2) while you type the next; the blank is done when the last one is in. Backspace in an empty field takes the last one back.',
+    'Cofactor blanks sit on the same curved arrow as the answers (in at the top, out at the bottom), and check marks no longer crowd compartment names or the arrow.',
     'Building blocks starts with the first two blanks (1, 2 · 1, 2, 3 · …), so the first one isn’t typed twice in a row.',
     'Cofactors that go in and cofactors that come out are now two separate blanks (“cofactors in → out”), each answered in any order.',
     'The answer panel no longer gives away what you haven’t answered yet: those parts are covered until you click them.',
