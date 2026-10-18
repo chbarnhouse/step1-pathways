@@ -33,7 +33,8 @@ const Stats = {
         const r = p.reactions.find(x => x.id === id); if (!r) continue;
         const en = p.enzymes[r.enzyme]?.name || r.enzyme, pair = `${mn(r.from)} → ${mn(r.to)}`;
         ({ e: () => { label = en; kind = 'Enzyme'; },
-          c: () => { label = `${en}: cofactors`; kind = 'Cofactors'; },
+          c: () => { const c = r.cofactors || {}; label = `${en}: ${(c.in || []).length && (c.out || []).length ? 'cofactors in' : 'cofactors'}`; kind = 'Cofactors'; },
+          o: () => { label = `${en}: cofactors out`; kind = 'Cofactors'; },
           d: () => { label = `${pair}: direction`; kind = 'Direction'; },
           r: () => { label = `${en}: reactants`; kind = 'Reactants'; },
           p: () => { label = `${en}: products`; kind = 'Products'; },

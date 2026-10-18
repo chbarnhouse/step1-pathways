@@ -53,7 +53,7 @@ function applyRenames(d, R) {
   }
   const itemRen = (pid, map, prefixes) => { const s = d.stats[pid]; if (!s) return; for (const [from, to] of Object.entries(map)) for (const pre of prefixes) move(s, pre + from, pre + to); };
   for (const [pid, map] of Object.entries(R.metabolites || {})) itemRen(pid, map, ['m:']);
-  for (const [pid, map] of Object.entries(R.reactions || {})) itemRen(pid, map, ['e:', 'c:', 'd:', 'r:', 'p:', 'w:']);
+  for (const [pid, map] of Object.entries(R.reactions || {})) itemRen(pid, map, ['e:', 'c:', 'o:', 'd:', 'r:', 'p:', 'w:']);
   return d;
 }
 // Everything a load does to saved data, in one pure function (also used for imported backups and by the tests).
@@ -157,7 +157,7 @@ const BUILTIN_PRESETS = [
   { id: 'b-direction', name: 'Which way?', blurb: 'Reversible or one-way, and in which direction.',
     mode: 'step', given: 'mets', el: { enz: 'show', cof: 'show', dir: 'quiz' } },
 ];
-const QUIZ_DEFAULTS = { mode: 'single', given: 'mets', start: 'random', ahead: 'hide', autoSubmit: false, cofCount: true, fullNames: false, weak: false, answer: null, view: null,
+const QUIZ_DEFAULTS = { mode: 'single', given: 'mets', start: 'random', ahead: 'hide', autoSubmit: false, cofCount: true, weak: false, answer: null, view: null,
   el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'show', loc: 'show', dir: 'quiz', path: 'quiz' } };
 function normalizeQuiz(q) {
   const out = Object.assign(clone(QUIZ_DEFAULTS), clone(q || {}));

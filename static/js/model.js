@@ -32,10 +32,12 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   for (const r of rx) {
     const e = enzs[r.enzyme];
     items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes };
-    // A reaction's cofactor set is its own quizzable item (only when it has one).
-    const c = r.cofactors || {};
-    if ((c.in || []).length || (c.out || []).length)
-      items['c:' + r.id] = { key: 'c:' + r.id, kind: 'cof', rxn: r, name: cofText(m0, c), aliases: [], notes: null };
+    // A step's cofactors are quizzable, one blank per side: 'c:<step>' is what goes in (or the only side there is),
+    // 'o:<step>' what comes out when both sides exist. (Before 3.9 'c:' was the whole set; its history stays with the inputs.)
+    const c = r.cofactors || {}, ci = c.in || [], co = c.out || [];
+    const cofItem = (key, cofs) => ({ key, kind: 'cof', side: cofs.in ? 'in' : 'out', rxn: r, cofs, name: cofText(m0, cofs), aliases: [], notes: null });
+    if (ci.length || co.length) items['c:' + r.id] = cofItem('c:' + r.id, ci.length ? { in: ci } : { out: co });
+    if (ci.length && co.length) items['o:' + r.id] = cofItem('o:' + r.id, { out: co });
   }
 
   const spineMets = p.circular ? spine.map(r => r.from) : [spine[0].from, ...spine.map(r => r.to)];
@@ -47,7 +49,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { push('e:' + r.id); if (items['c:' + r.id]) push('c:' + r.id); };
+  const pushRx = r => { push('e:' + r.id); for (const k of ['c:', 'o:']) if (items[k + r.id]) push(k + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.
@@ -108,6 +110,8 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
 
 /* ---------- cofactors ---------- */
 const cofName = (m, id) => (m.cof[id] && m.cof[id].name) || id;
+const cofItemsOf = (m, r) => ['c:', 'o:'].map(k => m.items[k + r.id]).filter(Boolean); // a step's cofactor blanks, inputs first
+const cofSideText = (m, c) => [...(c.in || []), ...(c.out || [])].map(id => cofName(m, id)).join(' + ');
 function cofText(m, c) {
   const i = (c.in || []).map(id => cofName(m, id)), o = (c.out || []).map(id => cofName(m, id));
   if (!i.length && !o.length) return 'None';
@@ -205,14 +209,25 @@ function nameSets(x) {
   if (!sorted && full.length > 1 && looksAbbreviated(x.name)) return { full: full.filter(v => v !== x.name), nick: [x.name, ...nick] };
   return { full, nick };
 }
+/* Three tiers for what an answer may be (the quiz's "Names" setting):
+   0 full      spelled out: "δ-aminolevulinic acid synthase", "phosphofructokinase-1"
+   1 common    the name the app shows, or a nickname with a real word in it: "ALA synthase", "HMG-CoA reductase", "PBG deaminase"
+   2 any       bare abbreviations too: "ALAS", "HMGCR", "PFK-1", "G6P" */
+const NAME_TIERS = { full: 0, common: 1, any: 2 };
+const tierOf = t => (t === true ? 0 : NAME_TIERS[t] ?? 2); // older callers pass true for "full names"
+const nameTierCfg = cfg => cfg?.names || (cfg?.fullNames ? 'full' : 'any'); // presets saved before 3.9 have fullNames
+const hasWord = v => (v.match(/[a-z]{4,}/g) || []).some(w => !/^(alpha|beta|gamma|delta)$/.test(w));
+function nameTiers(x) {
+  const { full, nick } = nameSets(x);
+  return [...full.map(n => ({ n, tier: 0 })), ...nick.map(n => ({ n, tier: n === x.name || hasWord(n) ? 1 : 2 }))];
+}
 let SYNONYMS = null;
 function synonymClasses() {
   if (SYNONYMS) return SYNONYMS;
   const seen = new Set();
   SYNONYMS = [];
   for (const p of Object.values(Library.builtin())) for (const met of Object.values(p.metabolites || {})) {
-    const { full, nick } = nameSets(met);
-    const names = [...full.map(n => ({ n, full: true })), ...nick.map(n => ({ n, full: false }))].filter(x => x.n.trim().length >= 3);
+    const names = nameTiers(met).filter(x => x.n.trim().length >= 3);
     const key = names.map(x => norm(x.n)).sort().join('|');
     if (names.length > 1 && !seen.has(key)) { seen.add(key); SYNONYMS.push(names); }
   }
@@ -220,20 +235,19 @@ function synonymClasses() {
 }
 const escRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const VARIANT_CACHE = new WeakMap();
-// Every spelling of an element, each marked full or not: a variant is full only if everything it's built from is.
+// Every spelling of an element with its tier: a variant is as abbreviated as the most abbreviated name it's built from.
 function variantsOf(item) {
   if (!item) return [];
   if (VARIANT_CACHE.has(item)) return VARIANT_CACHE.get(item);
-  const out = new Map(); // spelling → full?
-  const add = (v, full) => { v = v.replace(/\s+/g, ' ').trim(); if (!v) return; if (out.has(v)) { if (full) out.set(v, true); } else if (out.size < VARIANT_CAP) out.set(v, full); };
-  const { full, nick } = item.kind === 'loc' ? { full: [item.name, ...(item.aliases || [])], nick: [] } : nameSets(item);
-  full.forEach(v => add(v, true)); nick.forEach(v => add(v, false));
+  const out = new Map(); // spelling → tier
+  const add = (v, t) => { v = v.replace(/\s+/g, ' ').trim(); if (!v) return; if (out.has(v)) out.set(v, Math.min(out.get(v), t)); else if (out.size < VARIANT_CAP) out.set(v, t); };
+  (item.kind === 'loc' ? [item.name, ...(item.aliases || [])].map(n => ({ n, tier: 0 })) : nameTiers(item)).forEach(x => add(x.n, x.tier));
   const named = item.kind === 'enz' || item.kind === 'trn'; // a metabolite already lists its own names; compartment twins must stay apart
   if (item.kind !== 'loc') {
     // substitute any name of a metabolite that appears inside an enzyme's name (word-bounded, case-insensitive)
     if (named) for (const cls of synonymClasses()) for (const a of cls) {
       const re = new RegExp(`(^|[^A-Za-z0-9])${escRe(a.n)}(?=$|[^A-Za-z0-9])`, 'i');
-      for (const [v, f] of [...out]) { if (!re.test(v)) continue; for (const b of cls) if (b.n !== a.n) add(v.replace(re, `$1${b.n}`), f && b.full); }
+      for (const [v, f] of [...out]) { if (!re.test(v)) continue; for (const b of cls) if (b.n !== a.n) { const w = v.replace(re, `$1${b.n}`), t = Math.max(f, b.tier); add(w, t === 2 && f <= 1 && hasWord(w) ? 1 : t); } } // "δ-ALA synthase" reads as common
     }
     for (const [v, f] of [...out]) {
       add(v.replace(/\b(\w+)ic acid\b/gi, '$1ate'), f);                 // pyruvic acid → pyruvate
@@ -242,7 +256,7 @@ function variantsOf(item) {
       if (named) add(v.replace(/\s*\([^)]*\)/g, ''), f);               // drop a parenthetical qualifier (enzymes only)
     }
   }
-  const list = [...out].map(([v, f]) => ({ v, full: f }));
+  const list = [...out].map(([v, tier]) => ({ v, tier }));
   VARIANT_CACHE.set(item, list);
   return list;
 }
@@ -256,19 +270,20 @@ function claimsOf(m) {
   CLAIMS.set(m, own);
   return own;
 }
-// "Require full names": only full spellings count, unless an element has none at all (then its nicknames still do).
-function spellingsFor(item, m, fullOnly = false) {
+// The Names setting (full / common / any): spellings up to that tier count. An element with nothing that plain
+// (no spelled-out name at all) falls back to its plainest names.
+function spellingsFor(item, m, names = 'any') {
   const { full, nick } = item.kind === 'loc' ? { full: [item.name], nick: [] } : nameSets(item);
   const data = new Set([...full, ...nick].map(norm));
   const claims = m ? claimsOf(m) : null;
-  const all = variantsOf(item), anyFull = all.some(x => x.full);
-  return all.filter(({ v, full: f }) => {
-    if (fullOnly && anyFull && !f) return false;
+  const all = variantsOf(item), lim = Math.max(tierOf(names), Math.min(...all.map(x => x.tier)));
+  return all.filter(({ v, tier }) => {
+    if (tier > lim) return false;
     const n = norm(v);
     return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name);
   }).map(x => x.v);
 }
-const acceptedFor = (item, m, full = false) => uniq(spellingsFor(item, m, full).map(norm));
+const acceptedFor = (item, m, names = 'any') => uniq(spellingsFor(item, m, names).map(norm));
 // Every right way to write a reaction's cofactors: each side in any order, ins before outs ("A + B → C", "B, A, C").
 function cofTargets(m, c) {
   const ins = (c.in || []).map(id => cofName(m, id)), outs = (c.out || []).map(id => cofName(m, id));

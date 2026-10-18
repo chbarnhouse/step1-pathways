@@ -112,14 +112,37 @@ function cofArc(m, x, y1, y2, c, up = false) {
   return s;
 }
 
-// Cofactor sets are items too ('c:<reaction>'): shown, hidden altogether ('hide'), or a blank to fill.
-const cofSt = (m, statusOf, r) => (m.items['c:' + r.id] ? statusOf('c:' + r.id) : 'none');
+// A step's cofactors are items too, one per side ('c:' in, 'o:' out): shown, hidden altogether ('hide'), or blanks.
+// parts: [{key, side, st, text}]; cofSt sums them up (any blank → blank, the current one → target).
+const cofParts = (m, statusOf, r) => cofItemsOf(m, r).map(it => ({ key: it.key, side: it.side, st: statusOf(it.key), text: cofSideText(m, it.cofs) }));
+function cofCombined(parts) {
+  const sts = parts.map(p => p.st);
+  if (!sts.length) return 'none';
+  if (sts.includes('target')) return 'target';
+  if (sts.some(hidden)) return 'blank';
+  if (sts.every(x => x === 'hide')) return 'hide';
+  return sts.includes('missed') ? 'missed' : sts.includes('right') ? 'right' : sts[0];
+}
+const cofSt = (m, statusOf, r) => cofCombined(cofParts(m, statusOf, r));
 const cofVisible = st => !hidden(st) && st !== 'none' && st !== 'hide';
-function cofBlank(x, y, st, anchor = 'start') {
-  const live = st === 'target' && INLINE, w = live ? Math.max(170, INLINE.along ? INLINE.along.length * 8 + 28 : 0) : pillW('cofactors');
-  const rx = anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x;
-  if (live) return `<g class="elab target"><rect x="${rx}" y="${y - 16}" width="${w}" height="32" rx="16"/></g>` + inlineField(rx + 4, y - 13, w - 8, 26);
-  return `<g class="elab cofb ${st}"><rect x="${rx}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, y, 'cofactors')}</g>`;
+// With a blank on either side, the cofactors are laid out in a row: "cofactors in → out", "ATP → out", "cofactors in → ADP".
+const cofWord = (p, two) => (!two ? 'cofactors' : p.side === 'in' ? 'cofactors in' : 'out');
+const isLive = p => p.st === 'target' && INLINE && (!INLINE.q?.statKey || INLINE.q.statKey === p.key);
+function cofRow(x, y, anchor, parts) {
+  parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
+  const two = parts.length > 1, gap = 6, aw = 14, cw = 7;
+  const ps = parts.map(p => ({ ...p, live: isLive(p),
+    w: isLive(p) ? Math.max(150, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
+  const total = ps.reduce((a, p) => a + p.w, 0) + (ps.length - 1) * (aw + 2 * gap);
+  let cx = anchor === 'end' ? x - total : anchor === 'middle' ? x - total / 2 : x, s = '';
+  ps.forEach((p, i) => {
+    if (i) { s += `<text class="coft" x="${cx + gap + aw / 2}" y="${y + 4}" text-anchor="middle">→</text>`; cx += aw + 2 * gap; }
+    if (p.live) s += `<g class="elab target"><rect x="${cx}" y="${y - 16}" width="${p.w}" height="32" rx="16"/></g>` + inlineField(cx + 4, y - 13, p.w - 8, 26);
+    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${cx}" y="${y - 13}" width="${p.w}" height="26" rx="13"/>${blankText(cx + p.w / 2, y, cofWord(p, two))}</g>`;
+    else s += `<text class="coft" x="${cx}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(cx + p.text.length * cw + 10, y, p.st);
+    cx += p.w;
+  });
+  return s;
 }
 const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'missed' ? svgIcon(x, y, 'no') : '');
 
@@ -147,11 +170,11 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
       lines.forEach((ln, i) => { s += `<text class="coft" x="${mx}" y="${my + 20 + i * 15}" text-anchor="middle">${esc(ln)}</text>`; });
       s += cofMark(mx - 8 - Math.max(...lines.map(l => l.length)) * 3.4, my + 16, cs);
     }
-    if (hidden(cs)) s += cofBlank(mx, my + 22, cs, 'middle');
+    if (hidden(cs)) s += cofRow(mx, my + 22, 'middle', cofParts(m, statusOf, r));
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center', ct ? [ct] : []);
     if (ct) s += cofMark(mx + 14, my, cs);
-    if (hidden(cs)) s += cofBlank(mx + 12, my, cs);
+    if (hidden(cs)) s += cofRow(mx + 12, my, 'start', cofParts(m, statusOf, r));
   } else s += diagLabel(m, statusOf, r, p1, p2);
   return s;
 }
@@ -170,7 +193,7 @@ function diagLabel(m, statusOf, r, p1, p2, boxes = []) {
   const anchor = steep ? 'end' : 'middle';
   let s = enzLabel(x, y, m.items['e:' + r.id], statusOf('e:' + r.id), anchor, 18, steep ? 'center' : 'bottom', ct ? [ct] : []);
   if (ct) s += cofMark(steep ? x + 12 : x - ct.length * 3.4 - 10, y, cs);
-  if (hidden(cs)) s += cofBlank(steep ? x : x, steep ? y + 32 : y + 18, cs, anchor);
+  if (hidden(cs)) s += cofRow(steep ? x : x, steep ? y + 32 : y + 18, anchor, cofParts(m, statusOf, r));
   return s;
 }
 
@@ -413,7 +436,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r));
       s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
       const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
-      if (hidden(cs)) s += cofBlank(X + 16, ym, cs);
+      if (hidden(cs)) s += cofRow(X + 16, ym, 'start', cofParts(m, statusOf, r));
       else if (cofVisible(cs)) s += cofArc(m, X, y1, y2, r.cofactors) + cofMark(X + 30, ym, cs);
     } else {
       // Crosses a membrane: slant from one lane to the other.
@@ -431,7 +454,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     if (r.reversible) s += `<path class="${rxCls(r)}" d="${curve(10, a.cy + 6, b.cy)}"/>` + head(x0, a.cy + 6, Math.PI, 8);
     const my = (a.cy + b.cy) / 2, cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
     s += enzLabel(xc + 12, my, items['e:' + r.id], statusOf('e:' + r.id), 'start', 20, 'center', ct ? [ct] : []);
-    if (hidden(cs)) s += cofBlank(xc + 12, my + 36, cs);
+    if (hidden(cs)) s += cofRow(xc + 12, my + 36, 'start', cofParts(m, statusOf, r));
   });
   branches.filter(b => !bypass.includes(b)).forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, ctr(r.from), ctr(r.to)); });
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
@@ -504,7 +527,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     if (cs !== 'none' && cs !== 'hide') {
       const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + loc.length;
       const ly = ly0 + Math.max(lines * 7.5, 0) + 14;
-      if (hidden(cs)) s += cofBlank(lx, ly + 6, cs, anchor);
+      if (hidden(cs)) s += cofRow(lx, ly + 6, anchor, cofParts(m, statusOf, r));
       else {
         const ct = cofText(m, r.cofactors);
         s += `<text class="coft" x="${lx}" y="${ly + 4}" text-anchor="${anchor}">${esc(ct)}</text>`;
@@ -560,11 +583,10 @@ function conn(m, item, st, horiz, statusOf) {
   const badge = st === 'start' ? '<span class="badge">START</span> ' : '';
   const name = st === 'target' && INLINE ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(st) ? `<span class="bk">${blankWord(item)}</span>` : esc(item.name);
   const tags = hidden(st) ? [] : (r.tags || []).filter(t => t !== 'irreversible');
-  const cs = cofSt(m, statusOf, r);
-  const cic = cs === 'right' ? icon('ok') : cs === 'missed' ? icon('no') : '';
-  const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + cic
-    : cs === 'target' && INLINE ? `<form class="inl" data-q="0">${inlineInput()}</form>`
-    : hidden(cs) ? `<span class="ename ${cs}"><span class="bk">cofactors</span></span>` : '';
+  const cs = cofSt(m, statusOf, r), parts = cofParts(m, statusOf, r).filter(p => p.st !== 'hide');
+  const mk = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
+  const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + mk(cs)
+    : hidden(cs) ? parts.map(p => isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st)).join(' → ') : '';
   const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags].filter(Boolean).join(' · ');
   return `<div class="conn"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}">${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
 }

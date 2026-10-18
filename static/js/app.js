@@ -55,7 +55,7 @@ function favoritesCardHTML() {
   return `<section class="card pad quick-card" data-tour="favs"><div class="sec-h"><h2>${mi('star', 'h-ic')} Favorites</h2><span class="muted">${favs.length || ''}</span></div>
     ${favs.length ? `<ul class="quick-list">${favs.map(f => { const d = normalizeDraft(f.d), pid = d.combine && pairOf(d.pathway) ? pairOf(d.pathway).id : d.pathway, p = Library.get(pid);
       return `<li><button class="quick-go" data-dash="fav" data-id="${esc(f.id)}" title="Open in New quiz to check the settings, then start">${p ? tileArt(p, 'sm') : ''}<span class="quick-text"><b>${esc(f.name)}</b><span class="muted small">${esc(p ? p.name : '')} · ${esc(quizSummary(normalizeQuiz(d)))}</span></span></button>
-        <span class="quick-actions"><button class="iconbtn" data-dash="favstart" data-id="${esc(f.id)}" title="Start right away" aria-label="Start ${esc(f.name)} right away">${mi('play_arrow')}</button><button class="iconbtn" data-dash="unfav" data-id="${esc(f.id)}" title="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></span></li>`; }).join('')}</ul>`
+        <span class="quick-actions"><button class="iconbtn" data-dash="favstart" data-id="${esc(f.id)}" data-tip="Start right away" aria-label="Start ${esc(f.name)} right away">${mi('play_arrow')}</button><button class="iconbtn" data-dash="favrename" data-id="${esc(f.id)}" data-tip="Rename" aria-label="Rename ${esc(f.name)}">${mi('edit', 'sm')}</button><button class="iconbtn" data-dash="unfav" data-id="${esc(f.id)}" data-tip="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></span></li>`; }).join('')}</ul>`
       : `<p class="muted small">${mi('star', 'sm')} Star a quiz on New quiz, or while you're in one, to keep it here.</p>`}
   </section>`;
 }
@@ -139,6 +139,7 @@ document.addEventListener('click', e => {
   if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
   if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { C.draft = normalizeDraft(f.d); C.presetId = ''; location.hash = '#/new'; } }
   if (b.dataset.dash === 'favstart') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'favrename') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: 'Rename favorite', input: true, value: f.name, ok: 'Rename' }).then(name => { if (name && name.trim()) { f.name = name.trim(); Store.save(); renderDashboard(); } }); }
   if (b.dataset.dash === 'unfav') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: `Remove “${f.name}” from favorites?`, ok: 'Remove' }).then(y => { if (y) { Store.data.favorites = favorites().filter(x => x !== f); Store.save(); renderDashboard(); } }); }
   if (b.dataset.dash === 'drill') {
     const pids = uniq(Stats.worst(50).map(r => r.pid));
@@ -366,7 +367,8 @@ function renderCreate() {
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
           ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” hints (button, or → at the end of your answer)</label>` : ''}
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="autoSubmit" ${d.autoSubmit ? 'checked' : ''}> Submit right answers automatically (no need to press Return)</label>` : ''}
-          <label class="cb"><input type="checkbox" data-cflag="fullNames" ${d.fullNames ? 'checked' : ''}> Require full names (abbreviations like “Gly” or “PFK-1” don’t count)</label>
+          ${['type', 'along'].includes(ans) ? `<div class="field"><span>Names that count</span>${seg('data-cs', 'names', [['full', 'Full names only'], ['common', 'Common abbreviations'], ['any', 'Any abbreviation']], nameTierCfg(d))}
+            <p class="muted small">${{ full: 'Only spelled-out names: “δ-aminolevulinic acid synthase”, “mitochondria”.', common: 'Names as usually written, like “ALA synthase”, “HMG-CoA reductase” or “mito”; not bare abbreviations like “ALAS”.', any: 'Any name or abbreviation: “ALAS”, “PFK-1”, “G6P”.' }[nameTierCfg(d)]}</p></div>` : ''}
           ${elOf(d, 'cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-cflag="cofCount" ${d.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (as “1/2” while you type)</label>` : ''}</div>
           ${laterBlanks}
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
@@ -386,7 +388,7 @@ function renderCreate() {
   updateRows();
 }
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
-const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'names', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
 const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
 const favorites = () => Store.data.favorites || [];
 const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));
@@ -420,7 +422,7 @@ document.addEventListener('click', e => {
     return renderCreate();
   }
   const sb = e.target.closest('[data-cs]');
-  if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; C.presetId = ''; return renderCreate(); }
+  if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; if (sb.dataset.cs === 'names') delete d.fullNames; C.presetId = ''; return renderCreate(); }
   const eb = e.target.closest('[data-cel]');
   if (eb) { d.el[eb.dataset.cel] = eb.dataset.v; C.presetId = ''; return renderCreate(); }
   const a = e.target.closest('[data-c]');

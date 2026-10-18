@@ -6,7 +6,8 @@
 'use strict';
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
-const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactor set', loc: 'compartment' };
+const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment' };
+const kindLabel = q => (q.kind === 'cof' && q.side ? (q.side === 'in' ? 'cofactors in' : 'cofactors out') : KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- elements: show / quiz / hide ---------- */
@@ -25,7 +26,7 @@ function elOf(cfg, k) {
 }
 const el = k => elOf(Q.cfg, k);
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', z: 'loc' }[key[0]]);
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', z: 'loc' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
@@ -50,10 +51,9 @@ function mcOptions(item, m) {
   return shuffle([item.name, ...picks]);
 }
 function pickOthers(right, pool, n = 3) { return shuffle([right, ...shuffle(uniq(pool).filter(x => x && x !== right)).slice(0, n)]); }
-function cofOptions(r, m) {
-  const all = m.p.reactions;
-  const pool = [...all.map(x => cofText(m, x.cofactors || {})), ...all.map(x => cofText(m, { in: x.cofactors?.out || [], out: x.cofactors?.in || [] })), 'None'];
-  return pickOthers(cofText(m, r.cofactors || {}), pool);
+function cofOptions(m, right) {
+  const pool = m.p.reactions.flatMap(x => [cofSideText(m, { in: x.cofactors?.in }), cofSideText(m, { out: x.cofactors?.out })]).filter(Boolean);
+  return pickOthers(right, right === 'None' ? [...pool, 'None'] : pool);
 }
 function baseQ(extra) { return Object.assign({ status: 'open', tries: 0, wrong: [], draft: '' }, extra); }
 
@@ -87,7 +87,7 @@ function alongWidget(target, typed, hinted = 0) {
   return `<span class="along"><span class="ghost">${alongGhost(target, typed, hinted)}</span><input class="ans along-in" data-along="${esc(target)}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type: ${esc(target)}" value="${esc(typed)}"></span>`;
 }
 function alongTextFor(q, m, r) {
-  if (q.kind === 'cof') return [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])].map(id => cofName(m, id)).join(', ') || 'none';
+  if (q.kind === 'cof') return [...(q.cofs.in || []), ...(q.cofs.out || [])].map(id => cofName(m, id)).join(', ') || 'none';
   if (q.kind === 'mets') return metNames(m, q.side === 'r' ? reactantsOf(r) : productsOf(r));
   if (q.kind === 'path') return m.p.name;
   if (q.kind === 'loc') return q.item ? q.item.name : r.loc;
@@ -99,13 +99,13 @@ function itemQ(item, m) {
     const all = uniq(Library.atomic().flatMap(p => p.reactions.map(r => r.loc)).filter(Boolean)).filter(l => canonLoc(l) !== item.canon);
     return baseQ({ kind: 'loc', label: 'Compartment', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name, placeholder: 'e.g. mitochondria',
       options: answerStyle() === 'choice' ? pickOthers(item.name, uniq(all.map(l => l[0].toUpperCase() + l.slice(1)))) : null,
-      check: v => v === item.name || (canonLoc(v) === item.canon && (!Q.cfg.fullNames || !shortenedLoc(v, item))) || item.aliases.some(a => norm(a) === norm(v) && (!Q.cfg.fullNames || !shortenedLoc(a, item))) });
+      check: v => v === item.name || (canonLoc(v) === item.canon && (nameTierCfg(Q.cfg) !== 'full' || !shortenedLoc(v, item))) || item.aliases.some(a => norm(a) === norm(v) && (nameTierCfg(Q.cfg) !== 'full' || !shortenedLoc(a, item))) });
   }
   return baseQ({
     kind: item.kind, label: { met: 'Metabolite', enz: 'Enzyme', trn: 'Transporter' }[item.kind], item, statKey: item.key, pid: m.p.id,
     answerText: item.name, correct: item.name,
     options: answerStyle() === 'choice' ? mcOptions(item, m) : null,
-    check: v => v === item.name || acceptedFor(item, m, !!Q.cfg.fullNames).includes(norm(v)), // reads “Require full names” live
+    check: v => v === item.name || acceptedFor(item, m, nameTierCfg(Q.cfg)).includes(norm(v)), // reads the Names setting live
   });
 }
 // With "Require full names", a compartment can't be a clipped word ("mito", "cyto") or an acronym ("ER", "RER");
@@ -116,15 +116,19 @@ function shortenedLoc(v, item) {
   const full = uniq([item.name, item.canon, ...(item.aliases || [])].filter(Boolean).map(norm)).filter(f => f.length > n.length);
   return full.some(f => f.startsWith(n) || f.includes(n) && n.length <= 4);
 }
+// One question per side of a step's cofactors ("Cofactors in", "Cofactors out"), each in any order.
+// A step with none at all is asked as "none" (single-step modes only).
 function cofQ(r, m, item = null) {
-  const t = cofText(m, r.cofactors || {});
+  const cofs = item ? item.cofs : {}, t = cofSideText(m, cofs) || 'None', side = item?.side;
   return baseQ({
-    kind: 'cof', label: 'Cofactors', item, factItem: m.items['e:' + r.id], answerText: t, correct: t, statKey: 'c:' + r.id, pid: m.p.id, cofs: r.cofactors || {}, model: m,
-    placeholder: 'e.g. ATP, ADP — or "none"',
-    options: answerStyle() === 'choice' ? cofOptions(r, m) : null,
-    check: v => v === t || gradeCof(m, v, r.cofactors || {}),
+    kind: 'cof', side, label: !item ? 'Cofactors' : side === 'in' ? 'Cofactors in' : 'Cofactors out', item, factItem: m.items['e:' + r.id], answerText: t, correct: t,
+    statKey: item ? item.key : 'c:' + r.id, pid: m.p.id, cofs, model: m,
+    placeholder: !item ? 'e.g. ATP — or "none"' : side === 'in' ? 'what goes in, e.g. ATP' : 'what comes out, e.g. ADP',
+    options: answerStyle() === 'choice' ? cofOptions(m, t) : null,
+    check: v => v === t || gradeCof(m, v, cofs),
   });
 }
+const cofQs = (r, m) => { const its = cofItemsOf(m, r); return its.length ? its.map(it => cofQ(r, m, it)) : [cofQ(r, m)]; };
 function dirQ(r, top, bottom, m) {
   const nm = id => m.p.metabolites[id].short || m.p.metabolites[id].name;
   const A = nm(top), B = nm(bottom);
@@ -187,7 +191,7 @@ function startQuiz(cfg) {
   Q.cfg.name = cfg.name || 'Quiz';
   Q.cfg.allPathways = !!cfg.allPathways;
   Q.models = quizPathways().map(id => { try { return modelFor(Library.get(id)); } catch { return null; } }).filter(Boolean);
-  Q.history = []; Q.fact = null; Q.drawer = false; Q.focus = null;
+  Q.history = []; Q.undo = []; Q.fact = null; Q.drawer = false; Q.focus = null;
   // Activity log entry: written on the first answer, updated as you go (sessions with no answers aren't logged).
   Q.log = { id: Date.now().toString(36), t: Date.now(), last: Date.now(), pathways: Q.models.map(m => m.p.id), name: Q.cfg.name,
     mode: Q.cfg.mode, given: Q.cfg.given, answer: answerStyle(), right: 0, total: 0, done: false };
@@ -282,7 +286,7 @@ function nextStep() {
   const R = Q.round;
   if (!R.deck.length) {
     const all = Q.models.flatMap(m => m.pairs.map(pr => ({ m, pr })));
-    R.deck = weightedDeck(all, x => Math.max(...['e:', 'c:', 'd:'].map(t => Stats.rate(x.m.p.id, t + x.pr.r.id))));
+    R.deck = weightedDeck(all, x => Math.max(...['e:', 'c:', 'o:', 'd:'].map(t => Stats.rate(x.m.p.id, t + x.pr.r.id))));
   }
   const { m, pr } = R.deck.pop();
   Q.m = m;
@@ -291,7 +295,7 @@ function nextStep() {
   R.pair = { ...pr, top, bottom };
   R.qs = [];
   if (el('enz') === 'quiz') R.qs.push(itemQ(m.items['e:' + pr.r.id], m));
-  if (el('cof') === 'quiz') R.qs.push(cofQ(pr.r, m));
+  if (el('cof') === 'quiz') R.qs.push(...cofQs(pr.r, m));
   if (el('dir') === 'quiz') R.qs.push(dirQ(pr.r, top, bottom, m));
   if (el('loc') === 'quiz' && pr.r.loc) R.qs.push(locQ(pr.r, m));
   R.qs.forEach(x => withAlong(x, m, pr.r));
@@ -300,13 +304,13 @@ function nextStepE() {
   const R = Q.round;
   if (!R.deck.length) {
     const all = Q.models.flatMap(m => m.p.reactions.map(r => ({ m, r })));
-    R.deck = weightedDeck(all, x => Math.max(...['r:', 'p:', 'c:', 'w:'].map(t => Stats.rate(x.m.p.id, t + x.r.id))));
+    R.deck = weightedDeck(all, x => Math.max(...['r:', 'p:', 'c:', 'o:', 'w:'].map(t => Stats.rate(x.m.p.id, t + x.r.id))));
   }
   const { m, r } = R.deck.pop();
   Q.m = m; R.r = r;
   R.qs = [];
   if (el('met') === 'quiz') R.qs.push(metSetQ(r, m, 'r'), metSetQ(r, m, 'p'));
-  if (el('cof') === 'quiz') R.qs.push(cofQ(r, m));
+  if (el('cof') === 'quiz') R.qs.push(...cofQs(r, m));
   if (el('loc') === 'quiz' && r.loc) R.qs.push(locQ(r, m));
   if (el('path') === 'quiz') R.qs.push(pathQ(r, m));
   R.qs.forEach(x => withAlong(x, m, r));
@@ -314,8 +318,8 @@ function nextStepE() {
 function withAlong(q, m, r = q.item?.rxn) {
   if (answerStyle() === 'along' && q.kind !== 'dir') q.along = alongTextFor(q, m, r);
   // Every accepted spelling, for letter-by-letter checking and hints (whichever one you're typing wins).
-  if (q.kind !== 'dir') q.targets = uniq(q.kind === 'cof' ? cofTargets(m, r?.cofactors || {})
-    : q.item ? [...spellingsFor(q.item, m, !!Q.cfg.fullNames && q.kind !== 'loc'), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
+  if (q.kind !== 'dir') q.targets = uniq(q.kind === 'cof' ? cofTargets(m, q.cofs || {})
+    : q.item ? [...spellingsFor(q.item, m, q.kind !== 'loc' ? nameTierCfg(Q.cfg) : 'any'), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
     : q.kind === 'path' ? [m.p.name, ...(m.p.aliases || [])] : [alongTextFor(q, m, r)]);
   return q;
 }
@@ -393,10 +397,40 @@ function nextQuestion() {
   renderQuiz();
 }
 
+/* ---------- Step back ----------
+   Before each answer counts (or a question is skipped), the quiz keeps a snapshot: the round, the score, the facts list
+   and that question's saved history. Step back restores the last one, so the answer is asked again and never counted twice. */
+const cloneQ = q => q && { ...q, wrong: [...(q.wrong || [])] };
+function snapshot(q) {
+  const R = Q.round, c = { ...R };
+  for (const k of ['deck', 'order', 'queue']) if (Array.isArray(R[k])) c[k] = R[k].slice();
+  if (R.st) c.st = { ...R.st };
+  if (R.intro) c.intro = new Set(R.intro);
+  if (R.q) c.q = cloneQ(R.q);
+  if (R.qs) c.qs = R.qs.map(cloneQ);
+  const stat = q && Store.data.stats[q.pid]?.[q.statKey];
+  Q.undo = Q.undo || [];
+  Q.undo.push({ round: c, m: Q.m, score: { ...Q.score }, history: (Q.history || []).slice(), fact: Q.fact, factM: Q.factM,
+    stat: q && { pid: q.pid, key: q.statKey, v: stat ? JSON.parse(JSON.stringify(stat)) : null }, log: Q.log && { ...Q.log } });
+  if (Q.undo.length > 200) Q.undo.shift();
+}
+function stepBack() {
+  const u = Q.undo?.pop();
+  if (!u) return;
+  Q.round = u.round; Q.m = u.m; Q.score = u.score; Q.history = u.history; Q.fact = u.fact; Q.factM = u.factM;
+  if (u.stat) { const S = Store.data.stats; S[u.stat.pid] = S[u.stat.pid] || {}; if (u.stat.v) S[u.stat.pid][u.stat.key] = u.stat.v; else delete S[u.stat.pid][u.stat.key]; }
+  if (u.log) { Q.log = u.log; const log = Store.data.log || [], i = log.findIndex(x => x.id === u.log.id); if (i >= 0) { if (u.log.total) log[i] = { ...u.log }; else log.splice(i, 1); } }
+  Store.save();
+  for (const q of Q.round.qs || [Q.round.q]) if (q && q.status === 'open') { q.draft = ''; q.justWrong = false; }
+  renderQuiz();
+}
+function restartQuiz() { Q.undo = []; Q.history = []; Q.fact = null; newRound(); renderQuiz(); }
+
 /* ---------- grading ---------- */
 function submit(q, v) {
   if (q.status !== 'open') return;
   if (!['dir', 'cof'].includes(q.kind) && !String(v).trim()) return;
+  if (q.check(v)) snapshot(q);
   if (Q.round.type === 'build') {
     // Building blocks: right → next blank; wrong → this blank is cleared and asked again.
     if (q.check(v)) { q.status = 'right'; noteInlineRight(q); return buildResolved(q); }
@@ -408,10 +442,10 @@ function submit(q, v) {
 function reveal(q) {
   if (q.status !== 'open') return;
   if (Q.round.type === 'build') { q.hints = (q.hints || 0) + 1; q.peek = q.answerText; return renderQuiz(); }
-  q.status = 'missed'; tally(q, false); resolved(q);
+  snapshot(q); q.status = 'missed'; tally(q, false); resolved(q);
 }
 function peek(q) { q.status = 'peek'; renderQuiz(); }
-function selfGrade(q, ok) { q.status = ok ? 'right' : 'missed'; q.self = true; tally(q, ok); resolved(q); }
+function selfGrade(q, ok) { snapshot(q); q.status = ok ? 'right' : 'missed'; q.self = true; tally(q, ok); resolved(q); }
 function tally(q, firstTry) {
   firstTry = firstTry && !q.hints;
   Q.score.total++; if (firstTry) Q.score.right++; Stats.record(q.pid, q.statKey, firstTry);
@@ -472,9 +506,12 @@ function statusOf(key) {
 /* ---------- step diagrams ---------- */
 const qOf = kind => Q.round.qs.find(q => q.kind === kind);
 const qState = q => (q ? (q.status === 'open' ? 'target' : q.status) : 'shown');
+// The step's cofactor questions as diagram parts (one per side), and their summed-up state.
+const qCofParts = () => Q.round.qs.filter(q => q.kind === 'cof').map(q => ({ key: q.statKey, side: q.side, st: qState(q), text: q.answerText }));
+const qCofState = () => cofCombined(qCofParts());
 function stepFlow() {
   const R = Q.round, m = Q.m, { items } = m, r = R.pair.r;
-  const qe = qOf('enz'), qc = qOf('cof'), qd = qOf('dir');
+  const qe = qOf('enz'), qd = qOf('dir');
   const dirKnown = !qd || qd.status !== 'open';
   const down = r.reversible || reactantsOf(r).includes(R.pair.top);
   const cx = 230, y1 = TOP, y2 = TOP + BH + 130;
@@ -484,8 +521,8 @@ function stepFlow() {
   else s += r.reversible ? arrow(cx, a, cx, b, true) : down ? arrow(cx, a, cx, b, false) : arrow(cx, b, cx, a, false);
   if (el('enz') !== 'hide') s += enzLabel(cx - 34, mid, items['e:' + r.id], qState(qe), 'end', 24);
   if (el('cof') !== 'hide') {
-    const cs = qState(qc), ct = cofText(m, r.cofactors || {});
-    if (hidden(cs)) s += cofBlank(cx + 22, mid, cs);
+    const cs = qCofState(), ct = cofText(m, r.cofactors || {});
+    if (hidden(cs)) s += cofRow(cx + 22, mid, 'start', qCofParts());
     else if (ct === 'None') s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">no cofactors</text>` + cofMark(cx + 12, mid - 14, cs);
     // Until direction is answered, cofactors are plain text: the arc's arrowhead would give the direction away.
     else if (!dirKnown) s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">${esc(ct)}</text>` + cofMark(cx + 12, mid - 14, cs);
@@ -496,28 +533,28 @@ function stepFlow() {
 }
 function stepList() {
   const R = Q.round, m = Q.m, { items } = m, r = R.pair.r;
-  const qe = qOf('enz'), qc = qOf('cof'), qd = qOf('dir');
+  const qe = qOf('enz'), qd = qOf('dir');
   const horiz = Store.settings.dir === 'h', down = r.reversible || reactantsOf(r).includes(R.pair.top);
   let arr = '?';
   if (!qd || qd.status !== 'open') arr = r.reversible ? (horiz ? '⇌' : '⇅') : down ? (horiz ? '→' : '↓') : (horiz ? '←' : '↑');
   const ic = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
-  const es = qState(qe), cs = qState(qc);
+  const es = qState(qe), cs = qCofState();
   const ename = el('enz') === 'hide' ? '' : `<span class="ename ${es === 'peek' ? 'shown' : es}">${hidden(es) ? '?' : esc(items['e:' + r.id].name)} ${ic(es)}</span>`;
-  const cof = el('cof') === 'hide' ? '' : hidden(cs) ? `<span class="ename ${cs}">?</span>` : esc(cofText(m, r.cofactors || {})) + ' ' + ic(cs);
+  const cof = el('cof') === 'hide' ? '' : hidden(cs) ? qCofParts().map(p => hidden(p.st) ? `<span class="ename ${p.st}">?</span>` : esc(p.text) + ' ' + ic(p.st)).join(' → ') : esc(cofText(m, r.cofactors || {})) + ' ' + ic(cs);
   return `<div class="list ${horiz ? 'h' : 'v'}">${chip(items['m:' + R.pair.top], 'shown')}
     <div class="conn"><span class="arr">${arr}</span><div class="meta">${ename}<span class="cofs">${cof}</span></div></div>
     ${chip(items['m:' + R.pair.bottom], 'shown')}</div>`;
 }
 function stepEFlow() {
   const R = Q.round, m = Q.m, r = R.r, w = 380, cx = 330, y1 = TOP + 18, y2 = y1 + BH + 130;
-  const qr = R.qs.find(q => q.side === 'r'), qp = R.qs.find(q => q.side === 'p'), qc = qOf('cof');
+  const qr = R.qs.find(q => q.side === 'r'), qp = R.qs.find(q => q.side === 'p');
   const box = (y, ids, q) => metBox(cx, y, { name: metNames(m, ids) }, qState(q), w);
   const a = y1 + BH + 4, b = y2 - 4, mid = (a + b) / 2;
   let s = box(y1, reactantsOf(r), qr) + box(y2, productsOf(r), qp) + arrow(cx, a, cx, b, r.reversible);
   s += `<g class="elab given">${wrap(m.items['e:' + r.id].name, 24).map((l, i, all) => `<text x="${cx - 24}" y="${mid + (i - (all.length - 1) / 2) * 17}" text-anchor="end" dominant-baseline="central">${esc(l)}</text>`).join('')}</g>`;
   if (el('cof') !== 'hide') {
-    const cs = qState(qc);
-    if (hidden(cs)) s += cofBlank(cx + 22, mid, cs);
+    const cs = qCofState();
+    if (hidden(cs)) s += cofRow(cx + 22, mid, 'start', qCofParts());
     else if (cofText(m, r.cofactors || {}) === 'None') s += `<text class="coft" x="${cx + 22}" y="${mid + 4}">no cofactors</text>` + cofMark(cx + 12, mid - 14, cs);
     else s += cofArc(m, cx, y1 + BH, y2, r.cofactors) + cofMark(cx + 30, mid, cs);
   }
@@ -526,10 +563,10 @@ function stepEFlow() {
 }
 function stepEList() {
   const R = Q.round, m = Q.m, r = R.r, horiz = Store.settings.dir === 'h';
-  const qr = R.qs.find(q => q.side === 'r'), qp = R.qs.find(q => q.side === 'p'), qc = qOf('cof');
+  const qr = R.qs.find(q => q.side === 'r'), qp = R.qs.find(q => q.side === 'p');
   const ch = (ids, q) => chip({ name: metNames(m, ids) }, qState(q));
-  const cs = qState(qc), ic = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
-  const cof = el('cof') === 'hide' ? '' : hidden(cs) ? `<span class="ename ${cs}">?</span>` : esc(cofText(m, r.cofactors || {})) + ' ' + ic(cs);
+  const cs = qCofState(), ic = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
+  const cof = el('cof') === 'hide' ? '' : hidden(cs) ? qCofParts().map(p => hidden(p.st) ? `<span class="ename ${p.st}">?</span>` : esc(p.text) + ' ' + ic(p.st)).join(' → ') : esc(cofText(m, r.cofactors || {})) + ' ' + ic(cs);
   const arr = horiz ? (r.reversible ? '⇌' : '→') : (r.reversible ? '⇅' : '↓');
   return `<div class="list ${horiz ? 'h' : 'v'}">${ch(reactantsOf(r), qr)}
     <div class="conn"><span class="arr">${arr}</span><div class="meta"><span class="ename given">${esc(m.items['e:' + r.id].name)}</span><span class="cofs">${cof}</span></div></div>
@@ -626,7 +663,7 @@ function optionsHTML() {
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="letterCheck" ${Q.cfg.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="autoSubmit" ${Q.cfg.autoSubmit ? 'checked' : ''}> Submit right answers automatically</label>` : ''}
-      ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="fullNames" ${Q.cfg.fullNames ? 'checked' : ''}> Require full names</label>` : ''}
+      ${['type', 'along'].includes(ans) ? `<label>Names that count</label>${seg('names', [['full', 'Full names only'], ['common', 'Common abbreviations'], ['any', 'Any abbreviation']], nameTierCfg(Q.cfg))}` : ''}
       ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are</label>` : ''}
       <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
       ${view === 'list' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
@@ -672,6 +709,8 @@ function renderQuiz() {
       ${progress}
       <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
       <div class="qtools">${R.type !== 'none' && flow && !occ ? zoomBarHTML() : ''}
+        ${R.type !== 'none' ? `<button class="tbtn icon" data-act="back" ${Q.undo?.length ? '' : 'disabled'} data-tip="Step back: undo the last answer" aria-label="Step back">${mi('undo')}</button>
+        <button class="tbtn icon" data-act="restartq" data-tip="Restart this quiz from the beginning" aria-label="Restart quiz">${mi('restart_alt')}</button>` : ''}
         <button class="tbtn icon" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)" aria-label="Facts">${mi('lightbulb')}${nFacts ? `<b class="count">${nFacts}</b>` : ''}</button>
         ${optionsHTML()}</div>
       ${progressFrac() !== null ? `<div class="qprog" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progressFrac() * 100)}"><span style="width:${(progressFrac() * 100).toFixed(1)}%"></span></div>` : ''}
@@ -708,17 +747,44 @@ function drawerHTML() {
       : '<p class="muted">Nothing answered yet.</p>'}
   </aside>`;
 }
+/* Spoilers: the facts for one answer must not give away another you haven't answered yet (an enzyme's cofactors, its
+   products, a compartment). Those parts are covered, Reddit style; click (or Enter) to reveal. */
+function stillOpen(m, key) {
+  const R = Q.round;
+  if (!R || !Q.m || !m || m.p.id !== Q.m.p.id) return false;
+  if (R.qs) return R.qs.some(q => q.statKey === key && q.status === 'open');
+  if (!['single', 'total', 'build'].includes(R.type) || !m.items[key]) return false;
+  return hidden(statusOf(key));
+}
+const spoiler = html => `<span class="spoiler" role="button" tabindex="0" data-tip="Not answered yet: click to reveal" aria-label="Hidden until you answer it. Click to reveal.">${html}</span>`;
+const maybeSpoil = (open, html) => (open && html ? spoiler(html) : html);
+// Free text (notes) with the names of still-unanswered items covered.
+function maskNames(text, m) {
+  const terms = uniq(Object.values(m.items).filter(it => ['met', 'enz', 'trn'].includes(it.kind) && stillOpen(m, it.key))
+    .flatMap(it => [it.name, it.short, ...(it.aliases || []), ...(it.nicknames || [])]).filter(t => t && t.trim().length >= 3)).sort((a, b) => b.length - a.length);
+  if (!terms.length) return esc(text);
+  const re = new RegExp(`(^|[^A-Za-z0-9])(${terms.map(escRe).join('|')})(?=$|[^A-Za-z0-9])`, 'gi');
+  let out = '', last = 0;
+  for (const mt of text.matchAll(re)) { const st = mt.index + mt[1].length; out += esc(text.slice(last, st)) + spoiler(esc(mt[2])); last = st + mt[2].length; }
+  return out + esc(text.slice(last));
+}
 function factsCard(item, m) {
   if (!item) return '';
   let tags = '', extra = '';
   if (item.kind === 'enz' || item.kind === 'trn') {
-    const r = item.rxn;
-    tags = [r.only ? r.only + ' only' : '', r.transport ? 'transport' : '', r.reversible ? 'reversible' : 'irreversible', ...(r.tags || []).filter(t => t !== 'irreversible'), r.tissue || m.p.tissue, r.loc].filter(Boolean).join(' · ');
-    extra = `<p class="rx">${esc(metNames(m, reactantsOf(r)))} ${r.reversible ? '⇌' : '→'} ${esc(metNames(m, productsOf(r)))}</p>`;
-    if (item.kind === 'enz') extra += `<p>Cofactors: ${esc(cofText(m, r.cofactors || {}))}${(r.requires || []).length ? ` · Requires ${esc(r.requires.join(', '))}` : ''}</p>`;
-    if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · '))}</p>`;
+    const r = item.rxn, locOpen = r.loc && (stillOpen(m, 'z:' + zoneKey(m, r.loc, r.tissue)) || stillOpen(m, 'l:' + r.id));
+    tags = [r.only ? esc(r.only + ' only') : '', r.transport ? 'transport' : '', r.reversible ? 'reversible' : 'irreversible', ...(r.tags || []).filter(t => t !== 'irreversible').map(esc), esc(r.tissue || m.p.tissue || ''), maybeSpoil(locOpen, esc(r.loc || ''))].filter(Boolean).join(' · ');
+    const side = (ids, k) => stillOpen(m, k + r.id) ? spoiler(esc(metNames(m, ids))) : ids.map(id => maybeSpoil(stillOpen(m, 'm:' + id), esc(metNames(m, [id])))).join(' + ');
+    extra = `<p class="rx">${side(reactantsOf(r), 'r:')} ${r.reversible ? '⇌' : '→'} ${side(productsOf(r), 'p:')}</p>`;
+    if (item.kind === 'enz') {
+      const c = r.cofactors || {}, ins = cofSideText(m, { in: c.in }), outs = cofSideText(m, { out: c.out });
+      const open = k => stillOpen(m, k + r.id), cin = maybeSpoil(open('c:'), esc(ins)), cout = maybeSpoil(ins ? open('o:') : open('c:'), esc(outs));
+      const ct = !ins && !outs ? 'None' : !ins ? 'releases ' + cout : !outs ? 'uses ' + cin : cin + ' → ' + cout;
+      extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Requires ${esc(r.requires.join(', '))}` : ''}</p>`;
+    }
+    if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${maybeSpoil(stillOpen(m, 'w:' + r.id), esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · ')))}</p>`;
   }
-  // Every name it answers to, whatever "Require full names" is set to.
+  // Every name it answers to, whatever the Names setting is.
   let names = '';
   if (item.kind !== 'loc') {
     const { full, nick } = nameSets(item), skip = new Set([norm(item.name), norm(item.short || '\u0000')]);
@@ -726,8 +792,10 @@ function factsCard(item, m) {
     const also = list(full), writ = list(nick);
     names = `${also ? `<p class="names"><span class="muted">Also called:</span> ${also}</p>` : ''}${writ ? `<p class="names"><span class="muted">Sometimes written as:</span> ${writ}</p>` : ''}`;
   }
-  return `<div class="fact-body"><h3>${esc(item.name)}${item.short && item.short !== item.name ? ` <span class="muted">(${esc(item.short)})</span>` : ''}</h3>${names}${tags ? `<div class="tags">${esc(tags)}</div>` : ''}${extra}${item.notes ? `<p>${esc(item.notes)}</p>` : item.kind === 'met' && !extra ? '<p class="muted">No notes for this one yet.</p>' : ''}</div>`;
+  return `<div class="fact-body"><h3>${esc(item.name)}${item.short && item.short !== item.name ? ` <span class="muted">(${esc(item.short)})</span>` : ''}</h3>${names}${tags ? `<div class="tags">${tags}</div>` : ''}${extra}${item.notes ? `<p>${maskNames(item.notes, m)}</p>` : item.kind === 'met' && !extra ? '<p class="muted">No notes for this one yet.</p>' : ''}</div>`;
 }
+document.addEventListener('click', e => { const sp = e.target.closest('.spoiler:not(.open)'); if (sp) { e.preventDefault(); e.stopPropagation(); sp.classList.add('open'); sp.removeAttribute('data-tip'); sp.setAttribute('aria-label', ''); } }, true);
+document.addEventListener('keydown', e => { const sp = e.target.closest?.('.spoiler:not(.open)'); if (sp && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); sp.click(); } });
 // The dock keeps the last answer's facts until the next answer, so moving on doesn't take them away.
 function lastFactsHTML() {
   if (!Q.fact || !Store.settings.facts) return '';
@@ -742,7 +810,7 @@ function occDock() {
       <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
     return `<div class="dock"><div class="dock-row">
-      <div class="dock-text"><span class="kind kind-${q.kind}">${KIND[q.kind]}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
+      <div class="dock-text"><span class="kind kind-${q.kind}">${kindLabel(q)}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
       <div class="dock-answer">${q.peek ? `<div class="hint-line"><span>Answer: <b>${esc(q.peek)}</b>. Now type it.</span></div>` : ''}${q.note ? `<div class="hint-line"><span class="bad-note">${esc(q.note)}</span></div>` : ''}${q.justWrong ? `<div class="hint-line"><span class="bad-note">${icon('no')} Not quite. That blank is cleared; try it again.</span></div>` : ''}${answerHTML(q, 0, true)}</div>
       <div class="dock-actions"><button class="btn ghost" data-act="reveal" title="Show the answer (you'll still type it)">${mi('visibility', 'sm')} Show answer</button></div>
     </div>${lastFactsHTML()}</div>`;
@@ -765,7 +833,7 @@ function occDock() {
     ? (open ? '' : `<button class="btn primary" data-act="next">Next ${mi('skip_next', 'sm')} <kbd>↵</kbd></button>`)
     : (q.status === 'missed' || (q.status === 'right' && !Store.settings.autoAdvance) ? `<button class="btn primary" data-act="continue">Continue <kbd>↵</kbd></button>` : '');
   return `<div class="dock"><div class="dock-row">
-    <div class="dock-text"><span class="kind kind-${q.kind}">${KIND[q.kind]}</span>${where ? `<span class="muted"> ${where}</span>` : ''}</div>
+    <div class="dock-text"><span class="kind kind-${q.kind}">${kindLabel(q)}</span>${where ? `<span class="muted"> ${where}</span>` : ''}</div>
     <div class="dock-answer">${answerHTML(q, 0, true)}</div>
     <div class="dock-actions">${open && answerStyle() !== 'self' ? `<button class="btn ghost" data-act="reveal" title="Reveal (Esc)">${mi('visibility', 'sm')} Reveal</button>` : ''}
       ${R.type === 'single' && open ? `<button class="btn ghost" data-act="skip">Skip</button>` : ''}${next}</div>
@@ -817,6 +885,7 @@ document.addEventListener('click', e => {
   if (qo) {
     const k = qo.dataset.qopt, v = qo.dataset.v;
     if (k === 'dir') { Store.settings.dir = v; Store.save(); renderQuiz(); }
+    else if (k === 'names') { Q.cfg.names = v; delete Q.cfg.fullNames; (Q.round.qs || [Q.round.q]).filter(Boolean).forEach(x => withAlong(x, Q.m)); renderQuiz(); } // refresh letter-check / hint spellings
     else { Q.cfg[k] = v; if (k === 'answer') newRound(); renderQuiz(); }
     $('.qopts') && ($('.qopts').open = true);
     return;
@@ -846,7 +915,9 @@ document.addEventListener('click', e => {
     case 'miss': selfGrade(q, false); break;
     case 'revealall': R.qs.filter(x => x.status === 'open').forEach(reveal); break;
     case 'peekall': R.qs.filter(x => x.status === 'open').forEach(x => (x.status = 'peek')); renderQuiz(); break;
-    case 'next': case 'skip': nextQuestion(); break;
+    case 'next': case 'skip': if (qs.some(x => x && x.status === 'open')) snapshot(null); nextQuestion(); break;
+    case 'back': stepBack(); break;
+    case 'restartq': restartQuiz(); break;
     case 'continue': advanceTotal(); break;
     case 'nextpath': nextTotalPathway(); renderQuiz(); break;
     case 'restart':
@@ -860,7 +931,7 @@ document.addEventListener('change', e => {
   const f = e.target.dataset.qflag;
   if (!f) return;
   if (f === 'weak') { Q.cfg.weak = e.target.checked; newRound(); }
-  else if (['letterCheck', 'hints', 'autoSubmit', 'cofCount', 'fullNames'].includes(f)) { Q.cfg[f] = e.target.checked; if (f === 'fullNames') (Q.round.qs || [Q.round.q]).filter(Boolean).forEach(x => withAlong(x, Q.m)); /* refresh letter-check / hint spellings */ if (['cofCount', 'fullNames'].includes(f)) renderQuiz(); }
+  else if (['letterCheck', 'hints', 'autoSubmit', 'cofCount'].includes(f)) { Q.cfg[f] = e.target.checked; if (f === 'cofCount') renderQuiz(); }
   else { Store.settings[f] = e.target.checked; Store.save(); }
   renderQuiz();
   $('.qopts') && ($('.qopts').open = true);
