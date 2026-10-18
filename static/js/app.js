@@ -590,12 +590,23 @@ document.addEventListener('change', e => {
     if (!b.pathwaysBackup) return say('Not a STEP 1 Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
     if (!(await ask({ title: 'Replace your data with this backup?', text: `Saved ${b.savedAt ? new Date(b.savedAt).toLocaleString() : 'earlier'}. Your current pathways, presets, settings and history will be replaced.`, ok: 'Replace' }))) return;
     delete b.pathwaysBackup; delete b.savedAt;
-    Store.data = Object.assign({ custom: {}, stats: {}, presets: [] }, b);
-    Store.data.settings = Object.assign({}, DEFAULT_SETTINGS, b.settings);
+    // Old backups are upgraded like saved data; one from a newer version can't be read safely by this one.
+    const up = upgradeData(b, window.PATHWAYS_BUNDLE && window.PATHWAYS_BUNDLE.renames);
+    if (up.newer) return say('Made by a newer version', 'This backup was saved by a newer version of STEP 1 Pathways. Reload the page to update, then import it again.');
+    Store.data = up.data;
     Store.save(); C.draft = null; route();
     say('Backup restored', 'Your pathways, presets and history are back.');
   });
 });
+
+// Data saved by a newer version (another tab or device updated first): nothing is written until the page reloads.
+function onReadOnly() {
+  if ($('#roBanner')) return;
+  const b = document.createElement('div');
+  b.id = 'roBanner'; b.className = 'ro-banner'; b.setAttribute('role', 'alert');
+  b.innerHTML = `${mi('history', 'sm')}<span><b>A newer version saved your data.</b> To keep it safe, this page won’t save anything until you reload.</span><button class="btn small primary" onclick="location.reload()">Reload</button>`;
+  document.body.prepend(b);
+}
 
 /* ================= Router ================= */
 const route = () => router();
@@ -646,6 +657,7 @@ window.addEventListener('hashchange', router);
   const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
   await AutoBackup.init();
   previewBadge();
+  if (Store.readOnly) onReadOnly();
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();

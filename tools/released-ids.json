@@ -1,0 +1,439 @@
+{
+ "_about": "Ids released to users. Written by release.sh; do not edit by hand. Removing or renaming any of these needs data/renames.json.",
+ "ids": {
+  "beta-oxidation": {
+   "metabolites": [
+    "acetylcoa",
+    "acylcarn",
+    "acylcarnm",
+    "acylcoa",
+    "acylcoam",
+    "enoyl",
+    "fa",
+    "hydroxy",
+    "keto",
+    "shorter"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r2b",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7"
+   ]
+  },
+  "catecholamines": {
+   "metabolites": [
+    "dopa",
+    "dopamine",
+    "epi",
+    "ne",
+    "phe",
+    "tyr"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+   ]
+  },
+  "cholesterol-synthesis": {
+   "metabolites": [
+    "aacoa",
+    "acetylcoa",
+    "cholesterol",
+    "dhc7",
+    "dmapp",
+    "fpp",
+    "gpp",
+    "hmgcoa",
+    "ipp",
+    "lanosterol",
+    "mev5p",
+    "mev5pp",
+    "mevalonate",
+    "oxsq",
+    "squalene"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "fatty-acid-synthesis": {
+   "metabolites": [
+    "acetylcoa",
+    "citm",
+    "citrate",
+    "malate",
+    "malonylcoa",
+    "oaa",
+    "palmitate",
+    "pyruvate"
+   ],
+   "reactions": [
+    "r0",
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+   ]
+  },
+  "fructose": {
+   "metabolites": [
+    "dhap",
+    "f1p",
+    "fructose",
+    "g3p",
+    "glyceraldehyde"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ]
+  },
+  "galactose": {
+   "metabolites": [
+    "g1p",
+    "g6p",
+    "gal1p",
+    "galactitol",
+    "galactose",
+    "galb",
+    "glucose",
+    "lactose"
+   ],
+   "reactions": [
+    "r0",
+    "r0b",
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ]
+  },
+  "gluconeogenesis": {
+   "metabolites": [
+    "bpg13",
+    "dhap",
+    "f16bp",
+    "f6p",
+    "g3p",
+    "g6p",
+    "glucose",
+    "oaa",
+    "pep",
+    "pg2",
+    "pg3",
+    "pyruvate"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "glycogen-synthesis": {
+   "metabolites": [
+    "branched",
+    "g1p",
+    "g6p",
+    "glycogen",
+    "udpglc"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ]
+  },
+  "glycogenolysis": {
+   "metabolites": [
+    "g1p",
+    "g6p",
+    "glucose",
+    "glycogen",
+    "limit"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ]
+  },
+  "glycolysis": {
+   "metabolites": [
+    "bpg13",
+    "dhap",
+    "f16bp",
+    "f6p",
+    "g3p",
+    "g6p",
+    "glcb",
+    "glucose",
+    "pep",
+    "pg2",
+    "pg3",
+    "pyruvate"
+   ],
+   "reactions": [
+    "r0",
+    "r1",
+    "r10",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "heme": {
+   "metabolites": [
+    "ala",
+    "copro",
+    "glycine",
+    "heme",
+    "hmb",
+    "pbg",
+    "proto",
+    "protogen",
+    "uro"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8"
+   ]
+  },
+  "ketogenesis": {
+   "metabolites": [
+    "aacoa",
+    "acac",
+    "acetone",
+    "acetylcoa",
+    "bhb",
+    "hmgcoa"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+   ]
+  },
+  "polyol": {
+   "metabolites": [
+    "fructose",
+    "glucose",
+    "sorbitol"
+   ],
+   "reactions": [
+    "r1",
+    "r2"
+   ]
+  },
+  "ppp": {
+   "metabolites": [
+    "g6p",
+    "pg6",
+    "pgl",
+    "r5p",
+    "ru5p",
+    "xu5p"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+   ]
+  },
+  "purine-synthesis": {
+   "metabolites": [
+    "aicar",
+    "air",
+    "ampm",
+    "cair",
+    "faicar",
+    "fgam",
+    "fgar",
+    "gar",
+    "gmp",
+    "imp",
+    "pra",
+    "prpp",
+    "r5p",
+    "sAMP",
+    "saicar",
+    "xmp"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "pyrimidine-synthesis": {
+   "metabolites": [
+    "carbasp",
+    "carbp",
+    "ctp",
+    "dho",
+    "dtmp",
+    "dudp",
+    "dump",
+    "dutp",
+    "glutamine",
+    "omp",
+    "orotate",
+    "udpm",
+    "ump",
+    "utpm"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "steroidogenesis": {
+   "metabolites": [
+    "aldo",
+    "andro",
+    "chol",
+    "cholm",
+    "corticosterone",
+    "cortisol",
+    "deoxycortisol",
+    "dhea",
+    "dht",
+    "doc",
+    "estradiol",
+    "estrone",
+    "ohpreg",
+    "ohprog",
+    "preg",
+    "prog",
+    "testo"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "r16",
+    "r17",
+    "r18",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "tca": {
+   "metabolites": [
+    "akg",
+    "citrate",
+    "fumarate",
+    "isocitrate",
+    "malate",
+    "oaa",
+    "succinate",
+    "succoa"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8"
+   ]
+  },
+  "urea": {
+   "metabolites": [
+    "arginine",
+    "argsucc",
+    "citrulline",
+    "ornithine"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ]
+  }
+ }
+}

@@ -1,0 +1,32 @@
+{
+ "_about": "Damaged saved data (wrong types). Loading must repair it, not crash. Frozen.",
+ "data": {
+  "stats": {
+   "glycolysis": null,
+   "tca": {
+    "m:x": {
+     "n": "oops"
+    },
+    "m:oaa": {
+     "n": 1,
+     "miss": 0
+    }
+   }
+  },
+  "favorites": "nope",
+  "presets": null,
+  "log": [
+   null,
+   {
+    "id": "ok",
+    "pathways": [
+     "tca"
+    ],
+    "right": 1,
+    "total": 1
+   }
+  ],
+  "settings": "bad",
+  "tags": []
+ }
+}

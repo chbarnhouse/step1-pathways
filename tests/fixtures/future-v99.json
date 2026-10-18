@@ -1,0 +1,8 @@
+{
+ "_about": "Data from a future version. This version must refuse to touch it. Frozen.",
+ "data": {
+  "schema": 99,
+  "stats": {},
+  "whatever": "new"
+ }
+}

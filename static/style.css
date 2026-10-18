@@ -830,3 +830,5 @@ form.inl.inl-float { position: absolute; z-index: 2; transform-origin: 0 0; marg
 .gate-backup h3 .mi { fill: var(--blue); }
 .gate-steps { margin: 0; padding-left: 20px; display: grid; gap: 4px; }
 .gate-ok { display: flex; gap: 8px; align-items: flex-start; margin: 0; }
+.ro-banner { position: sticky; top: 0; z-index: 60; display: flex; gap: 10px; align-items: center; flex-wrap: wrap; padding: 10px max(16px, env(safe-area-inset-left, 0px)); background: var(--gold-bg); color: var(--ink); border-bottom: 2px solid var(--gold); }
+.ro-banner .mi { fill: var(--gold); }

@@ -14,9 +14,64 @@ const DEFAULT_SETTINGS = {
   autoAdvance: true,   // Full recall moves on by itself after a right answer
 };
 
+/* ---------- keeping saved data safe across updates ----------
+   The rules (tools/test-data.js enforces them before every release):
+   1. Saved data carries `schema`. Changing what gets saved means bumping SCHEMA and adding one step to MIGRATIONS
+      (schema n → n+1). A step that has shipped is never edited; old data runs every step in order.
+   2. Before upgrading, the old data is kept as a safety copy (this browser, or the server's daily backups).
+   3. Data saved by a newer version is never overwritten by an older one: the app goes read-only and says why.
+   4. Ids of built-in pathways, metabolites and reactions are what history, tags and favorites hang on. Renaming or
+      removing one needs an entry in data/renames.json; the renames are applied to saved data here, on every load. */
+const SCHEMA = 1;
+const MIGRATIONS = [
+  // 0 → 1: the first versioned format. Nothing changes but the stamp.
+  d => d,
+];
+// Repair shapes instead of crashing on them: wrong types become empty, unknown fields are kept.
+function normalizeData(raw) {
+  const obj = x => (x && typeof x === 'object' && !Array.isArray(x) ? x : {}), arr = x => (Array.isArray(x) ? x : []);
+  const d = Object.assign({}, obj(raw));
+  d.custom = obj(d.custom); d.stats = obj(d.stats); d.tags = obj(d.tags);
+  d.presets = arr(d.presets).filter(x => x && typeof x === 'object');
+  d.favorites = arr(d.favorites).filter(x => x && typeof x === 'object' && x.d);
+  d.log = arr(d.log).filter(x => x && typeof x === 'object');
+  for (const [pid, s] of Object.entries(d.stats)) {
+    d.stats[pid] = obj(s);
+    for (const [k, e] of Object.entries(d.stats[pid])) if (!e || typeof e.n !== 'number') delete d.stats[pid][k];
+  }
+  d.settings = Object.assign({}, DEFAULT_SETTINGS, obj(d.settings));
+  return d;
+}
+// Built-in ids that were renamed: move everything saved under the old id to the new one. Safe to run any number of times.
+function applyRenames(d, R) {
+  if (!R) return d;
+  const move = (o, from, to) => { if (o && from in o) { if (to in o && typeof o[to] === 'object' && typeof o[from] === 'object' && !Array.isArray(o[to])) o[to] = Object.assign({}, o[from], o[to]); else if (!(to in o)) o[to] = o[from]; delete o[from]; } };
+  for (const [from, to] of Object.entries(R.pathways || {})) {
+    for (const k of ['stats', 'tags', 'custom']) move(d[k], from, to);
+    d.favorites.forEach(f => { if (f.d.pathway === from) f.d.pathway = to; });
+    d.log.forEach(l => { if (Array.isArray(l.pathways)) l.pathways = l.pathways.map(x => (x === from ? to : x)); });
+  }
+  const itemRen = (pid, map, prefixes) => { const s = d.stats[pid]; if (!s) return; for (const [from, to] of Object.entries(map)) for (const pre of prefixes) move(s, pre + from, pre + to); };
+  for (const [pid, map] of Object.entries(R.metabolites || {})) itemRen(pid, map, ['m:']);
+  for (const [pid, map] of Object.entries(R.reactions || {})) itemRen(pid, map, ['e:', 'c:', 'd:', 'r:', 'p:', 'w:']);
+  return d;
+}
+// Everything a load does to saved data, in one pure function (also used for imported backups and by the tests).
+function upgradeData(raw, renames) {
+  const from = Number(raw && raw.schema) || 0;
+  if (from > SCHEMA) return { data: null, from, newer: true };
+  let d = Object.assign({}, raw || {});
+  for (let v = from; v < SCHEMA; v++) d = MIGRATIONS[v](d) || d;
+  d = applyRenames(normalizeData(d), renames);
+  d.schema = SCHEMA;
+  return { data: d, from, newer: false };
+}
+const isEmptyData = raw => !raw || !Object.keys(raw).some(k => k !== 'settings' && k !== 'schema');
+
 const Store = {
   mode: 'local',
-  data: { custom: {}, stats: {}, presets: [], settings: {} },
+  readOnly: false, // data was saved by a newer version of the app
+  data: normalizeData({}),
   async init() {
     let raw = null;
     if (!window.PATHWAYS_STANDALONE) {
@@ -26,18 +81,33 @@ const Store = {
       } catch {}
     }
     if (!raw) { try { raw = JSON.parse(localStorage.getItem('pathways.data') || '{}'); } catch { raw = {}; } }
-    this.data = Object.assign({ custom: {}, stats: {}, presets: [] }, raw);
-    this.data.settings = Object.assign({}, DEFAULT_SETTINGS, raw.settings);
+    const up = upgradeData(raw, window.PATHWAYS_BUNDLE && window.PATHWAYS_BUNDLE.renames);
+    if (up.newer) { this.readOnly = true; this.data = normalizeData(raw); return; }
+    if (up.from < SCHEMA && !isEmptyData(raw)) {
+      // Keep the data exactly as it was before upgrading (the server also keeps daily copies of its own).
+      try { localStorage.setItem(`pathways.safety.v${up.from}`, JSON.stringify({ savedAt: new Date().toISOString(), data: raw })); } catch {}
+    }
+    this.data = up.data;
+    if (JSON.stringify(up.data) !== JSON.stringify(raw)) this.save();
   },
   save() {
+    if (this.readOnly) return;
     clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 400);
     try { localStorage.setItem('pathways.changedAt', JSON.stringify(Date.now())); } catch {}
   },
+  // Another tab or device moved the data to a newer format: stop writing and say so.
+  goReadOnly() { this.readOnly = true; clearTimeout(this.t); if (typeof onReadOnly === 'function') onReadOnly(); },
   async flush() {
+    if (this.readOnly) return;
     const body = JSON.stringify(this.data);
     if (this.mode === 'server') {
-      try { await fetch('api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body }); return; } catch {}
+      try {
+        const r = await fetch('api/state', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body });
+        if (r.status === 409) return this.goReadOnly();
+        return;
+      } catch {}
     }
+    try { if ((Number(JSON.parse(localStorage.getItem('pathways.data') || '{}').schema) || 0) > SCHEMA) return this.goReadOnly(); } catch {}
     try { localStorage.setItem('pathways.data', body); } catch {}
     if (typeof AutoBackup !== 'undefined') AutoBackup.schedule(); // linked backup file (Chrome/Edge)
   },

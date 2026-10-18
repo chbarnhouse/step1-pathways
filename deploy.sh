@@ -21,6 +21,9 @@ PUBLIC_URL="${PUBLIC_URL:-}"
 STAGE="$(mktemp -d)"
 trap 'rm -rf "$STAGE"' EXIT
 
+echo "==> Checking saved data stays safe"
+node tools/test-data.js >/dev/null || { node tools/test-data.js | grep "✗"; echo "!! deploy stopped: this version could break saved data" >&2; exit 1; }
+
 echo "==> Packing"
 COPYFILE_DISABLE=1 tar czf "$STAGE/step1-pathways.tgz" --no-xattrs --exclude='__pycache__' --exclude='data/user' \
   server.py README.md static data
@@ -57,6 +60,12 @@ fi
 # Unpack beside the live code and swap, so a failed extract never leaves it half-replaced.
 pct exec "$CTID" -- bash -c "
   set -e
+  # A copy of your data from just before this version runs (it may upgrade the data on first load). Last 10 kept.
+  if [ -f $APPDIR/data/user/state.json ]; then
+    mkdir -p $APPDIR/data/user/backups
+    cp -p $APPDIR/data/user/state.json $APPDIR/data/user/backups/predeploy-\$(date +%Y%m%d-%H%M%S).json
+    ls -1t $APPDIR/data/user/backups/predeploy-*.json | tail -n +11 | xargs -r rm -f
+  fi
   rm -rf $APPDIR/app.new && mkdir -p $APPDIR/app.new
   tar xzf /tmp/step1-pathways.tgz -C $APPDIR/app.new
   rm -rf $APPDIR/app.old

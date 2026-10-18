@@ -15,7 +15,9 @@ Env: PORT (default 8000), HOST (default 0.0.0.0), PATHWAYS_DATA (default ./data)
 """
 import json
 import os
+import shutil
 import tempfile
+import time
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -32,11 +34,26 @@ def bundle():
     for f in sorted((DATA / "pathways").glob("*.json")):
         p = json.loads(f.read_text())
         pathways[p["id"]] = p
-    return {"cofactors": json.loads((DATA / "cofactors.json").read_text()), "pathways": pathways}
+    renames = json.loads((DATA / "renames.json").read_text()) if (DATA / "renames.json").exists() else {}
+    return {"cofactors": json.loads((DATA / "cofactors.json").read_text()), "pathways": pathways, "renames": renames}
 
 
 def bundle_js():
     return "window.PATHWAYS_BUNDLE = " + json.dumps(bundle(), ensure_ascii=False) + ";\n"
+
+
+BACKUPS_KEPT = 30
+
+
+def keep_daily_backup():
+    """Before the first write of each day, copy state.json to backups/state-YYYY-MM-DD.json (the last 30 days are kept)."""
+    folder = STATE.parent / "backups"
+    folder.mkdir(exist_ok=True)
+    today = folder / f"state-{time.strftime('%Y-%m-%d')}.json"
+    if not today.exists():
+        shutil.copy2(STATE, today)
+        for old in sorted(folder.glob("state-*.json"))[:-BACKUPS_KEPT]:
+            old.unlink()
 
 
 class Handler(SimpleHTTPRequestHandler):
@@ -76,6 +93,15 @@ class Handler(SimpleHTTPRequestHandler):
         except Exception:
             return self.send_json({"error": "bad json"}, 400)
         STATE.parent.mkdir(parents=True, exist_ok=True)
+        if STATE.exists():
+            try:
+                old_schema = int(json.loads(STATE.read_text()).get("schema") or 0)
+            except Exception:
+                old_schema = 0
+            # An older copy of the app (a tab left open across an update) must not overwrite newer data.
+            if int(obj.get("schema") or 0) < old_schema:
+                return self.send_json({"error": "data is newer than this page; reload"}, 409)
+            keep_daily_backup()
         fd, tmp = tempfile.mkstemp(dir=STATE.parent, suffix=".tmp")
         with os.fdopen(fd, "w") as f:
             json.dump(obj, f, ensure_ascii=False)
