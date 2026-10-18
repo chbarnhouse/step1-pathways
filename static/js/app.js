@@ -245,6 +245,26 @@ function filterPathways(list, st) {
       : st.sort === 'recent' ? lastStudied(b.id) - lastStudied(a.id) || a.name.localeCompare(b.name)
       : groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
 }
+/* Filters: one menu per kind (Group, System, Status, Tags), each a checklist; what's on shows as removable chips
+   ("System: Heme ×"). Every chip and menu item uses the same data-b* attribute, so one click handler toggles both. */
+const STATUS_LABELS = { new: 'Not studied', studied: 'Studied', weak: 'Has weak spots' };
+const SOURCE_LABELS = { shared: 'Shared by classmates', mine: 'Yours' };
+function filterMenus(st, groups, systems, tags, sources) {
+  const item = (attr, v, on, label) => `<button type="button" class="chip-tg small fitem" ${attr}="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
+  const menu = (key, label, n, body) => `<details class="fdd" data-f="${key}"><summary class="fdd-btn${n ? ' on' : ''}" aria-label="${label}${n ? `, ${n} on` : ''}">${label}${n ? `<span class="fdd-n">${n}</span>` : ''}${mi('expand_more', 'sm')}</summary><div class="pop fmenu">${body}</div></details>`;
+  const status = Object.entries(STATUS_LABELS).map(([v, l]) => item('data-bstatus', v, st.status === v, l)).join('')
+    + (sources.length ? `<span class="fmenu-h">Source</span>${sources.map(([v, l]) => item('data-bsource', v, st.source === v, l)).join('')}` : '');
+  return menu('group', 'Group', st.groups.length, groups.map(g => item('data-bgroup', g, st.groups.includes(g), g)).join(''))
+    + (systems.length ? menu('system', 'System', st.systems.length, systems.map(t => item('data-bsys', t, st.systems.includes(t), t)).join('')) : '')
+    + menu('status', 'Status', (st.status ? 1 : 0) + (st.source ? 1 : 0), status)
+    + (tags.length ? menu('tags', 'Tags', st.tags.length, tags.map(t => item('data-btag', t, st.tags.includes(t), t)).join('')) : '');
+}
+function activeChips(st) {
+  const on = [...st.groups.map(g => ['data-bgroup', g, 'Group', g]), ...(st.systems || []).map(t => ['data-bsys', t, 'System', t]),
+    ...(st.status ? [['data-bstatus', st.status, 'Status', STATUS_LABELS[st.status]]] : []), ...(st.source ? [['data-bsource', st.source, 'Source', SOURCE_LABELS[st.source]]] : []),
+    ...st.tags.map(t => ['data-btag', t, 'Tag', t])];
+  return on.map(([attr, v, k, l]) => `<button type="button" class="fchip" ${attr}="${esc(v)}" aria-label="Remove filter ${esc(k)}: ${esc(l)}"><span class="muted">${k}:</span> ${esc(l)}${mi('close', 'sm')}</button>`).join('');
+}
 function browseToolbar(page, st, list) {
   const groups = uniq(list.map(p => p.group || 'Other')).sort((a, b) => groupRank(a) - groupRank(b));
   const tags = allTags();
@@ -255,14 +275,7 @@ function browseToolbar(page, st, list) {
   return `<div class="browsebar" data-bpage="${page}">
     <label class="search">${mi('search', 'sm')}<input type="search" data-bq placeholder="Search pathways, enzymes, metabolites, tags" value="${esc(st.q)}" aria-label="Search pathways"></label>
     <label class="sortsel">${mi('sort', 'sm')}<select data-bsort aria-label="Sort">${[['group', 'By group'], ['name', 'A–Z'], ['weak', 'Weakest first'], ['recent', 'Recently studied']].map(([v, l]) => `<option value="${v}"${st.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
-    <div class="filters">${mi('filter_list', 'sm filt-ic')}
-      ${groups.map(g => chip('data-bgroup', g, st.groups.includes(g), g)).join('')}
-      ${systems.length ? `<span class="fsep"></span><span class="flabel">System</span>${systems.map(t => chip('data-bsys', t, st.systems.includes(t), t)).join('')}` : ''}
-      ${sources.length ? `<span class="fsep"></span>${sources.map(([v, l]) => chip('data-bsource', v, st.source === v, l)).join('')}` : ''}
-      <span class="fsep"></span>${[['new', 'Not studied'], ['studied', 'Studied'], ['weak', 'Has weak spots']].map(([v, l]) => chip('data-bstatus', v, st.status === v, l)).join('')}
-      ${tags.length ? `<span class="fsep"></span>${tags.map(t => `<button class="chip-tg small tag" data-btag="${esc(t)}" aria-pressed="${st.tags.includes(t)}">${mi('sell', 'sm')}${esc(t)}</button>`).join('')}` : ''}
-      ${any ? '<button class="linkbtn" data-bclear>Clear</button>' : ''}
-    </div>
+    <div class="filters">${filterMenus(st, groups, systems, tags, sources)}${activeChips(st)}${any ? '<button class="linkbtn" data-bclear>Clear</button>' : ''}</div>
   </div>`;
 }
 // Tile art: the pathway's Material Symbol on its color (falls back to a generic icon for your own pathways).
@@ -318,6 +331,10 @@ function browserHTML(page, selectedId) {
   return `${browseToolbar(page, browse(page), base)}<div class="tiles" id="tiles">${tilesHTML(page, selectedId)}</div>`;
 }
 function refreshTiles(page) { const t = $('#tiles'); if (t) t.innerHTML = tilesHTML(page, page === 'new' ? C.draft?.pathway : null); updateRows(); }
+// One filter menu open at a time; a click anywhere else closes it.
+document.addEventListener('toggle', e => { if (e.target.matches?.('details.fdd') && e.target.open) document.querySelectorAll('details.fdd[open]').forEach(d => { if (d !== e.target) d.open = false; }); }, true);
+document.addEventListener('click', e => { if (!e.target.closest('details.fdd')) document.querySelectorAll('details.fdd[open]').forEach(d => { d.open = false; }); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('details.fdd[open]').forEach(d => { d.open = false; d.querySelector('summary')?.focus(); }); });
 function rerenderBrowsePage(page) { page === 'new' ? renderCreate() : renderLibrary(); }
 document.addEventListener('input', e => {
   const bar = e.target.closest('[data-bpage]');
@@ -345,7 +362,9 @@ document.addEventListener('click', e => {
   else if (t.dataset.bsource) st.source = st.source === t.dataset.bsource ? '' : t.dataset.bsource;
   else Object.assign(st, { q: '', groups: [], systems: [], tags: [], status: '', source: '' });
   local.set('pathways.browse.' + page, st);
+  const open = t.closest('details.fdd')?.dataset.f; // keep that menu open while you tick several
   rerenderBrowsePage(page);
+  if (open) { const d = document.querySelector(`details.fdd[data-f="${open}"]`); if (d) d.open = true; }
 });
 // The pathway page's diagram: its links to other pathways are clickable there (and only there).
 function pageFlowSVG(m) { LINK_NAV = true; try { return flowSVG(m, () => 'shown'); } finally { LINK_NAV = false; } }

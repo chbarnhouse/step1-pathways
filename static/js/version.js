@@ -10,6 +10,7 @@ const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy
 const CHANGELOG = [
   { v: 'next', items: [
     'Every pathway is tagged by body system (Fundamentals, Skin, MSK, Neuro, Cardio, Renal, Endo/Repro, Heme, GI) plus a few study tags (Fed state, Fasting, Energy, Storage, Amino acids, Drug targets, Vitamins). Filter the Library and New quiz by them; your own tags still work alongside.',
+    'Library and New quiz filters are tidier: one menu each for Group, System, Status and Tags; what’s on shows as chips you can remove with ×.',
     'Pathways show where they connect to others: a dotted line to a tag like “→ TCA cycle” or “from Glycolysis”. On a pathway page, click the tag to open that pathway. In a quiz a tag appears once its box is answered.',
     'Activity on the dashboard: each session has ▶ to run that quiz again and a star to add it to your favorites.',
     'When a quiz is done, a summary pops up: your score, time, and anything to look at again, with Go again, Change settings (opens New quiz with this quiz loaded), Review facts, and the same quiz on any connected pathway.',

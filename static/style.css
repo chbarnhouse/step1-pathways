@@ -70,7 +70,7 @@
   --ink: #ffffff; --ink-2: #eaf1fb; --muted: #d6e4f6; --blue: #ffffff; --line: rgba(255,255,255,.45); --line-soft: rgba(255,255,255,.25); --sunk: rgba(255,255,255,.14);
   color: var(--ink);
 }
-:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .rowbtn, .btn, .chip-tg, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
+:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .rowbtn, .btn, .chip-tg, .fdd-btn, .fchip, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
   --ink: #14181f; --ink-2: #3d4654; --muted: #5d6877; --blue: #1d5fa8; --line: #dde2ea; --line-soft: #e9edf2; --sunk: #eef0f4;
 }
 /* Containers also put the text color back (buttons and inputs keep their own rules). */
@@ -1067,3 +1067,19 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .fin-links { display: flex; flex-wrap: wrap; gap: 6px; }
 .fin-links .btn { gap: 6px; }
 .act-btns { display: inline-flex; gap: 2px; justify-content: flex-end; }
+/* filter menus + active chips */
+.fdd { position: relative; }
+.fdd > summary { list-style: none; }
+.fdd > summary::-webkit-details-marker { display: none; }
+.fdd-btn { display: inline-flex; align-items: center; gap: 6px; height: 36px; padding: 0 10px 0 14px; border: 1px solid var(--line); border-radius: 999px; background: var(--card); color: var(--ink-2); font-weight: 600; font-size: var(--fs-sm); cursor: pointer; }
+.fdd-btn .mi { width: 18px; height: 18px; fill: currentColor; }
+.fdd-btn.on, .fdd[open] > .fdd-btn { border-color: var(--blue); color: var(--blue); background: var(--blue-bg); }
+.fdd-n { display: inline-grid; place-items: center; min-width: 18px; height: 18px; padding: 0 5px; border-radius: 999px; background: var(--blue); color: var(--card); font-size: var(--fs-xs); }
+.pop.fmenu { left: 0; right: auto; width: 250px; max-height: min(60vh, 420px); overflow: auto; gap: 2px; padding: 8px; justify-items: stretch; }
+.fmenu .fitem { border: 0; background: none; border-radius: 8px; justify-content: flex-start; width: 100%; padding: 7px 10px; }
+.fmenu .fitem:hover { background: var(--sunk); }
+.fmenu .fitem[aria-pressed="true"] { background: var(--blue-bg); }
+.fmenu-h { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin: 8px 10px 2px; }
+.fchip { display: inline-flex; align-items: center; gap: 4px; height: 30px; padding: 0 6px 0 12px; border: 1.5px solid var(--blue); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+.fchip .mi { width: 16px; height: 16px; fill: var(--ink-2); }
+.fchip:hover { background: var(--blue-bg); }
