@@ -14,6 +14,8 @@ const CHANGELOG = [
     'Letter checking highlights runs of letters as one smooth band.',
     'Check each letter understands cofactors: any of a cofactor’s names counts (NAD or NAD⁺, Pi or phosphate), in any order within a side; it turns red only for a cofactor that doesn’t belong or comes too early.',
     'New option under Advanced: Require full names, so abbreviations like “Gly” or “PFK-1” don’t count.',
+    'Cofactors can be separated any way you like, or not at all: “ATP, ADP”, “ATP ADP”, “ATP + ADP” and “ATPADP” all count.',
+    'Dashboard: Favorites and Presets side by side. Clicking either opens New quiz with it loaded so you can adjust it first; ▶ on a favorite starts it right away.',
     'More spellings count: an enzyme named after a metabolite accepts any of that metabolite’s names (ALA synthase, δ-ALA synthase, δ-aminolevulinic acid synthase, 5-aminolevulinate synthase), “-ic acid” or “-ate”, and Greek letters as symbols or words.',
   ] },
   { v: '3.8.1', date: '2026-10-18', items: [

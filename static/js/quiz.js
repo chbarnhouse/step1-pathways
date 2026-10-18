@@ -327,47 +327,32 @@ function checkState(target, typed) {
   }
   return out;
 }
-/* Letter-by-letter checking for cofactors, judged the way grading judges: cofactor by cofactor, against every name each
-   one goes by (NAD, NAD+, NAD⁺; Pi, phosphate…), inputs before outputs and any order within a side. A cofactor you're
-   still typing is green while it's on its way to one that fits; one in the wrong place (an output while inputs are
-   missing, or a repeat) is red. Separators (, + ; / spaces, → or ->) are neutral; an arrow switches to the outputs. */
+/* Letter-by-letter checking for cofactors, judged the way grading judges: against every name each cofactor goes by
+   (NAD, NAD+, NAD⁺; Pi, phosphate…), inputs before outputs, any order within a side, and any separators or none
+   ("ATPADP"). The longest stretch you've typed that reads as cofactors in an allowed order is green, along with a name
+   you're partway through that can still become one that fits; what's left is red. Separators stay neutral. */
 const COF_SEP = /[\s,;\/+]/;
 function cofCheckState(m, c, typed) {
-  const { map } = cofLookup(m.cof);
-  const names = {}; // id → every way to write it
-  for (const [n, id] of Object.entries(map)) (names[id] = names[id] || []).push(n);
-  for (const [id, cf] of Object.entries(m.cof)) names[id] = uniq([...(names[id] || []), id, cf.name, ...(cf.aliases || [])].filter(Boolean));
-  const ins = new Set(c.in || []), outs = new Set(c.out || []), done = new Set();
-  let side = null; // null = plain list (ins first), 'in' / 'out' once an arrow is seen
-  const st = []; let i = 0;
-  const allowed = () => { const insLeft = [...ins].filter(x => !done.has(x)); if (side === 'out') return [...outs].filter(x => !done.has(x)); if (side === 'in') return insLeft; return insLeft.length ? insLeft : [...outs].filter(x => !done.has(x)); };
-  const eq = (a, b) => foldChar(a) === foldChar(b);
-  while (i < typed.length) {
-    if (typed[i] === '→' || typed[i] === '⇌' || (typed[i] === '-' && typed[i + 1] === '>')) { const w = typed[i] === '-' ? 2 : 1; for (let k = 0; k < w; k++) st.push('sep'); i += w; side = 'out'; continue; }
-    if (COF_SEP.test(typed[i])) { st.push('sep'); i++; continue; }
-    if (side === null && /[→⇌]|->/.test(typed.slice(i))) side = 'in';
-    // the longest name of any cofactor this text could be (allowed here or not), allowing spaces inside a name
-    let best = null;
-    for (const [id, list] of Object.entries(names)) for (const n of list) {
-      let k = 0; while (k < n.length && i + k < typed.length && eq(typed[i + k], n[k])) k++;
-      const full = k === n.length && (i + k >= typed.length || COF_SEP.test(typed[i + k]) || typed[i + k] === '→' || typed[i + k] === '-');
-      const partial = i + k >= typed.length && k > 0;
-      if ((full || partial) && (!best || k > best.k || (k === best.k && full && !best.full))) best = { id, k, full };
+  const ins = new Set(c.in || []), outs = new Set(c.out || []);
+  const { map, keys } = cofKeys(m);
+  const namesOf = id => keys.filter(k => map[k] === id);
+  // phase: given the ids so far, are they in an allowed order, and which cofactors may come next?
+  const listPhase = ids => { const done = new Set(); for (const id of ids) { const insLeft = [...ins].some(x => !done.has(x)); if (done.has(id) || !(ins.has(id) || (outs.has(id) && !insLeft))) return null; done.add(id); }
+    const insLeft = [...ins].filter(x => !done.has(x)); return insLeft.length ? insLeft : [...outs].filter(x => !done.has(x)); };
+  const sidePhase = want => ids => { const done = new Set(); for (const id of ids) { if (done.has(id) || !want.has(id)) return null; done.add(id); } return [...want].filter(x => !done.has(x)); };
+  const judge = (text, phase) => {
+    const mark = (k, okTail) => [...text].map((ch, j) => (COF_SEP.test(ch) ? 'sep' : j < k || okTail ? 'ok' : 'err'));
+    for (let k = text.length; k >= 0; k--) {
+      const tail = cofNorm(text.slice(k));
+      for (const split of cofSplits(m, text.slice(0, k))) { const next = phase(split); if (!next) continue; if (!tail || next.some(id => namesOf(id).some(n => n.startsWith(tail)))) return mark(k, true); }
     }
-    let end = i; while (end < typed.length && !COF_SEP.test(typed[end]) && typed[end] !== '→' && typed[end] !== '⇌' && !(typed[end] === '-' && typed[end + 1] === '>')) end++;
-    if (best && best.k > 0 && (best.full || i + best.k >= typed.length)) {
-      const atEnd = i + best.k >= typed.length; // still typing: fine if it can grow into a cofactor that fits
-      const ok = allowed().includes(best.id) || ((!best.full || atEnd) && Object.entries(names).some(([id, l]) => allowed().includes(id) && l.some(n => n.length >= best.k && [...typed.slice(i, i + best.k)].every((ch, j) => eq(ch, n[j])))));
-      for (let k = 0; k < best.k; k++) st.push(ok ? 'ok' : 'err');
-      if (best.full && allowed().includes(best.id)) done.add(best.id);
-      i += best.k;
-      for (; i < end; i++) st.push('err'); // anything glued on after a whole name
-      continue;
-    }
-    if (IGNORE.has(norm(typed.slice(i, end)))) { for (; i < end; i++) st.push('sep'); continue; } // "and", "uses", "H+"…
-    for (; i < end; i++) st.push('err');
-  }
-  return st;
+    for (let k = text.length; k >= 0; k--) if (cofSplits(m, text.slice(0, k)).some(sp => phase(sp))) return mark(k, false);
+    return mark(0, false);
+  };
+  const arrow = typed.match(/→|⇌|->/);
+  if (!arrow) return judge(typed, listPhase);
+  const left = typed.slice(0, arrow.index), right = typed.slice(arrow.index + arrow[0].length);
+  return [...judge(left, sidePhase(ins)), ...[...arrow[0]].map(() => 'sep'), ...judge(right, sidePhase(outs))];
 }
 // hinted: how many leading letters came from "Give me a letter" (shown plain, neither right nor wrong).
 function checkGhost(targets, typed, hinted = 0, q = null) {

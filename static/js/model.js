@@ -127,30 +127,61 @@ function cofLookup(cofs) {
 const IGNORE = new Set(['', '+', 'h+', 'h', 'mg2+', 'mg', 'and', 'uses', 'releases']); // "uses H₂O" / "releases CO₂" are how one-sided steps read
 // Cofactors: what goes in comes before what comes out (ATP → ADP, never ADP, ATP), but within each side any order counts
 // (ATP, NADH ≡ NADH, ATP). With an arrow, each side is checked on its own; as a plain list, every "in" must come first.
+// Reads cofactors however they're separated (commas, spaces, plus signs) or not at all ("ATPADP", "NAD+PiNADH").
+// Glued names can split more than one way ("NADPi" = NAD + Pi, not NADP + i), so every split into real cofactor names
+// is considered; grading accepts the answer if any split fits. "+" is dropped everywhere, so NAD+ and NAD read alike.
+const COF_KEYS = new WeakMap();
+function cofKeys(m) {
+  if (COF_KEYS.has(m.cof)) return COF_KEYS.get(m.cof);
+  const map = {};
+  for (const [k, id] of Object.entries(cofLookup(m.cof).map)) { const kk = k.replace(/\+/g, ''); if (kk) map[kk] = id; }
+  const ign = [...IGNORE].map(w => w.replace(/\+/g, '')).filter(w => w && !map[w]);
+  const out = { map, keys: Object.keys(map).sort((a, b) => b.length - a.length), ign };
+  COF_KEYS.set(m.cof, out);
+  return out;
+}
+const cofNorm = raw => norm(String(raw).replace(/[,;\/]/g, ' ')).replace(/\+/g, '');
+function cofSplits(m, raw) {
+  const { map, keys, ign } = cofKeys(m), s = cofNorm(raw), memo = new Map();
+  const go = i => {
+    if (i === s.length) return [[]];
+    if (memo.has(i)) return memo.get(i);
+    const res = [];
+    for (const k of keys) if (s.startsWith(k, i)) for (const rest of go(i + k.length)) { if (res.length < 40) res.push([map[k], ...rest]); }
+    for (const w of ign) if (s.startsWith(w, i)) for (const rest of go(i + w.length)) { if (res.length < 40) res.push(rest); }
+    memo.set(i, res);
+    return res;
+  };
+  return go(0);
+}
+// Best-effort reading while still typing (the last name may be unfinished): longest names first, stop at the first gap.
 function cofIds(m, raw) {
-  let s = String(raw).toLowerCase().trim();
-  const { map, phrases } = cofLookup(m.cof);
-  for (const [ph, id] of phrases) s = s.split(ph).join(' ' + id + ' ');
-  const toks = s.split(/[,;\/\s]+/).map(norm).filter(t => !IGNORE.has(t));
-  return toks.map(t => map[t] || null);
+  const { map, keys, ign } = cofKeys(m), s = cofNorm(raw), ids = [];
+  let i = 0;
+  while (i < s.length) {
+    const k = keys.find(k => s.startsWith(k, i));
+    if (k) { ids.push(map[k]); i += k.length; continue; }
+    const w = ign.find(w => s.startsWith(w, i));
+    if (w) { i += w.length; continue; }
+    ids.push(null); break;
+  }
+  return ids;
 }
 const ARROW = /→|->|=>|⇌|>/;
 function gradeCof(m, raw, c) {
   const ins = new Set(c.in || []), outs = new Set(c.out || []);
   const str = String(raw);
   if (!ins.size && !outs.size) return /^(none|nothing|no|n\/?a|-|—)?$/.test(str.toLowerCase().replace(/\s/g, ''));
-  const same = (got, want) => got.every(Boolean) && new Set(got).size === want.size && got.every(x => want.has(x)) && got.length === new Set(got).size;
-  if (ARROW.test(str)) { const [l, r = ''] = str.split(ARROW); return same(cofIds(m, l), ins) && same(cofIds(m, r), outs); }
-  const ids = cofIds(m, str);
-  if (!ids.every(Boolean)) return false;
-  const cut = ids.findIndex(x => !ins.has(x));
-  const left = cut < 0 ? ids : ids.slice(0, cut), right = cut < 0 ? [] : ids.slice(cut);
-  return same(left, ins) && same(right, outs);
+  const same = (got, want) => got.length === want.size && new Set(got).size === got.length && got.every(x => want.has(x));
+  const listOk = ids => { const cut = ids.findIndex(x => !ins.has(x)); const left = cut < 0 ? ids : ids.slice(0, cut), right = cut < 0 ? [] : ids.slice(cut); return same(left, ins) && same(right, outs); };
+  if (ARROW.test(str)) { const [l, r = ''] = str.split(ARROW); return cofSplits(m, l).some(a => same(a, ins)) && cofSplits(m, r).some(b => same(b, outs)); }
+  return cofSplits(m, str).some(listOk);
 }
 // How many of a reaction's cofactors are typed so far (for the optional "1/2" counter).
 function cofProgress(m, raw, c) {
   const want = new Set([...(c.in || []), ...(c.out || [])]);
-  return { got: new Set(cofIds(m, String(raw).replace(ARROW, ' ')).filter(x => x && want.has(x))).size, total: want.size };
+  const count = ids => new Set(ids.filter(x => x && want.has(x))).size, text = String(raw).replace(ARROW, ' ');
+  return { got: Math.max(count(cofIds(m, text)), ...cofSplits(m, text).map(count)), total: want.size };
 }
 
 /* ---------- accepted spellings ----------

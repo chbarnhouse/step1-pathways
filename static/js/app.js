@@ -48,6 +48,23 @@ const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts
 
 /* ================= Dashboard (#/) =================
    Laid out to fit one screen: actions on top, then weak spots and progress side by side (each scrolls inside). */
+/* Quick start: favorites (a saved quiz: pathway + settings) and presets (settings to use with any pathway).
+   Clicking either opens New quiz with it loaded, so it can be adjusted before starting; ▶ on a favorite starts it at once. */
+function favoritesCardHTML() {
+  const favs = favorites();
+  return `<section class="card pad quick-card" data-tour="favs"><div class="sec-h"><h2>${mi('star', 'h-ic')} Favorites</h2><span class="muted">${favs.length || ''}</span></div>
+    ${favs.length ? `<ul class="quick-list">${favs.map(f => { const d = normalizeDraft(f.d), pid = d.combine && pairOf(d.pathway) ? pairOf(d.pathway).id : d.pathway, p = Library.get(pid);
+      return `<li><button class="quick-go" data-dash="fav" data-id="${esc(f.id)}" title="Open in New quiz to check the settings, then start">${p ? tileArt(p, 'sm') : ''}<span class="quick-text"><b>${esc(f.name)}</b><span class="muted small">${esc(p ? p.name : '')} · ${esc(quizSummary(normalizeQuiz(d)))}</span></span></button>
+        <span class="quick-actions"><button class="iconbtn" data-dash="favstart" data-id="${esc(f.id)}" title="Start right away" aria-label="Start ${esc(f.name)} right away">${mi('play_arrow')}</button><button class="iconbtn" data-dash="unfav" data-id="${esc(f.id)}" title="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></span></li>`; }).join('')}</ul>`
+      : `<p class="muted small">${mi('star', 'sm')} Star a quiz on New quiz, or while you're in one, to keep it here.</p>`}
+  </section>`;
+}
+function presetsCardHTML() {
+  const all = Presets.all();
+  return `<section class="card pad quick-card"><div class="sec-h"><h2>${mi('tune', 'h-ic')} Presets</h2><a class="linkbtn" href="#/settings">Manage</a></div>
+    <ul class="quick-list">${all.map(pr => `<li><button class="quick-go" data-dash="preset" data-id="${esc(pr.id)}" title="New quiz from this preset">${mi(pr.builtin ? 'tune' : 'bookmark_add', 'quick-ic')}<span class="quick-text"><b>${esc(pr.name)}${pr.builtin ? '' : ' <span class="pill">yours</span>'}</b><span class="muted small">${esc(pr.blurb || quizSummary(normalizeQuiz(pr)))}</span></span><span class="quick-cta muted small">New quiz ${mi('arrow_forward', 'sm')}</span></button></li>`).join('')}</ul>
+  </section>`;
+}
 function renderDashboard() {
   const last = local.get(LAST_QUIZ), worst = Stats.worst(8), mine = Store.data.presets;
   const lastD = last?.cfg && normalizeDraft(last.cfg), lastP = lastD && Library.get(lastD.combine && pairOf(lastD.pathway) ? pairOf(lastD.pathway).id : lastD.pathway);
@@ -59,11 +76,7 @@ function renderDashboard() {
       ${lastP ? `<button class="card hero-resume" data-dash="resume">${tileArt(lastP)}<span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(lastD)))}</span></span></button>` : ''}
       ${backupCardHTML()}
     </div>
-    ${favorites().length ? `<div class="dash-favs" data-tour="favs">${favorites().map(f => { const p = Library.get(f.d.pathway); return `<div class="favtile">
-      <button class="fav-go" data-dash="fav" data-id="${esc(f.id)}" title="Start this quiz">${p ? tileArt(p, 'sm') : ''}<span><b>${esc(f.name)}</b><span class="muted small">${esc(quizSummary(normalizeQuiz(f.d)))}</span></span>${mi('play_arrow', 'go')}</button>
-      <button class="fav-x" data-dash="unfav" data-id="${esc(f.id)}" title="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></div>`; }).join('')}</div>`
-      : `<p class="muted small dash-hint">${mi('star', 'sm')} Star a quiz on New quiz (or while you're in one) to pin it here.</p>`}
-    ${mine.length ? `<div class="dash-presets"><span class="glabel">Your presets</span>${mine.map(p => `<a class="chip-link" href="#/new" data-dash="preset" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} ${esc(p.name)}</a>`).join('')}</div>` : ''}
+    <div class="dash-quick">${favoritesCardHTML()}${presetsCardHTML()}</div>
     <div class="dash-cols">
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
@@ -124,7 +137,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-dash]');
   if (!b) return;
   if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
-  if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { C.draft = normalizeDraft(f.d); C.presetId = ''; location.hash = '#/new'; } }
+  if (b.dataset.dash === 'favstart') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
   if (b.dataset.dash === 'unfav') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: `Remove “${f.name}” from favorites?`, ok: 'Remove' }).then(y => { if (y) { Store.data.favorites = favorites().filter(x => x !== f); Store.save(); renderDashboard(); } }); }
   if (b.dataset.dash === 'drill') {
     const pids = uniq(Stats.worst(50).map(r => r.pid));
@@ -161,7 +175,7 @@ function quizFromDraft(d) {
   return { ...clone(d), pathways: [pid], allPathways: allE, name: allE ? 'All pathways' : Library.get(pid)?.name || 'Quiz' };
 }
 function loadPresetInto(id) {
-  const p = Store.data.presets.find(x => x.id === id);
+  const p = Presets.all().find(x => x.id === id);
   if (!p) return;
   const keep = C.draft.pathway, combine = C.draft.combine;
   C.draft = normalizeDraft({ ...p, pathway: keep, combine });
