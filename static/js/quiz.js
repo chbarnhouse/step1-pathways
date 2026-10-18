@@ -101,12 +101,11 @@ function itemQ(item, m) {
       options: answerStyle() === 'choice' ? pickOthers(item.name, uniq(all.map(l => l[0].toUpperCase() + l.slice(1)))) : null,
       check: v => v === item.name || canonLoc(v) === item.canon || item.aliases.some(a => norm(a) === norm(v)) });
   }
-  const acc = acceptedFor(item, m);
   return baseQ({
     kind: item.kind, label: { met: 'Metabolite', enz: 'Enzyme', trn: 'Transporter' }[item.kind], item, statKey: item.key, pid: m.p.id,
     answerText: item.name, correct: item.name,
     options: answerStyle() === 'choice' ? mcOptions(item, m) : null,
-    check: v => v === item.name || acc.includes(norm(v)),
+    check: v => v === item.name || acceptedFor(item, m, !!Q.cfg.fullNames).includes(norm(v)), // reads “Require full names” live
   });
 }
 function cofQ(r, m, item = null) {
@@ -308,7 +307,7 @@ function withAlong(q, m, r = q.item?.rxn) {
   if (answerStyle() === 'along' && q.kind !== 'dir') q.along = alongTextFor(q, m, r);
   // Every accepted spelling, for letter-by-letter checking and hints (whichever one you're typing wins).
   if (q.kind !== 'dir') q.targets = uniq(q.kind === 'cof' ? cofTargets(m, r?.cofactors || {})
-    : q.item ? [...spellingsFor(q.item, m), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
+    : q.item ? [...spellingsFor(q.item, m, !!Q.cfg.fullNames && q.kind !== 'loc'), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
     : q.kind === 'path' ? [m.p.name, ...(m.p.aliases || [])] : [alongTextFor(q, m, r)]);
   return q;
 }
@@ -328,14 +327,60 @@ function checkState(target, typed) {
   }
   return out;
 }
+/* Letter-by-letter checking for cofactors, judged the way grading judges: cofactor by cofactor, against every name each
+   one goes by (NAD, NAD+, NAD⁺; Pi, phosphate…), inputs before outputs and any order within a side. A cofactor you're
+   still typing is green while it's on its way to one that fits; one in the wrong place (an output while inputs are
+   missing, or a repeat) is red. Separators (, + ; / spaces, → or ->) are neutral; an arrow switches to the outputs. */
+const COF_SEP = /[\s,;\/+]/;
+function cofCheckState(m, c, typed) {
+  const { map } = cofLookup(m.cof);
+  const names = {}; // id → every way to write it
+  for (const [n, id] of Object.entries(map)) (names[id] = names[id] || []).push(n);
+  for (const [id, cf] of Object.entries(m.cof)) names[id] = uniq([...(names[id] || []), id, cf.name, ...(cf.aliases || [])].filter(Boolean));
+  const ins = new Set(c.in || []), outs = new Set(c.out || []), done = new Set();
+  let side = null; // null = plain list (ins first), 'in' / 'out' once an arrow is seen
+  const st = []; let i = 0;
+  const allowed = () => { const insLeft = [...ins].filter(x => !done.has(x)); if (side === 'out') return [...outs].filter(x => !done.has(x)); if (side === 'in') return insLeft; return insLeft.length ? insLeft : [...outs].filter(x => !done.has(x)); };
+  const eq = (a, b) => foldChar(a) === foldChar(b);
+  while (i < typed.length) {
+    if (typed[i] === '→' || typed[i] === '⇌' || (typed[i] === '-' && typed[i + 1] === '>')) { const w = typed[i] === '-' ? 2 : 1; for (let k = 0; k < w; k++) st.push('sep'); i += w; side = 'out'; continue; }
+    if (COF_SEP.test(typed[i])) { st.push('sep'); i++; continue; }
+    if (side === null && /[→⇌]|->/.test(typed.slice(i))) side = 'in';
+    // the longest name of any cofactor this text could be (allowed here or not), allowing spaces inside a name
+    let best = null;
+    for (const [id, list] of Object.entries(names)) for (const n of list) {
+      let k = 0; while (k < n.length && i + k < typed.length && eq(typed[i + k], n[k])) k++;
+      const full = k === n.length && (i + k >= typed.length || COF_SEP.test(typed[i + k]) || typed[i + k] === '→' || typed[i + k] === '-');
+      const partial = i + k >= typed.length && k > 0;
+      if ((full || partial) && (!best || k > best.k || (k === best.k && full && !best.full))) best = { id, k, full };
+    }
+    let end = i; while (end < typed.length && !COF_SEP.test(typed[end]) && typed[end] !== '→' && typed[end] !== '⇌' && !(typed[end] === '-' && typed[end + 1] === '>')) end++;
+    if (best && best.k > 0 && (best.full || i + best.k >= typed.length)) {
+      const atEnd = i + best.k >= typed.length; // still typing: fine if it can grow into a cofactor that fits
+      const ok = allowed().includes(best.id) || ((!best.full || atEnd) && Object.entries(names).some(([id, l]) => allowed().includes(id) && l.some(n => n.length >= best.k && [...typed.slice(i, i + best.k)].every((ch, j) => eq(ch, n[j])))));
+      for (let k = 0; k < best.k; k++) st.push(ok ? 'ok' : 'err');
+      if (best.full && allowed().includes(best.id)) done.add(best.id);
+      i += best.k;
+      for (; i < end; i++) st.push('err'); // anything glued on after a whole name
+      continue;
+    }
+    if (IGNORE.has(norm(typed.slice(i, end)))) { for (; i < end; i++) st.push('sep'); continue; } // "and", "uses", "H+"…
+    for (; i < end; i++) st.push('err');
+  }
+  return st;
+}
 // hinted: how many leading letters came from "Give me a letter" (shown plain, neither right nor wrong).
-function checkGhost(targets, typed, hinted = 0) {
+function checkGhost(targets, typed, hinted = 0, q = null) {
+  if (q?.kind === 'cof' && q.model) {
+    const st = cofCheckState(q.model, q.cofs, typed);
+    return [...typed].map((c, k) => `<span class="${k < hinted ? 'c-hint' : st[k] === 'err' ? 'c-err' : st[k] === 'ok' ? 'c-ok' : 'c-sep'}">${esc(c)}</span>`).join('') + '<span class="caret" aria-hidden="true"></span>';
+  }
   const t = bestTarget({ targets }, typed), st = checkState(t, typed);
   return [...typed].map((c, k) => `<span class="${k < hinted ? 'c-hint' : st[k] === 'err' ? 'c-err' : st[k] === 'ok' ? 'c-ok' : 'c-sep'}">${esc(c)}</span>`).join('') + '<span class="caret" aria-hidden="true"></span>';
 }
 
-function checkWidget(targets, typed, hinted = 0) {
-  return `<span class="along check"><span class="ghost">${checkGhost(targets, typed, hinted)}</span><input class="ans along-in" data-check="1" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your answer" value="${esc(typed)}"></span>`;
+function checkWidget(targets, typed, hinted = 0, q = null) {
+  return `<span class="along check"><span class="ghost">${checkGhost(targets, typed, hinted, q)}</span><input class="ans along-in" data-check="1" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your answer" value="${esc(typed)}"></span>`;
 }
 // "Give me a letter": keep what's right so far and add the next letter of the closest spelling.
 function hintLetter(q) {
@@ -515,7 +560,7 @@ function answerHTML(q, idx, compact) {
   const hintBtn = Q.cfg.hints && q.targets ? `<button class="btn small ghost" data-act="hint" data-q="${idx}" title="Give me a letter (→ at the end of your answer)">${mi('lightbulb', 'sm')} Give me a letter <kbd>→</kbd></button>` : '';
   if (q.inline && q.along) return `<div class="hint-line">Type what you see in the highlighted box${q.alongErrs ? ` <span class="bad-note">${q.alongErrs} slip${q.alongErrs > 1 ? 's' : ''}</span>` : ''}${hintBtn}</div>`;
   if (q.along) return `<form class="ansform" data-q="${idx}">${alongWidget(q.along, q.draft)}</form>${hintBtn}`;
-  if (!q.inline && Q.cfg.letterCheck && style === 'type' && q.targets) return `<form class="ansform" data-q="${idx}">${checkWidget(q.targets, q.draft, q.hintLen || 0)}<button class="btn">Check</button></form>${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}${hintBtn}`;
+  if (!q.inline && Q.cfg.letterCheck && style === 'type' && q.targets) return `<form class="ansform" data-q="${idx}">${checkWidget(q.targets, q.draft, q.hintLen || 0, q)}<button class="btn">Check</button></form>${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}${hintBtn}`;
   if (q.inline) return `<div class="hint-line">${q.justWrong ? `<span class="bad-note">${icon('no')} Not quite. Try again or reveal.</span>` : inlineHintShown() ? `Type in the highlighted box, then ${mi('keyboard_return', 'sm')} Enter` : ''}${hintBtn}</div>`;
   if (optsFor) return `<div class="opts${compact ? ' row' : ''}">${optsFor.map((o, i) => {
     const bad = q.wrong.includes(o.v);
@@ -587,6 +632,7 @@ function optionsHTML() {
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="letterCheck" ${Q.cfg.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="autoSubmit" ${Q.cfg.autoSubmit ? 'checked' : ''}> Submit right answers automatically</label>` : ''}
+      ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="fullNames" ${Q.cfg.fullNames ? 'checked' : ''}> Require full names</label>` : ''}
       ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are</label>` : ''}
       <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
       ${view === 'list' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
@@ -605,7 +651,7 @@ function renderQuiz() {
   const occ = R.type === 'single' || R.type === 'total' || R.type === 'build';
   const cq = occ && R.q;
   INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open'
-    ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: KIND[cq.kind] || '' } : null;
+    ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: KIND[cq.kind] || '', q: cq } : null;
   if (cq) cq.inline = !!INLINE;
   const flow = viewStyle() === 'flow', horiz = Store.settings.dir === 'h';
   const sub = R.type === 'stepE' && el('path') !== 'show' && Q.models.length > 1 ? `${Q.models.length} pathways` : esc(Q.m.p.name) + (Q.models.length > 1 && R.type !== 'stepE' ? ` <span class="muted">· ${Q.models.length} in this quiz</span>` : '');
@@ -811,7 +857,7 @@ document.addEventListener('change', e => {
   const f = e.target.dataset.qflag;
   if (!f) return;
   if (f === 'weak') { Q.cfg.weak = e.target.checked; newRound(); }
-  else if (['letterCheck', 'hints', 'autoSubmit', 'cofCount'].includes(f)) { Q.cfg[f] = e.target.checked; if (f === 'cofCount') renderQuiz(); }
+  else if (['letterCheck', 'hints', 'autoSubmit', 'cofCount', 'fullNames'].includes(f)) { Q.cfg[f] = e.target.checked; if (f === 'fullNames') (Q.round.qs || [Q.round.q]).filter(Boolean).forEach(x => withAlong(x, Q.m)); /* refresh letter-check / hint spellings */ if (['cofCount', 'fullNames'].includes(f)) renderQuiz(); }
   else { Store.settings[f] = e.target.checked; Store.save(); }
   renderQuiz();
   $('.qopts') && ($('.qopts').open = true);
@@ -836,7 +882,7 @@ document.addEventListener('input', e => {
   updateCofCounts();
   // Submit automatically, when that option is on, the moment the answer is right (never when it's wrong).
   if (Q.cfg.autoSubmit && q.status === 'open' && answerStyle() === 'type' && v.trim() && q.check(v)) { submit(q, v); return; }
-  if (e.target.dataset.check) { f.querySelector('.ghost').innerHTML = checkGhost(q.targets, v, q.hintLen || 0); return; }
+  if (e.target.dataset.check) { f.querySelector('.ghost').innerHTML = checkGhost(q.targets, v, q.hintLen || 0, q); return; }
   if (!q.along || q.status !== 'open') return;
   if (v && q.targets?.length > 1) { const bt = bestTarget(q, v); if (bt !== q.along && alongState(bt, v).errs < alongState(q.along, v).errs) q.along = bt; } // follow the spelling or order being typed
   const s = alongState(q.along, v);

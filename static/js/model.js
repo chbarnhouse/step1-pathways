@@ -206,12 +206,20 @@ function claimsOf(m) {
   CLAIMS.set(m, own);
   return own;
 }
-function spellingsFor(item, m) {
+// "Require full names": abbreviations stop counting. An abbreviation is the item's short form, or any one-word spelling
+// that looks like one (6 letters or fewer, or mostly capitals and digits: Gly, G6P, PFK-1, ALAS). The name exactly as
+// the app shows it always counts, even when it contains one (ALA synthase).
+const looksAbbreviated = v => !/\s/.test(v.trim()) && (norm(v).length <= 6 || (v.match(/[A-Z0-9]/g) || []).length >= 2);
+function spellingsFor(item, m, full = false) {
   const data = new Set([item.name, item.short, ...(item.aliases || [])].filter(Boolean).map(norm));
   const claims = m ? claimsOf(m) : null;
-  return variantsOf(item).filter(v => { const n = norm(v); return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name); });
+  return variantsOf(item).filter(v => {
+    const n = norm(v);
+    if (full && v !== item.name && (n === norm(item.short || '\u0000') || looksAbbreviated(v))) return false;
+    return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name);
+  });
 }
-const acceptedFor = (item, m) => uniq(spellingsFor(item, m).map(norm));
+const acceptedFor = (item, m, full = false) => uniq(spellingsFor(item, m, full).map(norm));
 // Every right way to write a reaction's cofactors: each side in any order, ins before outs ("A + B → C", "B, A, C").
 function cofTargets(m, c) {
   const ins = (c.in || []).map(id => cofName(m, id)), outs = (c.out || []).map(id => cofName(m, id));
@@ -220,6 +228,7 @@ function cofTargets(m, c) {
   const t = new Set([cofText(m, c)]);
   for (const a of perms(ins)) for (const b of perms(outs)) {
     if (a.length && b.length) t.add(`${a.join(' + ')} → ${b.join(' + ')}`);
+    if (a.length && b.length) t.add(`${a.join(' + ')} -> ${b.join(' + ')}`);
     t.add([...a, ...b].join(', ')); t.add([...a, ...b].join(' + '));
   }
   return [...t];

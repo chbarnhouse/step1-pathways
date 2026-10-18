@@ -12,6 +12,8 @@ const CHANGELOG = [
     'Cofactors: what goes in comes before what comes out (ATP, then ADP), but within each side any order counts (ATP and NADH, or NADH and ATP). Letter checking and hints follow the order you chose.',
     'New options under Advanced: submit right answers automatically (no Return needed, cofactors included), and show how many cofactors a step has (“1/2” while you type).',
     'Letter checking highlights runs of letters as one smooth band.',
+    'Check each letter understands cofactors: any of a cofactor’s names counts (NAD or NAD⁺, Pi or phosphate), in any order within a side; it turns red only for a cofactor that doesn’t belong or comes too early.',
+    'New option under Advanced: Require full names, so abbreviations like “Gly” or “PFK-1” don’t count.',
     'More spellings count: an enzyme named after a metabolite accepts any of that metabolite’s names (ALA synthase, δ-ALA synthase, δ-aminolevulinic acid synthase, 5-aminolevulinate synthase), “-ic acid” or “-ate”, and Greek letters as symbols or words.',
   ] },
   { v: '3.8.1', date: '2026-10-18', items: [
