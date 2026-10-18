@@ -104,10 +104,19 @@ function renderDashboard() {
 // What you studied, when, how, and how it went — newest first, grouped by day.
 const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
-// Sessions that remember their quiz (newer ones) can be run again (▶) or kept as a favorite (☆) right from your history.
+// Every session can be run again (▶) or kept as a favorite (☆) right from your history. Newer sessions remember their
+// exact quiz; older ones (and weak-spot drills) are rebuilt from what the log kept: pathway, mode, how you answered.
+function actDraft(e) {
+  if (e.d) return normalizeDraft(e.d);
+  const p = e.pathways?.length === 1 && Library.get(e.pathways[0]);
+  if (!p) return null;
+  const pathway = p.compose ? p.compose[0] : p.id;
+  return normalizeDraft({ pathway, combine: !!p.compose, mode: e.mode, given: e.given, answer: e.answer, weak: e.name === 'Weak spots', start: e.mode === 'total' ? 'begin' : 'random' });
+}
 function actFavBtn(e) {
-  if (!e.d) return '<span class="act-btns"></span>';
-  const on = !!findFav(normalizeDraft(e.d));
+  const d = actDraft(e);
+  if (!d) return '<span class="act-btns"></span>';
+  const on = !!findFav(d);
   return `<span class="act-btns"><button class="iconbtn act-fav" data-dash="actstart" data-id="${esc(e.id)}" data-tip="Run this quiz again" aria-label="Run this quiz again">${mi('play_arrow', 'sm')}</button><button class="iconbtn act-fav" data-dash="actfav" data-id="${esc(e.id)}" aria-pressed="${on}" data-tip="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}" aria-label="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}">${mi(on ? 'star_fill1' : 'star', 'sm')}</button></span>`;
 }
 function activityHTML() {
@@ -151,8 +160,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-dash]');
   if (!b) return;
   if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
-  if (b.dataset.dash === 'actstart') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id); if (e?.d) { const d = normalizeDraft(e.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), clone(d)); } return; }
-  if (b.dataset.dash === 'actfav') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id); if (e?.d) toggleFav(normalizeDraft(e.d), renderDashboard); return; }
+  if (b.dataset.dash === 'actstart') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id), d = e && actDraft(e); if (d) { local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), clone(d)); } return; }
+  if (b.dataset.dash === 'actfav') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id), d = e && actDraft(e); if (d) toggleFav(d, renderDashboard); return; }
   if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { C.draft = normalizeDraft(f.d); C.presetId = ''; location.hash = '#/new'; } }
   if (b.dataset.dash === 'favstart') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
   if (b.dataset.dash === 'favrename') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: 'Rename favorite', input: true, value: f.name, ok: 'Rename' }).then(name => { if (name && name.trim()) { f.name = name.trim(); Store.save(); renderDashboard(); } }); }
@@ -286,7 +295,7 @@ function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)}
 function tileHTML(p, page, selected) {
   const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
   const partner = pr && pr.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(', ');
-  const meta = `${plural((p.reactions || []).length, 'step')}${p.shared?.by ? ` · by ${esc(p.shared.by)}` : ''}${pr ? ` · combines with ${partner}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
+  const meta = `${plural((p.reactions || []).length, 'step')}${p.shared?.by ? ` · by ${esc(p.shared.by)}` : ''}${pr ? ` <span class="tile-combo" data-tip="Combines with ${esc(partner)}" aria-label="Combines with ${esc(partner)}">${mi('link', 'sm')}</span>` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
   const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
   const tagHTML = tags.length || systemsOf(p.id).length ? `<span class="tile-tags">${sysChips(p.id)}${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
   if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">

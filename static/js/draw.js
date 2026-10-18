@@ -26,6 +26,43 @@ function head(x, y, ang, size = 9, cls = 'ah') {
   const a1 = ang + Math.PI * 0.84, a2 = ang - Math.PI * 0.84;
   return `<path class="${cls}" d="M${x},${y}L${x + size * Math.cos(a1)},${y + size * Math.sin(a1)}L${x + size * Math.cos(a2)},${y + size * Math.sin(a2)}Z"/>`;
 }
+/* Right-angle connectors, tidier than slanted lines: a polyline [[x, y], …] with rounded corners. The arrowhead sits on
+   the last point; a reversible step gets one on the first too. */
+function elbow(pts, rev, cls = 'ln') {
+  const dirOf = (a, b) => Math.atan2(b[1] - a[1], b[0] - a[0]), n = pts.length;
+  const endAng = dirOf(pts[n - 2], pts[n - 1]), startAng = dirOf(pts[1], pts[0]);
+  const P = pts.map(q => [...q]);
+  P[n - 1] = [P[n - 1][0] - Math.cos(endAng) * 6, P[n - 1][1] - Math.sin(endAng) * 6];
+  if (rev) P[0] = [P[0][0] - Math.cos(startAng) * 6, P[0][1] - Math.sin(startAng) * 6];
+  let d = `M${P[0][0]},${P[0][1]}`;
+  for (let i = 1; i < n - 1; i++) {
+    const [px, py] = P[i - 1], [x, y] = P[i], [nx, ny] = P[i + 1];
+    const r = Math.min(12, Math.hypot(x - px, y - py) / 2, Math.hypot(nx - x, ny - y) / 2);
+    d += ` L${x - Math.sign(x - px) * r},${y - Math.sign(y - py) * r} Q${x},${y} ${x + Math.sign(nx - x) * r},${y + Math.sign(ny - y) * r}`;
+  }
+  d += ` L${P[n - 1][0]},${P[n - 1][1]}`;
+  return `<path class="${cls}" d="${d}"/>` + head(pts[n - 1][0], pts[n - 1][1], endAng) + (rev ? head(pts[0][0], pts[0][1], startAng) : '');
+}
+// A step's enzyme and cofactors along a right-angle connector: on its horizontal run if that's long enough (name above,
+// cofactors below), else beside its vertical run (name left, cofactors right).
+function elbowLabels(m, statusOf, r, h, v) {
+  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), cof = cs !== 'none' && cs !== 'hide';
+  let s = '';
+  if (h && Math.abs(h[1][0] - h[0][0]) >= 150) {
+    const y = h[0][1], dir = Math.sign(h[1][0] - h[0][0]), len = Math.abs(h[1][0] - h[0][0]);
+    // The spot along the run with nothing just above it (a blank is a tall pill), the middle if it's free.
+    const xAt = f => h[0][0] + (h[1][0] - h[0][0]) * f;
+    const f = [0.5, 0.65, 0.75, 0.85, 0.35, 0.25, 0.15].find(f => !DRAW_BOXES.some(bx => overlaps({ x: xAt(f) - 90, y: y - 46, w: 180, h: 40 }, bx))) ?? 0.5, mx = xAt(f);
+    s += enzLabel(mx, y - 8, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(labelRect(mx, y - 8, 'middle', it?.name || '', 22, 'bottom'));
+    const half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(h[0][0], h[1][0]) + 14, mx - half), a1 = Math.min(Math.max(h[0][0], h[1][0]) - 14, mx + half);
+    if (cof) s += cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, 1], cofParts(m, statusOf, r));
+  } else if (v) {
+    const x = v[0][0], y0 = Math.min(v[0][1], v[1][1]), y1 = Math.max(v[0][1], v[1][1]);
+    s += enzLabel(x - 14, (y0 + y1) / 2, it, es, 'end', 18, 'center'); DRAW_LABELS.push(labelRect(x - 14, (y0 + y1) / 2, 'end', it?.name || '', 18));
+    if (cof) s += cofArcParts(x, y0, y1, cofParts(m, statusOf, r), v[1][1] < v[0][1]);
+  }
+  return s;
+}
 function arrow(x1, y1, x2, y2, rev, cls = 'ln') {
   const ang = Math.atan2(y2 - y1, x2 - x1);
   const back = (x, y, d) => [x - Math.cos(ang) * d, y - Math.sin(ang) * d];
@@ -281,7 +318,21 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center');
     if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
-  } else s += diagLabel(m, statusOf, r, p1, p2);
+  } else {
+    // Off-line: an L. Leave a box on the main line from its side (its bottom carries the main arrow), then turn into the
+    // other box; otherwise drop straight down (or up) first, then turn into the other box's side.
+    s = '';
+    const down = b.cy > a.cy, fromSpine = m.onSpine?.has(r.from) && !m.onSpine?.has(r.to);
+    if (fromSpine) {
+      const x0 = a.cx + Math.sign(b.cx - a.cx) * (wA / 2 + 4), yb = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
+      const pts = [[x0, a.cy], [b.cx, a.cy], [b.cx, yb]];
+      s += elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[0], pts[1]], [pts[1], pts[2]]);
+    } else {
+      const ya = down ? a.cy + BH / 2 + 4 : a.cy - BH / 2 - 4, x1 = b.cx - Math.sign(b.cx - a.cx) * (wB / 2 + 4);
+      const pts = [[a.cx, ya], [a.cx, b.cy], [x1, b.cy]];
+      s += elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[1], pts[2]], [pts[0], pts[1]]);
+    }
+  }
   return s;
 }
 // Labels for slanted arrows sit beside the line, never on it: above a shallow line, left of a steep one.
@@ -558,12 +609,17 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
       if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, y1, y2, cofParts(m, statusOf, r));
     } else {
-      // Crosses a membrane: slant from one lane to the other.
-      const p1 = [xa + Math.sign(xb - xa) * 40, y1 + 4], p2 = [xb - Math.sign(xb - xa) * 40, y2 - 4];
-      s += arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r)) + diagLabel(m, statusOf, r, p1, p2, Object.values(pos).map(q => ({ x: q.x - BW / 2, y: q.y, w: BW, h: BH })));
+      // Crosses a membrane: down, across into the other lane, down (a right angle, not a slant).
+      const ym = (y1 + y2) / 2, pts = [[xa, y1 + 4], [xa, ym], [xb, ym], [xb, y2 - 4]];
+      s += elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[1], pts[2]], null);
     }
     // Extra products/reactants leave from the box's lower-right corner, clear of the cofactor text beside the arrow.
-    for (const sd of r.also_to || []) { const sx = xa + BW / 2 - 12, e = edgePt(ctr(sd), sx, y1 + 2); s += arrow(sx, y1 + 2, e[0], e[1], r.reversible); }
+    // Extra products leave the box's side and turn down into theirs (glycogen → limit dextrin).
+    for (const sd of r.also_to || []) {
+      const t = ctr(sd), a = ctr(r.from), dir = Math.sign(t.cx - a.cx) || 1;
+      if (Math.abs(t.cy - a.cy) < 4) s += arrow(a.cx + dir * (BW / 2 + 4), a.cy, t.cx - dir * (BW / 2 + 4), t.cy, r.reversible);
+      else s += elbow([[a.cx + dir * (BW / 2 + 4), a.cy], [t.cx, a.cy], [t.cx, t.cy - Math.sign(t.cy - a.cy) * (BH / 2 + 4)]], r.reversible);
+    }
     const many = (r.also_from || []).length >= 3;
     if (many) {
       // A stacked column of inputs joins one line that runs up beside them and enters the target from the side.
@@ -571,7 +627,12 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const ys = srcs.map(c => c.cy), top = Math.min(t.cy, ...ys), bot = Math.max(t.cy, ...ys);
       srcs.forEach(c => { s += `<path class="ln" d="M${xl},${c.cy}H${bus}"/>`; });
       s += `<path class="ln" d="M${bus},${top}V${bot}"/>` + arrow(bus, t.cy, xr, t.cy, r.reversible);
-    } else for (const sd of r.also_from || []) { const sx = xb + BW / 2 - 12, e = edgePt(ctr(sd), sx, y2 - 2); s += arrow(e[0], e[1], sx, y2 - 2, r.reversible); }
+    } else for (const sd of r.also_from || []) {
+      // An extra input drops from its box and turns into the target's side (DMAPP joining IPP → GPP).
+      const c = ctr(sd), t = ctr(r.to), dir = Math.sign(c.cx - t.cx) || 1, xe = t.cx + dir * (BW / 2 + 4);
+      if (Math.abs(c.cy - t.cy) < 4) s += arrow(c.cx - dir * (BW / 2 + 4), c.cy, xe, t.cy, r.reversible);
+      else s += elbow([[c.cx, c.cy + Math.sign(t.cy - c.cy) * (BH / 2 + 4)], [c.cx, t.cy], [xe, t.cy]], r.reversible);
+    }
   });
   bypass.forEach((r, k) => {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10;

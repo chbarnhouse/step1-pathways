@@ -9,6 +9,9 @@ const APP_VERSION = '3.9.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'Diagrams use right-angle connectors instead of slanted lines: steps that cross a membrane go down, across and down; side steps and extra products turn at right angles into their boxes.',
+    'Activity: every session (older ones too) has ▶ to run that quiz again and a star to add it to favorites.',
+    'Library: applied filters are solid chips the same size as the filter menus; the sort menu matches the search bar; “combines with …” is now a link icon with the details on hover.',
     'Cleaner diagrams: glycogenolysis shows the debranching enzyme’s glucose in the cytosol (separate from the glucose glucose-6-phosphatase makes in the ER), gluconeogenesis runs mitochondria → cytosol → ER left to right, cholesterol synthesis no longer zigzags (mevalonate is cytosolic), side branches run down their own column (pyrimidines, purines, fatty acid synthesis), and labels keep clear of boxes, compartment regions and each other.',
     'Every pathway is tagged by body system (Fundamentals, Skin, MSK, Neuro, Cardio, Renal, Endo/Repro, Heme, GI) plus a few study tags (Fed state, Fasting, Energy, Storage, Amino acids, Drug targets, Vitamins). Filter the Library and New quiz by them; your own tags still work alongside.',
     'Library and New quiz filters are tidier: one menu each for Group, System, Status and Tags; what’s on shows as chips you can remove with ×.',
