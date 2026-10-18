@@ -192,6 +192,22 @@ function computeLanes(m) {
 }
 
 const LANE_W = 470;
+// Each kind of compartment has its own tint (always with its name written on it, never color alone).
+const ZONE_TONES = { blood: 'slate', lumen: 'slate', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
+  mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
+const zoneTone = key => ZONE_TONES[String(key).split('|').pop()] || 'slate';
+const zoneTissue = key => (String(key).includes('|') ? String(key).split('|')[0] : '');
+// Boxes that are close together in one compartment share one dashed region.
+function clusterRects(rects) {
+  const out = [];
+  rects.slice().sort((a, b) => a.y - b.y).forEach(r => {
+    const c = out.find(o => r.y <= o.y + o.h + 30 && r.x < o.x + o.w + 30 && o.x < r.x + r.w + 30);
+    if (!c) return out.push({ ...r });
+    const x1 = Math.max(c.x + c.w, r.x + r.w), y1 = Math.max(c.y + c.h, r.y + r.h);
+    c.x = Math.min(c.x, r.x); c.y = Math.min(c.y, r.y); c.w = x1 - c.x; c.h = y1 - c.y;
+  });
+  return out;
+}
 // A compartment's label: plain text, a blank to fill, or the answer field itself (only once per drawing).
 let ZONE_INLINE_DONE = false;
 function zoneLabel(m, statusOf, key, x, y, anchor = 'middle', fallback = '') {
@@ -216,13 +232,28 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   // Side steps between two main-line metabolites (gluconeogenic bypasses in a combined view) curve out to the right.
   const bypass = branches.filter(b => onSpine.has(b.from) && onSpine.has(b.to));
   const L = zones ? computeLanes(m) : { list: [], laneOf: {} };
-  const lanesOn = L.list.length > 1;
-  const laneX = i => CX + (lanesOn ? i : 0) * LANE_W;
-  const top = TOP + (lanesOn ? 26 : 0);
-  const sideX = laneX(lanesOn ? L.list.length - 1 : 0) + (SIDEX - CX) + (bypass.length ? 190 : 0);
+  const lanesOn = L.list.length > 1, oneZone = !lanesOn && L.list.length === 1 && !!m.items['z:' + L.list[0].key];
+  // Which lane a side metabolite belongs in: the compartment of the step that makes or uses it.
+  const zoneOfR = r => (r && r.loc ? zoneKey(m, r.loc, r.tissue) : '');
+  const stepOf = id => spine.find(x => (x.also_to || []).includes(id) || (x.also_from || []).includes(id)) || branches.find(b => b.to === id || b.from === id);
+  const last = Math.max(0, L.list.length - 1);
+  const sideLane = id => { const r = stepOf(id); if (!lanesOn || !r || r.transport) return -1; const i = L.list.findIndex(l => l.key === zoneOfR(r)); return i < last ? i : -1; };
+  // A lane that holds side boxes of its own is widened to fit them, so they never spill into the next lane.
+  const roomy = new Set(Object.keys(items).filter(k => k.startsWith('m:')).map(k => k.slice(2)).filter(id => !onSpine.has(id)).map(sideLane).filter(i => i >= 0));
+  const laneXs = [CX];
+  for (let i = 1; i <= last; i++) laneXs[i] = laneXs[i - 1] + LANE_W + (roomy.has(i - 1) ? BW + 60 : 0);
+  const laneX = i => (lanesOn ? laneXs[i] : CX);
+  const laneLeft = i => (i === 0 ? 0 : laneX(i) - LANE_W / 2 + 20);
+  const top = TOP + (lanesOn || oneZone ? 26 : 0);
+  const sideX = laneX(lanesOn ? last : 0) + (SIDEX - CX) + (bypass.length ? 190 : 0);
   const pos = {}, perRow = {};
   spineMets.forEach((id, i) => { pos[id] = { x: laneX(L.laneOf[id] || 0), y: top + i * (BH + GAP) }; });
-  const place = (id, y) => { if (pos[id]) return; const k = perRow[y] = (perRow[y] || 0) + 1; pos[id] = { x: sideX + (k - 1) * (BW + 60), y }; };
+  const place = (id, y) => {
+    if (pos[id]) return;
+    const li = sideLane(id);
+    if (li >= 0) { pos[id] = { x: laneX(li) + BW + 60, y }; return; }
+    const k = perRow[y] = (perRow[y] || 0) + 1; pos[id] = { x: sideX + (k - 1) * (BW + 60), y };
+  };
   spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach(x => place(x, pos[r.from].y)); });
   for (let pass = 0; pass < 3; pass++) branches.forEach(b => {
     if (pos[b.from] && !pos[b.to]) place(b.to, pos[b.from].y);
@@ -230,22 +261,76 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   });
   const ctr = id => ({ cx: pos[id].x, cy: pos[id].y + BH / 2 });
   const xs = Object.values(pos).map(q => q.x);
-  const W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).length ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
-  const H = top + spineMets.length * (BH + GAP) - GAP + 14;
-  let s = '';
-
+  let W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).length ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
+  let H = top + spineMets.length * (BH + GAP) - GAP + 14;
+  let s = '', bg = '';
+  // Side steps in another compartment (e.g. pyruvate carboxylase in the mitochondria) get a dashed, labeled region.
+  const sideRects = {};
+  const laneKeyAt = x => { if (!lanesOn) return L.list[0]?.key; let i = 0; while (i < last && x >= laneLeft(i + 1)) i++; return L.list[i].key; };
+  const addRect = (k, rect) => { if (zones && k && m.items['z:' + k] && k !== laneKeyAt(rect.x + rect.w / 2)) (sideRects[k] = sideRects[k] || []).push(rect); };
+  const onLine = new Set(spineMets), membranes = [];
+  for (const [id, pt] of Object.entries(pos)) {
+    if (onLine.has(id)) continue;
+    const r = stepOf(id);
+    if (r?.transport) {
+      // Crossing a membrane: draw the membrane itself across the transport arrow, not a box.
+      const other = pos[r.from === id ? r.to : r.from];
+      if (other && zones && r.loc && m.items['z:' + zoneOfR(r)]) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; membranes.push({ k: zoneOfR(r), x: g0 + (g1 - g0) * 0.82, cy: pt.y + BH / 2, top: pt.y }); }
+      continue;
+    }
+    addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 30, w: BW + 24, h: BH + 60 });
+    // The step's own label (its enzyme) is in that compartment too.
+    const other = r && pos[r.from === id ? r.to : r.from];
+    if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 30, w: g1 - g0 - 40, h: BH + 60 }); }
+  }
+  bypass.forEach((r, k) => {
+    const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10, my = (a.cy + b.cy) / 2;
+    addRect(zoneOfR(r), { x: xc - 4, y: my - 34, w: 200, h: 92 });
+  });
+  const clusters = {};
+  for (const [k, rects] of Object.entries(sideRects)) {
+    const lw = (m.items['z:' + k]?.name.length || 0) * 7.4 + 28; // room for the label
+    clusters[k] = clusterRects(rects).map(c => ({ ...c, w: Math.max(c.w, lw) }));
+    for (const c of clusters[k]) { H = Math.max(H, c.y + c.h + 8); W = Math.max(W, c.x + c.w + 8); } // the drawing grows to hold its regions
+  }
+  const drawn = new Set();
   if (lanesOn) {
     L.list.forEach((l, i) => {
-      const x0 = laneX(i) - LANE_W / 2 + 20, x1 = i === L.list.length - 1 ? W : laneX(i) + LANE_W / 2 + 20;
-      if (i % 2) s += `<rect class="zone alt" x="${x0}" y="0" width="${x1 - x0}" height="${H}"/>`;
-      if (i > 0) s += `<line class="membrane" x1="${x0}" x2="${x0}" y1="0" y2="${H}"/>`;
-      s += zoneLabel(m, statusOf, l.key, laneX(i), 18, 'middle', l.label);
+      const x0 = laneLeft(i), x1 = i === last ? W : laneLeft(i + 1);
+      bg += `<rect class="zone t-${zoneTone(l.key)}" x="${x0}" y="0" width="${x1 - x0}" height="${H}"/>`;
+      // A new tissue is a different cell: solid wall. Same cell, new compartment: dashed membrane.
+      if (i > 0) bg += `<line class="${zoneTissue(l.key) !== zoneTissue(L.list[i - 1].key) ? 'cellwall' : 'membrane'}" x1="${x0}" x2="${x0}" y1="0" y2="${H}"/>`;
+      bg += zoneLabel(m, statusOf, l.key, laneX(i), 18, 'middle', l.label);
+      drawn.add(l.key);
     });
+  } else if (oneZone) {
+    // The whole main line is in one compartment: tint the drawing and name it once, at the top.
+    const k = L.list[0].key;
+    bg += `<rect class="zone t-${zoneTone(k)}" x="0" y="0" width="${W}" height="${H}" rx="14"/>` + zoneLabel(m, statusOf, k, 16, 18, 'start');
+    drawn.add(k);
   }
   if (zones) {
-    // Compartments without a lane of their own are listed in the top-right corner, one per line.
-    const drawn = new Set(lanesOn ? L.list.map(l => l.key) : []);
-    Object.values(items).filter(it => it.kind === 'loc' && !drawn.has(it.id)).forEach((it, i) => { s += zoneLabel(m, statusOf, it.id, W - 8, 18 + i * 30, 'end'); });
+    for (const [k, cs] of Object.entries(clusters)) {
+      cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>` + zoneLabel(m, statusOf, k, c.x + 12, c.y + c.h - 9, 'start'); }); // named along the bottom edge
+      drawn.add(k);
+    }
+    // A transport on the main line that crosses into the next lane is named where it crosses.
+    spine.forEach(r => {
+      const k = zoneOfR(r), a = pos[r.from], b = pos[r.to];
+      if (!r.transport || !k || drawn.has(k) || !m.items['z:' + k] || !a || !b || a.x === b.x) return;
+      // Same endpoints as the slanted arrow; the name goes just under the arrow, left of the wall.
+      const i = Math.max(L.laneOf[r.from] || 0, L.laneOf[r.to] || 0), xm = laneLeft(i), dir = Math.sign(b.x - a.x);
+      const p1 = [a.x + dir * 40, a.y + BH + 4], p2 = [b.x - dir * 40, b.y - 4], t = (xm - p1[0]) / (p2[0] - p1[0] || 1);
+      bg += zoneLabel(m, statusOf, k, xm - 10 * dir, p1[1] + t * (p2[1] - p1[1]) + 24, dir > 0 ? 'end' : 'start');
+      drawn.add(k);
+    });
+    membranes.forEach(mb => {
+      // Crosses the transport arrow next to the outside box; named above that box, clear of the transporter's name.
+      bg += `<line class="membrane" x1="${mb.x}" x2="${mb.x}" y1="${mb.top - 16}" y2="${mb.cy + 14}"/>` + zoneLabel(m, statusOf, mb.k, mb.x + 8, mb.top - 6, 'start');
+      drawn.add(mb.k);
+    });
+    // Anything left (a compartment with nothing of its own to draw around) is listed in the top-right corner.
+    Object.values(items).filter(it => it.kind === 'loc' && !drawn.has(it.id)).forEach((it, i) => { bg += zoneLabel(m, statusOf, it.id, W - 8, 18 + i * 30, 'end'); });
   }
   const mult = spine.map((r, i) => (r.multiplier > 1 ? i : -1)).filter(i => i >= 0);
   if (mult.length) {
@@ -281,7 +366,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   });
   branches.filter(b => !bypass.includes(b)).forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, ctr(r.from), ctr(r.to)); });
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
-  return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${s}</svg>`;
+  return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}</svg>`;
 }
 
 // Cycles: metabolites on an ellipse (clockwise from the top; wider than tall, like the boxes) joined by curved arrows.
@@ -318,7 +403,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
       let t1 = pos[run.rs[0].from].t, t2 = pos[run.rs[run.rs.length - 1].to].t; if (t2 <= t1) t2 += 2 * Math.PI;
       const OUT = 150, f = 0.42, large = t2 - t1 > Math.PI ? 1 : 0;
       const [ax, ay] = wedgePt(t1, 1, OUT), [bx, by] = wedgePt(t2, 1, OUT), [cx2, cy2] = wedgePt(t2, f), [dx, dy] = wedgePt(t1, f);
-      s += `<path class="zone alt" d="M${ax},${ay} A${RX + OUT},${RY + OUT} 0 ${large} 1 ${bx},${by} L${cx2},${cy2} A${RX * f},${RY * f} 0 ${large} 0 ${dx},${dy} Z"/>`;
+      s += `<path class="zone t-${zoneTone(run.k)}" d="M${ax},${ay} A${RX + OUT},${RY + OUT} 0 ${large} 1 ${bx},${by} L${cx2},${cy2} A${RX * f},${RY * f} 0 ${large} 0 ${dx},${dy} Z"/>`;
       s += `<line class="membrane" x1="${dx}" y1="${dy}" x2="${ax}" y2="${ay}"/><line class="membrane" x1="${cx2}" y1="${cy2}" x2="${bx}" y2="${by}"/>`;
       const tm = (t1 + t2) / 2, co = Math.cos(tm), [lx, ly] = wedgePt(tm, 1, OUT + 18);
       s += zoneLabel(m, statusOf, run.k, lx, ly + 4, co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle');

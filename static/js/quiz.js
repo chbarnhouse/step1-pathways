@@ -357,10 +357,10 @@ function submit(q, v) {
   if (!['dir', 'cof'].includes(q.kind) && !String(v).trim()) return;
   if (Q.round.type === 'build') {
     // Building blocks: right → next blank; wrong → this blank is cleared and asked again.
-    if (q.check(v)) { q.status = 'right'; return buildResolved(q); }
+    if (q.check(v)) { q.status = 'right'; noteInlineRight(q); return buildResolved(q); }
     q.tries++; q.wrong.push(v); q.draft = ''; q.justWrong = true; q.alongErrs = 0; q.lastErrs = 0; return renderQuiz();
   }
-  if (q.check(v)) { q.status = 'right'; q.given = v; tally(q, q.tries === 0); resolved(q); }
+  if (q.check(v)) { q.status = 'right'; q.given = v; noteInlineRight(q); tally(q, q.tries === 0); resolved(q); }
   else { q.tries++; q.wrong.push(v); q.draft = v; q.justWrong = true; renderQuiz(); }
 }
 function reveal(q) {
@@ -512,7 +512,7 @@ function answerHTML(q, idx, compact) {
   if (q.inline && q.along) return `<div class="hint-line">Type what you see in the highlighted box${q.alongErrs ? ` <span class="bad-note">${q.alongErrs} slip${q.alongErrs > 1 ? 's' : ''}</span>` : ''}${hintBtn}</div>`;
   if (q.along) return `<form class="ansform" data-q="${idx}">${alongWidget(q.along, q.draft)}</form>${hintBtn}`;
   if (!q.inline && Q.cfg.letterCheck && style === 'type' && q.targets) return `<form class="ansform" data-q="${idx}">${checkWidget(q.targets, q.draft)}<button class="btn">Check</button></form>${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}${hintBtn}`;
-  if (q.inline) return `<div class="hint-line">${q.justWrong ? `<span class="bad-note">${icon('no')} Not quite. Try again or reveal.</span>` : `Type in the highlighted box, then ${mi('keyboard_return', 'sm')} Enter`}${hintBtn}</div>`;
+  if (q.inline) return `<div class="hint-line">${q.justWrong ? `<span class="bad-note">${icon('no')} Not quite. Try again or reveal.</span>` : inlineHintShown() ? `Type in the highlighted box, then ${mi('keyboard_return', 'sm')} Enter` : ''}${hintBtn}</div>`;
   if (optsFor) return `<div class="opts${compact ? ' row' : ''}">${optsFor.map((o, i) => {
     const bad = q.wrong.includes(o.v);
     return `<button class="opt${bad ? ' wrong' : ''}" data-act="pick" data-q="${idx}" data-v="${esc(o.v)}" ${bad ? 'disabled' : ''}><kbd>${i + 1}</kbd><span>${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>${bad ? icon('no') : ''}</button>`;
@@ -523,6 +523,34 @@ function answerHTML(q, idx, compact) {
 /* ---------- page ---------- */
 // Toolbar buttons carry a text label (hidden on narrow screens) as well as the icon.
 const tbtn = (attrs, icon, label, title = label) => `<button class="tbtn" ${attrs} title="${esc(title)}" aria-label="${esc(title)}">${mi(icon)}<span>${label}</span></button>`;
+// After a few answers typed straight into the diagram, the how-to line stops repeating itself.
+const INLINE_KNOWN = 3;
+const inlineHintShown = () => (local.get('pathways.inlineRight') || 0) < INLINE_KNOWN;
+function noteInlineRight(q) { if (q.inline) local.set('pathways.inlineRight', (local.get('pathways.inlineRight') || 0) + 1); }
+// How far through the quiz you are, for the thin bar under the toolbar (null: open-ended modes).
+function progressFrac() {
+  const R = Q.round;
+  if (R.type === 'total') return R.done ? 1 : R.pos / Math.max(1, R.order.length);
+  if (R.type === 'build') return R.done ? 1 : ((R.k - 1) + R.pos / R.k) / Math.max(1, R.order.length);
+  return null;
+}
+/* ---------- facts: step through the diagram ----------
+   Back / Next walk every item that's showing, in reading order; blanks are skipped so nothing is given away. */
+function visibleKeys() {
+  const st = k => (['single', 'total', 'build'].includes(Q.round.type) ? statusOf(k) : 'shown');
+  return Q.m.seq.filter(k => Q.m.items[k] && !['blank', 'target', 'hide'].includes(st(k)) && !(k[0] === 'e' && el(kindOf(k)) === 'hide'));
+}
+function focusStep(dir) {
+  const keys = visibleKeys();
+  if (!keys.length) return;
+  const i = Q.focus ? keys.indexOf(Q.focus.item.key) : -1;
+  const j = i < 0 ? (dir > 0 ? 0 : keys.length - 1) : (i + dir + keys.length) % keys.length;
+  Q.focus = { item: Q.m.items[keys[j]], m: Q.m }; Q.drawer = true;
+  renderQuiz();
+  $('#stage .focused')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+}
+// Items the editor can open directly (metabolites, enzymes/transporters, cofactor sets).
+const editHref = (item, m) => (/^[mec]:/.test(item?.key || '') ? `#/pathways/${encodeURIComponent(m.p.id)}/edit/${encodeURIComponent(item.key)}` : '');
 function zoomBarHTML() {
   return `<div class="zoombar" role="group" aria-label="Diagram zoom">
     <span class="zgroup"><button class="tbtn icon" data-zoom="out" title="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><span class="zpct" id="zoomPct">100%</span><button class="tbtn icon" data-zoom="in" title="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
@@ -582,18 +610,22 @@ function renderQuiz() {
       <div class="qtitle"><div class="qname">${esc(Q.cfg.name)}</div>${Q.cfg.name !== Q.m.p.name || Q.models.length > 1 ? `<div class="qsub">${sub}</div>` : `<div class="qsub">${esc(quizSummary(Q.cfg))}</div>`}</div>
       ${progress}
       <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
-      <div class="qtools">${R.type !== 'none' && flow ? zoomBarHTML() : ''}
+      <div class="qtools">${R.type !== 'none' && flow && !occ ? zoomBarHTML() : ''}
         ${Q.draft ? `<button class="tbtn" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}<span>${findFav(Q.draft) ? 'Favorited' : 'Favorite'}</span></button>` : ''}
         <button class="tbtn" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)">${mi('lightbulb')}<span>Facts${nFacts ? ` <b class="count">${nFacts}</b>` : ''}</span></button>
         ${optionsHTML()}</div>
+      ${progressFrac() !== null ? `<div class="qprog" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progressFrac() * 100)}"><span style="width:${(progressFrac() * 100).toFixed(1)}%"></span></div>` : ''}
     </header>
     <div class="qbody">
-      <div class="qmain"><div class="stage" id="stage">${stage}</div>${below}</div>
+      <div class="qmain"><div class="stage" id="stage">${stage}</div>${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML()}</div>` : ''}${below}</div>
       ${Q.drawer ? drawerHTML() : ''}
     </div>
     ${dock}
   </div>`;
   if (INLINE && cq.justWrong) $('#stage form.inl input')?.classList.add('shake');
+  if (Q.focus && Q.drawer) $(`#stage [data-key="${CSS.escape(Q.focus.item.key)}"]`)?.classList.add('focused');
+  const fk = Q.fact?.key;
+  if (fk && fk !== Q.pulsed) { Q.pulsed = fk; $(`#stage [data-key="${CSS.escape(fk)}"]`)?.classList.add('just'); }
   fitToolbar();
   applyZoom();
   followTarget();
@@ -608,8 +640,10 @@ function drawerHTML() {
   (Q.history || []).forEach((h, i) => { if (!Q.focus || h.item !== Q.focus.item) entries.push({ ...h, head: i === 0 ? 'Last answer' : '' }); });
   return `<aside class="drawer" aria-label="Facts">
     <div class="drawer-h"><h2>${mi('lightbulb', 'h-ic')} Facts</h2><button class="tbtn icon" data-act="closefacts" title="Close" aria-label="Close facts">${mi('close')}</button></div>
-    <p class="muted small">Click any item that's showing on the diagram to read about it.</p>
-    ${entries.length ? entries.map(e => `${e.head ? `<div class="glabel">${e.head}</div>` : ''}<div class="drawer-item${e.status ? ' ' + e.status : ''}">${e.status ? icon(e.status === 'right' ? 'ok' : 'no') : ''}${factsCard(factItemOf(e.item, e.m), e.m)}</div>`).join('')
+    <p class="muted small">Click anything showing on the diagram, or step through it.</p>
+    <div class="btnrow tight fnav"><button class="btn small" data-act="fprev" title="Previous item (←)">${mi('arrow_back', 'sm')} Back</button><button class="btn small" data-act="fnext" title="Next item (→)">Next ${mi('arrow_forward', 'sm')}</button></div>
+    ${entries.length ? entries.map(e => { const href = editHref(factItemOf(e.item, e.m), e.m);
+      return `${e.head ? `<div class="glabel">${e.head}</div>` : ''}<div class="drawer-item${e.status ? ' ' + e.status : ''}">${e.status ? icon(e.status === 'right' ? 'ok' : 'no') : ''}${factsCard(factItemOf(e.item, e.m), e.m)}${href ? `<a class="btn small ghost fedit" href="${href}" title="Change this in the pathway editor">${mi('edit', 'sm')} Edit</a>` : ''}</div>`; }).join('')
       : '<p class="muted">Nothing answered yet.</p>'}
   </aside>`;
 }
@@ -772,6 +806,8 @@ document.addEventListener('click', e => {
     case 'fav': toggleFav(Q.draft, renderQuiz); break;
     case 'facts': Q.drawer = !Q.drawer; Q.focus = null; renderQuiz(); break;
     case 'closefacts': Q.drawer = false; Q.focus = null; renderQuiz(); break;
+    case 'fprev': focusStep(-1); break;
+    case 'fnext': focusStep(1); break;
     case 'reveal': reveal(q); break;
     case 'peek': peek(q); break;
     case 'got': selfGrade(q, true); break;
@@ -839,4 +875,9 @@ document.addEventListener('keydown', e => {
     const btn = opts && opts.querySelectorAll('button')[+e.key - 1];
     if (btn && !btn.disabled) btn.click();
   }
+});
+// ← / → step through the facts while the panel is open (not while typing an answer).
+document.addEventListener('keydown', e => {
+  if (!inQuiz() || !Q.drawer || e.altKey || e.metaKey || e.ctrlKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
+  if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); focusStep(e.key === 'ArrowLeft' ? -1 : 1); }
 });

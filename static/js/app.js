@@ -121,6 +121,7 @@ function homeDraft() {
 }
 // The combined pathway that contains this one, if any (e.g. glycolysis → glycolysis + gluconeogenesis).
 function pairOf(id) { return Object.values(Library.all()).find(p => p.compose && p.compose.includes(id)); }
+const pairsOf = id => Object.values(Library.all()).filter(p => p.compose && p.compose.includes(id));
 function quizFromDraft(d) {
   const pair = d.combine && pairOf(d.pathway);
   const pid = pair ? pair.id : d.pathway;
@@ -198,20 +199,21 @@ function tileHTML(p, page, selected) {
       ${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span>${selected ? `<span class="tile-check">${mi('check')}</span>` : ''}</button>`;
   return `<article class="ptile lib">
       <a class="tile-link" href="#/pathways/${esc(p.id)}">${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span></a>
-      <div class="tile-actions"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${esc(p.id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn small ghost" data-lib="tags" data-id="${esc(p.id)}">${mi('sell', 'sm')} Tags</button></div>
+      <div class="tile-actions"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${esc(p.id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn small ghost" data-lib="tags" data-id="${esc(p.id)}">${mi('sell', 'sm')} Tags</button>
+        ${pairsOf(p.id).map(pp => `<button class="btn small ghost" data-lib="study" data-id="${esc(pp.id)}" title="${esc(pp.name)}: both on one diagram">${mi('sync_alt', 'sm')} Study with ${esc(pp.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(' + '))}</button>`).join('')}</div>
     </article>`;
 }
 function tilesHTML(page, selectedId) {
-  const st = browse(page), base = page === 'new' ? Library.atomic() : Object.values(Library.all());
+  const st = browse(page), base = Library.atomic(); // pairs (compose) are studied from their parts, never listed
   const list = filterPathways(base, st);
   if (!list.length) return `<p class="muted">No pathways match. <button class="linkbtn" data-bclear>Clear filters</button></p>`;
   if (st.sort !== 'group') return `<div class="tiles-grid">${list.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div>`;
   const groups = {};
   for (const p of list) (groups[p.group || 'Other'] = groups[p.group || 'Other'] || []).push(p);
-  return Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)}</h2><div class="tiles-grid">${ps.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div></div>`).join('');
+  return Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)} <span class="muted small">${ps.length}</span></h2><div class="${page === 'library' ? 'tiles-row' : 'tiles-grid'}">${ps.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div></div>`).join('');
 }
 function browserHTML(page, selectedId) {
-  const base = page === 'new' ? Library.atomic() : Object.values(Library.all());
+  const base = Library.atomic();
   return `${browseToolbar(page, browse(page), base)}<div class="tiles" id="tiles">${tilesHTML(page, selectedId)}</div>`;
 }
 function refreshTiles(page) { const t = $('#tiles'); if (t) t.innerHTML = tilesHTML(page, page === 'new' ? C.draft?.pathway : null); }
@@ -255,7 +257,12 @@ function renderCreate() {
   let ans = d.answer || Store.settings.answer;
   if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
   const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz');
-  const els = elSpecFor(d).map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[v]]), elOf(d, k))}</div>`).join('');
+  // Compartments: none recorded → no row; all in one place → say it's asked once.
+  let zonesHere = null;
+  try { const qp = d.combine && pair ? pair : sel; if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
+  const elNote = k => (k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
+  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length))
+    .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[v]]), elOf(d, k))}${elNote(k)}</div>`).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
     const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
@@ -365,7 +372,7 @@ const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide')
 /* ================= Library ================= */
 function renderLibrary() {
   $('#view').innerHTML = `<div class="page library">
-    ${pageHead('Pathways', `${Library.list().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
+    ${pageHead('Pathways', `${Library.atomic().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
       `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('sync_alt', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
     ${browserHTML('library')}
     <input type="file" id="libFile" accept=".json,application/json" hidden>

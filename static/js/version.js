@@ -13,6 +13,12 @@ const CHANGELOG = [
     'Take the tour and Report a problem moved from the top bar to Settings → Help and feedback.',
     'Building blocks: choose whether blanks you haven’t reached yet show their answers or stay as empty boxes (Later blanks, on New quiz or in Options).',
     'The diagram no longer gets cut off at the bottom, and the quiz toolbar no longer pushes the page sideways on narrower windows.',
+    'Compartments are easier to tell apart: each has its own tint and its name, membranes are dashed lines, and a different tissue is a solid wall. A step in another compartment (pyruvate carboxylase in the mitochondria) gets its own labeled box.',
+    'In a quiz, Facts can step Back and Next through everything showing on the diagram (or use ← →), and Edit opens that item in the editor.',
+    'Quiz screen: zoom controls float over the diagram, a progress bar runs under the toolbar, the box you just answered pulses, and the “type in the box” reminder stops after a few answers.',
+    'Pathways that can be studied together (glycolysis and gluconeogenesis) are no longer listed as a third pathway; each has a “Study with…” button instead.',
+    'The library shows each group as one row you can scroll sideways, and Settings is centered.',
+    'When a whole pathway happens in one compartment, New quiz says so, and the quiz asks it once.',
     'Visual pathway editor: drag metabolites around, drag from one box to another to add a step, and edit whatever you select in the side panel, with Undo and Redo. Form and JSON views are still there. On an edited built-in pathway, every field that differs is marked Edited and has its own Revert.',
   ] },
   { v: '3.7.0', date: '2026-10-17', items: [
