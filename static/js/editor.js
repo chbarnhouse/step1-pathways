@@ -51,7 +51,7 @@ function closeEditor(id = E.origId) {
 function exportPathway(p) {
   // Downloads are blocked inside shared artifacts, so Export shows the JSON to copy, with a file download as the extra.
   const name = (p.id || slug(p.name)) + '.json', text = JSON.stringify(p, null, 2), canSave = !window.PATHWAYS_ARTIFACT;
-  ask({ title: `Export ${p.name}`, text: `Copy this and send it${canSave ? ` (or save it as ${name})` : ''}. To add it, open Pathways → Import, or New pathway → JSON and paste.`, input: 'area', value: text, ok: canSave ? 'Download file' : 'Done', cancel: canSave ? 'Close' : null, copy: true })
+  ask({ title: `Export ${p.name}`, text: `Copy this and send it${canSave ? ` (or save it as ${name})` : ''}. To add it, open Library → Import, or New pathway → JSON and paste.`, input: 'area', value: text, ok: canSave ? 'Download file' : 'Done', cancel: canSave ? 'Close' : null, copy: true })
     .then(v => v && canSave && download(name, text));
 }
 

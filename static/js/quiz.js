@@ -547,7 +547,7 @@ function focusStep(dir) {
   const j = i < 0 ? (dir > 0 ? 0 : keys.length - 1) : (i + dir + keys.length) % keys.length;
   Q.focus = { item: Q.m.items[keys[j]], m: Q.m }; Q.drawer = true;
   renderQuiz();
-  $('#stage .focused')?.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+  centerOn($('#stage .focused'));
 }
 // Items the editor can open directly (metabolites, enzymes/transporters, cofactor sets).
 const editHref = (item, m) => (/^[mec]:/.test(item?.key || '') ? `#/pathways/${encodeURIComponent(m.p.id)}/edit/${encodeURIComponent(item.key)}` : '');
@@ -562,7 +562,7 @@ function zoomBarHTML() {
 function optionsHTML() {
   const s = Store.settings, ans = answerStyle(), view = viewStyle();
   const seg = (key, opts, cur) => `<div class="seg">${opts.map(([v, l]) => `<button data-qopt="${key}" data-v="${v}" aria-pressed="${cur === v}">${l}</button>`).join('')}</div>`;
-  return `<details class="qopts"><summary class="tbtn" title="Options" aria-label="Options">${mi('tune')}<span>Options</span></summary>
+  return `<details class="qopts"><summary class="tbtn icon" title="Options" aria-label="Options">${mi('tune')}</summary>
     <div class="pop">
       <label>Answer by</label>${seg('answer', Q.cfg.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
       ${Q.cfg.mode === 'build' ? `<label>Later blanks</label>${seg('ahead', [['show', 'Show'], ['hide', 'Hide']], Q.cfg.ahead || 'show')}` : ''}
@@ -607,18 +607,17 @@ function renderQuiz() {
   const nFacts = (Q.history || []).length;
   V.innerHTML = `<div class="quiz ${occ ? 'occ' : 'steps'}${Q.drawer ? ' with-drawer' : ''}">
     <header class="qbar">
-      <a class="tbtn" href="#/" title="Back to the dashboard" aria-label="Back to the dashboard">${mi('arrow_back')}<span>Dashboard</span></a>
-      <div class="qtitle"><div class="qname">${esc(Q.cfg.name)}</div>${Q.cfg.name !== Q.m.p.name || Q.models.length > 1 ? `<div class="qsub">${sub}</div>` : `<div class="qsub">${esc(quizSummary(Q.cfg))}</div>`}</div>
+      <a class="tbtn icon" href="#/" title="Dashboard" aria-label="Dashboard">${mi('home')}</a>
+      <div class="qtitle"><div class="qname-row"><span class="qname">${esc(Q.cfg.name)}</span>${Q.draft ? `<button class="tbtn icon mini" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}" aria-label="${findFav(Q.draft) ? 'Remove from favorites' : 'Add to favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}</button>` : ''}<a class="tbtn icon mini" href="#/pathways/${encodeURIComponent(Q.m.p.compose ? Q.m.p.compose[0] : Q.m.p.id)}/edit" title="Edit this pathway" aria-label="Edit this pathway">${mi('edit')}</a></div>${Q.cfg.name !== Q.m.p.name || Q.models.length > 1 ? `<div class="qsub">${sub}</div>` : `<div class="qsub">${esc(quizSummary(Q.cfg))}</div>`}</div>
       ${progress}
       <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
       <div class="qtools">${R.type !== 'none' && flow && !occ ? zoomBarHTML() : ''}
-        ${Q.draft ? `<button class="tbtn" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}<span>${findFav(Q.draft) ? 'Favorited' : 'Favorite'}</span></button>` : ''}
-        <button class="tbtn" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)">${mi('lightbulb')}<span>Facts${nFacts ? ` <b class="count">${nFacts}</b>` : ''}</span></button>
+        <button class="tbtn icon" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)" aria-label="Facts">${mi('lightbulb')}${nFacts ? `<b class="count">${nFacts}</b>` : ''}</button>
         ${optionsHTML()}</div>
       ${progressFrac() !== null ? `<div class="qprog" role="progressbar" aria-label="Progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(progressFrac() * 100)}"><span style="width:${(progressFrac() * 100).toFixed(1)}%"></span></div>` : ''}
     </header>
     <div class="qbody">
-      <div class="qmain"><div class="stage" id="stage">${stage}${INLINE_FORM}</div>${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML()}</div>` : ''}${below}</div>
+      <div class="qmain">${occ && flow && R.type !== 'none' ? `<div class="stage canvas" id="stage" data-view="quiz:${esc(Q.m.p.id)}">${canvasHTML(stage, INLINE_FORM)}</div>` : `<div class="stage" id="stage">${stage}${INLINE_FORM}</div>`}${occ && flow && R.type !== 'none' ? `<div class="zoomfloat">${zoomBarHTML()}</div>` : ''}${below}</div>
       ${Q.drawer ? drawerHTML() : ''}
     </div>
     ${dock}
@@ -724,11 +723,6 @@ function stepPanel() {
 
 /* ---------- zoom + follow (the diagram only, never the rest of the UI) ---------- */
 // zoom: 'width' = fit the frame's width (never above natural size), 'fit' = whole diagram in the frame, number = scale.
-function fitScale(svg, frame) {
-  const vb = svg.viewBox.baseVal;
-  const availH = (parseFloat(getComputedStyle(frame).maxHeight) || window.innerHeight * 0.7) - 8;
-  return Math.max(0.15, Math.min((frame.clientWidth - 8) / vb.width, availH / vb.height, 1.6));
-}
 // The quiz toolbar never pushes the page sideways: if it doesn't fit, drop button labels, then the less-used zoom controls.
 function fitToolbar() {
   const bar = $('.qbar');
@@ -738,57 +732,13 @@ function fitToolbar() {
   for (const c of ['compact', 'tight']) { if (bar.scrollWidth <= bar.clientWidth) return; bar.classList.add(c); }
 }
 window.addEventListener('resize', () => { if ($('.quiz')) fitToolbar(); });
-// Keep the floating answer field exactly on its slot: same place, same size, scaled like the diagram.
-function placeInline() {
-  const st = $('#stage'), slot = st?.querySelector('.inl-slot'), f = st?.querySelector('.inl-float');
-  if (!slot || !f) return;
-  const svg = slot.ownerSVGElement, k = svg.getBoundingClientRect().width / svg.viewBox.baseVal.width;
-  const r = slot.getBoundingClientRect(), s = st.getBoundingClientRect();
-  Object.assign(f.style, { left: r.left - s.left - st.clientLeft + st.scrollLeft + 'px', top: r.top - s.top - st.clientTop + st.scrollTop + 'px',
-    width: slot.width.baseVal.value + 'px', height: slot.height.baseVal.value + 'px', transform: `scale(${k})` });
-}
-window.addEventListener('resize', () => { if ($('.quiz')) placeInline(); });
-function applyZoom(scope = document) {
-  const frame = scope.querySelector('.stage'), svg = frame && frame.querySelector('svg.flow'), list = frame && frame.querySelector('.list');
-  const z = Store.settings.zoom;
-  let pct = 1;
-  if (svg) {
-    const vb = svg.viewBox.baseVal;
-    if (z === 'width') { svg.style.width = '100%'; svg.style.maxWidth = vb.width + 'px'; pct = Math.min(1, (frame.clientWidth - 8) / vb.width); }
-    else { const k = z === 'fit' ? fitScale(svg, frame) : z; svg.style.maxWidth = 'none'; svg.style.width = vb.width * k + 'px'; pct = k; }
-  } else if (list) { pct = typeof z === 'number' ? z : 1; list.style.zoom = pct; }
-  const zp = scope.querySelector('#zoomPct'); if (zp) zp.textContent = Math.round(pct * 100) + '%';
-  scope.querySelectorAll('[data-zoom]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.zoom === String(z))));
-  scope.querySelectorAll('[data-flag="follow"]').forEach(b => b.setAttribute('aria-pressed', String(!!Store.settings.follow)));
-  placeInline();
-}
-function zoomBy(d) {
-  const frame = $('.stage'), svg = frame && frame.querySelector('svg.flow');
-  const z = Store.settings.zoom;
-  const cur = typeof z === 'number' ? z : svg ? (z === 'fit' ? fitScale(svg, frame) : Math.min(1, (frame.clientWidth - 8) / svg.viewBox.baseVal.width)) : 1;
-  Store.settings.zoom = Math.round(Math.min(2.5, Math.max(0.3, cur + d)) * 10) / 10;
-  Store.save(); applyZoom();
-}
-function followTarget() {
-  if (!Store.settings.follow) return;
-  const frame = $('.stage'), t = frame && frame.querySelector('form.inl, .target, .chip.target, .ename.target');
-  if (!t) return;
-  const fr = frame.getBoundingClientRect(), tr = t.getBoundingClientRect();
-  frame.scrollTo({
-    left: frame.scrollLeft + (tr.left + tr.width / 2) - (fr.left + fr.width / 2),
-    top: frame.scrollTop + (tr.top + tr.height / 2) - (fr.top + fr.height / 2),
-    behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
-  });
-}
-window.addEventListener('resize', () => { if ($('.stage') && typeof Store.settings.zoom !== 'number') applyZoom(); });
-
 /* ---------- events ---------- */
 const inQuiz = () => !!$('#view .quiz');
 document.addEventListener('click', e => {
   const zb = e.target.closest('[data-zoom]');
   if (zb) {
     const v = zb.dataset.zoom;
-    if (v === 'in') zoomBy(0.1); else if (v === 'out') zoomBy(-0.1); else { Store.settings.zoom = v; Store.save(); applyZoom(); }
+    if (v === 'in') zoomBy(0.1); else if (v === 'out') zoomBy(-0.1); else { Store.settings.zoom = v; Store.save(); CANVAS_VIEW = null; applyZoom(); } // Fit width / Fit all always re-fit
     followTarget(); return;
   }
   if (e.target.closest('[data-flag="follow"]')) { Store.settings.follow = !Store.settings.follow; Store.save(); applyZoom(); followTarget(); return; }

@@ -70,14 +70,14 @@
   --ink: #ffffff; --ink-2: #eaf1fb; --muted: #d6e4f6; --blue: #ffffff; --line: rgba(255,255,255,.45); --line-soft: rgba(255,255,255,.25); --sunk: rgba(255,255,255,.14);
   color: var(--ink);
 }
-:root[data-theme="default"] :is(.card, .ptile, .favtile, .btn, .chip-tg, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
+:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .btn, .chip-tg, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
   --ink: #14181f; --ink-2: #3d4654; --muted: #5d6877; --blue: #1d5fa8; --line: #dde2ea; --line-soft: #e9edf2; --sunk: #eef0f4;
 }
 /* Containers also put the text color back (buttons and inputs keep their own rules). */
-:root[data-theme="default"] :is(.card, .ptile, .favtile, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) { color: var(--ink); }
+:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) { color: var(--ink); }
 :root[data-theme="default"] .quiz .stage { background: var(--card); }
 /* See-through buttons sitting straight on the blue page stay white. */
-:root[data-theme="default"] .view .btn.ghost:not(:is(.card, .ptile, .favtile, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) *) { --ink: #ffffff; --line: rgba(255,255,255,.55); }
+:root[data-theme="default"] .view .btn.ghost:not(:is(.card, .ptile, .favtile, .zoomfloat, .help-pop, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) *) { --ink: #ffffff; --line: rgba(255,255,255,.55); }
 :root[data-theme="default"] .page-h .btn.primary { background: #ffffff; border-color: #ffffff; color: #1d5fa8; }
 
 * { box-sizing: border-box; }
@@ -110,7 +110,6 @@ kbd { font: 600 var(--fs-xs) var(--display); color: inherit; opacity: .7; border
 .nav a { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 999px; color: var(--ink-2); text-decoration: none; font-weight: 600; font-size: var(--fs-md); }
 .nav a:hover { background: var(--sunk); }
 .nav a[aria-current="page"] { background: var(--blue-bg); color: var(--blue); }
-@media (max-width: 560px) { .nav a { padding: 7px 9px; font-size: 0; } .nav a .mi { font-size: var(--fs-md); } .nav { gap: 0; } }
 body[data-page="quiz"] .appbar { display: none; }
 
 /* ---------- pages ---------- */
@@ -870,3 +869,42 @@ form.inl.inl-float { position: absolute; z-index: 2; transform-origin: 0 0; marg
 .theme-sw { display: grid; place-items: center; width: 92px; height: 58px; border-radius: 8px; border: 1px solid var(--line); }
 .theme-sw > span { display: grid; align-items: end; width: 62px; height: 36px; border-radius: 5px; padding: 5px; box-shadow: 0 1px 3px rgba(0,0,0,.2); }
 .theme-sw i { display: block; height: 6px; width: 70%; border-radius: 3px; }
+/* The diagram canvas: drag to pan, pinch or Ctrl/⌘-scroll to zoom (canvas.js). */
+.stage.canvas { position: relative; overflow: hidden; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; padding: 0; }
+.stage.canvas.dragging { cursor: grabbing; }
+.stage.canvas .world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.stage.canvas .world.glide { transition: transform .28s ease; }
+.stage.canvas .world > svg.flow { display: block; margin: 0; width: auto; max-width: none; }
+.stage.canvas input, .stage.canvas .inl-float { cursor: text; user-select: text; -webkit-user-select: text; }
+.pathway .stage.canvas { height: clamp(360px, 68vh, 900px); border-radius: 10px; max-height: none; }
+.quiz.occ .stage.canvas { padding: 0; }
+/* App bar: Dashboard · Library · New quiz on the left (New quiz as a button), Settings and Help on the right. */
+.nav { margin-left: 12px; align-items: center; }
+.nav a.nav-cta { background: var(--blue); color: var(--blue-ink); margin-left: 6px; padding: 7px 15px; }
+.nav a.nav-cta .mi { fill: currentColor; }
+.nav a.nav-cta:hover { background: var(--blue); filter: brightness(1.08); }
+.nav a.nav-cta[aria-current="page"] { background: var(--blue); color: var(--blue-ink); box-shadow: 0 0 0 2px var(--raise), 0 0 0 4px var(--blue); }
+.nav-end { margin-left: auto; display: flex; align-items: center; gap: 2px; }
+.nav-icon { display: inline-grid; place-items: center; width: 38px; height: 38px; border-radius: 999px; border: 0; background: none; color: var(--ink-2); cursor: pointer; }
+.nav-icon .mi { width: 22px; height: 22px; fill: currentColor; margin: 0; }
+.nav-icon:hover, .nav-icon[aria-expanded="true"] { background: var(--sunk); color: var(--ink); }
+.nav-icon[aria-current="page"] { background: var(--blue-bg); color: var(--blue); }
+.helpwrap { position: relative; }
+.help-pop { position: absolute; right: 0; top: calc(100% + 8px); z-index: 40; min-width: 220px; display: grid; padding: 6px; background: var(--card); border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.help-pop button { display: flex; align-items: center; gap: 10px; font: inherit; font-weight: 600; text-align: left; color: var(--ink); background: none; border: 0; border-radius: 8px; padding: 9px 10px; cursor: pointer; }
+.help-pop button:hover, .help-pop button:focus-visible { background: var(--sunk); }
+.help-pop .mi { fill: var(--blue); }
+/* Quiz bar: icon buttons; the favorite star and the edit pencil sit beside the title. */
+.qname-row { display: flex; align-items: center; gap: 2px; min-width: 0; }
+.qname-row .qname { min-width: 0; }
+.tbtn.icon.mini { width: 30px; height: 30px; padding: 0; display: inline-grid; place-items: center; flex: none; }
+.tbtn.icon.mini .mi { width: 18px; height: 18px; }
+.tbtn[data-act="fav"][aria-pressed="true"] .mi { fill: var(--gold); }
+.tbtn.icon { position: relative; }
+.tbtn.icon .count { position: absolute; top: -2px; right: -4px; min-width: 18px; height: 18px; font-size: var(--fs-xs); background: var(--blue); color: var(--blue-ink); }
+@media (max-width: 560px) { .nav { margin-left: 4px; } .nav a.nav-cta { padding: 7px 10px; } }
+/* Narrower windows: Dashboard and Library become icons; then the brand name and the Preview word go too.
+   The labels stay as tooltips and screen-reader names (aria-label set in app.js). */
+.appbar-in { min-width: 0; }
+@media (max-width: 900px) { .nav a:not(.nav-cta) { font-size: 0; gap: 0; padding: 8px 10px; } .nav a:not(.nav-cta) .mi { width: 20px; height: 20px; } }
+@media (max-width: 640px) { .brand > span:last-child { display: none; } .preview-badge { font-size: 0; gap: 0; padding: 4px 6px; } .nav a.nav-cta { font-size: 0; gap: 0; padding: 8px 12px; } .nav a.nav-cta .mi { width: 20px; height: 20px; } .preview-badge .mi { margin: 0; } .appbar-in { gap: 8px; } }

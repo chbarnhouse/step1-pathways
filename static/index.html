@@ -27,10 +27,20 @@
     <button class="preview-badge" id="previewBadge" data-preview data-icon="science" hidden title="This copy has changes classmates don’t have yet">Preview</button>
     <nav class="nav" aria-label="Main">
       <a href="#/" data-nav="home" data-icon="home">Dashboard</a>
-      <a href="#/new" data-nav="new" data-icon="play_arrow">New quiz</a>
-      <a href="#/pathways" data-nav="pathways" data-icon="menu_book">Pathways</a>
-      <a href="#/settings" data-nav="settings" data-icon="settings">Settings</a>
+      <a href="#/pathways" data-nav="pathways" data-icon="menu_book">Library</a>
+      <a href="#/new" data-nav="new" data-icon="play_arrow" class="nav-cta">New quiz</a>
     </nav>
+    <div class="nav-end">
+      <a href="#/settings" data-nav="settings" data-icon="settings" class="nav-icon" title="Settings" aria-label="Settings"></a>
+      <div class="helpwrap">
+        <button type="button" class="nav-icon" id="helpBtn" data-icon="help" title="Help" aria-label="Help" aria-haspopup="true" aria-expanded="false" aria-controls="helpPop"></button>
+        <div class="help-pop" id="helpPop" hidden>
+          <button type="button" data-tour-start data-icon="tour">Take the tour</button>
+          <button type="button" data-whatsnew data-icon="history">What’s new</button>
+          <button type="button" data-report="open" data-icon="flag" id="helpReport" hidden>Report a problem</button>
+        </div>
+      </div>
+    </div>
   </div>
 </header>
 <main id="view" class="view"></main>
@@ -44,6 +54,7 @@
 <script src="js/backup.js"></script>
 <script src="js/model.js"></script>
 <script src="js/draw.js"></script>
+<script src="js/canvas.js"></script>
 <script src="js/stats.js"></script>
 <script src="js/editor.js"></script>
 <script src="js/canvas-editor.js"></script>

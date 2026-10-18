@@ -410,7 +410,7 @@ const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide')
 /* ================= Library ================= */
 function renderLibrary() {
   $('#view').innerHTML = `<div class="page library">
-    ${pageHead('Pathways', `${Library.atomic().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
+    ${pageHead('Library', `${Library.atomic().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
       `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('sync_alt', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
     ${browserHTML('library')}
     <input type="file" id="libFile" accept=".json,application/json" hidden>
@@ -453,7 +453,7 @@ function renderPathway(id) {
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">
       <div class="sec-h"><div class="seg">${['flow', 'list'].map(v => `<button data-pwview="${v}" aria-pressed="${Store.settings.view === v}">${v === 'flow' ? 'Flow' : 'List'}</button>`).join('')}</div>${flow ? zoomBarHTML() : ''}</div>
-      <div class="stage">${flow ? flowSVG(m, () => 'shown') : listHTML(m, () => 'shown', { horiz: Store.settings.dir === 'h' })}</div>
+      ${flow ? `<div class="stage canvas" data-view="page:${esc(id)}">${canvasHTML(flowSVG(m, () => 'shown'))}</div>` : `<div class="stage">${listHTML(m, () => 'shown', { horiz: Store.settings.dir === 'h' })}</div>`}
     </section>
     <section class="card pad"><h2>Steps</h2><div class="tablewrap"><table class="steps"><thead><tr><th class="num">#</th><th>Reaction</th><th>Enzyme</th><th>Cofactors</th><th>Where</th><th>Notes</th></tr></thead><tbody>${steps}</tbody></table></div></section>
     <section class="card pad"><div class="sec-h"><h2>Weak spots</h2>${Store.data.stats[id] ? '<button class="btn small ghost" data-pw="resetstats">Clear history</button>' : ''}</div>${statsTableHTML(Stats.rows(p))}</section>
@@ -651,6 +651,19 @@ function onReadOnly() {
   document.body.prepend(b);
 }
 
+// Help (the ? in the bar): a small menu with the tour, what's new and the report form.
+function setHelp(open) {
+  const b = $('#helpBtn'), pop = $('#helpPop');
+  if (!b || !pop) return;
+  pop.hidden = !open; b.setAttribute('aria-expanded', String(open));
+  if (open) pop.querySelector('button:not([hidden])')?.focus();
+}
+document.addEventListener('click', e => {
+  if (e.target.closest('#helpBtn')) return setHelp($('#helpPop').hidden);
+  if (!$('#helpPop')?.hidden && (!e.target.closest('#helpPop') || e.target.closest('#helpPop button'))) setHelp(false);
+});
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && !$('#helpPop')?.hidden) { setHelp(false); $('#helpBtn').focus(); } });
+
 /* ================= Router ================= */
 const route = () => router();
 let lastPage = null;
@@ -687,7 +700,7 @@ function router() {
   document.body.dataset.page = page;
   if (lastPage === 'quiz' && page !== 'quiz' && !Tour.active) setTimeout(endOfSessionPrompt, 150);
   lastPage = page;
-  $$('.nav a').forEach(a => a.setAttribute('aria-current', a.dataset.nav === page ? 'page' : 'false'));
+  $$('[data-nav]').forEach(a => a.setAttribute('aria-current', a.dataset.nav === page ? 'page' : 'false'));
   if (page !== 'quiz') window.scrollTo(0, 0);
 }
 function closeOpenDialogs() { $$('dialog[open]').forEach(d => d.close()); }
@@ -700,6 +713,8 @@ window.addEventListener('hashchange', router);
   const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
   await AutoBackup.init();
   previewBadge();
+  $$('.nav a').forEach(a => { a.title = a.title || a.textContent.trim(); a.setAttribute('aria-label', a.textContent.trim()); }); // names survive icon-only widths
+  if (reportsEnabled()) $('#helpReport').hidden = false;
   if (Store.readOnly) onReadOnly();
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }

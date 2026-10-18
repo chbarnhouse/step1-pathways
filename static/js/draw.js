@@ -298,9 +298,8 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     if (onLine.has(id)) continue;
     const r = stepOf(id);
     if (r?.transport) {
-      // Crossing a membrane: draw the membrane itself across the transport arrow, not a box.
-      const other = pos[r.from === id ? r.to : r.from];
-      if (other && zones && r.loc && m.items['z:' + zoneOfR(r)]) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; membranes.push({ k: zoneOfR(r), x: g0 + (g1 - g0) * 0.82, cy: pt.y + BH / 2, top: pt.y }); }
+      // Across a membrane: the metabolite on the far side sits in its own dashed box, named for that membrane.
+      addRect(zoneOfR(r), { x: pt.x - BW / 2 - 16, y: pt.y - 14, w: BW + 32, h: BH + 44 });
       continue;
     }
     addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 30, w: BW + 24, h: BH + 60 });
@@ -312,6 +311,14 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10, my = (a.cy + b.cy) / 2;
     addRect(zoneOfR(r), { x: xc - 4, y: my - 34, w: 200, h: 92 });
   });
+  // A transport straight down the main line (citrate leaving the mitochondria): box the end only this step touches.
+  const uses = id => p.reactions.filter(x => x.from === id || x.to === id || (x.also_to || []).includes(id) || (x.also_from || []).includes(id)).length;
+  spine.forEach(r => {
+    const a = pos[r.from], b = pos[r.to];
+    if (!r.transport || !a || !b || a.x !== b.x) return;
+    const far = uses(r.from) === 1 ? a : uses(r.to) === 1 ? b : null;
+    if (far) addRect(zoneOfR(r), { x: far.x - BW / 2 - 16, y: far.y - 14, w: BW + 32, h: BH + 44 });
+  });
   // A main-line step that happens somewhere other than the boxes around it (DHODH on the inner mitochondrial
   // membrane, between two cytosolic metabolites) names its compartment under the enzyme, as cycles do.
   const stepLoc = {};
@@ -322,9 +329,17 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     if (zst !== 'hide') { stepLoc[r.id] = [hidden(zst) ? '? (compartment)' : m.items['z:' + k].name]; sideRects[k] = sideRects[k] || []; }
   });
   const clusters = {};
-  for (const [k, rects] of Object.entries(sideRects)) {
-    const lw = (m.items['z:' + k]?.name.length || 0) * 7.4 + 28; // room for the label
-    clusters[k] = clusterRects(rects).map(c => ({ ...c, w: Math.max(c.w, lw) }));
+  for (const [k, rects] of Object.entries(sideRects)) clusters[k] = clusterRects(rects);
+  // Each region is at least as wide as its name: it grows to the right, or to the left if that would run into another.
+  const hits = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 2 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 2;
+  const all = Object.values(clusters).flat();
+  for (const [k, cs] of Object.entries(clusters)) {
+    const lw = (m.items['z:' + k]?.name.length || 0) * 7.4 + 28;
+    clusters[k] = cs.map(c => {
+      if (c.w >= lw) return c;
+      const right = { ...c, w: lw }, left = { ...c, x: Math.max(4, c.x + c.w - lw), w: lw }, others = all.filter(o => o !== c);
+      return others.some(o => hits(right, o)) && !others.some(o => hits(left, o)) ? left : right;
+    });
     for (const c of clusters[k]) { H = Math.max(H, c.y + c.h + 8); W = Math.max(W, c.x + c.w + 8); } // the drawing grows to hold its regions
   }
   const drawn = new Set();
@@ -348,14 +363,6 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>` + zoneLabel(m, statusOf, k, c.x + 12, c.y + c.h - 9, 'start'); }); // named along the bottom edge
       drawn.add(k);
     }
-    // A transport straight down the main line (citrate leaving the mitochondria): a short membrane across its arrow.
-    spine.forEach(r => {
-      const k = zoneOfR(r), a = pos[r.from], b = pos[r.to];
-      if (!r.transport || !k || drawn.has(k) || !m.items['z:' + k] || !a || !b || a.x !== b.x) return;
-      const ym = (a.y + BH + b.y) / 2;
-      bg += `<line class="membrane" x1="${a.x - 22}" x2="${a.x + 70}" y1="${ym}" y2="${ym}"/>` + zoneLabel(m, statusOf, k, a.x + 78, ym + 4, 'start');
-      drawn.add(k);
-    });
     // A transport on the main line that crosses into the next lane is named where it crosses.
     spine.forEach(r => {
       const k = zoneOfR(r), a = pos[r.from], b = pos[r.to];
@@ -378,7 +385,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   if (mult.length) {
     const y1 = pos[spine[mult[0]].from].y, y2 = pos[spine[mult[mult.length - 1]].to].y + BH;
     const label = `×${spine[mult[0]].multiplier}${p.multiplier_label ? ' ' + p.multiplier_label : ''}`;
-    s += `<path class="mult" d="M18,${y1}H10V${y2}H18"/><text class="multt" transform="translate(6,${(y1 + y2) / 2}) rotate(-90)" text-anchor="middle">${esc(label)}</text>`;
+    s += `<path class="mult" d="M30,${y1}H22V${y2}H30"/><text class="multt" transform="translate(16,${(y1 + y2) / 2}) rotate(-90)" text-anchor="middle">${esc(label)}</text>`;
   }
   spine.forEach(r => {
     const y1 = pos[r.from].y + BH, y2 = pos[r.to].y, xa = pos[r.from].x, xb = pos[r.to].x;
