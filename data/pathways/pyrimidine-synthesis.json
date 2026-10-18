@@ -48,7 +48,8 @@
    "aliases": [
     "orotic acid"
    ],
-   "notes": "Excreted in urine in orotic aciduria and in OTC deficiency."
+   "notes": "Excreted in urine in orotic aciduria and in OTC deficiency.",
+   "loc": "cytosol"
   },
   "omp": {
    "name": "Orotidine monophosphate",

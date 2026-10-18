@@ -131,7 +131,13 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
   if (Math.abs(p1[1] - p2[1]) < 4) {
     s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom');
-    if (ct) s += `<text class="coft" x="${mx}" y="${my + 20}" text-anchor="middle">${esc(ct)}</text>` + cofMark(mx - 8 - ct.length * 3.4, my + 16, cs);
+    if (ct) {
+      // Too wide for the gap between the boxes: inputs on one line, "→ outputs" on the next.
+      const gap = Math.abs(p2[0] - p1[0]) - 12, cut = ct.indexOf(' → ');
+      const lines = ct.length * 6.4 > gap && cut > 0 ? [ct.slice(0, cut), ct.slice(cut + 1)] : [ct];
+      lines.forEach((ln, i) => { s += `<text class="coft" x="${mx}" y="${my + 20 + i * 15}" text-anchor="middle">${esc(ln)}</text>`; });
+      s += cofMark(mx - 8 - Math.max(...lines.map(l => l.length)) * 3.4, my + 16, cs);
+    }
     if (hidden(cs)) s += cofBlank(mx, my + 22, cs, 'middle');
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center', ct ? [ct] : []);
@@ -192,6 +198,7 @@ function computeLanes(m) {
 }
 
 const LANE_W = 470;
+const SIDE_STEP = BW + 170; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
   mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
@@ -238,31 +245,45 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   const stepOf = id => spine.find(x => (x.also_to || []).includes(id) || (x.also_from || []).includes(id)) || branches.find(b => b.to === id || b.from === id);
   const last = Math.max(0, L.list.length - 1);
   const sideLane = id => { const r = stepOf(id); if (!lanesOn || !r || r.transport) return -1; const i = L.list.findIndex(l => l.key === zoneOfR(r)); return i < last ? i : -1; };
-  // A lane that holds side boxes of its own is widened to fit them, so they never spill into the next lane.
-  const roomy = new Set(Object.keys(items).filter(k => k.startsWith('m:')).map(k => k.slice(2)).filter(id => !onSpine.has(id)).map(sideLane).filter(i => i >= 0));
-  const laneXs = [CX];
-  for (let i = 1; i <= last; i++) laneXs[i] = laneXs[i - 1] + LANE_W + (roomy.has(i - 1) ? BW + 60 : 0);
+  // Side boxes stack in columns beside their own lane; a lane is widened by the columns it holds, so nothing spills over.
+  const laneXs = [CX], cols = {};
   const laneX = i => (lanesOn ? laneXs[i] : CX);
   const laneLeft = i => (i === 0 ? 0 : laneX(i) - LANE_W / 2 + 20);
   const top = TOP + (lanesOn || oneZone ? 26 : 0);
-  const sideX = laneX(lanesOn ? last : 0) + (SIDEX - CX) + (bypass.length ? 190 : 0);
-  const pos = {}, perRow = {};
-  spineMets.forEach((id, i) => { pos[id] = { x: laneX(L.laneOf[id] || 0), y: top + i * (BH + GAP) }; });
-  const place = (id, y) => {
-    if (pos[id]) return;
-    const li = sideLane(id);
-    if (li >= 0) { pos[id] = { x: laneX(li) + BW + 60, y }; return; }
-    const k = perRow[y] = (perRow[y] || 0) + 1; pos[id] = { x: sideX + (k - 1) * (BW + 60), y };
+  let pos, perRow, sideX;
+  const layout = () => {
+    for (let i = 1; i <= last; i++) laneXs[i] = laneXs[i - 1] + LANE_W + (cols[i - 1] || 0) * SIDE_STEP;
+    sideX = laneX(lanesOn ? last : 0) + SIDE_STEP + (bypass.length ? 190 : 0);
+    pos = {}; perRow = {}; const forks = {};
+    spineMets.forEach((id, i) => { pos[id] = { x: laneX(L.laneOf[id] || 0), y: top + i * (BH + GAP) }; });
+    const place = (id, y) => {
+      if (pos[id]) return;
+      const li = sideLane(id), row = (li >= 0 ? li : 'side') + '|' + y, k = perRow[row] = (perRow[row] || 0) + 1;
+      if (li >= 0) { cols[li] = Math.max(cols[li] || 0, k); pos[id] = { x: laneX(li) + k * SIDE_STEP, y }; return; }
+      pos[id] = { x: sideX + (k - 1) * SIDE_STEP, y };
+    };
+    spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach(x => place(x, pos[r.from].y)); });
+    // A second branch out of the same box (IMP → AMP and IMP → GMP) starts a row lower, so the two arms never cross.
+    const fork = (anchor, id) => {
+      if (pos[id]) return;
+      const n = forks[anchor] = (forks[anchor] || 0) + 1, y = pos[anchor].y + (n - 1) * (BH + GAP);
+      // Off the last box of the main line, the second arm simply continues straight down.
+      if (n > 1 && anchor === spineMets[spineMets.length - 1]) { pos[id] = { x: pos[anchor].x, y }; return; }
+      place(id, y);
+    };
+    for (let pass = 0; pass < 3; pass++) branches.forEach(b => {
+      if (pos[b.from] && !pos[b.to]) fork(b.from, b.to);
+      else if (pos[b.to] && !pos[b.from]) fork(b.to, b.from);
+    });
   };
-  spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach(x => place(x, pos[r.from].y)); });
-  for (let pass = 0; pass < 3; pass++) branches.forEach(b => {
-    if (pos[b.from] && !pos[b.to]) place(b.to, pos[b.from].y);
-    else if (pos[b.to] && !pos[b.from]) place(b.from, pos[b.to].y);
-  });
+  layout(); // counts the columns each lane needs
+  if (Object.keys(cols).length) layout(); // then lays out again with the lanes widened
   const ctr = id => ({ cx: pos[id].x, cy: pos[id].y + BH / 2 });
   const xs = Object.values(pos).map(q => q.x);
-  let W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).length ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
-  let H = top + spineMets.length * (BH + GAP) - GAP + 14;
+  let W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).some(k => k.startsWith('side|')) ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
+  const bottom = Math.max(top + spineMets.length * (BH + GAP) - GAP, ...Object.values(pos).map(q => q.y + BH));
+  // A sideways step on the last row writes its cofactors underneath: leave room for two lines.
+  let H = bottom + 14 + (Object.entries(pos).some(([id, q]) => !onSpine.has(id) && q.y + BH === bottom) ? 34 : 0);
   let s = '', bg = '';
   // Side steps in another compartment (e.g. pyruvate carboxylase in the mitochondria) get a dashed, labeled region.
   const sideRects = {};
@@ -286,6 +307,15 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   bypass.forEach((r, k) => {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10, my = (a.cy + b.cy) / 2;
     addRect(zoneOfR(r), { x: xc - 4, y: my - 34, w: 200, h: 92 });
+  });
+  // A main-line step that happens somewhere other than the boxes around it (DHODH on the inner mitochondrial
+  // membrane, between two cytosolic metabolites) names its compartment under the enzyme, as cycles do.
+  const stepLoc = {};
+  spine.forEach(r => {
+    const a = pos[r.from], b = pos[r.to], k = zoneOfR(r);
+    if (!zones || !a || !b || a.x !== b.x || r.transport || !k || !m.items['z:' + k] || k === laneKeyAt(a.x)) return;
+    const zst = statusOf('z:' + k);
+    if (zst !== 'hide') { stepLoc[r.id] = [hidden(zst) ? '? (compartment)' : m.items['z:' + k].name]; sideRects[k] = sideRects[k] || []; }
   });
   const clusters = {};
   for (const [k, rects] of Object.entries(sideRects)) {
@@ -314,6 +344,14 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>` + zoneLabel(m, statusOf, k, c.x + 12, c.y + c.h - 9, 'start'); }); // named along the bottom edge
       drawn.add(k);
     }
+    // A transport straight down the main line (citrate leaving the mitochondria): a short membrane across its arrow.
+    spine.forEach(r => {
+      const k = zoneOfR(r), a = pos[r.from], b = pos[r.to];
+      if (!r.transport || !k || drawn.has(k) || !m.items['z:' + k] || !a || !b || a.x !== b.x) return;
+      const ym = (a.y + BH + b.y) / 2;
+      bg += `<line class="membrane" x1="${a.x - 22}" x2="${a.x + 70}" y1="${ym}" y2="${ym}"/>` + zoneLabel(m, statusOf, k, a.x + 78, ym + 4, 'start');
+      drawn.add(k);
+    });
     // A transport on the main line that crosses into the next lane is named where it crosses.
     spine.forEach(r => {
       const k = zoneOfR(r), a = pos[r.from], b = pos[r.to];
@@ -343,7 +381,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     if (xa === xb) {
       const X = xa;
       s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r));
-      s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24);
+      s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
       const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
       if (hidden(cs)) s += cofBlank(X + 16, ym, cs);
       else if (cofVisible(cs)) s += cofArc(m, X, y1, y2, r.cofactors) + cofMark(X + 30, ym, cs);
@@ -352,8 +390,9 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const p1 = [xa + Math.sign(xb - xa) * 40, y1 + 4], p2 = [xb - Math.sign(xb - xa) * 40, y2 - 4];
       s += arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r)) + diagLabel(m, statusOf, r, p1, p2);
     }
-    for (const sd of r.also_to || []) { const e = edgePt(ctr(sd), xb + 40, y1 + 4); s += arrow(xa + 40, y1 + 4, e[0], e[1], r.reversible); }
-    for (const sd of r.also_from || []) { const e = edgePt(ctr(sd), xb + 40, y2 - 4); s += arrow(e[0], e[1], xb + 40, y2 - 4, r.reversible); }
+    // Extra products/reactants leave from the box's lower-right corner, clear of the cofactor text beside the arrow.
+    for (const sd of r.also_to || []) { const sx = xa + BW / 2 - 12, e = edgePt(ctr(sd), sx, y1 + 2); s += arrow(sx, y1 + 2, e[0], e[1], r.reversible); }
+    for (const sd of r.also_from || []) { const sx = xb + BW / 2 - 12, e = edgePt(ctr(sd), sx, y2 - 2); s += arrow(e[0], e[1], sx, y2 - 2, r.reversible); }
   });
   bypass.forEach((r, k) => {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10;
@@ -464,7 +503,13 @@ function gridSVG(m, statusOf, opts = {}) {
   if (opts.zones !== false) {
     // Grids don't split into lanes, so the compartments are listed underneath (and quizzable there).
     const zs = Object.values(items).filter(it => it.kind === 'loc');
-    if (zs.length) { s += `<text class="zonet" x="24" y="${H + 6}">Compartments:</text>`; zs.forEach((z, i) => { s += zoneLabel(m, statusOf, z.id, 150 + i * 230, H + 6, 'start'); }); H += 30; }
+    // In columns wide enough for the longest name, one per line, so long tissue names never run into each other.
+    if (zs.length) {
+      const colW = Math.max(...zs.map(z => z.name.length)) * 7.4 + 40, ncol = Math.max(1, Math.floor((W - 150) / colW)), rows = Math.ceil(zs.length / ncol);
+      s += `<text class="zonet" x="24" y="${H + 6}">Compartments:</text>`;
+      zs.forEach((z, i) => { s += zoneLabel(m, statusOf, z.id, 150 + Math.floor(i / rows) * colW, H + 6 + (i % rows) * 28, 'start'); });
+      H += rows * 28 + 4;
+    }
   }
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} diagram">${s}</svg>`;
 }
