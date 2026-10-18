@@ -1,0 +1,174 @@
+{
+ "id": "glycogenolysis",
+ "name": "Glycogenolysis",
+ "group": "Carbohydrates",
+ "aliases": [
+  "glycogen breakdown",
+  "glycogen degradation"
+ ],
+ "summary": "Fasting (glucagon, liver) and exercise (epinephrine, AMP, Ca²⁺ in muscle). Glycogen phosphorylase (rate-limiting, needs B6) cleaves α-1,4 bonds with Pi to release glucose-1-phosphate until 4 residues from a branch (limit dextrin); debranching enzyme moves 3 of them and frees the last as glucose. Liver uses glucose-6-phosphatase to export glucose; muscle keeps G6P for glycolysis. Glycogen storage diseases: von Gierke (I, glucose-6-phosphatase), Pompe (II, lysosomal acid α-glucosidase), Cori (III, debranching enzyme), Andersen (IV, branching enzyme), McArdle (V, muscle phosphorylase), Hers (VI, liver phosphorylase).",
+ "metabolites": {
+  "glycogen": {
+   "name": "Glycogen",
+   "short": "",
+   "aliases": [],
+   "notes": "Pompe disease (GSD II): lysosomal acid α-glucosidase (acid maltase) deficiency — glycogen builds up in lysosomes; cardiomegaly, hypotonia, early death in the infantile form. Not part of the cytosolic pathway."
+  },
+  "limit": {
+   "name": "Limit dextrin",
+   "short": "",
+   "aliases": [
+    "limit dextrins",
+    "phosphorylase limit dextrin"
+   ],
+   "notes": "Glycogen trimmed to 4 residues from each branch point — phosphorylase can go no closer. Accumulates in Cori disease."
+  },
+  "g1p": {
+   "name": "Glucose-1-phosphate",
+   "short": "G1P",
+   "aliases": []
+  },
+  "g6p": {
+   "name": "Glucose-6-phosphate",
+   "short": "G6P",
+   "aliases": [],
+   "notes": "Muscle sends it into glycolysis (no glucose-6-phosphatase)."
+  },
+  "glucose": {
+   "name": "Glucose",
+   "short": "Glc",
+   "aliases": [
+    "free glucose",
+    "D-glucose"
+   ]
+  }
+ },
+ "enzymes": {
+  "gp": {
+   "name": "Glycogen phosphorylase",
+   "short": "GP",
+   "aliases": [
+    "phosphorylase"
+   ],
+   "notes": "Rate-limiting; needs pyridoxal phosphate (B6). Activated by phosphorylation (phosphorylase kinase ← PKA; glucagon, epinephrine), AMP and Ca²⁺ (muscle); inhibited by insulin, ATP, G6P and glucose (liver). McArdle disease (GSD V) = muscle isoform (myophosphorylase): exercise cramps, myoglobinuria, no lactate rise, second-wind phenomenon. Hers disease (GSD VI) = liver isoform: mild fasting hypoglycemia, hepatomegaly."
+  },
+  "gde": {
+   "name": "Debranching enzyme",
+   "short": "",
+   "aliases": [
+    "glycogen debranching enzyme",
+    "α-1,6-glucosidase",
+    "alpha-1,6-glucosidase",
+    "4-α-glucanotransferase",
+    "amylo-α-1,6-glucosidase",
+    "amylo-1,6-glucosidase"
+   ],
+   "notes": "Two activities: 4-α-glucanotransferase moves 3 residues to another chain, then α-1,6-glucosidase releases the branch residue as free glucose. Deficiency = Cori disease (GSD III): like a milder von Gierke with normal lactate; limit dextrin–like structures accumulate."
+  },
+  "pgm": {
+   "name": "Phosphoglucomutase",
+   "short": "PGM",
+   "aliases": [],
+   "notes": "Reversible; shared with glycogen synthesis."
+  },
+  "g6pase": {
+   "name": "Glucose-6-phosphatase",
+   "short": "G6Pase",
+   "aliases": [
+    "glucose 6-phosphatase"
+   ],
+   "notes": "ER lumen of liver and kidney, not muscle. Deficiency = von Gierke disease (GSD I): severe fasting hypoglycemia, lactic acidosis, hepatomegaly, hyperuricemia, hypertriglyceridemia, doll-like face."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "gp",
+   "from": "glycogen",
+   "to": "g1p",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "pi"
+    ],
+    "out": []
+   },
+   "also_to": [
+    "limit"
+   ],
+   "loc": "cytosol",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ],
+   "requires": [
+    "B6 (pyridoxal phosphate)"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "gde",
+   "from": "limit",
+   "to": "glucose",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "pgm",
+   "from": "g1p",
+   "to": "g6p",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "g6pase",
+   "from": "g6p",
+   "to": "glucose",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "pi"
+    ]
+   },
+   "loc": "ER lumen",
+   "tags": [
+    "irreversible"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "UDP-glucose",
+   "Fructose-6-phosphate",
+   "Maltose",
+   "Fructose-1-phosphate",
+   "Lactate",
+   "Galactose-1-phosphate"
+  ],
+  "enzymes": [
+   "Glycogen synthase",
+   "Branching enzyme",
+   "Hexokinase",
+   "Glucokinase",
+   "UDP-glucose pyrophosphorylase",
+   "Lysosomal acid α-glucosidase",
+   "Phosphofructokinase-1"
+  ]
+ }
+}

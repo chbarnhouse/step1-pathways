@@ -1,0 +1,320 @@
+{
+ "id": "beta-oxidation",
+ "name": "β-Oxidation",
+ "group": "Lipids",
+ "aliases": [
+  "beta-oxidation",
+  "beta oxidation",
+  "fatty acid oxidation",
+  "β oxidation"
+ ],
+ "summary": "Mitochondrial matrix during fasting. Fatty acids are activated to acyl-CoA in the cytosol, then long chains need the carnitine shuttle: CPT I (rate-limiting, inhibited by malonyl-CoA) and CPT II. Each round shortens the chain by 2 carbons and yields 1 FADH₂, 1 NADH and 1 acetyl-CoA; palmitate takes 7 rounds → 8 acetyl-CoA (≈106 ATP net). Defects (MCAD, CPT, carnitine) cause hypoketotic hypoglycemia with fasting. Odd chains end in propionyl-CoA → succinyl-CoA (B12-dependent).",
+ "metabolites": {
+  "fa": {
+   "name": "Fatty acid",
+   "short": "FA",
+   "aliases": [
+    "free fatty acid",
+    "long-chain fatty acid",
+    "FFA"
+   ],
+   "notes": "From adipose lipolysis (hormone-sensitive lipase), carried on albumin."
+  },
+  "acylcoa": {
+   "name": "Fatty acyl-CoA (cytosol)",
+   "short": "acyl-CoA",
+   "aliases": [
+    "fatty acyl-CoA",
+    "acyl-CoA",
+    "cytosolic acyl-CoA"
+   ],
+   "notes": "Can't cross the inner mitochondrial membrane on its own (short and medium chains can)."
+  },
+  "acylcarn": {
+   "name": "Acylcarnitine",
+   "short": "",
+   "aliases": [
+    "fatty acylcarnitine",
+    "acyl-carnitine"
+   ],
+   "notes": "Crosses the inner membrane via carnitine-acylcarnitine translocase. Elevated acylcarnitines on newborn screening point to fatty acid oxidation defects."
+  },
+  "acylcoam": {
+   "name": "Fatty acyl-CoA (matrix)",
+   "short": "acyl-CoA",
+   "aliases": [
+    "fatty acyl-CoA",
+    "acyl-CoA",
+    "mitochondrial acyl-CoA"
+   ],
+   "notes": "Enters the four-step β-oxidation spiral."
+  },
+  "enoyl": {
+   "name": "trans-Δ²-Enoyl-CoA",
+   "short": "",
+   "aliases": [
+    "trans-Δ2-enoyl-CoA",
+    "enoyl-CoA",
+    "trans-2-enoyl-CoA",
+    "2-enoyl-CoA"
+   ]
+  },
+  "hydroxy": {
+   "name": "L-3-Hydroxyacyl-CoA",
+   "short": "",
+   "aliases": [
+    "3-hydroxyacyl-CoA",
+    "β-hydroxyacyl-CoA",
+    "beta-hydroxyacyl-CoA",
+    "L-β-hydroxyacyl-CoA"
+   ]
+  },
+  "keto": {
+   "name": "3-Ketoacyl-CoA",
+   "short": "",
+   "aliases": [
+    "β-ketoacyl-CoA",
+    "beta-ketoacyl-CoA",
+    "3-oxoacyl-CoA"
+   ]
+  },
+  "shorter": {
+   "name": "Acyl-CoA (n−2)",
+   "short": "",
+   "aliases": [
+    "shortened acyl-CoA",
+    "acyl-CoA n-2",
+    "acyl-CoA two carbons shorter"
+   ],
+   "notes": "Re-enters the spiral at acyl-CoA dehydrogenase until the chain is used up."
+  },
+  "acetylcoa": {
+   "name": "Acetyl-CoA",
+   "short": "AcCoA",
+   "aliases": [
+    "acetyl CoA"
+   ],
+   "notes": "Goes to the TCA cycle, or to ketone bodies in the liver when OAA is scarce."
+  }
+ },
+ "enzymes": {
+  "acs": {
+   "name": "Fatty acyl-CoA synthetase",
+   "short": "ACS",
+   "aliases": [
+    "acyl-CoA synthetase",
+    "fatty acid thiokinase",
+    "thiokinase",
+    "long-chain acyl-CoA synthetase"
+   ],
+   "notes": "ATP → AMP + PPi: costs 2 high-energy bonds per fatty acid."
+  },
+  "cpt1": {
+   "name": "Carnitine palmitoyltransferase I",
+   "short": "CPT I",
+   "aliases": [
+    "carnitine palmitoyltransferase 1",
+    "carnitine acyltransferase I",
+    "CPT-1"
+   ],
+   "notes": "Rate-limiting; outer mitochondrial membrane. Inhibited by malonyl-CoA. Hepatic CPT I deficiency: hypoketotic hypoglycemia. Primary carnitine deficiency (OCTN2 transporter) blocks the shuttle too: weakness, hypotonia, cardiomyopathy, hypoketotic hypoglycemia."
+  },
+  "cpt2": {
+   "name": "Carnitine palmitoyltransferase II",
+   "short": "CPT II",
+   "aliases": [
+    "carnitine palmitoyltransferase 2",
+    "carnitine acyltransferase II",
+    "CPT-2"
+   ],
+   "notes": "Inner mitochondrial membrane, matrix side. Adult CPT II deficiency (most common): exercise- or fasting-induced muscle pain and rhabdomyolysis with myoglobinuria."
+  },
+  "acad": {
+   "name": "Acyl-CoA dehydrogenase",
+   "short": "ACAD",
+   "aliases": [
+    "acyl CoA dehydrogenase",
+    "medium-chain acyl-CoA dehydrogenase"
+   ],
+   "notes": "FAD-linked; chain-length-specific isoforms (VLCAD, LCAD, MCAD, SCAD). MCAD deficiency (autosomal recessive, most common FAO defect): fasting hypoketotic hypoglycemia, vomiting, lethargy, seizures, sudden death; C8–C10 acylcarnitines and dicarboxylic aciduria. Treat by avoiding fasting."
+  },
+  "ech": {
+   "name": "Enoyl-CoA hydratase",
+   "short": "ECH",
+   "aliases": [
+    "enoyl CoA hydratase",
+    "crotonase"
+   ],
+   "notes": "Adds water across the double bond."
+  },
+  "hadh": {
+   "name": "3-Hydroxyacyl-CoA dehydrogenase",
+   "short": "HADH",
+   "aliases": [
+    "β-hydroxyacyl-CoA dehydrogenase",
+    "beta-hydroxyacyl-CoA dehydrogenase",
+    "L-3-hydroxyacyl-CoA dehydrogenase"
+   ],
+   "notes": "NAD⁺-linked. The long-chain form (LCHAD, part of the trifunctional protein) — fetal LCHAD deficiency is linked to maternal acute fatty liver of pregnancy and HELLP."
+  },
+  "thiolase": {
+   "name": "3-Ketoacyl-CoA thiolase",
+   "short": "",
+   "aliases": [
+    "thiolase",
+    "β-ketothiolase",
+    "beta-ketothiolase",
+    "β-ketoacyl-CoA thiolase"
+   ],
+   "notes": "CoA cleaves off acetyl-CoA, leaving an acyl-CoA two carbons shorter."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "acs",
+   "from": "fa",
+   "to": "acylcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp",
+     "coa"
+    ],
+    "out": [
+     "amp",
+     "ppi"
+    ]
+   },
+   "loc": "cytosol (outer mitochondrial membrane)",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "cpt1",
+   "from": "acylcoa",
+   "to": "acylcarn",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "carnitine"
+    ],
+    "out": [
+     "coa"
+    ]
+   },
+   "loc": "outer mitochondrial membrane",
+   "tags": [
+    "rate-limiting"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "cpt2",
+   "from": "acylcarn",
+   "to": "acylcoam",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "coa"
+    ],
+    "out": [
+     "carnitine"
+    ]
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "acad",
+   "from": "acylcoam",
+   "to": "enoyl",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "fad"
+    ],
+    "out": [
+     "fadh2"
+    ]
+   },
+   "loc": "mitochondrial matrix",
+   "requires": [
+    "B2 (FAD)"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "ech",
+   "from": "enoyl",
+   "to": "hydroxy",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "loc": "mitochondrial matrix"
+  },
+  {
+   "id": "r6",
+   "enzyme": "hadh",
+   "from": "hydroxy",
+   "to": "keto",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "mitochondrial matrix",
+   "requires": [
+    "B3 (NAD⁺)"
+   ]
+  },
+  {
+   "id": "r7",
+   "enzyme": "thiolase",
+   "from": "keto",
+   "to": "shorter",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "coa"
+    ],
+    "out": []
+   },
+   "also_to": [
+    "acetylcoa"
+   ],
+   "loc": "mitochondrial matrix"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Malonyl-CoA",
+   "Propionyl-CoA",
+   "Methylmalonyl-CoA",
+   "Acetoacetyl-CoA",
+   "HMG-CoA",
+   "Glycerol-3-phosphate",
+   "Palmitoyl-ACP"
+  ],
+  "enzymes": [
+   "Acetyl-CoA carboxylase",
+   "Fatty acid synthase",
+   "Hormone-sensitive lipase",
+   "Lipoprotein lipase",
+   "Propionyl-CoA carboxylase",
+   "Methylmalonyl-CoA mutase",
+   "HMG-CoA synthase",
+   "Pyruvate carboxylase"
+  ]
+ }
+}

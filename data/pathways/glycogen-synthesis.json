@@ -1,0 +1,164 @@
+{
+ "id": "glycogen-synthesis",
+ "name": "Glycogen synthesis",
+ "group": "Carbohydrates",
+ "aliases": [
+  "glycogenesis"
+ ],
+ "summary": "Liver and skeletal muscle in the fed state (insulin). Glucose-6-phosphate → glucose-1-phosphate → UDP-glucose, which glycogen synthase (rate-limiting) adds to a growing α-1,4 chain on a glycogenin primer; branching enzyme moves chain segments onto α-1,6 links. Insulin activates glycogen synthase by dephosphorylation (protein phosphatase 1); glucagon (liver) and epinephrine inactivate it by PKA phosphorylation. Branching enzyme deficiency = Andersen disease (GSD IV).",
+ "metabolites": {
+  "g6p": {
+   "name": "Glucose-6-phosphate",
+   "short": "G6P",
+   "aliases": [],
+   "notes": "From glucose via hexokinase (muscle) or glucokinase (liver). Also allosterically activates glycogen synthase."
+  },
+  "g1p": {
+   "name": "Glucose-1-phosphate",
+   "short": "G1P",
+   "aliases": []
+  },
+  "udpglc": {
+   "name": "UDP-glucose",
+   "short": "UDP-Glc",
+   "aliases": [
+    "UDP glucose",
+    "UDPG"
+   ],
+   "notes": "The activated glucose donor; also feeds galactose metabolism and glucuronidation."
+  },
+  "glycogen": {
+   "name": "Glycogen",
+   "short": "",
+   "aliases": [
+    "glycogen (n+1)",
+    "α-1,4 glucan",
+    "linear glycogen"
+   ],
+   "notes": "Each UDP-glucose adds one residue by an α-1,4 bond. A new molecule needs the primer protein glycogenin."
+  },
+  "branched": {
+   "name": "Branched glycogen",
+   "short": "",
+   "aliases": [
+    "α-1,6 branched glycogen",
+    "branch point"
+   ],
+   "notes": "Branches (α-1,6) every ~8–10 residues make glycogen compact and give many ends for fast release."
+  }
+ },
+ "enzymes": {
+  "pgm": {
+   "name": "Phosphoglucomutase",
+   "short": "PGM",
+   "aliases": [],
+   "notes": "Reversible; the same enzyme works in glycogenolysis."
+  },
+  "ugp": {
+   "name": "UDP-glucose pyrophosphorylase",
+   "short": "UGP",
+   "aliases": [
+    "glucose-1-phosphate uridylyltransferase",
+    "UTP-glucose-1-phosphate uridylyltransferase"
+   ],
+   "notes": "PPi is hydrolyzed by pyrophosphatase, which pulls the reaction forward."
+  },
+  "gys": {
+   "name": "Glycogen synthase",
+   "short": "GS",
+   "aliases": [],
+   "notes": "Rate-limiting. Activated by insulin (dephosphorylation via PP1), G6P; inhibited by glucagon and epinephrine (PKA phosphorylation). Makes α-1,4 bonds only."
+  },
+  "gbe": {
+   "name": "Branching enzyme",
+   "short": "",
+   "aliases": [
+    "glycogen branching enzyme",
+    "glucan transferase",
+    "1,4-α-glucan branching enzyme",
+    "amylo-(1,4→1,6)-transglycosylase"
+   ],
+   "notes": "Moves a block of ~6–7 residues from an α-1,4 chain onto an α-1,6 link. Deficiency = Andersen disease (GSD IV): hepatosplenomegaly, failure to thrive, early cirrhosis and death in early childhood."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "pgm",
+   "from": "g6p",
+   "to": "g1p",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "ugp",
+   "from": "g1p",
+   "to": "udpglc",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "utp"
+    ],
+    "out": [
+     "ppi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "gys",
+   "from": "udpglc",
+   "to": "glycogen",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "udp"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "gbe",
+   "from": "glycogen",
+   "to": "branched",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "branch": true,
+   "loc": "cytosol"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Glucose",
+   "Fructose-6-phosphate",
+   "UDP-galactose",
+   "Limit dextrin",
+   "Maltose",
+   "Galactose-1-phosphate"
+  ],
+  "enzymes": [
+   "Glycogen phosphorylase",
+   "Debranching enzyme",
+   "Glucose-6-phosphatase",
+   "Hexokinase",
+   "Galactose-1-phosphate uridylyltransferase",
+   "UDP-galactose 4-epimerase",
+   "Phosphorylase kinase"
+  ]
+ }
+}

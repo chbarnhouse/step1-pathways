@@ -221,5 +221,87 @@
    "iron",
    "ferrous iron"
   ]
+ },
+ "udp": {
+  "name": "UDP",
+  "aliases": []
+ },
+ "gln": {
+  "name": "Glutamine",
+  "aliases": [
+   "Gln"
+  ]
+ },
+ "glu": {
+  "name": "Glutamate",
+  "aliases": [
+   "Glu",
+   "glutamic acid"
+  ]
+ },
+ "gly": {
+  "name": "Glycine",
+  "aliases": [
+   "Gly"
+  ]
+ },
+ "carnitine": {
+  "name": "Carnitine",
+  "aliases": [
+   "L-carnitine"
+  ]
+ },
+ "prpp": {
+  "name": "PRPP",
+  "aliases": [
+   "5-phosphoribosyl-1-pyrophosphate",
+   "phosphoribosyl pyrophosphate"
+  ]
+ },
+ "fthf": {
+  "name": "N¹⁰-formyl-THF",
+  "aliases": [
+   "N10-formyl-THF",
+   "10-formyl-THF",
+   "N10-formyltetrahydrofolate",
+   "10-formyltetrahydrofolate"
+  ]
+ },
+ "thf": {
+  "name": "THF",
+  "aliases": [
+   "tetrahydrofolate"
+  ]
+ },
+ "mthf": {
+  "name": "N⁵,N¹⁰-methylene-THF",
+  "aliases": [
+   "N5,N10-methylene-THF",
+   "5,10-methylene-THF",
+   "methylene-THF",
+   "N5,N10-methylenetetrahydrofolate"
+  ]
+ },
+ "dhf": {
+  "name": "DHF",
+  "aliases": [
+   "dihydrofolate"
+  ]
+ },
+ "coq": {
+  "name": "CoQ",
+  "aliases": [
+   "ubiquinone",
+   "coenzyme Q",
+   "Q"
+  ]
+ },
+ "coqh2": {
+  "name": "CoQH₂",
+  "aliases": [
+   "CoQH2",
+   "ubiquinol",
+   "QH2"
+  ]
  }
 }

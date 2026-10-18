@@ -1,0 +1,566 @@
+{
+ "id": "purine-synthesis",
+ "name": "Purine synthesis",
+ "group": "Nucleotides",
+ "aliases": [
+  "de novo purine synthesis",
+  "purine biosynthesis",
+  "IMP synthesis"
+ ],
+ "summary": "Cytosol, mainly liver. The purine ring is built on ribose-5-phosphate (as PRPP): glutamine-PRPP amidotransferase is rate-limiting. Ring atoms come from glycine, aspartate, glutamine, CO₂ and two N¹⁰-formyl-THF — so folate antagonists (methotrexate, trimethoprim, sulfonamides) slow purine synthesis. IMP branches to AMP (needs GTP) and GMP (needs ATP), balancing the two. Drugs: 6-mercaptopurine/azathioprine (block de novo synthesis), mycophenolate and ribavirin (IMP dehydrogenase). Salvage by HGPRT recycles hypoxanthine and guanine; HGPRT deficiency = Lesch-Nyhan syndrome.",
+ "metabolites": {
+  "r5p": {
+   "name": "Ribose-5-phosphate",
+   "short": "R5P",
+   "aliases": [
+    "ribose 5-phosphate"
+   ],
+   "notes": "From the pentose phosphate pathway."
+  },
+  "prpp": {
+   "name": "PRPP",
+   "short": "PRPP",
+   "aliases": [
+    "5-phosphoribosyl-1-pyrophosphate",
+    "phosphoribosyl pyrophosphate",
+    "5-phosphoribosyl pyrophosphate"
+   ],
+   "notes": "Shared by de novo purine and pyrimidine synthesis and by salvage (HGPRT, APRT). High PRPP drives purine overproduction and gout."
+  },
+  "pra": {
+   "name": "5-Phosphoribosylamine",
+   "short": "PRA",
+   "aliases": [
+    "phosphoribosylamine",
+    "5-phosphoribosyl-1-amine",
+    "5-phospho-β-D-ribosylamine"
+   ],
+   "notes": "Committed step product."
+  },
+  "gar": {
+   "name": "Glycinamide ribonucleotide",
+   "short": "GAR",
+   "aliases": [
+    "glycinamide ribotide",
+    "5′-phosphoribosylglycinamide"
+   ]
+  },
+  "fgar": {
+   "name": "Formylglycinamide ribonucleotide",
+   "short": "FGAR",
+   "aliases": [
+    "formylglycinamide ribotide",
+    "N-formylglycinamide ribonucleotide"
+   ]
+  },
+  "fgam": {
+   "name": "Formylglycinamidine ribonucleotide",
+   "short": "FGAM",
+   "aliases": [
+    "formylglycinamidine ribotide"
+   ]
+  },
+  "air": {
+   "name": "5-Aminoimidazole ribonucleotide",
+   "short": "AIR",
+   "aliases": [
+    "aminoimidazole ribotide",
+    "aminoimidazole ribonucleotide"
+   ],
+   "notes": "The five-membered (imidazole) ring is closed."
+  },
+  "cair": {
+   "name": "Carboxyaminoimidazole ribonucleotide",
+   "short": "CAIR",
+   "aliases": [
+    "4-carboxy-5-aminoimidazole ribonucleotide",
+    "carboxyaminoimidazole ribotide"
+   ]
+  },
+  "saicar": {
+   "name": "SAICAR",
+   "short": "SAICAR",
+   "aliases": [
+    "succinylaminoimidazole carboxamide ribonucleotide",
+    "N-succinylo-5-aminoimidazole-4-carboxamide ribonucleotide"
+   ]
+  },
+  "aicar": {
+   "name": "AICAR",
+   "short": "AICAR",
+   "aliases": [
+    "aminoimidazole carboxamide ribonucleotide",
+    "5-aminoimidazole-4-carboxamide ribonucleotide",
+    "ZMP"
+   ]
+  },
+  "faicar": {
+   "name": "FAICAR",
+   "short": "FAICAR",
+   "aliases": [
+    "formamidoimidazole carboxamide ribonucleotide",
+    "5-formamidoimidazole-4-carboxamide ribonucleotide"
+   ]
+  },
+  "imp": {
+   "name": "Inosine monophosphate",
+   "short": "IMP",
+   "aliases": [
+    "inosinate",
+    "inosinic acid",
+    "inosine 5′-monophosphate"
+   ],
+   "notes": "First complete purine nucleotide (base: hypoxanthine). Branch point to AMP and GMP."
+  },
+  "sAMP": {
+   "name": "Adenylosuccinate",
+   "short": "S-AMP",
+   "aliases": [
+    "succinyl-AMP",
+    "adenylosuccinic acid"
+   ]
+  },
+  "ampm": {
+   "name": "Adenosine monophosphate",
+   "short": "AMP",
+   "aliases": [
+    "adenylate",
+    "adenylic acid"
+   ],
+   "notes": "Feeds back on PRPP amidotransferase and adenylosuccinate synthetase. Degraded via adenosine deaminase (ADA deficiency → SCID) to inosine → hypoxanthine → uric acid."
+  },
+  "xmp": {
+   "name": "Xanthosine monophosphate",
+   "short": "XMP",
+   "aliases": [
+    "xanthylate",
+    "xanthylic acid"
+   ]
+  },
+  "gmp": {
+   "name": "Guanosine monophosphate",
+   "short": "GMP",
+   "aliases": [
+    "guanylate",
+    "guanylic acid"
+   ],
+   "notes": "Feeds back on PRPP amidotransferase and IMP dehydrogenase. Degraded to guanine → xanthine → uric acid (xanthine oxidase; allopurinol, febuxostat)."
+  }
+ },
+ "enzymes": {
+  "prps": {
+   "name": "PRPP synthetase",
+   "short": "PRPS",
+   "aliases": [
+    "ribose-phosphate pyrophosphokinase",
+    "phosphoribosyl pyrophosphate synthetase",
+    "ribose-phosphate diphosphokinase"
+   ],
+   "notes": "Transfers pyrophosphate from ATP (ATP → AMP). Overactive PRPP synthetase (X-linked) causes uric acid overproduction and gout."
+  },
+  "ppat": {
+   "name": "Glutamine-PRPP amidotransferase",
+   "short": "GPAT",
+   "aliases": [
+    "amidophosphoribosyltransferase",
+    "PRPP amidotransferase",
+    "glutamine phosphoribosylpyrophosphate amidotransferase",
+    "glutamine PRPP amidotransferase"
+   ],
+   "notes": "Rate-limiting, committed step. Inhibited by AMP, GMP and IMP; activated by PRPP. 6-Mercaptopurine (and azathioprine, its prodrug) inhibits it — 6-MP is activated by HGPRT and degraded by xanthine oxidase and TPMT, so allopurinol raises 6-MP toxicity."
+  },
+  "gars": {
+   "name": "GAR synthetase",
+   "short": "GARS",
+   "aliases": [
+    "glycinamide ribonucleotide synthetase",
+    "phosphoribosylamine-glycine ligase"
+   ],
+   "notes": "Adds the whole glycine molecule (C4, C5, N7)."
+  },
+  "gart": {
+   "name": "GAR transformylase",
+   "short": "GART",
+   "aliases": [
+    "glycinamide ribonucleotide transformylase",
+    "phosphoribosylglycinamide formyltransferase"
+   ],
+   "notes": "First of two folate-dependent steps (C8 from N¹⁰-formyl-THF). Pemetrexed inhibits it (and thymidylate synthase, DHFR)."
+  },
+  "fgams": {
+   "name": "FGAM synthetase",
+   "short": "FGAMS",
+   "aliases": [
+    "formylglycinamidine ribonucleotide synthetase",
+    "phosphoribosylformylglycinamidine synthase"
+   ],
+   "notes": "Second glutamine nitrogen (N3)."
+  },
+  "airs": {
+   "name": "AIR synthetase",
+   "short": "AIRS",
+   "aliases": [
+    "aminoimidazole ribonucleotide synthetase",
+    "phosphoribosylformylglycinamidine cyclo-ligase"
+   ],
+   "notes": "Closes the imidazole ring."
+  },
+  "airc": {
+   "name": "AIR carboxylase",
+   "short": "AIRC",
+   "aliases": [
+    "aminoimidazole ribonucleotide carboxylase",
+    "phosphoribosylaminoimidazole carboxylase"
+   ],
+   "notes": "Adds C6 from CO₂ (no biotin, unlike most carboxylases)."
+  },
+  "saicars": {
+   "name": "SAICAR synthetase",
+   "short": "SAICARS",
+   "aliases": [
+    "phosphoribosylaminoimidazole-succinocarboxamide synthase"
+   ],
+   "notes": "Aspartate donates N1."
+  },
+  "adsl": {
+   "name": "Adenylosuccinate lyase",
+   "short": "ADSL",
+   "aliases": [
+    "adenylosuccinase"
+   ],
+   "notes": "Acts twice in purine synthesis (SAICAR → AICAR and adenylosuccinate → AMP), each time releasing fumarate — aspartate's nitrogen stays, its carbons leave."
+  },
+  "aicart": {
+   "name": "AICAR transformylase",
+   "short": "AICART",
+   "aliases": [
+    "aminoimidazole carboxamide ribonucleotide transformylase",
+    "phosphoribosylaminoimidazolecarboxamide formyltransferase"
+   ],
+   "notes": "Second folate-dependent step (C2 from N¹⁰-formyl-THF). Methotrexate polyglutamates inhibit it."
+  },
+  "impch": {
+   "name": "IMP cyclohydrolase",
+   "short": "",
+   "aliases": [
+    "inosine monophosphate cyclohydrolase"
+   ],
+   "notes": "Closes the six-membered ring to give IMP; bifunctional with AICAR transformylase (ATIC)."
+  },
+  "adss": {
+   "name": "Adenylosuccinate synthetase",
+   "short": "ADSS",
+   "aliases": [
+    "adenylosuccinate synthase"
+   ],
+   "notes": "Uses GTP — so GMP supply promotes AMP synthesis. Inhibited by AMP."
+  },
+  "impdh": {
+   "name": "IMP dehydrogenase",
+   "short": "IMPDH",
+   "aliases": [
+    "inosine monophosphate dehydrogenase",
+    "inosine-5′-monophosphate dehydrogenase"
+   ],
+   "notes": "Rate-limiting for GMP. Inhibited by mycophenolate (lymphocytes depend on de novo synthesis) and ribavirin; inhibited by GMP."
+  },
+  "gmps": {
+   "name": "GMP synthetase",
+   "short": "GMPS",
+   "aliases": [
+    "GMP synthase",
+    "guanosine monophosphate synthetase"
+   ],
+   "notes": "Uses ATP — so AMP supply promotes GMP synthesis. Glutamine donates the amino group."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "prps",
+   "from": "r5p",
+   "to": "prpp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "amp"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "ppat",
+   "from": "prpp",
+   "to": "pra",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "gln",
+     "h2o"
+    ],
+    "out": [
+     "glu",
+     "ppi"
+    ]
+   },
+   "loc": "cytosol",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "gars",
+   "from": "pra",
+   "to": "gar",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "gly",
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "gart",
+   "from": "gar",
+   "to": "fgar",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "fthf"
+    ],
+    "out": [
+     "thf"
+    ]
+   },
+   "loc": "cytosol",
+   "requires": [
+    "Folate (B9)"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "fgams",
+   "from": "fgar",
+   "to": "fgam",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "gln",
+     "atp",
+     "h2o"
+    ],
+    "out": [
+     "glu",
+     "adp",
+     "pi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r6",
+   "enzyme": "airs",
+   "from": "fgam",
+   "to": "air",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r7",
+   "enzyme": "airc",
+   "from": "air",
+   "to": "cair",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "co2"
+    ],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r8",
+   "enzyme": "saicars",
+   "from": "cair",
+   "to": "saicar",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "asp",
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r9",
+   "enzyme": "adsl",
+   "from": "saicar",
+   "to": "aicar",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "fum"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r10",
+   "enzyme": "aicart",
+   "from": "aicar",
+   "to": "faicar",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "fthf"
+    ],
+    "out": [
+     "thf"
+    ]
+   },
+   "loc": "cytosol",
+   "requires": [
+    "Folate (B9)"
+   ]
+  },
+  {
+   "id": "r11",
+   "enzyme": "impch",
+   "from": "faicar",
+   "to": "imp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "h2o"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r12",
+   "enzyme": "adss",
+   "from": "imp",
+   "to": "sAMP",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "asp",
+     "gtp"
+    ],
+    "out": [
+     "gdp",
+     "pi"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r13",
+   "enzyme": "adsl",
+   "from": "sAMP",
+   "to": "ampm",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "fum"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r14",
+   "enzyme": "impdh",
+   "from": "imp",
+   "to": "xmp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad",
+     "h2o"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r15",
+   "enzyme": "gmps",
+   "from": "xmp",
+   "to": "gmp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "gln",
+     "atp",
+     "h2o"
+    ],
+    "out": [
+     "glu",
+     "amp",
+     "ppi"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Orotate",
+   "Carbamoyl phosphate",
+   "Hypoxanthine",
+   "Xanthine",
+   "Uric acid",
+   "Inosine",
+   "Uridine monophosphate",
+   "Dihydroorotate"
+  ],
+  "enzymes": [
+   "Hypoxanthine-guanine phosphoribosyltransferase",
+   "Adenine phosphoribosyltransferase",
+   "Xanthine oxidase",
+   "Adenosine deaminase",
+   "Carbamoyl phosphate synthetase II",
+   "Ribonucleotide reductase",
+   "Dihydrofolate reductase",
+   "Thymidylate synthase",
+   "Purine nucleoside phosphorylase"
+  ]
+ }
+}

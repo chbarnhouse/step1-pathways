@@ -1,0 +1,501 @@
+{
+ "id": "cholesterol-synthesis",
+ "name": "Cholesterol synthesis",
+ "group": "Lipids",
+ "aliases": [
+  "cholesterol biosynthesis",
+  "mevalonate pathway",
+  "sterol synthesis"
+ ],
+ "summary": "Cytosol and ER, mainly liver, fed state. Acetyl-CoA → HMG-CoA (cytosolic HMG-CoA synthase; the mitochondrial isoform makes ketones) → mevalonate by HMG-CoA reductase — rate-limiting, NADPH, the target of statins. Mevalonate becomes isoprene units (IPP/DMAPP), which build farnesyl-PP, squalene, lanosterol and finally cholesterol. Insulin and thyroid hormone up-regulate HMG-CoA reductase; glucagon and cholesterol (via SREBP) down-regulate it. Smith-Lemli-Opitz syndrome = 7-dehydrocholesterol reductase deficiency.",
+ "metabolites": {
+  "acetylcoa": {
+   "name": "Acetyl-CoA",
+   "short": "AcCoA",
+   "aliases": [
+    "acetyl CoA"
+   ],
+   "notes": "Cytosolic, exported from mitochondria as citrate (same route as fatty acid synthesis)."
+  },
+  "aacoa": {
+   "name": "Acetoacetyl-CoA",
+   "short": "AcAc-CoA",
+   "aliases": [
+    "acetoacetyl CoA"
+   ]
+  },
+  "hmgcoa": {
+   "name": "HMG-CoA",
+   "short": "HMG-CoA",
+   "aliases": [
+    "3-hydroxy-3-methylglutaryl-CoA",
+    "β-hydroxy-β-methylglutaryl-CoA",
+    "beta-hydroxy-beta-methylglutaryl-CoA",
+    "hydroxymethylglutaryl-CoA"
+   ],
+   "notes": "Branch point: in mitochondria HMG-CoA lyase makes ketone bodies; in the cytosol it goes on to cholesterol."
+  },
+  "mevalonate": {
+   "name": "Mevalonate",
+   "short": "",
+   "aliases": [
+    "mevalonic acid"
+   ],
+   "notes": "Committed product."
+  },
+  "mev5p": {
+   "name": "Mevalonate-5-phosphate",
+   "short": "",
+   "aliases": [
+    "5-phosphomevalonate",
+    "phosphomevalonate"
+   ]
+  },
+  "mev5pp": {
+   "name": "Mevalonate-5-pyrophosphate",
+   "short": "",
+   "aliases": [
+    "5-pyrophosphomevalonate",
+    "mevalonate-5-diphosphate",
+    "diphosphomevalonate"
+   ]
+  },
+  "ipp": {
+   "name": "Isopentenyl pyrophosphate",
+   "short": "IPP",
+   "aliases": [
+    "isopentenyl diphosphate",
+    "isopentenyl-PP"
+   ],
+   "notes": "The activated 5-carbon isoprene unit. Isoprenoids also make dolichol, CoQ and prenyl groups for proteins (Ras farnesylation)."
+  },
+  "dmapp": {
+   "name": "Dimethylallyl pyrophosphate",
+   "short": "DMAPP",
+   "aliases": [
+    "dimethylallyl diphosphate",
+    "dimethylallyl-PP"
+   ]
+  },
+  "gpp": {
+   "name": "Geranyl pyrophosphate",
+   "short": "GPP",
+   "aliases": [
+    "geranyl diphosphate",
+    "geranyl-PP"
+   ],
+   "notes": "C10."
+  },
+  "fpp": {
+   "name": "Farnesyl pyrophosphate",
+   "short": "FPP",
+   "aliases": [
+    "farnesyl diphosphate",
+    "farnesyl-PP"
+   ],
+   "notes": "C15. Bisphosphonates (nitrogen-containing) inhibit FPP synthase in osteoclasts."
+  },
+  "squalene": {
+   "name": "Squalene",
+   "short": "",
+   "aliases": [],
+   "notes": "C30, linear: two FPP joined head to head."
+  },
+  "oxsq": {
+   "name": "2,3-Oxidosqualene",
+   "short": "",
+   "aliases": [
+    "squalene epoxide",
+    "2,3-epoxysqualene",
+    "oxidosqualene"
+   ]
+  },
+  "lanosterol": {
+   "name": "Lanosterol",
+   "short": "",
+   "aliases": [],
+   "notes": "First sterol (four rings)."
+  },
+  "dhc7": {
+   "name": "7-Dehydrocholesterol",
+   "short": "7-DHC",
+   "aliases": [
+    "7-dehydrocholesterol",
+    "provitamin D3"
+   ],
+   "notes": "Reached after several more steps (demethylations, double-bond shifts). In skin, UVB converts it to vitamin D3 (cholecalciferol). Elevated in Smith-Lemli-Opitz syndrome."
+  },
+  "cholesterol": {
+   "name": "Cholesterol",
+   "short": "",
+   "aliases": [],
+   "notes": "Feeds membranes, bile acids (7α-hydroxylase), steroid hormones and vitamin D. Exported in VLDL; high cellular levels suppress SREBP-2."
+  }
+ },
+ "enzymes": {
+  "thiolase": {
+   "name": "Thiolase",
+   "short": "",
+   "aliases": [
+    "acetoacetyl-CoA thiolase",
+    "acetyl-CoA acetyltransferase",
+    "β-ketothiolase",
+    "beta-ketothiolase"
+   ],
+   "notes": "Cytosolic isoform; joins two acetyl-CoA."
+  },
+  "hmgcs": {
+   "name": "HMG-CoA synthase",
+   "short": "HMGCS",
+   "aliases": [
+    "HMG CoA synthase",
+    "3-hydroxy-3-methylglutaryl-CoA synthase"
+   ],
+   "notes": "Cytosolic isoform here; the mitochondrial isoform is rate-limiting for ketogenesis."
+  },
+  "hmgcr": {
+   "name": "HMG-CoA reductase",
+   "short": "HMGCR",
+   "aliases": [
+    "HMG CoA reductase",
+    "3-hydroxy-3-methylglutaryl-CoA reductase"
+   ],
+   "notes": "Rate-limiting; ER membrane; uses 2 NADPH. Statins competitively inhibit it → fewer hepatocyte sterols → SREBP up-regulates LDL receptors → lower LDL. Statin side effects: myopathy (↑ with fibrates, niacin, CYP3A4 inhibitors), hepatotoxicity. Induced by insulin and thyroid hormone; repressed by glucagon and cholesterol (SREBP, and sterol-triggered degradation)."
+  },
+  "mvk": {
+   "name": "Mevalonate kinase",
+   "short": "MVK",
+   "aliases": [],
+   "notes": "Deficiency causes hyper-IgD syndrome (periodic fevers) or mevalonic aciduria."
+  },
+  "pmvk": {
+   "name": "Phosphomevalonate kinase",
+   "short": "PMVK",
+   "aliases": []
+  },
+  "mvd": {
+   "name": "Mevalonate-5-pyrophosphate decarboxylase",
+   "short": "MVD",
+   "aliases": [
+    "diphosphomevalonate decarboxylase",
+    "mevalonate pyrophosphate decarboxylase",
+    "mevalonate diphosphate decarboxylase"
+   ],
+   "notes": "Uses a third ATP and releases CO₂ to give IPP."
+  },
+  "idi": {
+   "name": "Isopentenyl pyrophosphate isomerase",
+   "short": "IDI",
+   "aliases": [
+    "IPP isomerase",
+    "isopentenyl-diphosphate delta-isomerase",
+    "isopentenyl diphosphate isomerase"
+   ],
+   "notes": "Interconverts IPP and DMAPP."
+  },
+  "fdps": {
+   "name": "Farnesyl pyrophosphate synthase",
+   "short": "FPPS",
+   "aliases": [
+    "FPP synthase",
+    "farnesyl diphosphate synthase",
+    "geranyltranstransferase"
+   ],
+   "notes": "Adds IPP twice: DMAPP → GPP → FPP. Inhibited by nitrogen-containing bisphosphonates (alendronate, zoledronate)."
+  },
+  "fdft1": {
+   "name": "Squalene synthase",
+   "short": "SQS",
+   "aliases": [
+    "farnesyl-diphosphate farnesyltransferase"
+   ],
+   "notes": "Joins two FPP head to head; first step committed to sterols."
+  },
+  "sqle": {
+   "name": "Squalene epoxidase",
+   "short": "SQLE",
+   "aliases": [
+    "squalene monooxygenase"
+   ],
+   "notes": "Needs O₂ and NADPH. The fungal enzyme is inhibited by terbinafine."
+  },
+  "lss": {
+   "name": "Lanosterol synthase",
+   "short": "LSS",
+   "aliases": [
+    "oxidosqualene cyclase",
+    "2,3-oxidosqualene cyclase",
+    "oxidosqualene-lanosterol cyclase"
+   ],
+   "notes": "Cyclizes oxidosqualene into the four-ring sterol nucleus."
+  },
+  "cyp51": {
+   "name": "Lanosterol 14α-demethylase",
+   "short": "CYP51",
+   "aliases": [
+    "lanosterol 14-alpha-demethylase",
+    "lanosterol demethylase",
+    "14α-demethylase"
+   ],
+   "notes": "First of several steps from lanosterol to 7-dehydrocholesterol. The fungal homolog makes ergosterol and is the target of azole antifungals (fluconazole, ketoconazole)."
+  },
+  "dhcr7": {
+   "name": "7-Dehydrocholesterol reductase",
+   "short": "DHCR7",
+   "aliases": [
+    "7-DHC reductase",
+    "7-dehydrocholesterol Δ7-reductase"
+   ],
+   "notes": "Last step; uses NADPH. Deficiency = Smith-Lemli-Opitz syndrome (autosomal recessive): microcephaly, intellectual disability, 2–3 toe syndactyly, cleft palate, ambiguous genitalia in males, holoprosencephaly; ↑ 7-DHC, ↓ cholesterol."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "thiolase",
+   "from": "acetylcoa",
+   "to": "aacoa",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "acetylcoa"
+    ],
+    "out": [
+     "coa"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "hmgcs",
+   "from": "aacoa",
+   "to": "hmgcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "acetylcoa",
+     "h2o"
+    ],
+    "out": [
+     "coa"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "hmgcr",
+   "from": "hmgcoa",
+   "to": "mevalonate",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp",
+     "coa"
+    ]
+   },
+   "loc": "ER membrane (cytosolic face)",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "mvk",
+   "from": "mevalonate",
+   "to": "mev5p",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r5",
+   "enzyme": "pmvk",
+   "from": "mev5p",
+   "to": "mev5pp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r6",
+   "enzyme": "mvd",
+   "from": "mev5pp",
+   "to": "ipp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi",
+     "co2"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r7",
+   "enzyme": "idi",
+   "from": "ipp",
+   "to": "dmapp",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r8",
+   "enzyme": "fdps",
+   "from": "ipp",
+   "to": "gpp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "ppi"
+    ]
+   },
+   "also_from": [
+    "dmapp"
+   ],
+   "loc": "cytosol"
+  },
+  {
+   "id": "r9",
+   "enzyme": "fdps",
+   "from": "gpp",
+   "to": "fpp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "ppi"
+    ]
+   },
+   "also_from": [
+    "ipp"
+   ],
+   "loc": "cytosol"
+  },
+  {
+   "id": "r10",
+   "enzyme": "fdft1",
+   "from": "fpp",
+   "to": "squalene",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp",
+     "ppi"
+    ]
+   },
+   "loc": "ER membrane"
+  },
+  {
+   "id": "r11",
+   "enzyme": "sqle",
+   "from": "squalene",
+   "to": "oxsq",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2",
+     "nadph"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "ER membrane"
+  },
+  {
+   "id": "r12",
+   "enzyme": "lss",
+   "from": "oxsq",
+   "to": "lanosterol",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "ER membrane"
+  },
+  {
+   "id": "r13",
+   "enzyme": "cyp51",
+   "from": "lanosterol",
+   "to": "dhc7",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "ER membrane"
+  },
+  {
+   "id": "r14",
+   "enzyme": "dhcr7",
+   "from": "dhc7",
+   "to": "cholesterol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "ER membrane"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Malonyl-CoA",
+   "Acetoacetate",
+   "β-Hydroxybutyrate",
+   "Ergosterol",
+   "Pregnenolone",
+   "Cortisol",
+   "Cholesteryl ester"
+  ],
+  "enzymes": [
+   "HMG-CoA lyase",
+   "Acetyl-CoA carboxylase",
+   "Cholesterol 7α-hydroxylase",
+   "Cholesterol desmolase",
+   "ACAT (acyl-CoA:cholesterol acyltransferase)",
+   "Lecithin-cholesterol acyltransferase",
+   "Fatty acid synthase",
+   "Glucose-6-phosphate dehydrogenase"
+  ]
+ }
+}

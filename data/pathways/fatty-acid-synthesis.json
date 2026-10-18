@@ -1,0 +1,249 @@
+{
+ "id": "fatty-acid-synthesis",
+ "name": "Fatty acid synthesis",
+ "group": "Lipids",
+ "aliases": [
+  "lipogenesis",
+  "de novo lipogenesis",
+  "palmitate synthesis"
+ ],
+ "multiplier_label": "per palmitate",
+ "summary": "Liver, adipose and lactating breast in the fed state, in the cytosol. Acetyl-CoA leaves the mitochondria as citrate (citrate shuttle) and is released by ATP citrate lyase. Acetyl-CoA carboxylase (rate-limiting, biotin) makes malonyl-CoA, which also blocks CPT I so new fat isn't burned. Fatty acid synthase builds palmitate (C16) from 1 acetyl-CoA + 7 malonyl-CoA using 14 NADPH (from the PPP and malic enzyme). Insulin turns it on; glucagon and epinephrine turn it off.",
+ "metabolites": {
+  "citrate": {
+   "name": "Citrate",
+   "short": "",
+   "aliases": [
+    "citric acid"
+   ],
+   "notes": "Made in the mitochondria (citrate synthase: acetyl-CoA + OAA) and exported by the citrate shuttle when ATP is high. Also allosterically activates acetyl-CoA carboxylase."
+  },
+  "acetylcoa": {
+   "name": "Acetyl-CoA",
+   "short": "AcCoA",
+   "aliases": [
+    "acetyl CoA"
+   ],
+   "notes": "Cytosolic acetyl-CoA; one molecule also primes fatty acid synthase."
+  },
+  "oaa": {
+   "name": "Oxaloacetate",
+   "short": "OAA",
+   "aliases": [
+    "oxaloacetic acid"
+   ],
+   "notes": "Returns to the mitochondria as malate or pyruvate."
+  },
+  "malate": {
+   "name": "Malate",
+   "short": "",
+   "aliases": [
+    "malic acid"
+   ]
+  },
+  "pyruvate": {
+   "name": "Pyruvate",
+   "short": "Pyr",
+   "aliases": [
+    "pyruvic acid"
+   ],
+   "notes": "Re-enters the mitochondria, completing the shuttle."
+  },
+  "malonylcoa": {
+   "name": "Malonyl-CoA",
+   "short": "",
+   "aliases": [
+    "malonyl CoA"
+   ],
+   "notes": "Committed intermediate. Inhibits CPT I, so fatty acid synthesis and β-oxidation don't run at once."
+  },
+  "palmitate": {
+   "name": "Palmitate",
+   "short": "C16:0",
+   "aliases": [
+    "palmitic acid",
+    "palmitoyl-CoA",
+    "C16 fatty acid"
+   ],
+   "notes": "Released by the thioesterase domain. Longer and unsaturated fatty acids are made in the ER; humans can't add double bonds past C9, so linoleic and α-linolenic acid are essential."
+  }
+ },
+ "enzymes": {
+  "acl": {
+   "name": "ATP citrate lyase",
+   "short": "ACL",
+   "aliases": [
+    "ATP-citrate lyase",
+    "citrate lyase",
+    "ATP citrate synthase"
+   ],
+   "notes": "Cleaves exported citrate back to acetyl-CoA + OAA in the cytosol. Induced by insulin."
+  },
+  "mdh": {
+   "name": "Malate dehydrogenase",
+   "short": "MDH",
+   "aliases": [
+    "cytosolic malate dehydrogenase"
+   ],
+   "notes": "Cytosolic isoform; shuttles OAA back toward the mitochondria."
+  },
+  "me": {
+   "name": "Malic enzyme",
+   "short": "ME",
+   "aliases": [
+    "NADP-malic enzyme",
+    "malate dehydrogenase (decarboxylating)"
+   ],
+   "notes": "Makes NADPH for fatty acid synthase — the second NADPH source besides the pentose phosphate pathway."
+  },
+  "acc": {
+   "name": "Acetyl-CoA carboxylase",
+   "short": "ACC",
+   "aliases": [
+    "acetyl CoA carboxylase"
+   ],
+   "notes": "Rate-limiting; needs biotin. Activated by insulin (dephosphorylation) and citrate; inhibited by glucagon/epinephrine (PKA), AMP-activated kinase (AMPK) and palmitoyl-CoA."
+  },
+  "fas": {
+   "name": "Fatty acid synthase",
+   "short": "FAS",
+   "aliases": [
+    "fatty acid synthase complex",
+    "palmitate synthase"
+   ],
+   "notes": "One multifunctional homodimer with an acyl carrier protein (phosphopantetheine from pantothenic acid, B5). Seven cycles of condense–reduce–dehydrate–reduce, each using 2 NADPH and releasing CO₂."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "acl",
+   "from": "citrate",
+   "to": "acetylcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp",
+     "coa"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "also_to": [
+    "oaa"
+   ],
+   "multiplier": 8,
+   "loc": "cytosol",
+   "tags": [
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "mdh",
+   "from": "oaa",
+   "to": "malate",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nadh"
+    ],
+    "out": [
+     "nad"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "me",
+   "from": "malate",
+   "to": "pyruvate",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadp"
+    ],
+    "out": [
+     "nadph",
+     "co2"
+    ]
+   },
+   "branch": true,
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "acc",
+   "from": "acetylcoa",
+   "to": "malonylcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp",
+     "hco3"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "multiplier": 7,
+   "loc": "cytosol",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ],
+   "requires": [
+    "Biotin (B7)"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "fas",
+   "from": "malonylcoa",
+   "to": "palmitate",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "acetylcoa",
+     "nadph"
+    ],
+    "out": [
+     "nadp",
+     "co2",
+     "coa",
+     "h2o"
+    ]
+   },
+   "loc": "cytosol",
+   "requires": [
+    "Pantothenic acid (B5)"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Acetoacetyl-CoA",
+   "HMG-CoA",
+   "Isocitrate",
+   "Propionyl-CoA",
+   "Acylcarnitine",
+   "Stearate",
+   "Mevalonate"
+  ],
+  "enzymes": [
+   "Citrate synthase",
+   "Pyruvate carboxylase",
+   "Carnitine palmitoyltransferase I",
+   "HMG-CoA reductase",
+   "Propionyl-CoA carboxylase",
+   "Glucose-6-phosphate dehydrogenase",
+   "Acyl-CoA dehydrogenase",
+   "Hormone-sensitive lipase"
+  ]
+ }
+}
