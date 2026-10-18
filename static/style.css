@@ -990,3 +990,12 @@ button.zpct:hover { background: var(--sunk); color: var(--ink); }
 .cofwrap > :last-child { flex: 1; min-width: 0; }
 .cof-locked { display: flex; gap: 4px; flex: none; padding-left: 8px; }
 .cof-locked .lk { color: var(--good); background: var(--good-bg); font-weight: 700; padding: 0 5px; border-radius: 5px; text-decoration: underline solid var(--good) 2px; text-underline-offset: 3px; white-space: nowrap; }
+/* answer feedback: a badge beside the blank, gone in about a second (icon + word, never color alone) */
+.fb { position: fixed; z-index: 900; display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px 4px 8px; border-radius: 999px; font-size: var(--fs-sm); font-weight: 700; pointer-events: none; box-shadow: var(--shadow); animation: fbpop 1.3s ease-out forwards; }
+.fb .ico, .fb svg { width: 16px; height: 16px; }
+.fb-ok { background: var(--card); color: var(--good); border: 1.5px solid var(--good); }
+.fb-no { background: var(--card); color: var(--bad); border: 1.5px solid var(--bad); }
+.fb-round { background: var(--card); color: var(--ink); border: 1.5px solid var(--good); padding: 8px 14px; font-size: var(--fs-md); animation-duration: 2s; }
+@keyframes fbpop { 0% { opacity: 0; transform: scale(.85); } 12% { opacity: 1; transform: scale(1); } 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (prefers-reduced-motion: reduce) { .fb { animation-name: fbfade; } }
+@keyframes fbfade { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }

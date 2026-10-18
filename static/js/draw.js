@@ -115,9 +115,38 @@ function cofArcParts(x, y1, y2, parts, up = false) {
   for (const [p, y] of [[pin, a[1]], [pout, b[1]]]) {
     if (!p) continue;
     const x0 = x + 50;
-    if (isLive(p)) { const w = Math.max(150, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64); s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24); }
+    if (isLive(p)) { const w = Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64); s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24); }
     else if (hidden(p.st)) { const w = pillW(cofWord(p, two)); s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`; }
     else s += `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(x0 + p.text.length * cw + 14, y, p.st);
+  }
+  return s;
+}
+// The same curved side arrow beside any straight step (sideways, slanted across a membrane): it sits on side n of the
+// line p1→p2, inputs where it starts, outputs where it ends, and its middle bows in toward the step's arrow.
+function cofArcLine(p1, p2, n, parts) {
+  parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
+  const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out');
+  if (!pin && !pout) return '';
+  const dx = p2[0] - p1[0], dy = p2[1] - p1[1], L = Math.hypot(dx, dy) || 1, u = [dx / L, dy / L];
+  const at = (t, off) => [p1[0] + u[0] * L * t + n[0] * off, p1[1] + u[1] * L * t + n[1] * off];
+  // A compact curve around the middle of the step (long slanted steps would otherwise stretch it box to box).
+  const h = Math.min(0.3, 55 / L), tS = 0.5 - h, tE = 0.5 + h;
+  const S = pin ? at(tS, 30) : at(0.5 - h / 4, 8), E = pout ? at(tE, 30) : at(0.5 + h / 4, 8), C = at(0.5, pin && pout ? 2 : 12);
+  const ang = Math.atan2(E[1] - C[1], E[0] - C[0]);
+  let s = `<path class="cof" d="M${S[0]},${S[1]}Q${C[0]},${C[1]} ${E[0] - Math.cos(ang) * 4},${E[1] - Math.sin(ang) * 4}"/>` + head(E[0], E[1], ang, 7, 'cofh');
+  const two = !!(pin && pout), cw = 7;
+  // Labels sit just beyond each end, spreading outward along the line (inputs before, outputs after).
+  const side = Math.abs(n[0]) > 0.5 ? (n[0] > 0 ? 'start' : 'end') : null;
+  for (const [p, P, first] of [[pin, S, true], [pout, E, false]]) {
+    if (!p) continue;
+    // Two sides spread apart along the line; a lone side leans away from the line, clear of the boxes at its ends.
+    const anchor = side || (two ? ((u[0] >= 0) === first ? 'end' : 'start') : n[0] >= 0 ? 'start' : 'end');
+    const lx = P[0] + n[0] * 10, ly = P[1] + n[1] * 16;
+    const live = isLive(p), w = live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw;
+    const x0 = anchor === 'end' ? lx - w : anchor === 'middle' ? lx - w / 2 : lx;
+    if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
+    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
+    else s += `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
   }
   return s;
 }
@@ -141,7 +170,7 @@ function cofRow(x, y, anchor, parts) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
   const two = parts.length > 1, gap = 6, aw = 14, cw = 7;
   const ps = parts.map(p => ({ ...p, live: isLive(p),
-    w: isLive(p) ? Math.max(150, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
+    w: isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
   const total = ps.reduce((a, p) => a + p.w, 0) + (ps.length - 1) * (aw + 2 * gap);
   let cx = anchor === 'end' ? x - total : anchor === 'middle' ? x - total / 2 : x, s = '';
   ps.forEach((p, i) => {
@@ -172,18 +201,10 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
   if (Math.abs(p1[1] - p2[1]) < 4) {
     s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom');
-    if (ct) {
-      // Too wide for the gap between the boxes: inputs on one line, "→ outputs" on the next.
-      const gap = Math.abs(p2[0] - p1[0]) - 12, cut = ct.indexOf(' → ');
-      const lines = ct.length * 6.4 > gap && cut > 0 ? [ct.slice(0, cut), ct.slice(cut + 1)] : [ct];
-      lines.forEach((ln, i) => { s += `<text class="coft" x="${mx}" y="${my + 20 + i * 15}" text-anchor="middle">${esc(ln)}</text>`; });
-      s += cofMark(mx - 8 - Math.max(...lines.map(l => l.length)) * 3.4, my + 16, cs);
-    }
-    if (hidden(cs)) s += cofRow(mx, my + 22, 'middle', cofParts(m, statusOf, r));
+    if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
-    s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center', ct ? [ct] : []);
-    if (ct) s += cofMark(mx + 14, my, cs);
-    if (hidden(cs)) s += cofRow(mx + 12, my, 'start', cofParts(m, statusOf, r));
+    s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center');
+    if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
   } else s += diagLabel(m, statusOf, r, p1, p2);
   return s;
 }
@@ -198,11 +219,11 @@ function diagLabel(m, statusOf, r, p1, p2, boxes = []) {
   const hits = ([x, y]) => { const a = area(x, y); return boxes.some(b => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0); };
   let [x, y] = at(nx, ny);
   if (hits([x, y]) && !hits(at(-nx, -ny))) [x, y] = at(-nx, -ny);
-  const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
+  const cs = cofSt(m, statusOf, r), side = (x - (p1[0] + dx * 0.42)) * nx + (y - (p1[1] + dy * 0.42)) * ny >= 0 ? 1 : -1;
   const anchor = steep ? 'end' : 'middle';
-  let s = enzLabel(x, y, m.items['e:' + r.id], statusOf('e:' + r.id), anchor, 18, steep ? 'center' : 'bottom', ct ? [ct] : []);
-  if (ct) s += cofMark(steep ? x + 12 : x - ct.length * 3.4 - 10, y, cs);
-  if (hidden(cs)) s += cofRow(steep ? x : x, steep ? y + 32 : y + 18, anchor, cofParts(m, statusOf, r));
+  let s = enzLabel(x, y, m.items['e:' + r.id], statusOf('e:' + r.id), anchor, 18, steep ? 'center' : 'bottom');
+  // Cofactors curve along the other side of the line from the enzyme's name.
+  if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [-nx * side, -ny * side], cofParts(m, statusOf, r));
   return s;
 }
 

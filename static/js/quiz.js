@@ -300,6 +300,7 @@ function buildResolved(q) {
     R.k++; R.pos = 0;
     if (R.k > R.order.length) { R.done = true; R.q = null; logAnswer(true); return renderQuiz(); }
     R.roundMsg = `Round ${R.k - (R.k0 || 1) + 1}: from the top, one more blank.`;
+    roundNotice(`Round ${R.k - (R.k0 || 1)} done. Back to the top, one more blank`);
   } else R.roundMsg = '';
   loadBuildQ();
   renderQuiz();
@@ -461,8 +462,40 @@ function stepBack() {
 function restartQuiz() { Q.undo = []; Q.history = []; Q.fact = null; newRound(); renderQuiz(); }
 
 /* ---------- grading ---------- */
+/* Feedback: a small badge beside the blank you just answered ("Right" with a check, "Not quite" with a cross), gone in
+   about a second, and in Building blocks a notice when a round is done and the quiz goes back to the top. It lives
+   outside the quiz page, so the re-render that follows an answer doesn't take it away. */
+function answerRect() {
+  const el = document.activeElement?.closest?.('form.inl, form.ansform') || $('#stage form.inl') || $('#view .ansform');
+  const r = el?.getBoundingClientRect();
+  return r && r.width ? r : null;
+}
+function flash(ok, rect, text = ok ? 'Right' : 'Not quite') {
+  if (!rect) return;
+  const b = document.createElement('div');
+  b.className = `fb ${ok ? 'fb-ok' : 'fb-no'}`; b.setAttribute('role', 'status');
+  b.innerHTML = `${icon(ok ? 'ok' : 'no')}<span>${esc(text)}</span>`;
+  document.body.append(b);
+  const w = b.offsetWidth, roomRight = innerWidth - rect.right > w + 16;
+  b.style.left = (roomRight ? rect.right + 8 : Math.max(8, rect.left - w - 8)) + 'px';
+  b.style.top = (rect.top + rect.height / 2 - b.offsetHeight / 2) + 'px';
+  setTimeout(() => b.remove(), 1300);
+}
+function roundNotice(text) {
+  const st = $('#stage')?.getBoundingClientRect();
+  if (!st) return;
+  document.querySelectorAll('.fb:not(.fb-round)').forEach(x => x.remove()); // the view jumps to the top: this says it all
+  const b = document.createElement('div');
+  b.className = 'fb fb-round'; b.setAttribute('role', 'status');
+  b.innerHTML = `${icon('ok')}<span>${esc(text)}</span>`;
+  document.body.append(b);
+  b.style.left = (st.left + st.width / 2 - b.offsetWidth / 2) + 'px';
+  b.style.top = (st.top + 18) + 'px';
+  setTimeout(() => b.remove(), 2000);
+}
 function submit(q, v) {
   if (q.status !== 'open') return;
+  const rect = answerRect();
   if (!['dir', 'cof'].includes(q.kind) && !String(v).trim()) return;
   const typed = v;
   if (q.locked?.length) v = [lockedText(q), v].filter(x => String(x).trim()).join(', ');
@@ -472,11 +505,12 @@ function submit(q, v) {
   if (q.check(v)) snapshot(q);
   if (Q.round.type === 'build') {
     // Building blocks: right → next blank; wrong → this blank is cleared and asked again.
-    if (q.check(v)) { q.status = 'right'; noteInlineRight(q); return buildResolved(q); }
+    if (q.check(v)) { q.status = 'right'; noteInlineRight(q); flash(true, rect, q.hints || q.tries ? 'Right: now once more, cleanly' : 'Right'); return buildResolved(q); }
+    flash(false, rect, 'Not quite: cleared');
     q.tries++; q.wrong.push(v); q.draft = ''; q.locked = []; q.justWrong = true; q.alongErrs = 0; q.lastErrs = 0; if (q.kind === 'cof') withAlong(q, q.model); return renderQuiz();
   }
-  if (q.check(v)) { q.status = 'right'; q.given = v; noteInlineRight(q); tally(q, q.tries === 0); resolved(q); }
-  else { q.tries++; q.wrong.push(v); q.draft = typed; q.justWrong = true; renderQuiz(); }
+  if (q.check(v)) { q.status = 'right'; q.given = v; noteInlineRight(q); flash(true, rect); tally(q, q.tries === 0); resolved(q); }
+  else { flash(false, rect); q.tries++; q.wrong.push(v); q.draft = typed; q.justWrong = true; renderQuiz(); }
 }
 function reveal(q) {
   if (q.status !== 'open') return;
@@ -727,7 +761,7 @@ function renderQuiz() {
   const occ = R.type === 'single' || R.type === 'total' || R.type === 'build';
   const cq = occ && R.q;
   INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open'
-    ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: KIND[cq.kind] || '', q: cq } : null;
+    ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
   if (cq) cq.inline = !!INLINE;
   const flow = viewStyle() === 'flow', horiz = Store.settings.dir === 'h';
   const sub = R.type === 'stepE' && el('path') !== 'show' && Q.models.length > 1 ? `${Q.models.length} pathways` : esc(Q.m.p.name) + (Q.models.length > 1 && R.type !== 'stepE' ? ` <span class="muted">· ${Q.models.length} in this quiz</span>` : '');
@@ -842,6 +876,8 @@ function factsCard(item, m) {
 document.addEventListener('click', e => { const sp = e.target.closest('.spoiler:not(.open)'); if (sp) { e.preventDefault(); e.stopPropagation(); sp.classList.add('open'); sp.removeAttribute('data-tip'); sp.setAttribute('aria-label', ''); } }, true);
 document.addEventListener('keydown', e => { const sp = e.target.closest?.('.spoiler:not(.open)'); if (sp && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); sp.click(); } });
 // The dock keeps the last answer's facts until the next answer, so moving on doesn't take them away.
+// Bottom-bar switch for the answer panel (the same setting as Options → Show facts after each answer).
+const factsToggle = () => { const on = !!Store.settings.facts; return `<button class="btn ghost" data-act="togglefacts" aria-pressed="${on}" data-tip="${on ? 'Hide' : 'Show'} the facts after each answer">${mi('lightbulb', 'sm')} ${on ? 'Hide facts' : 'Show facts'}</button>`; };
 function lastFactsHTML() {
   if (!Q.fact || !Store.settings.facts) return '';
   const open = Store.settings.factsOpen !== false;
@@ -852,19 +888,19 @@ function occDock() {
   if (R.type === 'build') {
     if (R.done) return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${mi('check')} Built</div><div class="muted">You typed all ${R.order.length} blanks in a row, cleanly.</div></div>
-      <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
+      <div class="dock-actions">${factsToggle()}<button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
     return `<div class="dock"><div class="dock-row">
       <div class="dock-text"><span class="kind kind-${q.kind}">${kindLabel(q)}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
       <div class="dock-answer">${q.peek ? `<div class="hint-line"><span>Answer: <b>${esc(q.peek)}</b>. Now type it.</span></div>` : ''}${q.note ? `<div class="hint-line"><span class="bad-note">${esc(q.note)}</span></div>` : ''}${q.justWrong ? `<div class="hint-line"><span class="bad-note">${icon('no')} Not quite. That blank is cleared; try it again.</span></div>` : ''}${answerHTML(q, 0, true)}</div>
-      <div class="dock-actions"><button class="btn ghost" data-act="reveal" title="Show the answer (you'll still type it)">${mi('visibility', 'sm')} Show answer</button></div>
+      <div class="dock-actions">${factsToggle()}<button class="btn ghost" data-act="reveal" title="Show the answer (you'll still type it)">${mi('visibility', 'sm')} Show answer</button></div>
     </div>${lastFactsHTML()}</div>`;
   }
   if (R.type === 'total' && R.done) {
     const more = R.queue.length;
     return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${Q.score.right} / ${Q.score.total}</div><div class="muted">right on the first try in ${esc(Q.m.p.name)}</div></div>
-      <div class="dock-actions">${more ? `<button class="btn primary" data-act="nextpath">${mi('skip_next')} Next: ${esc(R.queue[0].p.name)}</button>` : ''}
+      <div class="dock-actions">${factsToggle()}${more ? `<button class="btn primary" data-act="nextpath">${mi('skip_next')} Next: ${esc(R.queue[0].p.name)}</button>` : ''}
         <button class="btn${more ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
   }
@@ -880,7 +916,7 @@ function occDock() {
   return `<div class="dock"><div class="dock-row">
     <div class="dock-text"><span class="kind kind-${q.kind}">${kindLabel(q)}</span>${where ? `<span class="muted"> ${where}</span>` : ''}</div>
     <div class="dock-answer">${answerHTML(q, 0, true)}</div>
-    <div class="dock-actions">${open && answerStyle() !== 'self' ? `<button class="btn ghost" data-act="reveal" title="Reveal (Esc)">${mi('visibility', 'sm')} Reveal</button>` : ''}
+    <div class="dock-actions">${factsToggle()}${open && answerStyle() !== 'self' ? `<button class="btn ghost" data-act="reveal" title="Reveal (Esc)">${mi('visibility', 'sm')} Reveal</button>` : ''}
       ${R.type === 'single' && open ? `<button class="btn ghost" data-act="skip">Skip</button>` : ''}${next}</div>
   </div>${lastFactsHTML()}</div>`;
 }
@@ -898,7 +934,7 @@ function stepPanel() {
     <div class="btnrow">${done ? `<button class="btn primary" data-act="next">Next ${mi('skip_next', 'sm')} <kbd>↵</kbd></button>` : ''}
       ${open && style !== 'self' ? '<button class="btn ghost" data-act="revealall">Reveal all</button>' : ''}
       ${open && style === 'self' ? '<button class="btn ghost" data-act="peekall">Show all</button>' : ''}
-      ${!done ? '<button class="btn ghost" data-act="next">Skip</button>' : ''}</div>
+      ${!done ? '<button class="btn ghost" data-act="next">Skip</button>' : ''}${factsToggle()}</div>
     ${lastFactsHTML()}
   </section>`;
 }
@@ -963,6 +999,7 @@ document.addEventListener('click', e => {
     case 'peekall': R.qs.filter(x => x.status === 'open').forEach(x => (x.status = 'peek')); renderQuiz(); break;
     case 'next': case 'skip': if (qs.some(x => x && x.status === 'open')) snapshot(null); nextQuestion(); break;
     case 'back': stepBack(); break;
+    case 'togglefacts': Store.settings.facts = !Store.settings.facts; Store.save(); renderQuiz(); break;
     case 'enableabbr': { const modes = nameModesCfg(Q.cfg); TIER_KEYS.forEach((k, i) => { if (i <= q.offTier && modes[k] === 'off') modes[k] = 'enter'; });
       Q.cfg.nameModes = modes; delete Q.cfg.names; delete Q.cfg.fullNames; const v = q.draft; q.offTier = null; submit(q, v); break; }
     case 'restartq': restartQuiz(); break;
