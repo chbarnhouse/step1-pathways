@@ -15,102 +15,156 @@ const local = {
 const pageHead = (title, sub = '', actions = '') => `<div class="page-h"><div><h1>${title}</h1>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${actions ? `<div class="btnrow">${actions}</div>` : ''}</div>`;
 const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button ${attr}="${key}" data-v="${v}" role="radio" aria-checked="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
 
-/* ================= Home ================= */
-const H = { presetId: 'b-blanks', draft: null };
-function homeDraft() {
-  if (!H.draft) {
-    const last = local.get(LAST_QUIZ);
-    H.presetId = last?.presetId ?? 'b-blanks';
-    H.draft = normalizeQuiz(last?.cfg || { ...Presets.get('b-blanks'), pathways: ['glycolysis'] });
-    H.draft.allPathways = !!last?.cfg?.allPathways;
-  }
-  H.draft.pathways = H.draft.pathways.filter(id => Library.get(id));
-  return H.draft;
-}
-function applyPreset(id) {
-  const p = Presets.get(id);
-  if (!p) return;
-  const keep = H.draft.pathways;
-  H.draft = normalizeQuiz({ ...p, pathways: p.pathways?.length ? p.pathways : keep });
-  H.draft.allPathways = !!p.allPathways;
-  H.presetId = id;
-}
-function presetTile(p) {
-  const on = H.presetId === p.id;
-  return `<button class="tile${on ? ' on' : ''}" data-h="preset" data-id="${esc(p.id)}" aria-pressed="${on}">
-    <span class="tile-name">${on ? mi('check', 'sm') : ''}${esc(p.name)}</span>
-    <span class="tile-blurb">${esc(p.blurb || quizSummary(normalizeQuiz(p)))}</span>
-    ${p.builtin ? '' : '<span class="tile-tag">yours</span>'}
-  </button>`;
-}
-function setupRows(d) {
-  const rows = [];
-  rows.push(['Mode', seg('data-hs', 'mode', [['single', 'Single blank'], ['total', 'Full recall'], ['step', 'Single step']], d.mode)]);
-  if (d.mode === 'step') rows.push(['Given', seg('data-hs', 'given', [['mets', 'Two metabolites'], ['enz', 'The enzyme']], d.given)]);
-  if (d.mode === 'step' && d.given === 'enz') rows.push(['Draw from', seg('data-hs', 'allPathways', [['false', 'Chosen pathways'], ['true', 'All pathways']], !!d.allPathways)]);
-  if (d.mode === 'total') {
-    let opts = '<option value="random">Random point</option><option value="begin">The beginning, nothing shown</option>';
-    if (d.pathways.length === 1) {
-      const m = modelFor(Library.get(d.pathways[0]));
-      opts += `<optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup>`;
-    }
-    rows.push(['Start', `<select id="homeStart">${opts}</select>`]);
-  }
-  const els = elSpecFor(d).map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-hel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[v]]), elOf(d, k))}</div>`).join('');
-  rows.push(['Elements', `<div class="el-grid">${els}</div>${elSpecFor(d).some(([k]) => elOf(d, k) === 'quiz') ? '' : `<p class="bad-note">${icon('no')} Set at least one element to Quiz.</p>`}`]);
-  rows.push(['Answer', seg('data-hs', 'answer', [['', 'Default'], ['type', 'Type'], ['along', 'Type along'], ['choice', 'Choice'], ['self', 'Self-check']], d.answer || '') +
-    (d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-hflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : '')]);
-  return rows.map(([l, h]) => `<div class="set-row"><span class="glabel">${l}</span><div class="set-ctl">${h}</div></div>`).join('');
-}
-const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide');
-
-function renderHome() {
-  const d = homeDraft(), groups = Library.groups();
-  const preset = Presets.get(H.presetId);
-  const custom = !preset;
-  const pathChips = Object.entries(groups).map(([g, ps]) => `<div class="pgroup"><span class="glabel">${esc(g)}</span><div class="chips">${ps.map(p =>
-    `<button class="chip-tg" data-h="path" data-id="${esc(p.id)}" aria-pressed="${d.pathways.includes(p.id)}">${esc(p.name)}</button>`).join('')}</div></div>`).join('');
-  const usesAll = d.mode === 'step' && d.given === 'enz' && d.allPathways;
-  const nPaths = usesAll ? Object.keys(Library.all()).length : d.pathways.length;
-  const canStart = nPaths > 0 && elSpecFor(d).some(([k]) => elOf(d, k) === 'quiz');
-  const worst = Stats.worst(6);
-  const startHint = !nPaths ? 'Pick at least one pathway.' : `${nPaths} pathway${nPaths > 1 ? 's' : ''} · ${custom ? 'custom setup' : esc(preset.name)}`;
-
-  $('#view').innerHTML = `<div class="page home">
-    <section class="compose card">
-      <h1 class="compose-title">Start a quiz</h1>
-      <div class="step-sec">
-        <div class="step-h"><span class="stepn">1</span><h2>Pathways</h2>
-          <div class="btnrow tight"><button class="linkbtn" data-h="allpaths">Select all</button><button class="linkbtn" data-h="nopaths">Clear</button></div></div>
-        ${usesAll ? '<p class="note">This quiz draws from all pathways.</p>' : ''}
-        <div class="pgroups${usesAll ? ' dim' : ''}">${pathChips}</div>
-      </div>
-      <div class="step-sec">
-        <div class="step-h"><span class="stepn">2</span><h2>Quiz style</h2></div>
-        <div class="tiles">${Presets.all().map(presetTile).join('')}${custom ? `<button class="tile on" aria-pressed="true"><span class="tile-name">${mi('check', 'sm')}Custom</span><span class="tile-blurb">${esc(quizSummary(d))}</span></button>` : ''}</div>
-      </div>
-      <details class="step-sec fine"${local.get('pathways.fineOpen') ? ' open' : ''}>
-        <summary class="step-h"><span class="stepn">3</span><h2>Fine-tune</h2><span class="muted sum">${esc(quizSummary(d))}</span>${mi('expand_more', 'chev')}</summary>
-        <div class="setup">${setupRows(d)}</div>
-      </details>
-      <div class="compose-foot">
-        <button class="btn primary big" data-h="start" ${canStart ? '' : 'disabled'}>${mi('play_arrow')} Start</button>
-        <button class="btn" data-h="savepreset" ${canStart ? '' : 'disabled'}>${mi('bookmark_add', 'sm')} Save as preset</button>
-        <span class="muted">${startHint}</span>
-      </div>
-    </section>
-    <div class="home-cols">
+/* ================= Dashboard (#/) ================= */
+function renderDashboard() {
+  const last = local.get(LAST_QUIZ), worst = Stats.worst(6), mine = Store.data.presets;
+  const lastP = last?.cfg && Library.get(last.cfg.combine && pairOf(last.cfg.pathway) ? pairOf(last.cfg.pathway).id : last.cfg.pathway);
+  const studied = Library.list().filter(p => Stats.accuracy(p.id)).length;
+  $('#view').innerHTML = `<div class="page dash">
+    <div class="dash-top">
+      <a class="card hero-new" href="#/new"><span class="hero-ic">${mi('add')}</span><span><b>New quiz</b><span class="muted">Pick a pathway and how to study it.</span></span></a>
+      ${lastP ? `<button class="card hero-resume" data-dash="resume"><span class="hero-ic alt">${mi('play_arrow')}</span><span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(last.cfg)))}</span></span></button>` : ''}
+    </div>
+    <div class="dash-cols">
       <section class="card pad">
-        <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-h="drill">Drill these</button>' : ''}</div>
+        <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
         ${statsTableHTML(worst, { showPathway: true })}
       </section>
       <section class="card pad">
-        <div class="sec-h"><h2>${mi('library_books', 'h-ic')} Pathways</h2><a class="btn small" href="#/pathways">Library</a></div>
-        <ul class="plist">${Library.list().map(p => { const a = Stats.accuracy(p.id); return `<li><a href="#/pathways/${esc(p.id)}">${esc(p.name)}</a><span class="muted">${a ? `${a.pct}% first try` : 'not studied'}</span>${a ? `<span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>` : '<span class="meter empty"></span>'}</li>`; }).join('')}</ul>
+        <div class="sec-h"><h2>${mi('library_books', 'h-ic')} Progress</h2><span class="muted">${studied} of ${Library.atomic().length} studied</span></div>
+        <ul class="plist">${Library.list().filter(p => !Library.get(p.id).compose).map(p => { const a = Stats.accuracy(p.id); return `<li><a href="#/pathways/${esc(p.id)}">${esc(p.name)}</a><span class="muted">${a ? `${a.pct}% first try` : 'not studied'}</span>${a ? `<span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>` : '<span class="meter blankmeter"></span>'}</li>`; }).join('')}</ul>
       </section>
     </div>
+    <div class="dash-cols">
+      ${mine.length ? `<section class="card pad"><h2>Your presets</h2><div class="chips">${mine.map(p => `<a class="chip-link" href="#/new" data-dash="preset" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} ${esc(p.name)}</a>`).join('')}</div></section>` : ''}
+      ${backupCardHTML()}
+    </div>
   </div>`;
-  const st = $('#homeStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
+}
+// Static builds keep everything in this browser, so the dashboard keeps the backup one click away.
+function backupCardHTML() {
+  if (Store.mode === 'server') return `<section class="card pad"><h2>${mi('download', 'h-ic')} Your data</h2><p class="muted">Saved on your Pathways server, so every device sees the same progress. You can still export a copy from Settings.</p></section>`;
+  const lb = local.get('pathways.lastBackup');
+  const ago = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
+  return `<section class="card pad backup${!lb || ago > 7 ? ' due' : ''}"><h2>${mi('download', 'h-ic')} Back up your progress</h2>
+    <p class="muted">Your progress, presets and pathways are stored in this browser only. Clearing site data or switching browsers loses them, so save a backup file now and then and restore it anywhere.</p>
+    <p><b>Last backup:</b> ${lb ? (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`) : 'never'}${Store.persisted ? ' · this browser has agreed to keep your data' : ''}</p>
+    <div class="btnrow"><button class="btn primary" data-data="download">${mi('download', 'sm')} Download backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Restore from file</button></div>
+    <input type="file" id="backupFile" accept=".json,application/json" hidden>
+  </section>`;
+}
+document.addEventListener('click', e => {
+  if (!$('#view .dash')) return;
+  const b = e.target.closest('[data-dash]');
+  if (!b) return;
+  if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) launchQuiz(quizFromDraft(normalizeDraft(last.cfg))); }
+  if (b.dataset.dash === 'drill') {
+    const pids = uniq(Stats.worst(50).map(r => r.pid));
+    launchQuiz({ ...QUIZ_DEFAULTS, name: 'Weak spots', pathways: pids, mode: 'single', weak: true, el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'quiz', loc: 'show' } });
+  }
+  if (b.dataset.dash === 'preset') { e.preventDefault(); C.draft = null; homeDraft(); loadPresetInto(b.dataset.id); location.hash = '#/new'; }
+});
+
+/* ================= New quiz (#/new) =================
+   Left: one thumbnail per pathway. Right: how to study it. One pathway at a time; pathways that come as a pair
+   (a combined pathway lists them) offer "study together" once you pick one of them. */
+const C = { draft: null, presetId: '' };
+const DRAFT_DEFAULTS = { pathway: 'glycolysis', combine: false, mode: 'single', given: 'mets', start: 'random', answer: null, weak: false, allPathways: false, letterCheck: false, hints: false,
+  el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'show', loc: 'show', dir: 'quiz', path: 'quiz' } };
+function normalizeDraft(d) {
+  const out = Object.assign(clone(DRAFT_DEFAULTS), clone(d || {}));
+  out.el = Object.assign(clone(DRAFT_DEFAULTS.el), (d && d.el) || {});
+  if (!out.pathway && d?.pathways?.length) out.pathway = d.pathways[0];
+  if (!Library.get(out.pathway) || Library.get(out.pathway).compose) out.pathway = Library.atomic()[0]?.id;
+  return out;
+}
+function homeDraft() {
+  if (!C.draft) C.draft = normalizeDraft(local.get(LAST_QUIZ)?.cfg);
+  return C.draft;
+}
+// The combined pathway that contains this one, if any (e.g. glycolysis → glycolysis + gluconeogenesis).
+function pairOf(id) { return Object.values(Library.all()).find(p => p.compose && p.compose.includes(id)); }
+function quizFromDraft(d) {
+  const pair = d.combine && pairOf(d.pathway);
+  const pid = pair ? pair.id : d.pathway;
+  const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
+  return { ...clone(d), pathways: [pid], allPathways: allE, name: allE ? 'All pathways' : Library.get(pid)?.name || 'Quiz' };
+}
+function loadPresetInto(id) {
+  const p = Store.data.presets.find(x => x.id === id);
+  if (!p) return;
+  const keep = C.draft.pathway, combine = C.draft.combine;
+  C.draft = normalizeDraft({ ...p, pathway: keep, combine });
+  C.presetId = id;
+}
+const MODES = [
+  ['single', 'Fill the blanks', 'The whole pathway, one piece missing at a time.'],
+  ['total', 'Full recall', 'Rebuild the pathway in order, step by step.'],
+  ['step', 'Single step', 'One step on its own: name what connects two metabolites, or what an enzyme does.'],
+];
+const thumbCache = new Map();
+function thumbSVG(p) {
+  const hit = thumbCache.get(p.id);
+  if (hit && hit.src === p) return hit.svg;
+  let svg = '';
+  try { svg = flowSVG(modelFor(p), () => 'shown', { zones: true }); } catch {}
+  thumbCache.set(p.id, { src: p, svg });
+  return svg;
+}
+function renderCreate() {
+  const d = homeDraft(), sel = Library.get(d.pathway), pair = pairOf(d.pathway);
+  const partner = pair && pair.compose.filter(x => x !== d.pathway).map(x => Library.get(x)?.name).filter(Boolean).join(' and ');
+  const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
+  const ans = d.answer || Store.settings.answer;
+  const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz');
+  const groups = {};
+  const order = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme'];
+  for (const p of Library.atomic().sort((a, b) => ((order.indexOf(a.group) + 1) || 99) - ((order.indexOf(b.group) + 1) || 99) || a.name.localeCompare(b.name)))
+    (groups[p.group || 'Other'] = groups[p.group || 'Other'] || []).push(p);
+  const els = elSpecFor(d).map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[v]]), elOf(d, k))}</div>`).join('');
+  let modeOpts = '';
+  if (d.mode === 'total') {
+    const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
+    modeOpts = `<label class="field">Start<select id="cStart"><option value="random">A random point</option><option value="begin">The beginning, nothing shown</option><optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup></select></label>`;
+  }
+  if (d.mode === 'step') modeOpts = `<div class="field"><span>You're given</span>${seg('data-cs', 'given', [['mets', 'Two metabolites'], ['enz', 'An enzyme']], d.given)}</div>
+    ${d.given === 'enz' ? `<label class="cb"><input type="checkbox" data-cflag="allPathways" ${d.allPathways ? 'checked' : ''}> Draw enzymes from every pathway</label>` : ''}`;
+  $('#view').innerHTML = `<div class="page create">
+    <div class="create-grid">
+      <section class="picker">
+        <div class="page-h"><div><h1>New quiz</h1><p class="muted">Choose a pathway${allE ? ' (enzymes will come from every pathway)' : ''}.</p></div></div>
+        ${Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)}</h2><div class="thumbs">${ps.map(p => {
+          const on = p.id === d.pathway, a = Stats.accuracy(p.id), pr = pairOf(p.id);
+          return `<button class="thumb${on ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${on}">
+            <span class="thumb-img">${thumbSVG(p)}</span>
+            <span class="thumb-name">${on ? mi('check', 'sm') : ''}${esc(p.name)}</span>
+            <span class="thumb-meta muted">${(p.reactions || []).length} steps${a ? ` · ${a.pct}%` : ''}${pr ? ' · pairs up' : ''}</span>
+          </button>`; }).join('')}</div></div>`).join('')}
+      </section>
+      <aside class="sidebar card">
+        <div class="side-sel"><span class="glabel">Pathway</span><b>${esc(allE ? 'All pathways' : sel?.name || '')}</b></div>
+        ${pair && !allE ? `<label class="pairbox${d.combine ? ' on' : ''}"><input type="checkbox" data-cflag="combine" ${d.combine ? 'checked' : ''}>
+          <span><b>Study together with ${esc(partner)}</b><span class="muted">${esc(pair.name)}: shared steps once, each one's own steps alongside.</span></span></label>` : ''}
+        ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
+        <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, b]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${b}</span></button>`).join('')}</div></div>
+        ${modeOpts}
+        <div class="field"><span>Answer by</span>${seg('data-cs', 'answer', [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
+          ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
+          ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
+          <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p></div>
+        <details class="adv"${local.get('pathways.advOpen') ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: what to show, quiz or hide${mi('expand_more', 'chev')}</summary>
+          <div class="el-grid">${els}</div>
+          ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}
+          ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
+        </details>
+        <div class="side-foot">
+          <button class="btn primary big" data-c="start" ${hasQuiz ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
+          <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button>
+        </div>
+      </aside>
+    </div>
+  </div>`;
+  const st = $('#cStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
 }
 function launchQuiz(cfg) {
   local.set(CURRENT_QUIZ, cfg);
@@ -118,47 +172,45 @@ function launchQuiz(cfg) {
   if (location.hash === '#/quiz') renderQuiz(); else location.hash = '#/quiz';
 }
 document.addEventListener('click', e => {
-  if (!$('#view .home')) return;
-  const t = e.target.closest('[data-h],[data-hs],[data-hel]');
-  if (!t) return;
-  const d = H.draft;
-  const markCustom = () => { H.presetId = null; };
-  if (t.dataset.hs) {
-    let v = t.dataset.v; if (t.dataset.hs === 'allPathways') v = v === 'true'; if (t.dataset.hs === 'answer') v = v || null;
-    d[t.dataset.hs] = v; markCustom();
-  } else if (t.dataset.hel) { d.el[t.dataset.hel] = t.dataset.v; markCustom(); }
-  else switch (t.dataset.h) {
-    case 'path': { const id = t.dataset.id; d.pathways = d.pathways.includes(id) ? d.pathways.filter(x => x !== id) : [...d.pathways, id]; break; }
-    case 'allpaths': d.pathways = Library.list().map(p => p.id); break;
-    case 'nopaths': d.pathways = []; break;
-    case 'preset': applyPreset(t.dataset.id); break;
-    case 'start': {
-      const p = Presets.get(H.presetId);
-      const cfg = { ...clone(d), name: p ? p.name : 'Custom quiz' };
-      local.set(LAST_QUIZ, { presetId: H.presetId, cfg: d });
-      return launchQuiz(cfg);
-    }
-    case 'savepreset':
-      return ask({ title: 'Save as preset', text: 'Saved presets appear as quiz styles on this page. The pathways you picked are saved with it.', input: true, value: '', ok: 'Save' }).then(name => {
-        if (!name) return;
-        const id = 'u-' + Date.now().toString(36);
-        Presets.save({ ...clone(d), id, name, blurb: quizSummary(d) });
-        H.presetId = id; renderHome();
-      });
-    case 'drill': {
-      const pids = uniq(Stats.worst(50).map(r => r.pid));
-      return launchQuiz({ ...QUIZ_DEFAULTS, name: 'Weak spots', pathways: pids, mode: 'single', weak: true, el: { met: 'quiz', enz: 'quiz', cof: 'quiz' } });
-    }
-    default: return;
+  if (!$('#view .create')) return;
+  const d = C.draft;
+  const pick = e.target.closest('[data-cpick]');
+  if (pick) {
+    const id = pick.dataset.cpick;
+    if (d.pathway !== id) { d.combine = false; if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; }
+    d.pathway = id; d.allPathways = false;
+    return renderCreate();
   }
-  renderHome();
+  const sb = e.target.closest('[data-cs]');
+  if (sb) { d[sb.dataset.cs] = sb.dataset.v; C.presetId = ''; return renderCreate(); }
+  const eb = e.target.closest('[data-cel]');
+  if (eb) { d.el[eb.dataset.cel] = eb.dataset.v; C.presetId = ''; return renderCreate(); }
+  const a = e.target.closest('[data-c]');
+  if (!a) return;
+  if (a.dataset.c === 'start') {
+    local.set(LAST_QUIZ, { cfg: d });
+    launchQuiz(quizFromDraft(d));
+  }
+  if (a.dataset.c === 'savepreset') ask({ title: 'Save as preset', text: 'A preset keeps how you study (mode, answers, what to show or quiz) and works with any pathway.', input: true, ok: 'Save' }).then(name => {
+    if (!name) return;
+    const { pathway, combine, ...style } = clone(d);
+    const id = 'u-' + Date.now().toString(36);
+    Presets.save({ ...style, id, name, blurb: quizSummary(normalizeQuiz(style)) });
+    C.presetId = id; renderCreate();
+  });
 });
 document.addEventListener('change', e => {
-  if (!$('#view .home')) return;
-  if (e.target.id === 'homeStart') { H.draft.start = e.target.value; H.presetId = null; renderHome(); }
-  if (e.target.dataset.hflag) { H.draft[e.target.dataset.hflag] = e.target.checked; H.presetId = null; renderHome(); }
+  if (!$('#view .create')) return;
+  const d = C.draft, t = e.target;
+  if (t.id === 'cStart') d.start = t.value;
+  else if (t.id === 'cPreset') { if (t.value) loadPresetInto(t.value); else C.presetId = ''; }
+  else if (t.dataset.cflag) { d[t.dataset.cflag] = t.checked; if (t.dataset.cflag === 'combine') d.start = ['random', 'begin'].includes(d.start) ? d.start : 'random'; }
+  else return;
+  renderCreate();
 });
-document.addEventListener('toggle', e => { if (e.target.matches?.('details.fine')) local.set('pathways.fineOpen', e.target.open); }, true);
+document.addEventListener('toggle', e => { if (e.target.matches?.('details.adv')) local.set('pathways.advOpen', e.target.open); }, true);
+
+const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide');
 
 /* ================= Library ================= */
 function renderLibrary() {
@@ -178,9 +230,11 @@ function renderLibrary() {
 }
 function studyPathway(id) {
   homeDraft();
-  H.draft.pathways = [id];
-  if (H.draft.allPathways) H.draft.allPathways = false;
-  location.hash = '#/';
+  const p = Library.get(id);
+  if (p?.compose) { C.draft.pathway = p.compose[0]; C.draft.combine = true; }
+  else { C.draft.pathway = id; C.draft.combine = false; }
+  C.draft.allPathways = false;
+  location.hash = '#/new';
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-lib]');
@@ -262,39 +316,53 @@ document.addEventListener('click', e => {
   if (pb) {
     const p = Store.data.presets.find(x => x.id === pb.dataset.id);
     if (pb.dataset.preset === 'rename') ask({ title: 'Rename preset', input: true, value: p.name, ok: 'Rename' }).then(n => { if (n) { p.name = n; Presets.save(p); renderSettings(); } });
-    if (pb.dataset.preset === 'delete') ask({ title: `Delete “${p.name}”?`, ok: 'Delete' }).then(y => { if (y) { Presets.remove(p.id); if (H.presetId === p.id) H.presetId = null; renderSettings(); } });
+    if (pb.dataset.preset === 'delete') ask({ title: `Delete “${p.name}”?`, ok: 'Delete' }).then(y => { if (y) { Presets.remove(p.id); if (C.presetId === p.id) C.presetId = ''; renderSettings(); } });
     return;
   }
-  const db = e.target.closest('[data-data]');
-  if (!db) return;
-  if (db.dataset.data === 'export') {
-    const text = JSON.stringify({ pathwaysBackup: 1, ...Store.data }, null, 1);
-    ask({ title: 'Export backup', text: 'Your edited pathways, presets, settings and history.', input: 'area', value: text, ok: window.PATHWAYS_ARTIFACT ? 'Done' : 'Download file', cancel: window.PATHWAYS_ARTIFACT ? null : 'Close', copy: true })
-      .then(v => v && !window.PATHWAYS_ARTIFACT && download('pathways-backup.json', text));
-  }
-  if (db.dataset.data === 'import') $('#backupFile').click();
-  if (db.dataset.data === 'resetstats') ask({ title: 'Clear all answer history?', text: 'Weak spots and accuracy start over. Pathways and presets stay.', ok: 'Clear' }).then(y => { if (y) { Stats.reset(); renderSettings(); } });
 });
 document.addEventListener('change', e => {
   if (!$('#view .settings')) return;
   if (e.target.dataset.sflag) { Store.settings[e.target.dataset.sflag] = e.target.checked; Store.save(); }
-  if (e.target.id === 'backupFile') e.target.files[0]?.text().then(async t => {
+});
+
+/* ---------- backups (Settings and the dashboard) ---------- */
+function backupText() { return JSON.stringify({ pathwaysBackup: 1, savedAt: new Date().toISOString(), ...Store.data }, null, 1); }
+function downloadBackup() {
+  if (download(`pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
+}
+document.addEventListener('click', e => {
+  const db = e.target.closest('[data-data]');
+  if (!db) return;
+  if (db.dataset.data === 'download') { downloadBackup(); route(); }
+  if (db.dataset.data === 'export') {
+    ask({ title: 'Export backup', text: 'Your pathways, presets, settings and history. Download it, or copy it somewhere safe.', input: 'area', value: backupText(), ok: 'Download file', cancel: 'Close', copy: true })
+      .then(v => { if (v) { downloadBackup(); route(); } });
+  }
+  if (db.dataset.data === 'import') $('#backupFile').click();
+  if (db.dataset.data === 'resetstats') ask({ title: 'Clear all answer history?', text: 'Weak spots and accuracy start over. Pathways and presets stay.', ok: 'Clear' }).then(y => { if (y) { Stats.reset(); route(); } });
+});
+document.addEventListener('change', e => {
+  if (e.target.id !== 'backupFile') return;
+  e.target.files[0]?.text().then(async t => {
     let b; try { b = JSON.parse(t); } catch (err) { return say('Can’t read that file', err.message); }
-    if (!b.pathwaysBackup) return say('Not a Pathways backup', 'Use a file made with Export backup. To add a single pathway, use Import in the library.');
-    if (!(await ask({ title: 'Replace your data with this backup?', text: 'Your current pathways, presets, settings and history will be replaced.', ok: 'Replace' }))) return;
-    delete b.pathwaysBackup;
+    if (!b.pathwaysBackup) return say('Not a Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
+    if (!(await ask({ title: 'Replace your data with this backup?', text: `Saved ${b.savedAt ? new Date(b.savedAt).toLocaleString() : 'earlier'}. Your current pathways, presets, settings and history will be replaced.`, ok: 'Replace' }))) return;
+    delete b.pathwaysBackup; delete b.savedAt;
     Store.data = Object.assign({ custom: {}, stats: {}, presets: [] }, b);
     Store.data.settings = Object.assign({}, DEFAULT_SETTINGS, b.settings);
-    Store.save(); H.draft = null; renderSettings();
+    Store.save(); C.draft = null; route();
+    say('Backup restored', 'Your pathways, presets and history are back.');
   });
 });
 
 /* ================= Router ================= */
+const route = () => router();
 function router() {
   const h = location.hash || '#/';
   let page = 'home', m;
   closeOpenDialogs();
-  if (h === '#/' || h === '#' || h === '') renderHome();
+  if (h === '#/' || h === '#' || h === '') renderDashboard();
+  else if (h === '#/new') { page = 'new'; renderCreate(); }
   else if (h === '#/quiz') {
     page = 'quiz';
     if (!Q.cfg) { const c = local.get(CURRENT_QUIZ); if (c) startQuiz(c); }
@@ -319,5 +387,7 @@ window.addEventListener('hashchange', router);
   $('#brandIcon').innerHTML = mi('signpost');
   $$('[data-icon]').forEach(el => el.insertAdjacentHTML('afterbegin', mi(el.dataset.icon, 'sm')));
   await Store.init();
+  // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
+  if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
 })();

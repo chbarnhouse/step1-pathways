@@ -3,7 +3,6 @@
 
   docs/index.html                 GitHub Pages (https://chbarnhouse.github.io/pathways/) — committed
   dist/pathways.html              same file, to hand to someone directly
-  dist/pathways-artifact.html     the claude.ai artifact variant (no document wrapper, no downloads)
 
 
 Inlines the stylesheet, every script and the built-in pathway library. Edits and answer
@@ -45,15 +44,6 @@ def main():
     (docs / "index.html").write_text(html)
     (docs / ".nojekyll").write_text("")
     print(f"wrote {docs / 'index.html'}")
-
-    # Artifact variant: claude.ai wraps the page in its own document skeleton, so drop ours.
-    art = re.sub(r"<!doctype html>\s*<html[^>]*>\s*<head>|</head>\s*<body>|</body>\s*</html>\s*$", "", html, flags=re.I)
-    art = re.sub(r'<meta (charset|name="viewport")[^>]*>\s*', "", art)
-    art = art.replace("window.PATHWAYS_STANDALONE = true;", "window.PATHWAYS_STANDALONE = true;\nwindow.PATHWAYS_ARTIFACT = true;")
-    art = art.replace("<title>Pathways</title>", "<title>Biochem Pathways</title>")
-    out2 = DIST / "pathways-artifact.html"
-    out2.write_text(art.strip() + "\n")
-    print(f"wrote {out2}")
 
 
 if __name__ == "__main__":

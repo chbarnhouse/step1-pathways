@@ -37,7 +37,8 @@
     "fatty acylcarnitine",
     "acyl-carnitine"
    ],
-   "notes": "Crosses the inner membrane via carnitine-acylcarnitine translocase. Elevated acylcarnitines on newborn screening point to fatty acid oxidation defects."
+   "notes": "Crosses the inner membrane via carnitine-acylcarnitine translocase. Elevated acylcarnitines on newborn screening point to fatty acid oxidation defects.",
+   "loc": "intermembrane space"
   },
   "acylcoam": {
    "name": "Fatty acyl-CoA (matrix)",
@@ -205,7 +206,7 @@
      "ppi"
     ]
    },
-   "loc": "cytosol (outer mitochondrial membrane)",
+   "loc": "cytosol",
    "tags": [
     "irreversible"
    ]
@@ -256,7 +257,7 @@
      "carnitine"
     ]
    },
-   "loc": "mitochondrial matrix (inner membrane)"
+   "loc": "mitochondrial matrix"
   },
   {
    "id": "r4",

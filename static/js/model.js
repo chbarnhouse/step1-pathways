@@ -171,7 +171,8 @@ function locLabel(m, r) {
 // Loose match for typed locations: "mito", "matrix" and "mitochondrion" all mean mitochondria; cytoplasm = cytosol.
 function canonLoc(s) {
   const n = norm(s);
-  if (/mito|matrix|innermembrane|intermembrane/.test(n)) return 'mitochondria';
+  if (/intermembrane/.test(n)) return 'intermembrane space';
+  if (/mito|matrix|innermembrane/.test(n)) return 'mitochondria';
   if (/cyto(sol|plasm)|cytoplasm/.test(n)) return 'cytosol';
   if (/^er|endoplasmic|smoother|rougher|microsom/.test(n)) return 'er';
   return [['lysosom', 'lysosome'], ['peroxisom', 'peroxisome'], ['nucle', 'nucleus'], ['vesic', 'vesicle'], ['brush', 'brush border'], ['plasmamembrane', 'plasma membrane'], ['blood', 'blood'], ['golgi', 'golgi']].find(([k]) => n.includes(k))?.[1] || n;

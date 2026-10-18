@@ -7,6 +7,7 @@ const hidden = st => st === 'blank' || st === 'target';
 // When set ({draft, bad}), the current blank becomes a text field right on the diagram (Type answers, occlusion modes).
 let INLINE = null;
 const inlineInput = () => INLINE.along ? alongWidget(INLINE.along, INLINE.draft)
+  : INLINE.check ? checkWidget(INLINE.check, INLINE.draft)
   : `<input class="ans inl-in${INLINE.bad ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="?" aria-label="Your answer" value="${esc(INLINE.draft)}">`;
 function inlineField(x, y, w, h) {
   return `<foreignObject x="${x}" y="${y}" width="${w}" height="${h}"><form xmlns="http://www.w3.org/1999/xhtml" class="inl" data-q="0">${inlineInput()}</form></foreignObject>`;
@@ -54,7 +55,7 @@ function metBox(cx, y, item, st, w = BW) {
   if (st === 'target' && INLINE) return `<g class="mbox target"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/></g>` + inlineField(cx - w / 2 + 4, y + 4, w - 8, BH - 8);
   const label = hidden(st) ? '?' : item.name;
   const fs = !hidden(st) && label.length * 7.6 > w - 14 ? ` style="font-size:${Math.max(10.5, (w - 14) / label.length / 0.56).toFixed(1)}px"` : '';
-  let s = `<g class="mbox ${cls}"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/><text x="${cx}" y="${y + BH / 2}"${fs}>${esc(label)}</text></g>`;
+  let s = `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/><text x="${cx}" y="${y + BH / 2}"${fs}>${esc(label)}</text></g>`;
   if (st === 'right') s += svgIcon(cx - w / 2 - 16, y + BH / 2, 'ok');
   if (st === 'missed') s += svgIcon(cx - w / 2 - 16, y + BH / 2, 'no');
   if (st === 'start') s += `<text class="startt" x="${cx}" y="${y - 6}" text-anchor="middle">START</text>`;
@@ -77,7 +78,7 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   const tags = (item.rxn.tags || []).filter(t => t !== 'irreversible');
   const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t])];
   const lh = 15, y0 = valign === 'bottom' ? y - (all.length - 1) * lh - 6 : y - (all.length - 1) * lh / 2;
-  let s = `<g class="elab ${cls}${item.rxn?.transport ? ' trn' : ''}">`;
+  let s = `<g class="elab ${cls}${item.rxn?.transport ? ' trn' : ''}" data-key="${item.key}">`;
   all.forEach(([c, l], i) => { s += `<text class="${c}" x="${x}" y="${y0 + i * lh}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; });
   s += '</g>';
   const ix = anchor === 'end' ? x + 14 : anchor === 'start' ? x - 14 : x;
@@ -135,20 +136,72 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center', ct ? [ct] : []);
     if (ct) s += cofMark(mx + 14, my, cs);
     if (hidden(cs)) s += cofBlank(mx + 12, my, cs);
-  } else {
-    s += enzLabel(mx + 14, my, it, es, 'start', 18, 'center', ct ? [ct] : []);
-    if (hidden(cs)) s += cofBlank(mx + 14, my + 34, cs);
-  }
+  } else s += diagLabel(m, statusOf, r, p1, p2);
+  return s;
+}
+// Labels for slanted arrows sit beside the line, never on it: above a shallow line, left of a steep one.
+function diagLabel(m, statusOf, r, p1, p2) {
+  const dx = p2[0] - p1[0], dy = p2[1] - p1[1], L = Math.hypot(dx, dy) || 1, steep = Math.abs(dy) > Math.abs(dx);
+  let nx = -dy / L, ny = dx / L;
+  if (steep ? nx > 0 : ny > 0) { nx = -nx; ny = -ny; }
+  const x = (p1[0] + p2[0]) / 2 + nx * 14, y = (p1[1] + p2[1]) / 2 + ny * 14;
+  const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
+  const anchor = steep ? 'end' : 'middle';
+  let s = enzLabel(x, y, m.items['e:' + r.id], statusOf('e:' + r.id), anchor, 18, steep ? 'center' : 'bottom', ct ? [ct] : []);
+  if (ct) s += cofMark(steep ? x + 12 : x - ct.length * 3.4 - 10, y, cs);
+  if (hidden(cs)) s += cofBlank(steep ? x : x, steep ? y + 32 : y + 18, cs, anchor);
   return s;
 }
 
+/* ---------- compartment lanes ----------
+   When a pathway moves between compartments, flow view gives each compartment a vertical lane
+   (outside → cytosol → ER → intermembrane space → mitochondria, left to right) with a dashed membrane between.
+   A metabolite sits where it is made (else where it is used); transport steps never place anything. */
+const LANE_ORDER = { blood: 0, lumen: 0, 'brush border': 0, 'plasma membrane': 0.5, cytosol: 1, er: 2, golgi: 2.2, vesicle: 2.4, peroxisome: 2.6, nucleus: 2.8, 'intermembrane space': 3, mitochondria: 4 };
+function computeLanes(m) {
+  const { p, spine, spineMets } = m;
+  const tissues = uniq(spine.map(r => r.tissue || p.tissue || '').filter(Boolean));
+  const multiT = new Set(spine.map(r => r.tissue || '')).size > 1;
+  const keyOf = (loc, tissue) => (multiT ? (tissue || p.tissue || '') + '|' : '') + canonLoc(loc || '');
+  const where = {};
+  spineMets.forEach(id => {
+    const own = p.metabolites[id]?.loc;
+    if (own) { where[id] = { loc: own, tissue: p.metabolites[id].tissue }; return; }
+    const made = spine.find(r => r.to === id && !r.transport), used = spine.find(r => r.from === id && !r.transport);
+    const r = made || used;
+    if (r) where[id] = { loc: r.loc, tissue: r.tissue };
+  });
+  // Anything still unplaced inherits from its neighbor on the line.
+  spineMets.forEach((id, i) => { if (!where[id]) where[id] = where[spineMets[i - 1]] || where[spineMets[i + 1]] || { loc: '' }; });
+  const lanes = {};
+  for (const id of spineMets) {
+    const w = where[id], k = keyOf(w.loc, w.tissue);
+    (lanes[k] = lanes[k] || { key: k, labels: {}, tissue: w.tissue || p.tissue || '', comp: canonLoc(w.loc || '') }).labels[w.loc || ''] = ((lanes[k].labels[w.loc || ''] || 0) + 1);
+  }
+  const list = Object.values(lanes).sort((a, b) =>
+    (multiT ? tissues.indexOf(a.tissue) - tissues.indexOf(b.tissue) : 0) || (LANE_ORDER[a.comp] ?? 1.5) - (LANE_ORDER[b.comp] ?? 1.5));
+  list.forEach((l, i) => {
+    l.i = i;
+    const loc = Object.entries(l.labels).sort((a, b) => b[1] - a[1])[0][0];
+    l.label = [multiT ? l.tissue : '', loc].filter(Boolean).join(' · ');
+  });
+  const laneOf = {};
+  for (const id of spineMets) laneOf[id] = lanes[keyOf(where[id].loc, where[id].tissue)].i;
+  return { list, laneOf };
+}
+
+const LANE_W = 470;
 function linearSVG(m, statusOf, { zones = true } = {}) {
   const { p, items, spine, spineMets, branches, onSpine } = m;
   // Side steps between two main-line metabolites (gluconeogenic bypasses in a combined view) curve out to the right.
   const bypass = branches.filter(b => onSpine.has(b.from) && onSpine.has(b.to));
-  const sideX = SIDEX + (bypass.length ? 190 : 0);
+  const L = zones ? computeLanes(m) : { list: [], laneOf: {} };
+  const lanesOn = L.list.length > 1;
+  const laneX = i => CX + (lanesOn ? i : 0) * LANE_W;
+  const top = TOP + (lanesOn ? 26 : 0);
+  const sideX = laneX(lanesOn ? L.list.length - 1 : 0) + (SIDEX - CX) + (bypass.length ? 190 : 0);
   const pos = {}, perRow = {};
-  spineMets.forEach((id, i) => { pos[id] = { x: CX, y: TOP + i * (BH + GAP) }; });
+  spineMets.forEach((id, i) => { pos[id] = { x: laneX(L.laneOf[id] || 0), y: top + i * (BH + GAP) }; });
   const place = (id, y) => { if (pos[id]) return; const k = perRow[y] = (perRow[y] || 0) + 1; pos[id] = { x: sideX + (k - 1) * (BW + 60), y }; };
   spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach(x => place(x, pos[r.from].y)); });
   for (let pass = 0; pass < 3; pass++) branches.forEach(b => {
@@ -157,12 +210,19 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   });
   const ctr = id => ({ cx: pos[id].x, cy: pos[id].y + BH / 2 });
   const xs = Object.values(pos).map(q => q.x);
-  const W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).length ? 12 : 190), bypass.length ? CX + BW / 2 + 330 : 0);
-  const H = TOP + spineMets.length * (BH + GAP) - GAP + 14;
+  const W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).length ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
+  const H = top + spineMets.length * (BH + GAP) - GAP + 14;
   let s = '';
 
-  // Location bands: one per run of steps in the same place; a dashed membrane line where the place changes.
-  if (zones) {
+  if (lanesOn) {
+    L.list.forEach((l, i) => {
+      const x0 = laneX(i) - LANE_W / 2 + 20, x1 = i === L.list.length - 1 ? W : laneX(i) + LANE_W / 2 + 20;
+      if (i % 2) s += `<rect class="zone alt" x="${x0}" y="0" width="${x1 - x0}" height="${H}"/>`;
+      if (i > 0) s += `<line class="membrane" x1="${x0}" x2="${x0}" y1="0" y2="${H}"/>`;
+      s += `<text class="zonet" x="${laneX(i)}" y="16" text-anchor="middle">${esc(l.label)}</text>`;
+    });
+  } else if (zones) {
+    // One compartment: name it in the corner. (Single-lane pathways that change tissue keep horizontal bands.)
     const groups = [];
     spine.forEach(r => { const l = locLabel(m, r); if (!groups.length || groups[groups.length - 1].l !== l) groups.push({ l, rs: [r] }); else groups[groups.length - 1].rs.push(r); });
     if (groups.length > 1) groups.forEach((g, i) => {
@@ -181,17 +241,24 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     s += `<path class="mult" d="M18,${y1}H10V${y2}H18"/><text class="multt" transform="translate(6,${(y1 + y2) / 2}) rotate(-90)" text-anchor="middle">${esc(label)}</text>`;
   }
   spine.forEach(r => {
-    const y1 = pos[r.from].y + BH, y2 = pos[r.to].y;
-    s += arrow(CX, y1 + 4, CX, y2 - 4, r.reversible, rxCls(r));
-    s += enzLabel(CX - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24);
-    const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
-    if (hidden(cs)) s += cofBlank(CX + 16, ym, cs);
-    else if (cofVisible(cs)) s += cofArc(m, CX, y1, y2, r.cofactors) + cofMark(CX + 30, ym, cs);
-    for (const sd of r.also_to || []) { const e = edgePt(ctr(sd), CX + 40, y1 + 4); s += arrow(CX + 40, y1 + 4, e[0], e[1], r.reversible); }
-    for (const sd of r.also_from || []) { const e = edgePt(ctr(sd), CX + 40, y2 - 4); s += arrow(e[0], e[1], CX + 40, y2 - 4, r.reversible); }
+    const y1 = pos[r.from].y + BH, y2 = pos[r.to].y, xa = pos[r.from].x, xb = pos[r.to].x;
+    if (xa === xb) {
+      const X = xa;
+      s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r));
+      s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24);
+      const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
+      if (hidden(cs)) s += cofBlank(X + 16, ym, cs);
+      else if (cofVisible(cs)) s += cofArc(m, X, y1, y2, r.cofactors) + cofMark(X + 30, ym, cs);
+    } else {
+      // Crosses a membrane: slant from one lane to the other.
+      const p1 = [xa + Math.sign(xb - xa) * 40, y1 + 4], p2 = [xb - Math.sign(xb - xa) * 40, y2 - 4];
+      s += arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r)) + diagLabel(m, statusOf, r, p1, p2);
+    }
+    for (const sd of r.also_to || []) { const e = edgePt(ctr(sd), xb + 40, y1 + 4); s += arrow(xa + 40, y1 + 4, e[0], e[1], r.reversible); }
+    for (const sd of r.also_from || []) { const e = edgePt(ctr(sd), xb + 40, y2 - 4); s += arrow(e[0], e[1], xb + 40, y2 - 4, r.reversible); }
   });
   bypass.forEach((r, k) => {
-    const a = ctr(r.from), b = ctr(r.to), x0 = CX + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10;
+    const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10;
     const curve = (dx, y0, y1) => `M${x0},${y0} C${xc + dx},${y0} ${xc + dx},${y1} ${x0 + 6},${y1}`;
     s += `<path class="${rxCls(r)}" d="${curve(0, a.cy - 6, b.cy + (b.cy > a.cy ? -6 : 6))}"/>` + head(x0, b.cy + (b.cy > a.cy ? -6 : 6), Math.PI);
     if (r.reversible) s += `<path class="${rxCls(r)}" d="${curve(10, a.cy + 6, b.cy)}"/>` + head(x0, a.cy + 6, Math.PI, 8);
