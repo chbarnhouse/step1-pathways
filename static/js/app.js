@@ -458,11 +458,12 @@ function renderSettings() {
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
     </section>
-    <section class="card pad"><h2>Guided tour</h2><p class="muted">A one-minute walk through the app.</p>
-      <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>
-      <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show it automatically when I open Pathways</label></div></section>
+    <section class="card pad help"><h2>Help and feedback</h2>
+      <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
+      <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>${reportsEnabled() ? `<button class="btn" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div>
+      <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show the tour automatically when I open Pathways</label></section>
     <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''} · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p>
-      <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${Store.mode === 'server' && isPreview() ? `<button class="btn small" data-preview>${mi('science', 'sm')} Not released yet</button>` : ''}${reportsEnabled() ? `<button class="btn small" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div></section>
+      <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${Store.mode === 'server' && isPreview() ? `<button class="btn small" data-preview>${mi('science', 'sm')} Not released yet</button>` : ''}</div></section>
   </div>`;
 }
 document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(RELEASED, 'All changes'); });
@@ -492,7 +493,7 @@ const remindersOn = () => Store.mode === 'local' && local.get('pathways.remind')
 const unsavedChanges = () => (local.get('pathways.changedAt') || 0) > (local.get('pathways.lastBackup') || 0);
 const isFresh = () => !Object.keys(Store.data.stats).length && !Object.keys(Store.data.custom).length && !Store.data.presets.length && !local.get('pathways.seen');
 /* ---------- data notice: required once per browser in the static copy ----------
-   Shown as a step of the tour, or on its own if the tour doesn't run. There is no way past it except
+   Shown when the tour ends (finished or skipped), or at boot if the tour doesn't run. There is no way past it except
    ticking "I understand" and pressing Continue. */
 function dataGate() {
   return new Promise(res => {
@@ -614,7 +615,6 @@ window.addEventListener('hashchange', router);
   await Store.init();
   const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
   await AutoBackup.init();
-  if (reportsEnabled()) $('#navReport').hidden = false;
   previewBadge();
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }

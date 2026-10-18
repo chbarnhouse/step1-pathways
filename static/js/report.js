@@ -1,7 +1,7 @@
 /* "Report a problem": a form for people who don't use GitHub. The app gathers the report plus technical details
    (version, browser, page, current quiz), then opens the report Google Form in a new tab with everything filled in.
    The form collects verified emails, so the reporter signs in with Google there and presses Submit — a page on
-   another site can't submit a sign-in-required form for them. With no form set, the Report button stays hidden. */
+   another site can't submit a sign-in-required form for them. With no form set, the Report button (Settings → Help and feedback) stays hidden. */
 'use strict';
 
 // The report Google Form ("STEP 1 Pathways Issue Report"); responses stay private in Google Forms/Sheets.
