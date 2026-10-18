@@ -5,10 +5,10 @@
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.8.1';
+const APP_VERSION = '3.9.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
-  { v: 'next', items: [
+  { v: '3.9.0', date: '2026-10-18', items: [
     'New quiz: hover over Show, Quiz, Place or Hide to see what each one does.',
     'Compartments have a fourth choice, Place: no compartment colors or names; you click between steps wherever the pathway crosses a membrane, check, then name each part (“mito” counts as your name settings allow). In Fill the blanks it comes first; in Full recall and Building blocks, after you’ve rebuilt the pathway; on its own it’s the whole quiz. Steps that carry something across a membrane are marked as crossings for you.',
     'Cofactors: what goes in comes before what comes out (ATP, then ADP), but within each side any order counts (ATP and NADH, or NADH and ATP). Letter checking and hints follow the order you chose.',
