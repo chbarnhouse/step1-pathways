@@ -101,7 +101,7 @@ function itemQ(item, m) {
       options: answerStyle() === 'choice' ? pickOthers(item.name, uniq(all.map(l => l[0].toUpperCase() + l.slice(1)))) : null,
       check: v => v === item.name || canonLoc(v) === item.canon || item.aliases.some(a => norm(a) === norm(v)) });
   }
-  const acc = acceptedFor(item);
+  const acc = acceptedFor(item, m);
   return baseQ({
     kind: item.kind, label: { met: 'Metabolite', enz: 'Enzyme', trn: 'Transporter' }[item.kind], item, statKey: item.key, pid: m.p.id,
     answerText: item.name, correct: item.name,
@@ -307,7 +307,8 @@ function nextStepE() {
 function withAlong(q, m, r = q.item?.rxn) {
   if (answerStyle() === 'along' && q.kind !== 'dir') q.along = alongTextFor(q, m, r);
   // Every accepted spelling, for letter-by-letter checking and hints (whichever one you're typing wins).
-  if (q.kind !== 'dir') q.targets = uniq(q.item && q.kind !== 'cof' ? [q.item.name, q.item.short, ...(q.item.aliases || []), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
+  if (q.kind !== 'dir') q.targets = uniq(q.kind === 'cof' ? cofTargets(m, r?.cofactors || {})
+    : q.item ? [...spellingsFor(q.item, m), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
     : q.kind === 'path' ? [m.p.name, ...(m.p.aliases || [])] : [alongTextFor(q, m, r)]);
   return q;
 }
@@ -817,6 +818,7 @@ document.addEventListener('input', e => {
   if (q.hintLen && v.length < q.hintLen) q.hintLen = v.length; // backspacing into given letters
   if (e.target.dataset.check) { f.querySelector('.ghost').innerHTML = checkGhost(q.targets, v, q.hintLen || 0); return; }
   if (!q.along || q.status !== 'open') return;
+  if (v && q.targets?.length > 1) { const bt = bestTarget(q, v); if (bt !== q.along && alongState(bt, v).errs < alongState(q.along, v).errs) q.along = bt; } // follow the spelling or order being typed
   const s = alongState(q.along, v);
   if (grew && s.errs > (q.lastErrs || 0)) { q.alongErrs = (q.alongErrs || 0) + 1; e.target.closest('.along').classList.remove('shake'); void e.target.offsetWidth; e.target.closest('.along').classList.add('shake'); }
   q.lastErrs = s.errs;

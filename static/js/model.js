@@ -119,7 +119,7 @@ function cofLookup(cofs) {
   const map = {}, phrases = [];
   for (const [id, c] of Object.entries(cofs)) for (const a of [id, c.name, ...(c.aliases || [])]) {
     map[norm(a)] = id;
-    if (/\s/.test(a.trim())) phrases.push([a.toLowerCase(), id]);
+    if (/[\s,]/.test(a.trim())) phrases.push([a.toLowerCase(), id]); // multi-word, or with a comma (N⁵,N¹⁰-methylene-THF)
   }
   phrases.sort((a, b) => b[0].length - a[0].length);
   return { map, phrases };
@@ -138,7 +138,76 @@ function gradeCof(m, raw, c) {
   return got.size === want.size && [...want].every(x => got.has(x));
 }
 
-const acceptedFor = item => uniq([item.name, item.short, ...(item.aliases || [])].filter(Boolean).map(norm));
+/* ---------- accepted spellings ----------
+   Enzyme names usually contain a metabolite's name ("δ-aminolevulinic acid synthase"), so every name a metabolite
+   goes by (full, abbreviation, aliases) can stand in for it: "ALA synthase", "δ-ALA synthase", "5-aminolevulinate
+   synthase" all count. Plus "-ic acid" ≡ "-ate", and Greek letters written as letters or words. These display strings
+   are also what letter-by-letter checking and hints follow, so whichever spelling you type is the one you're guided on. */
+const VARIANT_CAP = 160;
+let SYNONYMS = null;
+function synonymClasses() {
+  if (SYNONYMS) return SYNONYMS;
+  const seen = new Set();
+  SYNONYMS = [];
+  for (const p of Object.values(Library.builtin())) for (const met of Object.values(p.metabolites || {})) {
+    const names = uniq([met.name, met.short, ...(met.aliases || [])].filter(n => n && n.trim().length >= 3));
+    const key = names.map(norm).sort().join('|');
+    if (names.length > 1 && !seen.has(key)) { seen.add(key); SYNONYMS.push(names); }
+  }
+  return SYNONYMS;
+}
+const escRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+const VARIANT_CACHE = new WeakMap();
+function variantsOf(item) {
+  if (!item) return [];
+  if (VARIANT_CACHE.has(item)) return VARIANT_CACHE.get(item);
+  const out = new Set([item.name, item.short, ...(item.aliases || [])].filter(Boolean));
+  const add = v => { if (out.size < VARIANT_CAP) out.add(v.replace(/\s+/g, ' ').trim()); };
+  const named = item.kind === 'enz' || item.kind === 'trn'; // a metabolite already lists its own names; compartment twins must stay apart
+  if (item.kind !== 'loc') {
+    // substitute any name of a metabolite that appears inside an enzyme's name (word-bounded, case-insensitive)
+    if (named) for (const cls of synonymClasses()) for (const a of cls) {
+      const re = new RegExp(`(^|[^A-Za-z0-9])${escRe(a)}(?=$|[^A-Za-z0-9])`, 'i');
+      for (const v of [...out]) { const hit = v.match(re); if (!hit) continue; for (const b of cls) if (b !== a) add(v.replace(re, `$1${b}`)); }
+    }
+    for (const v of [...out]) {
+      add(v.replace(/\b(\w+)ic acid\b/gi, '$1ate'));                 // pyruvic acid → pyruvate
+      add(v.replace(/[αβγδ]-?/g, c => ({ α: 'alpha-', β: 'beta-', γ: 'gamma-', δ: 'delta-' })[c[0]])); // δ- → delta-
+      add(v.replace(/\b(alpha|beta|gamma|delta)[-\s]?/gi, w => ({ alpha: 'α-', beta: 'β-', gamma: 'γ-', delta: 'δ-' })[w.replace(/[-\s]/, '').toLowerCase()]));
+      if (named) add(v.replace(/\s*\([^)]*\)/g, ''));                // drop a parenthetical qualifier (enzymes only)
+    }
+  }
+  const list = [...out];
+  VARIANT_CACHE.set(item, list);
+  return list;
+}
+// Generated spellings never make an answer ambiguous: one that another item in the same pathway also claims is dropped.
+// (The spellings written in the data always count, as before.)
+const CLAIMS = new WeakMap();
+function claimsOf(m) {
+  if (CLAIMS.has(m)) return CLAIMS.get(m);
+  const own = new Map();
+  for (const it of Object.values(m.items)) if (['met', 'enz', 'trn'].includes(it.kind)) for (const f of variantsOf(it).map(norm)) (own.get(f) || own.set(f, new Set()).get(f)).add(it.name);
+  CLAIMS.set(m, own);
+  return own;
+}
+function spellingsFor(item, m) {
+  const data = new Set([item.name, item.short, ...(item.aliases || [])].filter(Boolean).map(norm));
+  const claims = m ? claimsOf(m) : null;
+  return variantsOf(item).filter(v => { const n = norm(v); return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name); });
+}
+const acceptedFor = (item, m) => uniq(spellingsFor(item, m).map(norm));
+// Every order of a reaction's cofactors, written as "A + B → C + D" or simply listed: all of them are right.
+function cofTargets(m, c) {
+  const ins = (c.in || []).map(id => cofName(m, id)), outs = (c.out || []).map(id => cofName(m, id));
+  if (!ins.length && !outs.length) return ['none'];
+  const perms = a => (a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(r => [x, ...r])));
+  const t = new Set([cofText(m, c)]);
+  for (const a of perms(ins)) for (const b of perms(outs)) t.add(outs.length ? `${a.join(' + ')} → ${b.join(' + ')}` : a.join(' + '));
+  const all = [...ins, ...outs];
+  if (all.length <= 6) for (const a of perms(all)) { t.add(a.join(', ')); t.add(a.join(' + ')); }
+  return [...t];
+}
 
 /* ---------- across pathways ---------- */
 const modelCache = new Map();
