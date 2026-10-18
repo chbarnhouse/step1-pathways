@@ -17,8 +17,9 @@ const reportsEnabled = () => !!REPORT_FORM.url;
    rest filled in; the classmate attaches the file and submits. Each submission is reviewed; approved pathways ship in the
    library under "Shared by classmates", credited by display name (no accounts). Hidden until the form is set. */
 const SHARE_FORM = {
-  url: '', // The sharing Google Form ("Step 1 Pathways — share a pathway"), …/viewform
-  name: '', pathway: '', kind: '', note: '', // entry.NNN ids from a pre-filled link
+  url: 'https://docs.google.com/forms/d/e/1FAIpQLScmIRddIP4_M6HzMf9d9Ye2xIqUIXu-LOZanjm3CEdlMb9m_w/viewform', // "Step 1 Pathways - Share a Pathway"
+  name: 'entry.1658303553', pathway: 'entry.659873980', kind: 'entry.1663155662', note: 'entry.1971907120', // from the pre-filled link
+  kinds: { added: 'New Pathway', edited: 'Change to Existing Pathway' }, // the "What is it" options, word for word
 };
 const sharingEnabled = () => !!SHARE_FORM.url;
 function openShare(id) {
@@ -44,7 +45,7 @@ document.addEventListener('submit', e => {
   if (!p) return;
   local.set('pathways.displayName', v.name.trim());
   download((p.id || 'pathway') + '.json', JSON.stringify(p, null, 2));
-  const q = new URLSearchParams({ usp: 'pp_url', [SHARE_FORM.name]: v.name.trim(), [SHARE_FORM.pathway]: p.name, [SHARE_FORM.kind]: Library.status(p.id) === 'edited' ? 'Changes to a built-in pathway' : 'A new pathway', [SHARE_FORM.note]: v.note || '' });
+  const q = new URLSearchParams({ usp: 'pp_url', [SHARE_FORM.name]: v.name.trim(), [SHARE_FORM.pathway]: p.name, [SHARE_FORM.kind]: Library.status(p.id) === 'edited' ? SHARE_FORM.kinds.edited : SHARE_FORM.kinds.added, [SHARE_FORM.note]: v.note || '' });
   window.open(`${SHARE_FORM.url}?${q}`, '_blank', 'noopener');
   $('#shareDialog').close();
   toast('Now attach the downloaded file in the Google Form and press Submit.');

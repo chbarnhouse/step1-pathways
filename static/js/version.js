@@ -21,6 +21,7 @@ const CHANGELOG = [
     'When a whole pathway happens in one compartment, New quiz says so, and the quiz asks it once.',
     'Zooming during a quiz no longer moves the typing box off its spot (most noticeable in Safari).',
     'One typeface and one set of text sizes throughout.',
+    'Share a pathway you built or edited: Share with classmates on its page downloads the file and opens a short Google Form. Approved pathways appear for everyone under Shared by classmates, with your name on them.',
     'Compartment names sit on the top edge of their boxes, as tabs.',
     'New quiz opens with Advanced collapsed.',
     'The name is now written Step 1 Pathways.',
