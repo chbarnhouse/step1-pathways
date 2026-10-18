@@ -703,3 +703,89 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 @media (min-width: 601px) { .quiz .qtools, .quiz .zoombar { flex-wrap: nowrap; flex: none; } }
 /* Phones: back arrow + title on the first row, progress and tools below it. */
 @media (max-width: 600px) { .quiz .qbar { flex-wrap: wrap; row-gap: 4px; } .quiz .qtitle { flex: 1 1 calc(100% - 64px); } .quiz .qtools { margin-left: auto; } }
+
+/* ---------- visual editor ---------- */
+.vx { display: grid; gap: 14px; grid-template-columns: minmax(0, 1fr); margin-top: 12px; align-items: start; }
+@media (min-width: 900px) { .vx { grid-template-columns: minmax(0, 1fr) 340px; } .vx-insp { position: sticky; top: 72px; max-height: calc(100vh - 90px); overflow: auto; } }
+.vx-main { padding: 10px; display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.vx-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
+.vx-tools .btn { display: inline-flex; align-items: center; gap: 5px; }
+.vx-tools .btn .mi { width: 18px; height: 18px; fill: currentColor; }
+.vx-tools [aria-pressed="true"] { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); }
+.vx-sep { width: 1px; align-self: stretch; background: var(--line); margin: 2px 4px; }
+.vx-note { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; color: var(--ink-2); background: var(--sunk); border: 1px dashed var(--line); border-radius: 10px; padding: 6px 10px; }
+.vx-note .mi { width: 18px; height: 18px; fill: var(--muted); }
+.vx-note span { flex: 1; min-width: 180px; }
+.vx-stage { position: relative; height: max(420px, calc(100vh - 290px)); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; touch-action: none;
+  background: var(--sunk) radial-gradient(circle, var(--line) 1px, transparent 1.2px) 0 0 / 22px 22px; }
+.vx-svg { display: block; width: 100%; height: 100%; cursor: grab; user-select: none; -webkit-user-select: none; }
+.vx-svg:active { cursor: grabbing; }
+.vx-help { font-size: 12.5px; margin: 0; }
+.vx-help .mi { width: 14px; height: 14px; vertical-align: -2px; fill: currentColor; }
+.vx-guide { stroke: var(--line); stroke-width: 1; stroke-dasharray: 2 6; }
+.vx-node { cursor: move; }
+.vx-node rect { fill: var(--card); stroke: var(--blue); stroke-width: 1.5; }
+.vx-node text { fill: var(--ink); font-size: 14px; font-weight: 600; text-anchor: middle; dominant-baseline: central; pointer-events: none; }
+.vx-node.parked rect { stroke-dasharray: 5 4; }
+.vx-node.sel rect:not(.vx-ring) { stroke-width: 3.5; }
+.vx-node .vx-ring { fill: none; stroke: var(--orange); stroke-width: 2; stroke-dasharray: 6 4; }
+.vx-handle { cursor: crosshair; }
+.vx-handle circle { fill: var(--orange); }
+.vx-handle .vx-hit-c { fill: transparent; }
+.vx-handle path { fill: var(--card); }
+.vx-step { cursor: pointer; }
+.vx-ln { stroke: var(--ink-2); stroke-width: 2; fill: none; }
+.vx-step.trn .vx-ln { stroke-dasharray: 6 4; }
+.vx-side { stroke: var(--muted); stroke-width: 1.4; fill: none; stroke-dasharray: 3 3; }
+.vx-ah { fill: var(--ink-2); }
+.vx-hit { stroke: transparent; stroke-width: 18; fill: none; }
+.vx-glow { stroke: var(--orange); stroke-opacity: .28; stroke-width: 12; fill: none; stroke-linecap: round; }
+.vx-step.sel .vx-ln { stroke-width: 3.5; }
+.vx-step text { paint-order: stroke; stroke: var(--sunk); stroke-width: 4px; stroke-linejoin: round; dominant-baseline: central; }
+.vx-enz { fill: var(--ink-2); font-size: 12.5px; font-weight: 500; font-style: italic; }
+.vx-step.sel .vx-enz { font-weight: 700; fill: var(--ink); }
+.vx-cof { fill: var(--muted); font-size: 11.5px; font-weight: 600; }
+.vx-pick rect { fill: var(--card); stroke: var(--slate); stroke-dasharray: 4 3; }
+.vx-pick text { fill: var(--muted); font-size: 12px; font-weight: 700; text-anchor: middle; stroke: none; }
+.vx-rubber { stroke: var(--orange); stroke-width: 2; stroke-dasharray: 6 4; fill: none; }
+.vx-badge circle { fill: var(--gold-bg); stroke: var(--gold); stroke-width: 1.5; }
+.vx-badge path { fill: var(--gold); }
+.vx-badge.added circle { fill: var(--teal-bg); stroke: var(--teal); }
+.vx-badge.added path { fill: var(--teal); }
+.vx-insp { padding: 12px 14px; font-size: 14px; }
+.vx-insp h4 { margin: 16px 0 6px; font-size: 13px; text-transform: uppercase; letter-spacing: .06em; color: var(--muted); }
+.vx-ph { display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.vx-ph h3 { margin: 0; font-size: 16px; }
+.vx-insp .ed-grid { grid-template-columns: minmax(0, 1fr); }
+.vx-insp .ed-grid .wide, .vx-insp .ed-grid .full { grid-column: auto; }
+.vx-fields { display: grid; gap: 8px; margin-top: 8px; }
+.vx-fields label, .vx-connect { display: flex; flex-direction: column; gap: 3px; font-size: 12px; font-weight: 600; color: var(--muted); }
+.vx-fields label.cb { flex-direction: row; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink); font-weight: 500; }
+.vx-two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.vx-enzf { border: 1px solid var(--line); border-radius: 10px; padding: 6px 10px 10px; display: grid; gap: 8px; margin: 0; }
+.vx-enzf legend { font-size: 12.5px; font-weight: 700; padding: 0 4px; }
+.vx-fields .side { font-size: 13px; display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.vx-connect { margin-top: 12px; }
+.vx-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.vx-all summary { cursor: pointer; font-size: 13.5px; }
+.vx-all .vx-list { margin: 6px 0 10px; }
+.linkish { font: inherit; font-size: 13.5px; color: var(--blue); background: none; border: 0; padding: 2px 0; cursor: pointer; text-align: left; text-decoration: underline; text-underline-offset: 2px; }
+.vx-chg { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 6px; font-size: 13px; }
+.vx-flash { animation: vxflash 1.6s ease-out 1; border-radius: 6px; }
+@keyframes vxflash { 0%, 40% { box-shadow: 0 0 0 3px var(--orange); } 100% { box-shadow: 0 0 0 0 transparent; } }
+.vx-prev summary { cursor: pointer; font-weight: 700; font-size: 15px; }
+.vx-prev[open] summary { margin-bottom: 10px; }
+.vx-prev svg.flow { max-width: 100%; height: auto; }
+/* Changed from the built-in: icon + word + a bar on the field — never color alone. */
+.ed-mark { display: inline-flex; align-items: center; gap: 3px; font-size: 11.5px; font-weight: 700; letter-spacing: .03em; text-transform: uppercase; color: var(--gold); }
+.ed-mark .mi { width: 15px; height: 15px; fill: currentColor; }
+.ed-mark.added { color: var(--teal); }
+.ed-mark.removed { color: var(--pink); }
+.ed-chg { display: inline-flex; align-items: center; gap: 8px; margin: 1px 0 2px; }
+.ed-revert { display: inline-flex; align-items: center; gap: 3px; font: inherit; font-size: 12px; font-weight: 700; color: var(--blue); background: var(--card); border: 1px solid var(--line); border-radius: 999px; padding: 2px 9px 2px 6px; cursor: pointer; }
+.ed-revert:hover { border-color: var(--blue); }
+.ed-revert .mi { width: 15px; height: 15px; fill: currentColor; }
+.editor label.edited, .editor .side.edited { box-shadow: inset 3px 0 0 var(--gold); padding-left: 8px; }
+.ed-changes { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; }
+.ed-changes li { display: flex; justify-content: space-between; align-items: center; gap: 8px; flex-wrap: wrap; font-size: 13.5px; }
+.vx-two > .ed-chg { grid-column: 1 / -1; }

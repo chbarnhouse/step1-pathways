@@ -13,6 +13,7 @@ const CHANGELOG = [
     'Take the tour and Report a problem moved from the top bar to Settings → Help and feedback.',
     'Building blocks: choose whether blanks you haven’t reached yet show their answers or stay as empty boxes (Later blanks, on New quiz or in Options).',
     'The diagram no longer gets cut off at the bottom, and the quiz toolbar no longer pushes the page sideways on narrower windows.',
+    'Visual pathway editor: drag metabolites around, drag from one box to another to add a step, and edit whatever you select in the side panel, with Undo and Redo. Form and JSON views are still there. On an edited built-in pathway, every field that differs is marked Edited and has its own Revert.',
   ] },
   { v: '3.7.0', date: '2026-10-17', items: [
     'Report a problem: describe a bug, a fact that looks wrong, or a suggestion from the Report button at the top. It opens a Google Form with your report filled in; sign in with Google and press Submit. Reports are private.',

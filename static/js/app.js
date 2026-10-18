@@ -598,6 +598,7 @@ function router() {
   else if (h === '#/pathways/new-combined') { page = 'pathways'; openEditor(null, { id: '', name: 'Combined pathway', group: 'Combined', summary: '', compose: [] }); }
   else if (h === '#/pathways/import') { page = 'pathways'; if (E.pending) openEditor(null, E.pending); else location.replace('#/pathways'); }
   else if ((m = h.match(/^#\/pathways\/([^/]+)\/edit$/))) { page = 'pathways'; openEditor(decodeURIComponent(m[1])); }
+  else if ((m = h.match(/^#\/pathways\/([^/]+)\/edit\/(.+)$/))) { page = 'pathways'; openEditor(decodeURIComponent(m[1]), null, decodeURIComponent(m[2])); }
   else if ((m = h.match(/^#\/pathways\/([^/]+)$/))) { page = 'pathways'; renderPathway(decodeURIComponent(m[1])); }
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
   else { location.replace('#/'); return; }
