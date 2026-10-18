@@ -28,6 +28,10 @@ function renderDashboard() {
       ${lastP ? `<button class="card hero-resume" data-dash="resume">${tileArt(lastP)}<span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(lastD)))}</span></span></button>` : ''}
       ${backupCardHTML()}
     </div>
+    ${favorites().length ? `<div class="dash-favs" data-tour="favs">${favorites().map(f => { const p = Library.get(f.d.pathway); return `<div class="favtile">
+      <button class="fav-go" data-dash="fav" data-id="${esc(f.id)}" title="Start this quiz">${p ? tileArt(p, 'sm') : ''}<span><b>${esc(f.name)}</b><span class="muted small">${esc(quizSummary(normalizeQuiz(f.d)))}</span></span>${mi('play_arrow', 'go')}</button>
+      <button class="fav-x" data-dash="unfav" data-id="${esc(f.id)}" title="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></div>`; }).join('')}</div>`
+      : `<p class="muted small dash-hint">${mi('star', 'sm')} Star a quiz on New quiz (or while you're in one) to pin it here.</p>`}
     ${mine.length ? `<div class="dash-presets"><span class="glabel">Your presets</span>${mine.map(p => `<a class="chip-link" href="#/new" data-dash="preset" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} ${esc(p.name)}</a>`).join('')}</div>` : ''}
     <div class="dash-cols">
       <section class="card pad dash-card">
@@ -80,7 +84,9 @@ document.addEventListener('click', e => {
   if (!$('#view .dash')) return;
   const b = e.target.closest('[data-dash]');
   if (!b) return;
-  if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) launchQuiz(quizFromDraft(normalizeDraft(last.cfg))); }
+  if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'unfav') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: `Remove “${f.name}” from favorites?`, ok: 'Remove' }).then(y => { if (y) { Store.data.favorites = favorites().filter(x => x !== f); Store.save(); renderDashboard(); } }); }
   if (b.dataset.dash === 'drill') {
     const pids = uniq(Stats.worst(50).map(r => r.pid));
     launchQuiz({ ...QUIZ_DEFAULTS, name: 'Weak spots', pathways: pids, mode: 'single', weak: true, el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'quiz', loc: 'show' } });
@@ -272,16 +278,36 @@ function renderCreate() {
         </details>
         <div class="side-foot">
           <button class="btn primary big" data-c="start" ${hasQuiz ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
-          <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button>
+          <span class="btnrow tight"><button class="btn ghost" data-c="fav" aria-pressed="${!!findFav(d)}">${mi(findFav(d) ? 'star_fill1' : 'star', 'sm')} ${findFav(d) ? 'Favorited' : 'Favorite'}</button>
+          <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button></span>
         </div>
       </aside>
     </div>
   </div>`;
   const st = $('#cStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
 }
-function launchQuiz(cfg) {
+/* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
+const favorites = () => Store.data.favorites || [];
+const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));
+function favName(d) {
+  const p = Library.get(d.pathway), pair = d.combine && pairOf(d.pathway);
+  return `${pair ? pair.name : p?.name || 'Quiz'} · ${MODE_NAMES[d.mode] || d.mode}`;
+}
+function toggleFav(d, then) {
+  const hit = findFav(d);
+  if (hit) { Store.data.favorites = favorites().filter(f => f !== hit); Store.save(); return then?.(); }
+  ask({ title: 'Add to favorites', text: 'Favorites appear on the dashboard and start this exact quiz in one click.', input: true, value: favName(d), ok: 'Add' }).then(name => {
+    if (!name) return;
+    Store.data.favorites = [...favorites(), { id: 'f-' + Date.now().toString(36), name, d: clone(d) }];
+    Store.save(); then?.();
+  });
+}
+function launchQuiz(cfg, draft = null) {
   local.set(CURRENT_QUIZ, cfg);
   startQuiz(cfg);
+  Q.draft = draft;
   if (location.hash === '#/quiz') renderQuiz(); else location.hash = '#/quiz';
 }
 document.addEventListener('click', e => {
@@ -302,8 +328,9 @@ document.addEventListener('click', e => {
   if (!a) return;
   if (a.dataset.c === 'start') {
     local.set(LAST_QUIZ, { cfg: d });
-    launchQuiz(quizFromDraft(d));
+    launchQuiz(quizFromDraft(d), clone(d));
   }
+  if (a.dataset.c === 'fav') toggleFav(d, renderCreate);
   if (a.dataset.c === 'savepreset') ask({ title: 'Save as preset', text: 'A preset keeps how you study (mode, answers, what to show or quiz) and works with any pathway.', input: true, ok: 'Save' }).then(name => {
     if (!name) return;
     const { pathway, combine, ...style } = clone(d);
@@ -409,7 +436,7 @@ function renderSettings() {
         : '<p class="muted">None yet. On Home, set up a quiz and press Save as preset.</p>'}
     </section>
     <section class="card pad"><h2>Your data</h2>
-      <p class="muted">${Store.mode === 'server' ? 'Saved on your Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
+      <p class="muted">${Store.mode === 'server' ? 'Saved on your STEP 1 Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
@@ -417,7 +444,7 @@ function renderSettings() {
     <section class="card pad"><h2>Guided tour</h2><p class="muted">A one-minute walk through the app.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show it automatically when I open Pathways</label></div></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">Pathways · open source on <a href="https://github.com/chbarnhouse/pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p></section>
+    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p></section>
   </div>`;
 }
 document.addEventListener('click', e => {
@@ -448,7 +475,7 @@ async function openingPrompt() {
   if (Store.mode !== 'local') return;
   if (isFresh()) {
     local.set('pathways.seen', Date.now());
-    const v = await ask({ title: 'Welcome to Pathways', text: 'Everything you do here is saved in this browser. If you’ve used Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
+    const v = await ask({ title: 'Welcome to STEP 1 Pathways', text: 'Everything you do here is saved in this browser. If you’ve used STEP 1 Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
     if (v === 'alt') $('#backupFile')?.click() || pickBackupFile();
     return;
   }
@@ -468,7 +495,7 @@ function pickBackupFile() {
 window.addEventListener('beforeunload', e => { if (remindersOn() && unsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
 function backupText() { return JSON.stringify({ pathwaysBackup: 1, savedAt: new Date().toISOString(), ...Store.data }, null, 1); }
 function downloadBackup() {
-  if (download(`pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
+  if (download(`step1-pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
 }
 document.addEventListener('click', e => {
   const db = e.target.closest('[data-data]');
@@ -485,7 +512,7 @@ document.addEventListener('change', e => {
   if (e.target.id !== 'backupFile') return;
   e.target.files[0]?.text().then(async t => {
     let b; try { b = JSON.parse(t); } catch (err) { return say('Can’t read that file', err.message); }
-    if (!b.pathwaysBackup) return say('Not a Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
+    if (!b.pathwaysBackup) return say('Not a STEP 1 Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
     if (!(await ask({ title: 'Replace your data with this backup?', text: `Saved ${b.savedAt ? new Date(b.savedAt).toLocaleString() : 'earlier'}. Your current pathways, presets, settings and history will be replaced.`, ok: 'Replace' }))) return;
     delete b.pathwaysBackup; delete b.savedAt;
     Store.data = Object.assign({ custom: {}, stats: {}, presets: [] }, b);

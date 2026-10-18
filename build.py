@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Build the no-server version of Pathways — the whole app in one HTML file.
+"""Build the no-server version of STEP 1 Pathways — the whole app in one HTML file.
 
-  docs/index.html                 GitHub Pages (https://chbarnhouse.github.io/pathways/) — committed
+  docs/index.html                 GitHub Pages (https://chbarnhouse.github.io/step1-pathways/) — committed
   dist/pathways.html              same file, to hand to someone directly
 
 

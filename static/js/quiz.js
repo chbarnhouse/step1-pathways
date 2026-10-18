@@ -580,6 +580,7 @@ function renderQuiz() {
       ${progress}
       <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
       <div class="qtools">${R.type !== 'none' && flow ? zoomBarHTML() : ''}
+        ${Q.draft ? `<button class="tbtn" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}<span>${findFav(Q.draft) ? 'Favorited' : 'Favorite'}</span></button>` : ''}
         <button class="tbtn" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)">${mi('lightbulb')}<span>Facts${nFacts ? ` <b class="count">${nFacts}</b>` : ''}</span></button>
         ${optionsHTML()}</div>
     </header>
@@ -755,6 +756,7 @@ document.addEventListener('click', e => {
   switch (b.dataset.act) {
     case 'pick': submit(q, b.dataset.v); break;
     case 'hint': hintLetter(q); break;
+    case 'fav': toggleFav(Q.draft, renderQuiz); break;
     case 'facts': Q.drawer = !Q.drawer; Q.focus = null; renderQuiz(); break;
     case 'closefacts': Q.drawer = false; Q.focus = null; renderQuiz(); break;
     case 'reveal': reveal(q); break;

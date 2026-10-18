@@ -3,9 +3,9 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Pathways</title>
+<title>STEP 1 Pathways</title>
 <meta name="claude:viewport-fit-sides" content="cover">
-<meta name="description" content="Study biochemical pathways: fill the blanks, recall whole pathways, drill single steps.">
+<meta name="description" content="STEP 1 Pathways: study biochemical pathways by filling blanks, rebuilding them from memory, and drilling single steps.">
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 -960 960 960%22%3E%3Cstyle%3Epath%7Bfill:#1d5fa8%7D%40media (prefers-color-scheme:dark)%7Bpath%7Bfill:#7fb2ea%7D%7D%3C/style%3E%3Cpath d=%22M440-80v-160H240L120-360l120-120h200v-80H160v-240h280v-80h80v80h200l120 120-120 120H520v80h280v240H520v160h-80ZM240-640h447l40-40-40-40H240v80Zm33 320h447v-80H273l-40 40 40 40Zm-33-320v-80 80Zm480 320v-80 80Z%22/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -657,12 +657,25 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .dash-cols { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 .dash table.stats th:nth-child(3), .dash table.stats td:nth-child(3) { display: none; }
 .dash .bar { width: 48px; }
+/* favorites */
+.dash-favs { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.favtile { position: relative; }
+.fav-go { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 40px 10px 10px; cursor: pointer; box-shadow: var(--shadow); }
+.fav-go:hover { border-color: var(--blue); }
+.fav-go > span:nth-child(2) { display: grid; min-width: 0; }
+.fav-go b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-go .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-go .go { margin-left: auto; fill: var(--blue); flex: none; }
+.fav-x { position: absolute; top: 6px; right: 6px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 2px; }
+.fav-x:hover { background: var(--sunk); color: var(--ink); }
+.dash-hint { display: flex; align-items: center; gap: 6px; }
+[data-c="fav"][aria-pressed="true"] .mi, [data-act="fav"][aria-pressed="true"] .mi { fill: var(--gold); }
 </style>
 </head>
 <body data-page="home">
 <header class="appbar">
   <div class="appbar-in">
-    <a class="brand" href="#/"><span id="brandIcon" class="brand-ic"></span><span>Pathways</span></a>
+    <a class="brand" href="#/"><span id="brandIcon" class="brand-ic"></span><span>STEP 1 Pathways</span></a>
     <nav class="nav" aria-label="Main">
       <a href="#/" data-nav="home" data-icon="home">Dashboard</a>
       <a href="#/new" data-nav="new" data-icon="play_arrow">New quiz</a>
@@ -817,7 +830,9 @@ const MI = {
 "monitor_heart": "M80-600v-120q0-33 23.5-56.5T160-800h640q33 0 56.5 23.5T880-720v120h-80v-120H160v120H80Zm80 440q-33 0-56.5-23.5T80-240v-120h80v120h640v-120h80v120q0 33-23.5 56.5T800-160H160Zm261-125.5q10-5.5 15-16.5l124-248 44 88q5 11 15 16.5t21 5.5h240v-80H665l-69-138q-5-11-15-15.5t-21-4.5q-11 0-21 4.5T524-658L400-410l-44-88q-5-11-15-16.5t-21-5.5H80v80h215l69 138q5 11 15 16.5t21 5.5q11 0 21-5.5ZM480-480Z",
 "history": "M480-120q-138 0-240.5-91.5T122-440h82q14 104 92.5 172T480-200q117 0 198.5-81.5T760-480q0-117-81.5-198.5T480-760q-69 0-129 32t-101 88h110v80H120v-240h80v94q51-64 124.5-99T480-840q75 0 140.5 28.5t114 77q48.5 48.5 77 114T840-480q0 75-28.5 140.5t-77 114q-48.5 48.5-114 77T480-120Zm112-192L440-464v-216h80v184l128 128-56 56Z",
 "schedule": "m612-292 56-56-148-148v-184h-80v216l172 172ZM480-80q-83 0-156-31.5T197-197q-54-54-85.5-127T80-480q0-83 31.5-156T197-763q54-54 127-85.5T480-880q83 0 156 31.5T763-763q54 54 85.5 127T880-480q0 83-31.5 156T763-197q-54 54-127 85.5T480-80Zm0-400Zm0 320q133 0 226.5-93.5T800-480q0-133-93.5-226.5T480-800q-133 0-226.5 93.5T160-480q0 133 93.5 226.5T480-160Z",
-"timer": "M360-840v-80h240v80H360Zm80 440h80v-240h-80v240Zm-99.5 291.5Q275-137 226-186t-77.5-114.5Q120-366 120-440t28.5-139.5Q177-645 226-694t114.5-77.5Q406-800 480-800q62 0 119 20t107 58l56-56 56 56-56 56q38 50 58 107t20 119q0 74-28.5 139.5T734-186q-49 49-114.5 77.5T480-80q-74 0-139.5-28.5ZM678-242q82-82 82-198t-82-198q-82-82-198-82t-198 82q-82 82-82 198t82 198q82 82 198 82t198-82ZM480-440Z"
+"timer": "M360-840v-80h240v80H360Zm80 440h80v-240h-80v240Zm-99.5 291.5Q275-137 226-186t-77.5-114.5Q120-366 120-440t28.5-139.5Q177-645 226-694t114.5-77.5Q406-800 480-800q62 0 119 20t107 58l56-56 56 56-56 56q38 50 58 107t20 119q0 74-28.5 139.5T734-186q-49 49-114.5 77.5T480-80q-74 0-139.5-28.5ZM678-242q82-82 82-198t-82-198q-82-82-198-82t-198 82q-82 82-82 198t82 198q82 82 198 82t198-82ZM480-440Z",
+"star": "m354-287 126-76 126 77-33-144 111-96-146-13-58-136-58 135-146 13 111 97-33 143ZM233-120l65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Zm247-350Z",
+"star_fill1": "m233-120 65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Z"
 };
 // mi('play_arrow') → inline SVG that inherits text color and size (1em).
 const mi = (name, cls = '') => `<svg class="mi ${cls}" viewBox="0 -960 960 960" aria-hidden="true"><path d="${MI[name]}"/></svg>`;
@@ -1823,7 +1838,7 @@ function renderEditor() {
       ${st === 'custom' ? '<button class="btn ghost" data-ed="delete">Delete</button>' : ''}
     </div>
   </div>
-  <p class="muted">${Store.mode === 'server' ? 'Saves to the Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}</p>
+  <p class="muted">${Store.mode === 'server' ? 'Saves to your STEP 1 Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}</p>
   <div class="ed-cols">
     <div class="ed-form">
       ${p.compose ? composeForm(p) : E.json ? `<section class="card ed-sec"><h3>Pathway JSON</h3><textarea id="edJson" rows="30" spellcheck="false">${esc(JSON.stringify(p, null, 2))}</textarea>
@@ -2607,6 +2622,7 @@ function renderQuiz() {
       ${progress}
       <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
       <div class="qtools">${R.type !== 'none' && flow ? zoomBarHTML() : ''}
+        ${Q.draft ? `<button class="tbtn" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}<span>${findFav(Q.draft) ? 'Favorited' : 'Favorite'}</span></button>` : ''}
         <button class="tbtn" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)">${mi('lightbulb')}<span>Facts${nFacts ? ` <b class="count">${nFacts}</b>` : ''}</span></button>
         ${optionsHTML()}</div>
     </header>
@@ -2782,6 +2798,7 @@ document.addEventListener('click', e => {
   switch (b.dataset.act) {
     case 'pick': submit(q, b.dataset.v); break;
     case 'hint': hintLetter(q); break;
+    case 'fav': toggleFav(Q.draft, renderQuiz); break;
     case 'facts': Q.drawer = !Q.drawer; Q.focus = null; renderQuiz(); break;
     case 'closefacts': Q.drawer = false; Q.focus = null; renderQuiz(); break;
     case 'reveal': reveal(q); break;
@@ -2862,13 +2879,13 @@ document.addEventListener('keydown', e => {
 const TOUR_NEVER = 'pathways.tourNever';
 const Tour = { i: 0, active: false };
 const TOUR_STEPS = [
-  { route: '#/', title: 'Welcome to Pathways', text: 'A one-minute tour of where everything is. Skip it any time; you can take it again from the Tour button at the top.' },
+  { route: '#/', title: 'Welcome to STEP 1 Pathways', text: 'A one-minute tour of where everything is. Skip it any time; you can take it again from the Tour button at the top.' },
   { route: '#/', sel: '.hero-new', title: 'Start a quiz', text: 'New quiz is where you pick a pathway and how to study it.' },
   { route: '#/', sel: '.hero-resume', title: 'Pick up where you left off', text: 'Resume reopens your last quiz with the same settings.' },
   { route: '#/', sel: '.dash-cols .dash-card', title: 'Weak spots', text: 'Every answer you miss, reveal or need a hint for is tracked. “Drill these” runs a quiz on just those items.' },
   { route: '#/', sel: '.dash-cols .dash-card:last-child', title: 'Progress', text: 'How often you get each pathway right on the first try. Click a pathway to see its diagram, steps and weak spots.' },
   { route: '#/', sel: '.hero-data', title: 'Your data', text: () => Store.mode === 'server'
-    ? 'This copy saves to your Pathways server, so every device sees the same progress.'
+    ? 'This copy saves to your STEP 1 Pathways server, so every device sees the same progress.'
     : 'Everything is saved in this browser only. Back up now and then; restore the file in any browser to carry on.' },
   { route: '#/new', sel: '.browsebar', title: 'Find a pathway', text: 'Search by pathway, enzyme, metabolite or tag. Filters stack: pick groups, your tags and a status together. Sort by group, A–Z, weakest first or recently studied.' },
   { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. Pathways marked “pairs up” (glycolysis and gluconeogenesis) can also be studied together.' },
@@ -3008,6 +3025,10 @@ function renderDashboard() {
       ${lastP ? `<button class="card hero-resume" data-dash="resume">${tileArt(lastP)}<span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(lastD)))}</span></span></button>` : ''}
       ${backupCardHTML()}
     </div>
+    ${favorites().length ? `<div class="dash-favs" data-tour="favs">${favorites().map(f => { const p = Library.get(f.d.pathway); return `<div class="favtile">
+      <button class="fav-go" data-dash="fav" data-id="${esc(f.id)}" title="Start this quiz">${p ? tileArt(p, 'sm') : ''}<span><b>${esc(f.name)}</b><span class="muted small">${esc(quizSummary(normalizeQuiz(f.d)))}</span></span>${mi('play_arrow', 'go')}</button>
+      <button class="fav-x" data-dash="unfav" data-id="${esc(f.id)}" title="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></div>`; }).join('')}</div>`
+      : `<p class="muted small dash-hint">${mi('star', 'sm')} Star a quiz on New quiz (or while you're in one) to pin it here.</p>`}
     ${mine.length ? `<div class="dash-presets"><span class="glabel">Your presets</span>${mine.map(p => `<a class="chip-link" href="#/new" data-dash="preset" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} ${esc(p.name)}</a>`).join('')}</div>` : ''}
     <div class="dash-cols">
       <section class="card pad dash-card">
@@ -3060,7 +3081,9 @@ document.addEventListener('click', e => {
   if (!$('#view .dash')) return;
   const b = e.target.closest('[data-dash]');
   if (!b) return;
-  if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) launchQuiz(quizFromDraft(normalizeDraft(last.cfg))); }
+  if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'fav') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'unfav') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: `Remove “${f.name}” from favorites?`, ok: 'Remove' }).then(y => { if (y) { Store.data.favorites = favorites().filter(x => x !== f); Store.save(); renderDashboard(); } }); }
   if (b.dataset.dash === 'drill') {
     const pids = uniq(Stats.worst(50).map(r => r.pid));
     launchQuiz({ ...QUIZ_DEFAULTS, name: 'Weak spots', pathways: pids, mode: 'single', weak: true, el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'quiz', loc: 'show' } });
@@ -3252,16 +3275,36 @@ function renderCreate() {
         </details>
         <div class="side-foot">
           <button class="btn primary big" data-c="start" ${hasQuiz ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
-          <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button>
+          <span class="btnrow tight"><button class="btn ghost" data-c="fav" aria-pressed="${!!findFav(d)}">${mi(findFav(d) ? 'star_fill1' : 'star', 'sm')} ${findFav(d) ? 'Favorited' : 'Favorite'}</button>
+          <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button></span>
         </div>
       </aside>
     </div>
   </div>`;
   const st = $('#cStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
 }
-function launchQuiz(cfg) {
+/* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
+const favorites = () => Store.data.favorites || [];
+const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));
+function favName(d) {
+  const p = Library.get(d.pathway), pair = d.combine && pairOf(d.pathway);
+  return `${pair ? pair.name : p?.name || 'Quiz'} · ${MODE_NAMES[d.mode] || d.mode}`;
+}
+function toggleFav(d, then) {
+  const hit = findFav(d);
+  if (hit) { Store.data.favorites = favorites().filter(f => f !== hit); Store.save(); return then?.(); }
+  ask({ title: 'Add to favorites', text: 'Favorites appear on the dashboard and start this exact quiz in one click.', input: true, value: favName(d), ok: 'Add' }).then(name => {
+    if (!name) return;
+    Store.data.favorites = [...favorites(), { id: 'f-' + Date.now().toString(36), name, d: clone(d) }];
+    Store.save(); then?.();
+  });
+}
+function launchQuiz(cfg, draft = null) {
   local.set(CURRENT_QUIZ, cfg);
   startQuiz(cfg);
+  Q.draft = draft;
   if (location.hash === '#/quiz') renderQuiz(); else location.hash = '#/quiz';
 }
 document.addEventListener('click', e => {
@@ -3282,8 +3325,9 @@ document.addEventListener('click', e => {
   if (!a) return;
   if (a.dataset.c === 'start') {
     local.set(LAST_QUIZ, { cfg: d });
-    launchQuiz(quizFromDraft(d));
+    launchQuiz(quizFromDraft(d), clone(d));
   }
+  if (a.dataset.c === 'fav') toggleFav(d, renderCreate);
   if (a.dataset.c === 'savepreset') ask({ title: 'Save as preset', text: 'A preset keeps how you study (mode, answers, what to show or quiz) and works with any pathway.', input: true, ok: 'Save' }).then(name => {
     if (!name) return;
     const { pathway, combine, ...style } = clone(d);
@@ -3389,7 +3433,7 @@ function renderSettings() {
         : '<p class="muted">None yet. On Home, set up a quiz and press Save as preset.</p>'}
     </section>
     <section class="card pad"><h2>Your data</h2>
-      <p class="muted">${Store.mode === 'server' ? 'Saved on your Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
+      <p class="muted">${Store.mode === 'server' ? 'Saved on your STEP 1 Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
@@ -3397,7 +3441,7 @@ function renderSettings() {
     <section class="card pad"><h2>Guided tour</h2><p class="muted">A one-minute walk through the app.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show it automatically when I open Pathways</label></div></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">Pathways · open source on <a href="https://github.com/chbarnhouse/pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p></section>
+    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p></section>
   </div>`;
 }
 document.addEventListener('click', e => {
@@ -3428,7 +3472,7 @@ async function openingPrompt() {
   if (Store.mode !== 'local') return;
   if (isFresh()) {
     local.set('pathways.seen', Date.now());
-    const v = await ask({ title: 'Welcome to Pathways', text: 'Everything you do here is saved in this browser. If you’ve used Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
+    const v = await ask({ title: 'Welcome to STEP 1 Pathways', text: 'Everything you do here is saved in this browser. If you’ve used STEP 1 Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
     if (v === 'alt') $('#backupFile')?.click() || pickBackupFile();
     return;
   }
@@ -3448,7 +3492,7 @@ function pickBackupFile() {
 window.addEventListener('beforeunload', e => { if (remindersOn() && unsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
 function backupText() { return JSON.stringify({ pathwaysBackup: 1, savedAt: new Date().toISOString(), ...Store.data }, null, 1); }
 function downloadBackup() {
-  if (download(`pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
+  if (download(`step1-pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
 }
 document.addEventListener('click', e => {
   const db = e.target.closest('[data-data]');
@@ -3465,7 +3509,7 @@ document.addEventListener('change', e => {
   if (e.target.id !== 'backupFile') return;
   e.target.files[0]?.text().then(async t => {
     let b; try { b = JSON.parse(t); } catch (err) { return say('Can’t read that file', err.message); }
-    if (!b.pathwaysBackup) return say('Not a Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
+    if (!b.pathwaysBackup) return say('Not a STEP 1 Pathways backup', 'Use a file made with Download backup. To add a single pathway, use Import in the library.');
     if (!(await ask({ title: 'Replace your data with this backup?', text: `Saved ${b.savedAt ? new Date(b.savedAt).toLocaleString() : 'earlier'}. Your current pathways, presets, settings and history will be replaced.`, ok: 'Replace' }))) return;
     delete b.pathwaysBackup; delete b.savedAt;
     Store.data = Object.assign({ custom: {}, stats: {}, presets: [] }, b);

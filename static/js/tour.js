@@ -6,13 +6,13 @@
 const TOUR_NEVER = 'pathways.tourNever';
 const Tour = { i: 0, active: false };
 const TOUR_STEPS = [
-  { route: '#/', title: 'Welcome to Pathways', text: 'A one-minute tour of where everything is. Skip it any time; you can take it again from the Tour button at the top.' },
+  { route: '#/', title: 'Welcome to STEP 1 Pathways', text: 'A one-minute tour of where everything is. Skip it any time; you can take it again from the Tour button at the top.' },
   { route: '#/', sel: '.hero-new', title: 'Start a quiz', text: 'New quiz is where you pick a pathway and how to study it.' },
   { route: '#/', sel: '.hero-resume', title: 'Pick up where you left off', text: 'Resume reopens your last quiz with the same settings.' },
   { route: '#/', sel: '.dash-cols .dash-card', title: 'Weak spots', text: 'Every answer you miss, reveal or need a hint for is tracked. “Drill these” runs a quiz on just those items.' },
   { route: '#/', sel: '.dash-cols .dash-card:last-child', title: 'Progress', text: 'How often you get each pathway right on the first try. Click a pathway to see its diagram, steps and weak spots.' },
   { route: '#/', sel: '.hero-data', title: 'Your data', text: () => Store.mode === 'server'
-    ? 'This copy saves to your Pathways server, so every device sees the same progress.'
+    ? 'This copy saves to your STEP 1 Pathways server, so every device sees the same progress.'
     : 'Everything is saved in this browser only. Back up now and then; restore the file in any browser to carry on.' },
   { route: '#/new', sel: '.browsebar', title: 'Find a pathway', text: 'Search by pathway, enzyme, metabolite or tag. Filters stack: pick groups, your tags and a status together. Sort by group, A–Z, weakest first or recently studied.' },
   { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. Pathways marked “pairs up” (glycolysis and gluconeogenesis) can also be studied together.' },

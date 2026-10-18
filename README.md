@@ -1,8 +1,8 @@
-# Pathways
+# STEP 1 Pathways
 
 Study biochemical pathways for STEP 1: fill the blanks on the diagram, rebuild whole pathways from memory, or drill single steps from either side.
 
-**Use it:** https://chbarnhouse.github.io/pathways/ — nothing to install or sign into. Your progress, presets and any pathways you add stay in your own browser (Settings → Export backup to move them).
+**Use it:** https://chbarnhouse.github.io/step1-pathways/ — nothing to install or sign into. Your progress, presets and any pathways you add stay in your own browser (Settings → Export backup to move them).
 
 ## What's in it
 - **20 pathways**: glycolysis, gluconeogenesis (and the two combined), TCA, urea cycle, pentose phosphate, glycogen synthesis and breakdown, fatty acid synthesis, β-oxidation, ketogenesis, cholesterol, steroidogenesis, heme, catecholamines, purine and pyrimidine synthesis, galactose, fructose, polyol.

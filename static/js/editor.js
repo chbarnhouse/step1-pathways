@@ -142,7 +142,7 @@ function renderEditor() {
       ${st === 'custom' ? '<button class="btn ghost" data-ed="delete">Delete</button>' : ''}
     </div>
   </div>
-  <p class="muted">${Store.mode === 'server' ? 'Saves to the Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}</p>
+  <p class="muted">${Store.mode === 'server' ? 'Saves to your STEP 1 Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}</p>
   <div class="ed-cols">
     <div class="ed-form">
       ${p.compose ? composeForm(p) : E.json ? `<section class="card ed-sec"><h3>Pathway JSON</h3><textarea id="edJson" rows="30" spellcheck="false">${esc(JSON.stringify(p, null, 2))}</textarea>

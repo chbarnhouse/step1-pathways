@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pathways — self-hosted server for studying biochemical pathways.
+"""STEP 1 Pathways — self-hosted server for studying biochemical pathways.
 
 Standard library only. Serves the app from ./static plus:
 
@@ -95,5 +95,5 @@ class Handler(SimpleHTTPRequestHandler):
 if __name__ == "__main__":
     host = os.environ.get("HOST", "0.0.0.0")
     port = int(os.environ.get("PORT", "8000"))
-    print(f"Pathways on http://{host}:{port}  (data: {DATA})")
+    print(f"STEP 1 Pathways on http://{host}:{port}  (data: {DATA})")
     ThreadingHTTPServer((host, port), Handler).serve_forever()

@@ -644,3 +644,16 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .dash-cols { grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); }
 .dash table.stats th:nth-child(3), .dash table.stats td:nth-child(3) { display: none; }
 .dash .bar { width: 48px; }
+/* favorites */
+.dash-favs { display: grid; gap: 10px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+.favtile { position: relative; }
+.fav-go { width: 100%; display: flex; align-items: center; gap: 10px; text-align: left; font: inherit; color: var(--ink); background: var(--card); border: 1px solid var(--line); border-radius: 12px; padding: 10px 40px 10px 10px; cursor: pointer; box-shadow: var(--shadow); }
+.fav-go:hover { border-color: var(--blue); }
+.fav-go > span:nth-child(2) { display: grid; min-width: 0; }
+.fav-go b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-go .muted { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.fav-go .go { margin-left: auto; fill: var(--blue); flex: none; }
+.fav-x { position: absolute; top: 6px; right: 6px; border: 0; background: none; color: var(--muted); cursor: pointer; border-radius: 6px; padding: 2px; }
+.fav-x:hover { background: var(--sunk); color: var(--ink); }
+.dash-hint { display: flex; align-items: center; gap: 6px; }
+[data-c="fav"][aria-pressed="true"] .mi, [data-act="fav"][aria-pressed="true"] .mi { fill: var(--gold); }
