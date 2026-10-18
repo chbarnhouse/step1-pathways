@@ -5,8 +5,10 @@
      also_from[]        side inputs drawn as metabolites (e.g. gluconeogenic aldolase ← DHAP)
      branch:true        a side reaction between a spine metabolite and a side one, either direction
      cofactors {in,out} ids from the shared cofactor list or the pathway's own `cofactors`
-     reversible, multiplier, loc, requires[], tags[]
-   circular:true → the last spine reaction returns to the first metabolite. */
+       reversible, multiplier, requires[], tags[]
+     loc        compartment (cytosol, mitochondrial matrix, ER lumen…); tissue: organ/cell type when it differs within a pathway
+     transport  the step moves a metabolite between compartments; its "enzyme" is the transporter
+   circular:true → the last spine reaction returns to the first metabolite. pathway.tissue = where the pathway runs. */
 'use strict';
 
 function buildModel(p, sharedCof = Library.sharedCof()) {
@@ -29,7 +31,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   const m0 = { cof };
   for (const r of rx) {
     const e = enzs[r.enzyme];
-    items['e:' + r.id] = { key: 'e:' + r.id, kind: 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], notes: e.notes };
+    items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], notes: e.notes };
     // A reaction's cofactor set is its own quizzable item (only when it has one).
     const c = r.cofactors || {};
     if ((c.in || []).length || (c.out || []).length)
@@ -48,6 +50,8 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   const pushRx = r => { push('e:' + r.id); if (items['c:' + r.id]) push('c:' + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
+    // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.
+    for (const b of branches) if (b.to === id && !onSpine.has(b.from) && !seen.has('m:' + b.from) && !rx.some(r => (r.also_to || []).includes(b.from) || (r !== b && r.to === b.from))) { push('m:' + b.from); pushRx(b); }
     push('m:' + id);
     for (const b of branches) {
       if (b.from !== id || seen.has('e:' + b.id)) continue;
@@ -64,9 +68,17 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     pushRx(r);
     for (const s of r.also_to || []) pushMet(s);
     if (!(p.circular && r.to === spineMets[0])) pushMet(r.to);
+    // Bypasses between two metabolites already read (a combined pathway's reverse steps) follow right away.
+    for (const b of branches) if (onSpine.has(b.from) && onSpine.has(b.to) && seen.has('m:' + b.from) && seen.has('m:' + b.to)) pushRx(b);
   }
   for (const k of Object.keys(items)) push(k); // anything unreachable still gets studied
 
+  // Grids (steroidogenesis) have no single main line: read them in the order the steps are written.
+  if (p.layout === 'grid') {
+    seq.length = 0; seen.clear();
+    for (const r of rx) { pushMet(r.from); pushRx(r); pushMet(r.to); }
+    for (const k of Object.keys(items)) push(k);
+  }
   const pairs = [];
   for (const r of rx) {
     pairs.push({ r, a: r.from, b: r.to });
@@ -124,7 +136,7 @@ function modelFor(p) {
 function pathwaysWithEnzyme(item) {
   const names = e => [e.name, ...(e.aliases || [])].map(norm);
   const acc = new Set(names(item)), out = [];
-  for (const p of Object.values(Library.all()))
+  for (const p of Library.atomic())
     if (Object.values(p.enzymes || {}).some(e => names(e).some(a => acc.has(a)))) out.push(p);
   return out;
 }
@@ -149,3 +161,18 @@ function sameSet(a, b) { const A = new Set(a), B = new Set(b); return A.size ===
 const reactantsOf = r => [r.from, ...(r.also_from || [])];
 const productsOf = r => [r.to, ...(r.also_to || [])];
 const metNames = (m, ids) => ids.map(id => m.p.metabolites[id]?.name || id).join(' + ');
+
+/* ---------- locations ---------- */
+// Label for where a step happens: compartment, plus tissue when the pathway spans more than one.
+function locLabel(m, r) {
+  const tissues = new Set(m.p.reactions.map(x => x.tissue || '').filter(Boolean));
+  return [tissues.size > 1 || (tissues.size === 1 && m.p.reactions.some(x => !x.tissue)) ? r.tissue || m.p.tissue : '', r.loc].filter(Boolean).join(' · ');
+}
+// Loose match for typed locations: "mito", "matrix" and "mitochondrion" all mean mitochondria; cytoplasm = cytosol.
+function canonLoc(s) {
+  const n = norm(s);
+  if (/mito|matrix|innermembrane|intermembrane/.test(n)) return 'mitochondria';
+  if (/cyto(sol|plasm)|cytoplasm/.test(n)) return 'cytosol';
+  if (/^er|endoplasmic|smoother|rougher|microsom/.test(n)) return 'er';
+  return [['lysosom', 'lysosome'], ['peroxisom', 'peroxisome'], ['nucle', 'nucleus'], ['vesic', 'vesicle'], ['brush', 'brush border'], ['plasmamembrane', 'plasma membrane'], ['blood', 'blood'], ['golgi', 'golgi']].find(([k]) => n.includes(k))?.[1] || n;
+}

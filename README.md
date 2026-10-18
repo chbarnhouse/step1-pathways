@@ -1,24 +1,30 @@
 # Pathways
 
-Study app for biochemical pathways. Python standard library only — no dependencies.
+Study biochemical pathways for STEP 1: fill the blanks on the diagram, rebuild whole pathways from memory, or drill single steps from either side.
 
-Two ways to run the same front end:
+**Use it:** https://chbarnhouse.github.io/pathways/ — nothing to install or sign into. Your progress, presets and any pathways you add stay in your own browser (Settings → Export backup to move them).
 
-| | Where your edits and history live | How |
+## What's in it
+- **20 pathways**: glycolysis, gluconeogenesis (and the two combined), TCA, urea cycle, pentose phosphate, glycogen synthesis and breakdown, fatty acid synthesis, β-oxidation, ketogenesis, cholesterol, steroidogenesis, heme, catecholamines, purine and pyrimidine synthesis, galactose, fructose, polyol.
+- **Quiz styles**: fill the blanks · full recall (from the top, a random point, or any step) · name the enzyme from two metabolites · given an enzyme, name its reactants, products, cofactors, location and pathway · cofactor drill · direction. Every element (metabolites, enzymes, transporters, cofactors, locations, direction, pathway) can be shown, quizzed or hidden.
+- **Answers**: type into the diagram · type along (the answer is shown faintly; type it to fill it in) · multiple choice · self-check. Typing ignores case, spaces and punctuation, takes abbreviations, and accepts a/alpha for α, b/beta for β, and so on.
+- **Weak spots**: every answer is tracked; drill the ones you miss most.
+- **Editor**: add or change pathways (line, cycle or grid layouts; side steps, transporters, compartments and tissues), combine pathways, and share them as JSON.
+
+## Running your own copy
+Two ways to run the same app:
+
+| | Where data lives | How |
 |---|---|---|
-| **Self-hosted** | on the server (`data/user/state.json`), shared by every device | `python3 server.py` → http://localhost:8000 · deployed at https://pathways.chbarnhouse.com via `./deploy.sh` |
-| **Standalone** | in that browser only (export/import to move pathways) | `python3 build.py` → `dist/pathways.html` (open anywhere) and `dist/pathways-artifact.html` (the shared claude.ai copy) |
-
-## Studying
-- **Modes** — Single blank · Full recall (random start, a chosen item, or the beginning with nothing shown; forward to the end, then backward; cycles go around) · Single step, given **two metabolites** (→ enzyme, cofactors, direction) or **the enzyme** (→ reactants, products, cofactors, pathway — drawn from all pathways)
-- **Quiz setup** — each element (metabolites, enzymes, cofactors, direction, pathway) is set to Show, Quiz or Hide for the current mode
-- **Answers** — Type (on the diagram in occlusion modes; case/space/punctuation-insensitive, accepts aliases, "phosphate" ≡ "P") · Choice (never mixes kinds) · Self-check. Reveal answer on Type and Choice.
-- **Diagram** — Flow or List; zoom, Fit width, Fit to frame, and Follow (keeps the current blank centered)
-- **Weak spots** — every answer is recorded per item; "Weak spots first" weights the deck toward misses
+| **Static** | each browser | `python3 build.py` → `docs/index.html` (GitHub Pages) and `dist/pathways.html` (one file, open anywhere) |
+| **Self-hosted** | on the server, shared by every device | `python3 server.py` → http://localhost:8000. Python standard library only. `./deploy.sh` installs it on a Proxmox container (configure `deploy.env`, see `deploy.env.example`). |
 
 ## Pathway files
-`data/pathways/*.json`, one per pathway (the in-app editor writes the same shape):
-- `metabolites` / `enzymes`: `{id: {name, short, aliases[], notes}}`
-- `reactions` in order: `{id, enzyme, from, to, reversible, cofactors: {in[], out[]}, also_to[] (side products), also_from[] (side inputs), branch (side step), multiplier, loc, requires[], tags[]}`
-- `circular`, `group`, `aliases` (other names for the pathway), `multiplier_label`, `distractors` (extra wrong answers for multiple choice), optional pathway-specific `cofactors`
-- Shared cofactor ids: `data/cofactors.json`
+`data/pathways/*.json`, one per pathway; `node tools/validate.js` checks them all.
+- `metabolites` / `enzymes`: `{id: {name, short, aliases[], notes}}` (+ `pos: [col,row]` on metabolites in a grid)
+- `reactions` in order: `{id, enzyme, from, to, reversible, cofactors: {in[], out[]}, also_to[], also_from[], branch, transport, loc, tissue, multiplier, requires[], tags[]}`
+- pathway-level: `group`, `aliases`, `tissue`, `circular` or `layout: "grid"` (+ `grid_columns`), `multiplier_label`, `distractors`, `cofactors`
+- combined pathways: `{id, name, compose: ["glycolysis", "gluconeogenesis"]}` — merged by name at load time
+- shared cofactor ids: `data/cofactors.json`
+
+Icons: [Material Symbols](https://fonts.google.com/icons) (Apache 2.0).

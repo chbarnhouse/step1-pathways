@@ -1,0 +1,672 @@
+{
+ "id": "steroidogenesis",
+ "name": "Steroidogenesis",
+ "group": "Lipids",
+ "layout": "grid",
+ "aliases": [
+  "steroid synthesis",
+  "adrenal steroid synthesis",
+  "steroid hormone synthesis"
+ ],
+ "tissue": "adrenal cortex (and gonads)",
+ "grid_columns": [
+  "Mineralocorticoids",
+  "Glucocorticoids",
+  "Androgens",
+  "Estrogens · DHT"
+ ],
+ "summary": "Cholesterol → every steroid hormone. StAR moving cholesterol into the mitochondrion is the true rate-limiting event; desmolase (CYP11A1) is the rate-limiting enzyme, driven by ACTH (adrenal) and LH (gonads). Columns follow the adrenal zones: glomerulosa (salt — aldosterone, angiotensin II), fasciculata (sugar — cortisol, ACTH), reticularis (sex — androgens, ACTH). Most enzymes are cytochrome P450s (NADPH + O₂).",
+ "metabolites": {
+  "chol": {
+   "name": "Cholesterol",
+   "short": "",
+   "aliases": [],
+   "notes": "From LDL uptake (mainly) or made in place; stored as cholesteryl esters.",
+   "pos": [
+    0,
+    0
+   ]
+  },
+  "cholm": {
+   "name": "Cholesterol (mitochondria)",
+   "short": "",
+   "aliases": [
+    "cholesterol"
+   ],
+   "pos": [
+    0,
+    1
+   ]
+  },
+  "preg": {
+   "name": "Pregnenolone",
+   "short": "",
+   "aliases": [],
+   "notes": "Precursor to all steroid hormones.",
+   "pos": [
+    0,
+    2
+   ]
+  },
+  "ohpreg": {
+   "name": "17α-Hydroxypregnenolone",
+   "short": "17-OH-pregnenolone",
+   "aliases": [
+    "17-hydroxypregnenolone",
+    "17 alpha hydroxypregnenolone"
+   ],
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "dhea": {
+   "name": "DHEA",
+   "short": "DHEA",
+   "aliases": [
+    "dehydroepiandrosterone"
+   ],
+   "notes": "Main adrenal androgen (with DHEA-S); weak on its own.",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "prog": {
+   "name": "Progesterone",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    3
+   ]
+  },
+  "ohprog": {
+   "name": "17α-Hydroxyprogesterone",
+   "short": "17-OH-progesterone",
+   "aliases": [
+    "17-hydroxyprogesterone",
+    "17-OHP"
+   ],
+   "notes": "↑ in 21-hydroxylase deficiency — the newborn screening marker.",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "andro": {
+   "name": "Androstenedione",
+   "short": "",
+   "aliases": [
+    "androstenedione"
+   ],
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "estrone": {
+   "name": "Estrone",
+   "short": "E1",
+   "aliases": [],
+   "notes": "Main estrogen after menopause (made in adipose).",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "doc": {
+   "name": "11-Deoxycorticosterone",
+   "short": "DOC",
+   "aliases": [
+    "deoxycorticosterone",
+    "11-deoxycorticosterone"
+   ],
+   "notes": "A weak mineralocorticoid — in excess (11β-hydroxylase or 17α-hydroxylase deficiency) it causes hypertension and hypokalemia.",
+   "pos": [
+    0,
+    4
+   ]
+  },
+  "deoxycortisol": {
+   "name": "11-Deoxycortisol",
+   "short": "",
+   "aliases": [
+    "deoxycortisol",
+    "11-deoxycortisol"
+   ],
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "testo": {
+   "name": "Testosterone",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "estradiol": {
+   "name": "Estradiol",
+   "short": "E2",
+   "aliases": [
+    "17β-estradiol",
+    "oestradiol"
+   ],
+   "pos": [
+    3,
+    4
+   ]
+  },
+  "corticosterone": {
+   "name": "Corticosterone",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    5
+   ]
+  },
+  "cortisol": {
+   "name": "Cortisol",
+   "short": "",
+   "aliases": [
+    "hydrocortisone"
+   ],
+   "notes": "Feeds back on ACTH. Low cortisol → ↑ ACTH → adrenal hyperplasia in CAH.",
+   "pos": [
+    1,
+    5
+   ]
+  },
+  "dht": {
+   "name": "Dihydrotestosterone",
+   "short": "DHT",
+   "aliases": [
+    "dihydrotestosterone",
+    "5α-dihydrotestosterone"
+   ],
+   "notes": "Drives external male genitalia, prostate growth, male-pattern baldness.",
+   "pos": [
+    2,
+    5
+   ]
+  },
+  "aldo": {
+   "name": "Aldosterone",
+   "short": "",
+   "aliases": [],
+   "notes": "Zona glomerulosa only; driven by angiotensin II and K⁺, not much by ACTH.",
+   "pos": [
+    0,
+    6
+   ]
+  }
+ },
+ "enzymes": {
+  "star": {
+   "name": "StAR protein",
+   "short": "StAR",
+   "aliases": [
+    "steroidogenic acute regulatory protein",
+    "star"
+   ],
+   "notes": "Moves cholesterol from the outer to the inner mitochondrial membrane — the acute, rate-limiting event. Mutations → congenital lipoid adrenal hyperplasia."
+  },
+  "scc": {
+   "name": "Desmolase",
+   "short": "CYP11A1",
+   "aliases": [
+    "cholesterol desmolase",
+    "cholesterol side-chain cleavage enzyme",
+    "side-chain cleavage enzyme",
+    "P450scc",
+    "CYP11A1"
+   ],
+   "notes": "Rate-limiting enzyme. Stimulated by ACTH (adrenal) and LH (gonads). Inhibited by ketoconazole (also blocks 17,20-lyase)."
+  },
+  "hsd3b": {
+   "name": "3β-Hydroxysteroid dehydrogenase",
+   "short": "3β-HSD",
+   "aliases": [
+    "3-beta-hydroxysteroid dehydrogenase",
+    "3 beta HSD",
+    "3β-HSD"
+   ],
+   "notes": "Acts at three spots (pregnenolone, 17-OH-pregnenolone, DHEA). Deficiency: ↓ all three classes, salt wasting; ambiguous genitalia in both sexes."
+  },
+  "cyp17h": {
+   "name": "17α-Hydroxylase",
+   "short": "CYP17A1",
+   "aliases": [
+    "17-alpha-hydroxylase",
+    "17 alpha hydroxylase",
+    "17-hydroxylase",
+    "CYP17"
+   ],
+   "notes": "Deficiency: ↓ cortisol and sex hormones, ↑ DOC → hypertension, hypokalemia; XY undervirilized (female-appearing), XX lacks secondary sexual development. Abiraterone inhibits CYP17."
+  },
+  "cyp17l": {
+   "name": "17,20-Lyase",
+   "short": "CYP17A1",
+   "aliases": [
+    "17,20 lyase",
+    "17,20-desmolase",
+    "17 20 lyase"
+   ],
+   "notes": "Same CYP17A1 protein as 17α-hydroxylase. Inhibited by ketoconazole and abiraterone."
+  },
+  "cyp21": {
+   "name": "21-Hydroxylase",
+   "short": "CYP21A2",
+   "aliases": [
+    "21-hydroxylase",
+    "21 hydroxylase",
+    "21-alpha-hydroxylase",
+    "CYP21"
+   ],
+   "notes": "Most common CAH (>90%): ↓ cortisol and aldosterone, ↑ 17-OH-progesterone and androgens → salt wasting, hypotension, hyperkalemia, ↑ renin; virilized XX, precocious puberty in XY."
+  },
+  "cyp11b1": {
+   "name": "11β-Hydroxylase",
+   "short": "CYP11B1",
+   "aliases": [
+    "11-beta-hydroxylase",
+    "11 beta hydroxylase",
+    "CYP11B1"
+   ],
+   "notes": "Deficiency: ↓ cortisol and aldosterone but ↑ 11-deoxycorticosterone → hypertension and hypokalemia (↓ renin), plus virilization."
+  },
+  "cyp11b2": {
+   "name": "Aldosterone synthase",
+   "short": "CYP11B2",
+   "aliases": [
+    "aldosterone synthetase",
+    "18-hydroxylase",
+    "CYP11B2"
+   ],
+   "notes": "Zona glomerulosa only; activated by angiotensin II and hyperkalemia."
+  },
+  "hsd17b": {
+   "name": "17β-Hydroxysteroid dehydrogenase",
+   "short": "17β-HSD",
+   "aliases": [
+    "17-beta-hydroxysteroid dehydrogenase",
+    "17 beta HSD",
+    "17β-HSD"
+   ],
+   "notes": "Testes (Leydig cells) and ovary. Deficiency → undervirilized XY."
+  },
+  "arom": {
+   "name": "Aromatase",
+   "short": "CYP19A1",
+   "aliases": [
+    "CYP19",
+    "estrogen synthase",
+    "aromatase"
+   ],
+   "notes": "Granulosa cells, adipose, placenta. Inhibitors (anastrozole, letrozole) treat ER+ breast cancer. Deficiency → maternal virilization in pregnancy."
+  },
+  "srd5a": {
+   "name": "5α-Reductase",
+   "short": "SRD5A2",
+   "aliases": [
+    "5-alpha-reductase",
+    "5 alpha reductase",
+    "5α reductase"
+   ],
+   "notes": "Peripheral tissues (prostate, skin, hair follicles). Finasteride inhibits it (BPH, male-pattern baldness). Deficiency → ambiguous genitalia at birth, virilizing at puberty."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "star",
+   "from": "chol",
+   "to": "cholm",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "outer → inner mitochondrial membrane",
+   "tags": [
+    "rate-limiting"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "scc",
+   "from": "cholm",
+   "to": "preg",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "mitochondria",
+   "tags": [
+    "rate-limiting",
+    "irreversible"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "cyp17h",
+   "from": "preg",
+   "to": "ohpreg",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "zona fasciculata / reticularis"
+  },
+  {
+   "id": "r4",
+   "enzyme": "cyp17l",
+   "from": "ohpreg",
+   "to": "dhea",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "zona reticularis"
+  },
+  {
+   "id": "r5",
+   "enzyme": "hsd3b",
+   "from": "preg",
+   "to": "prog",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "smooth ER"
+  },
+  {
+   "id": "r6",
+   "enzyme": "hsd3b",
+   "from": "ohpreg",
+   "to": "ohprog",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "smooth ER"
+  },
+  {
+   "id": "r7",
+   "enzyme": "hsd3b",
+   "from": "dhea",
+   "to": "andro",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "smooth ER"
+  },
+  {
+   "id": "r8",
+   "enzyme": "cyp17h",
+   "from": "prog",
+   "to": "ohprog",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER"
+  },
+  {
+   "id": "r9",
+   "enzyme": "cyp17l",
+   "from": "ohprog",
+   "to": "andro",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER"
+  },
+  {
+   "id": "r10",
+   "enzyme": "cyp21",
+   "from": "prog",
+   "to": "doc",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "zona glomerulosa"
+  },
+  {
+   "id": "r11",
+   "enzyme": "cyp21",
+   "from": "ohprog",
+   "to": "deoxycortisol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "zona fasciculata"
+  },
+  {
+   "id": "r12",
+   "enzyme": "cyp11b1",
+   "from": "doc",
+   "to": "corticosterone",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "mitochondria",
+   "tissue": "zona glomerulosa"
+  },
+  {
+   "id": "r13",
+   "enzyme": "cyp11b1",
+   "from": "deoxycortisol",
+   "to": "cortisol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "mitochondria",
+   "tissue": "zona fasciculata"
+  },
+  {
+   "id": "r14",
+   "enzyme": "cyp11b2",
+   "from": "corticosterone",
+   "to": "aldo",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "mitochondria",
+   "tissue": "zona glomerulosa"
+  },
+  {
+   "id": "r15",
+   "enzyme": "hsd17b",
+   "from": "andro",
+   "to": "testo",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "testes (Leydig cells)"
+  },
+  {
+   "id": "r16",
+   "enzyme": "arom",
+   "from": "andro",
+   "to": "estrone",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "adipose, ovary"
+  },
+  {
+   "id": "r17",
+   "enzyme": "arom",
+   "from": "testo",
+   "to": "estradiol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph",
+     "o2"
+    ],
+    "out": [
+     "nadp",
+     "h2o"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "ovary (granulosa), adipose"
+  },
+  {
+   "id": "r18",
+   "enzyme": "srd5a",
+   "from": "testo",
+   "to": "dht",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "ER",
+   "tissue": "prostate, skin, hair follicles"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Estriol",
+   "DHEA-S",
+   "18-Hydroxycorticosterone",
+   "Cortisone",
+   "Calcitriol",
+   "Lanosterol",
+   "Mevalonate"
+  ],
+  "enzymes": [
+   "11β-Hydroxysteroid dehydrogenase type 2",
+   "HMG-CoA reductase",
+   "Sulfotransferase",
+   "1α-Hydroxylase",
+   "Squalene epoxidase",
+   "CYP3A4"
+  ]
+ }
+}

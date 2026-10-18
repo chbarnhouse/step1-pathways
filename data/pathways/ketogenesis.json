@@ -196,7 +196,7 @@
     ]
    },
    "branch": true,
-   "loc": "mitochondria / blood"
+   "loc": "blood (spontaneous)"
   }
  ],
  "distractors": {
@@ -216,5 +216,6 @@
    "Fatty acid synthase",
    "Malonyl-CoA decarboxylase"
   ]
- }
+ },
+ "tissue": "liver"
 }

@@ -487,5 +487,6 @@
    "IMP dehydrogenase",
    "Hypoxanthine-guanine phosphoribosyltransferase"
   ]
- }
+ },
+ "tissue": "most cells"
 }

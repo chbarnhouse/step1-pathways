@@ -96,6 +96,15 @@
     "pyruvic acid"
    ],
    "notes": "Fates: lactate (LDH, regenerates NAD⁺), acetyl-CoA (PDH), oxaloacetate (pyruvate carboxylase), alanine (ALT)."
+  },
+  "glcb": {
+   "name": "Glucose (blood)",
+   "short": "",
+   "aliases": [
+    "glucose",
+    "blood glucose"
+   ],
+   "notes": "Plasma glucose crosses the membrane by facilitated diffusion (GLUT) — or, in gut and kidney, by Na⁺ co-transport (SGLT)."
   }
  },
  "enzymes": {
@@ -192,9 +201,38 @@
    "short": "PK",
    "aliases": [],
    "notes": "Second substrate-level phosphorylation. Activated by F1,6BP (feed-forward); inhibited by ATP and alanine; liver isoform inactivated by glucagon (PKA phosphorylation). Deficiency → hemolytic anemia (most common glycolytic enzyme defect). Gluconeogenic bypass: pyruvate carboxylase + PEPCK."
+  },
+  "glut": {
+   "name": "GLUT transporters",
+   "short": "GLUT",
+   "aliases": [
+    "GLUT",
+    "glucose transporter",
+    "glucose transporters",
+    "GLUT1",
+    "GLUT2",
+    "GLUT3",
+    "GLUT4",
+    "facilitated diffusion"
+   ],
+   "notes": "GLUT1: RBCs, brain, blood–brain barrier (insulin-independent). GLUT2: liver, β cells, kidney, small intestine (bidirectional, high capacity). GLUT3: neurons, placenta. GLUT4: skeletal muscle and adipose — insulin moves it to the membrane. GLUT5: fructose (intestine, sperm)."
   }
  },
  "reactions": [
+  {
+   "id": "r0",
+   "enzyme": "glut",
+   "from": "glcb",
+   "to": "glucose",
+   "reversible": true,
+   "branch": true,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane"
+  },
   {
    "id": "r1",
    "enzyme": "hk",
@@ -383,7 +421,10 @@
    "Lactate dehydrogenase",
    "Glucose-6-phosphate dehydrogenase",
    "Glycerol-3-phosphate dehydrogenase",
-   "Fructokinase"
+   "Fructokinase",
+   "SGLT1",
+   "GLUT5"
   ]
- }
+ },
+ "tissue": "every cell"
 }

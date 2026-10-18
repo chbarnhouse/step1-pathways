@@ -318,5 +318,6 @@
    "Methylmalonyl-CoA mutase",
    "PEP carboxykinase"
   ]
- }
+ },
+ "tissue": "every cell with mitochondria (not RBCs)"
 }

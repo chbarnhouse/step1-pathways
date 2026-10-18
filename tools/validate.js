@@ -6,7 +6,7 @@
 'use strict';
 const fs = require('fs'), path = require('path'), vm = require('vm');
 const root = path.join(__dirname, '..');
-global.window = {}; global.localStorage = { getItem: () => null, setItem() {} }; global.document = { addEventListener() {} };
+global.window = {}; global.Store = undefined; global.localStorage = { getItem: () => null, setItem() {} }; global.document = { addEventListener() {} };
 const cof = JSON.parse(fs.readFileSync(path.join(root, 'data/cofactors.json'), 'utf8'));
 const pathways = {};
 for (const f of fs.readdirSync(path.join(root, 'data/pathways')).filter(f => f.endsWith('.json'))) {
@@ -16,7 +16,8 @@ for (const f of fs.readdirSync(path.join(root, 'data/pathways')).filter(f => f.e
 }
 window.PATHWAYS_BUNDLE = { cofactors: cof, pathways };
 vm.runInThisContext(['util.js', 'store.js', 'model.js'].map(f => fs.readFileSync(path.join(root, 'static/js', f), 'utf8')).join('\n'));
-for (const p of Object.values(pathways)) {
+for (const p0 of Object.values(pathways)) {
+  const p = Library.get(p0.id);
   try {
     const m = buildModel(p);
     const missing = [];

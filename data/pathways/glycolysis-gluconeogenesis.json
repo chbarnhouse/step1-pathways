@@ -1,0 +1,11 @@
+{
+ "id": "glycolysis-gluconeogenesis",
+ "name": "Glycolysis + gluconeogenesis",
+ "group": "Combined",
+ "aliases": [],
+ "compose": [
+  "glycolysis",
+  "gluconeogenesis"
+ ],
+ "summary": "Both directions on one diagram. Shared, reversible steps are drawn once; the gluconeogenic bypasses (pyruvate carboxylase + PEPCK, fructose-1,6-bisphosphatase, glucose-6-phosphatase) curve alongside the three irreversible glycolytic steps they get around. Reciprocal regulation: fructose-2,6-bisphosphate activates PFK-1 and inhibits F-1,6-BPase; insulin favors glycolysis, glucagon gluconeogenesis."
+}

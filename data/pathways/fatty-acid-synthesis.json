@@ -66,6 +66,15 @@
     "C16 fatty acid"
    ],
    "notes": "Released by the thioesterase domain. Longer and unsaturated fatty acids are made in the ER; humans can't add double bonds past C9, so linoleic and α-linolenic acid are essential."
+  },
+  "citm": {
+   "name": "Citrate (mitochondria)",
+   "short": "",
+   "aliases": [
+    "citrate",
+    "mitochondrial citrate"
+   ],
+   "notes": "Made by citrate synthase when acetyl-CoA is plentiful; acetyl-CoA itself can't cross the inner membrane."
   }
  },
  "enzymes": {
@@ -112,9 +121,35 @@
     "palmitate synthase"
    ],
    "notes": "One multifunctional homodimer with an acyl carrier protein (phosphopantetheine from pantothenic acid, B5). Seven cycles of condense–reduce–dehydrate–reduce, each using 2 NADPH and releasing CO₂."
+  },
+  "cic": {
+   "name": "Citrate transporter",
+   "short": "CIC",
+   "aliases": [
+    "citrate shuttle",
+    "citrate carrier",
+    "tricarboxylate transporter",
+    "tricarboxylate carrier",
+    "mitochondrial citrate transporter",
+    "SLC25A1"
+   ],
+   "notes": "Exports citrate (in exchange for malate) so acetyl units reach the cytosol for fatty acid synthesis."
   }
  },
  "reactions": [
+  {
+   "id": "r0",
+   "enzyme": "cic",
+   "from": "citm",
+   "to": "citrate",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
   {
    "id": "r1",
    "enzyme": "acl",
@@ -245,5 +280,6 @@
    "Acyl-CoA dehydrogenase",
    "Hormone-sensitive lipase"
   ]
- }
+ },
+ "tissue": "liver, adipose, lactating breast"
 }

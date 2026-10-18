@@ -95,6 +95,14 @@
     "acetyl CoA"
    ],
    "notes": "Goes to the TCA cycle, or to ketone bodies in the liver when OAA is scarce."
+  },
+  "acylcarnm": {
+   "name": "Acylcarnitine (matrix)",
+   "short": "",
+   "aliases": [
+    "acylcarnitine",
+    "fatty acylcarnitine"
+   ]
   }
  },
  "enzymes": {
@@ -167,6 +175,17 @@
     "β-ketoacyl-CoA thiolase"
    ],
    "notes": "CoA cleaves off acetyl-CoA, leaving an acyl-CoA two carbons shorter."
+  },
+  "cact": {
+   "name": "Carnitine–acylcarnitine translocase",
+   "short": "CACT",
+   "aliases": [
+    "carnitine-acylcarnitine translocase",
+    "carnitine acylcarnitine translocase",
+    "translocase",
+    "CACT"
+   ],
+   "notes": "Inner-membrane antiporter: acylcarnitine in, free carnitine out. Long-chain fatty acids need the whole carnitine shuttle; short and medium chains enter the matrix directly."
   }
  },
  "reactions": [
@@ -211,9 +230,22 @@
    ]
   },
   {
+   "id": "r2b",
+   "enzyme": "cact",
+   "from": "acylcarn",
+   "to": "acylcarnm",
+   "reversible": true,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
    "id": "r3",
    "enzyme": "cpt2",
-   "from": "acylcarn",
+   "from": "acylcarnm",
    "to": "acylcoam",
    "reversible": false,
    "cofactors": {
@@ -224,7 +256,7 @@
      "carnitine"
     ]
    },
-   "loc": "inner mitochondrial membrane"
+   "loc": "mitochondrial matrix (inner membrane)"
   },
   {
    "id": "r4",
@@ -316,5 +348,6 @@
    "HMG-CoA synthase",
    "Pyruvate carboxylase"
   ]
- }
+ },
+ "tissue": "muscle, heart, liver (not brain or RBCs)"
 }

@@ -11,21 +11,26 @@ function blankPathway() {
     metabolites: {}, enzymes: {}, reactions: [], cofactors: {}, distractors: { metabolites: [], enzymes: [] } };
 }
 function openEditor(id, draft) {
+  if (id && !Library.get(id)) { location.replace('#/pathways'); return; }
   E.draft = draft || (id ? clone(Library.get(id)) : blankPathway());
   E.draft.cofactors = E.draft.cofactors || {};
   E.draft.distractors = Object.assign({ metabolites: [], enzymes: [] }, E.draft.distractors);
   E.origId = draft ? null : id;
   E.json = false;
-  $('#studyView').hidden = true;
-  $('#editor').hidden = false;
+  E.pending = null;
+  $('#view').innerHTML = '<section id="editor" class="editor page"></section>';
   renderEditor();
-  window.scrollTo(0, 0);
 }
-function closeEditor() {
-  $('#editor').hidden = true;
-  $('#studyView').hidden = false;
+// Leave the editor for a page: the pathway itself, or the library when there is none.
+function closeEditor(id = E.origId) {
   E.draft = null;
-  render();
+  location.hash = id && Library.get(id) ? `#/pathways/${encodeURIComponent(id)}` : '#/pathways';
+}
+function exportPathway(p) {
+  // Downloads are blocked inside shared artifacts, so Export shows the JSON to copy, with a file download as the extra.
+  const name = (p.id || slug(p.name)) + '.json', text = JSON.stringify(p, null, 2), canSave = !window.PATHWAYS_ARTIFACT;
+  ask({ title: `Export ${p.name}`, text: `Copy this and send it${canSave ? ` (or save it as ${name})` : ''}. To add it, open Pathways → Import, or New pathway → JSON and paste.`, input: 'area', value: text, ok: canSave ? 'Download file' : 'Done', cancel: canSave ? 'Close' : null, copy: true })
+    .then(v => v && canSave && download(name, text));
 }
 
 /* ---------- helpers ---------- */
@@ -66,13 +71,14 @@ function itemRows(kind) {
       <label>Name<input data-path="${base}.${esc(id)}.name" value="${esc(it.name)}"></label>
       <label>Abbreviation<input data-path="${base}.${esc(id)}.short" value="${esc(it.short)}"></label>
       <label class="wide">Also accept (comma-separated)<input data-path="${base}.${esc(id)}.aliases" data-list value="${esc(listStr(it.aliases))}"></label>
+      ${kind === 'met' && E.draft.layout === 'grid' ? `<label>Column<input type="number" min="0" data-gridpos="${esc(id)}" data-axis="0" value="${esc(it.pos?.[0] ?? 0)}"></label><label>Row<input type="number" min="0" data-gridpos="${esc(id)}" data-axis="1" value="${esc(it.pos?.[1] ?? 0)}"></label>` : ''}
       <label class="full">Facts shown after answering<textarea rows="2" data-path="${base}.${esc(id)}.notes">${esc(it.notes)}</textarea></label>
       <button class="btn ghost small" data-ed="del-${kind}" data-id="${esc(id)}">Remove</button>
     </div>`).join('');
   return rows || `<p class="muted">None yet — add one here or from a step's menus.</p>`;
 }
 function sideChips(r, i, key) {
-  const chips = (r[key] || []).map(s => `<span class="pill">${esc(E.draft.metabolites[s]?.name || s)}<button data-ed="unside" data-i="${i}" data-key="${key}" data-id="${esc(s)}" aria-label="Remove">×</button></span>`).join('');
+  const chips = (r[key] || []).map(s => `<span class="pillx">${esc(E.draft.metabolites[s]?.name || s)}<button data-ed="unside" data-i="${i}" data-key="${key}" data-id="${esc(s)}" aria-label="Remove">×</button></span>`).join('');
   return `${chips}<select data-ed-add="${key}" data-i="${i}" class="small">${metOpts('', key === 'also_to' ? '+ side product' : '+ side input')}</select>`;
 }
 function stepCards() {
@@ -83,13 +89,15 @@ function stepCards() {
         <span><button class="btn ghost small" data-ed="up" data-i="${i}" ${i ? '' : 'disabled'} aria-label="Move up">↑</button><button class="btn ghost small" data-ed="down" data-i="${i}" ${i < n - 1 ? '' : 'disabled'} aria-label="Move down">↓</button><button class="btn ghost small" data-ed="del-step" data-i="${i}">Remove</button></span></div>
       <div class="ed-grid">
         <label>From<select data-path="reactions.${i}.from">${metOpts(r.from)}</select></label>
-        <label>Enzyme<select data-path="reactions.${i}.enzyme">${enzOpts(r.enzyme)}</select></label>
+        <label>${r.transport ? 'Transporter' : 'Enzyme'}<select data-path="reactions.${i}.enzyme">${enzOpts(r.enzyme)}</select></label>
         <label>To<select data-path="reactions.${i}.to">${metOpts(r.to)}</select></label>
         <label class="cb"><input type="checkbox" data-path="reactions.${i}.reversible" ${r.reversible ? 'checked' : ''}> Reversible</label>
         <label class="cb"><input type="checkbox" data-path="reactions.${i}.branch" ${r.branch ? 'checked' : ''}> Side step (off the main line)</label>
+        <label class="cb"><input type="checkbox" data-path="reactions.${i}.transport" ${r.transport ? 'checked' : ''}> Transport (crosses a membrane)</label>
         <label>Cofactors in<input data-cof="in" data-i="${i}" value="${esc(cofStr(r.cofactors?.in))}" placeholder="e.g. ATP"></label>
         <label>Cofactors out<input data-cof="out" data-i="${i}" value="${esc(cofStr(r.cofactors?.out))}" placeholder="e.g. ADP"></label>
-        <label>Location<input data-path="reactions.${i}.loc" list="locList" value="${esc(r.loc || '')}"></label>
+        <label>Compartment<input data-path="reactions.${i}.loc" list="locList" value="${esc(r.loc || '')}" placeholder="e.g. mitochondria"></label>
+        <label>Tissue (if not the pathway's)<input data-path="reactions.${i}.tissue" value="${esc(r.tissue || '')}" placeholder="e.g. small intestine"></label>
         <label>Runs ×<input type="number" min="1" max="9" data-path="reactions.${i}.multiplier" value="${esc(r.multiplier || 1)}"></label>
         <label>Tags<input data-path="reactions.${i}.tags" data-list value="${esc(listStr(r.tags))}" placeholder="rate-limiting, irreversible"></label>
         <label>Requires<input data-path="reactions.${i}.requires" data-list value="${esc(listStr(r.requires))}" placeholder="e.g. B6 (PLP)"></label>
@@ -98,8 +106,24 @@ function stepCards() {
       </div>
     </div>`).join('') || '<p class="muted">No steps yet.</p>';
 }
+// A combined pathway only names its parts; everything else is merged from them (see composePathway).
+function composeForm(p) {
+  const groups = {};
+  for (const x of Library.atomic()) (groups[x.group || 'Other'] = groups[x.group || 'Other'] || []).push(x);
+  return `<section class="card ed-sec"><h3>Basics</h3><div class="ed-grid">
+      <label class="wide">Name<input data-path="name" value="${esc(p.name)}"></label>
+      <label>Group<input data-path="group" value="${esc(p.group || '')}" list="groupList"></label>
+      <label class="full">Summary<textarea rows="3" data-path="summary">${esc(p.summary || '')}</textarea></label></div></section>
+    <section class="card ed-sec"><h3>Combine these pathways</h3>
+      <p class="muted">The first one you tick is the main line; matching steps are drawn once, and the others' own steps are added alongside. Edits to the parts show up here automatically.</p>
+      ${p.compose.length ? `<p><b>Order:</b> ${p.compose.map(id => esc(Library.get(id)?.name || id)).join(' → ')}</p>` : ''}
+      ${Object.entries(groups).map(([g, ps]) => `<div class="pgroup"><span class="glabel">${esc(g)}</span><div class="chips">${ps.map(x =>
+        `<label class="cb"><input type="checkbox" data-compose="${esc(x.id)}" ${p.compose.includes(x.id) ? 'checked' : ''}> ${esc(x.name)}</label>`).join('')}</div></div>`).join('')}
+    </section>`;
+}
 function renderEditor() {
   const p = E.draft, st = E.origId ? Library.status(E.origId) : 'new';
+  if (!$('#editor')) return;
   const focus = document.activeElement && $('#editor').contains(document.activeElement)
     ? { path: document.activeElement.dataset.path, cof: document.activeElement.dataset.cof, i: document.activeElement.dataset.i, pos: document.activeElement.selectionStart } : null;
   $('#editor').innerHTML = `
@@ -118,15 +142,17 @@ function renderEditor() {
   <p class="muted">${Store.mode === 'server' ? 'Saves to the Pathways server.' : 'Saves in this browser. Export to keep a copy or send it to someone — they Import it.'} ${st === 'builtin' ? 'This is a built-in pathway: saving keeps your copy alongside it, and Reset brings the original back.' : ''}</p>
   <div class="ed-cols">
     <div class="ed-form">
-      ${E.json ? `<section class="card ed-sec"><h3>Pathway JSON</h3><textarea id="edJson" rows="30" spellcheck="false">${esc(JSON.stringify(p, null, 2))}</textarea>
+      ${p.compose ? composeForm(p) : E.json ? `<section class="card ed-sec"><h3>Pathway JSON</h3><textarea id="edJson" rows="30" spellcheck="false">${esc(JSON.stringify(p, null, 2))}</textarea>
         <div class="actions"><button class="btn primary" data-ed="apply-json">Apply</button></div></section>` : `
       <section class="card ed-sec"><h3>Basics</h3>
         <div class="ed-grid">
           <label class="wide">Name<input data-path="name" value="${esc(p.name)}"></label>
           <label>Group<input data-path="group" value="${esc(p.group || '')}" list="groupList"></label>
           <label class="full">Summary (shown above the diagram)<textarea rows="2" data-path="summary">${esc(p.summary)}</textarea></label>
-          <label class="cb"><input type="checkbox" data-path="circular" ${p.circular ? 'checked' : ''}> Cycle (last step returns to the first metabolite)</label>
+          <label>Layout<select data-layout>${[['line', 'Line'], ['cycle', 'Cycle (last step returns to the start)'], ['grid', 'Grid (place each metabolite)']].map(([v, l]) => `<option value="${v}"${(p.layout === 'grid' ? 'grid' : p.circular ? 'cycle' : 'line') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+          <label class="wide">Where it runs<input data-path="tissue" value="${esc(p.tissue || '')}" placeholder="e.g. liver, kidney"></label>
           <label>“Runs ×” label<input data-path="multiplier_label" value="${esc(p.multiplier_label || '')}" placeholder="per glucose"></label>
+          ${p.layout === 'grid' ? `<label class="full">Column headings (comma-separated)<input data-path="grid_columns" data-list value="${esc(listStr(p.grid_columns))}"></label>` : ''}
         </div></section>
       <section class="card ed-sec"><div class="ed-sec-h"><h3>Steps, in order</h3><button class="btn small" data-ed="add-step">+ Add step</button></div>${stepCards()}
         ${E.draft.reactions.length ? '<div class="actions"><button class="btn small" data-ed="add-step">+ Add step</button></div>' : ''}</section>
@@ -154,6 +180,12 @@ function renderPreview() {
   const box = $('#edPreview');
   if (!box) return;
   // Unfinished steps are listed as problems but left out of the drawing, so the rest stays visible while you type.
+  if (E.draft.compose) {
+    let svg = '', msg = E.draft.compose.length < 2 ? 'Pick at least two pathways to combine.' : '';
+    try { if (!msg) svg = flowSVG(buildModel(composePathway({ ...E.draft, id: E.draft.id || '__draft' })), () => 'shown'); } catch (err) { msg = err.message; }
+    box.innerHTML = (msg ? `<div class="ed-err">${esc(msg)}</div>` : '') + svg;
+    return;
+  }
   const d = E.draft, ok = r => d.enzymes[r.enzyme] && d.metabolites[r.from] && d.metabolites[r.to] && [...(r.also_to || []), ...(r.also_from || [])].every(x => d.metabolites[x]);
   let msg = '';
   try { buildModel(d); E.err = ''; } catch (err) { E.err = msg = err.message; }
@@ -168,7 +200,7 @@ function setPath(obj, path, val) {
   let o = obj;
   for (let i = 0; i < ks.length - 1; i++) { const k = /^\d+$/.test(ks[i]) ? +ks[i] : ks[i]; o = o[k] = o[k] ?? {}; }
   const last = ks[ks.length - 1];
-  if (val === '' || val === false || (Array.isArray(val) && !val.length)) { if (['loc', 'multiplier_label', 'branch', 'reversible', 'tags', 'requires'].includes(last)) { delete o[last]; return; } }
+  if (val === '' || val === false || (Array.isArray(val) && !val.length)) { if (['loc', 'tissue', 'multiplier_label', 'branch', 'transport', 'reversible', 'tags', 'requires', 'grid_columns'].includes(last)) { delete o[last]; return; } }
   o[last] = val;
 }
 function valueOf(el) {
@@ -179,7 +211,24 @@ function valueOf(el) {
 }
 function onEdit(e, structural) {
   const el = e.target;
-  if (!E.draft || !$('#editor').contains(el)) return;
+  if (!E.draft || !$('#editor') || !$('#editor').contains(el)) return;
+  if (el.dataset.gridpos) {
+    const mt = E.draft.metabolites[el.dataset.gridpos];
+    mt.pos = mt.pos || [0, 0]; mt.pos[+el.dataset.axis] = Math.max(0, +el.value || 0);
+    return renderPreview();
+  }
+  if (el.hasAttribute('data-layout')) {
+    if (!structural) return;
+    delete E.draft.circular; delete E.draft.layout;
+    if (el.value === 'cycle') E.draft.circular = true;
+    if (el.value === 'grid') { E.draft.layout = 'grid'; Object.values(E.draft.metabolites).forEach((mt, k) => { mt.pos = mt.pos || [0, k]; }); }
+    return renderEditor();
+  }
+  if (el.dataset.compose && structural) {
+    const id = el.dataset.compose, c = E.draft.compose;
+    E.draft.compose = el.checked ? uniq([...c, id]) : c.filter(x => x !== id);
+    return renderEditor();
+  }
   if (el.dataset.cof) {
     const r = E.draft.reactions[+el.dataset.i];
     r.cofactors = r.cofactors || { in: [], out: [] };
@@ -223,22 +272,21 @@ function importFile(f) {
     catch (err) { return say('Can’t import that file', 'It isn’t a pathway this app can read:\n' + err.message); }
     if (!p.name) p.name = 'Imported pathway';
     if (p.id && Library.get(p.id) && !(await ask({ title: 'Replace your copy?', text: `You already have “${Library.get(p.id).name}”. Saving the import will replace it.`, ok: 'Replace on save', cancel: 'Keep both' }))) p.id = '';
-    openEditor(null, p);
-    E.origId = p.id && Library.get(p.id) ? p.id : null;
-    renderEditor();
+    E.pending = p;
+    location.hash = '#/pathways/import';
   });
 }
 
 function savePathway() {
   const p = clone(E.draft);
   pruneCof(p);
-  try { buildModel(p); } catch (err) { return say('Fix these before saving', err.message); }
+  if (p.compose && p.compose.length < 2) return say('Pick at least two pathways', 'A combined pathway merges two or more pathways.');
+  try { buildModel(p.compose ? composePathway({ ...p, id: p.id || '__draft' }) : p); } catch (err) { return say('Fix these before saving', err.message); }
   if (!p.id) p.id = uniqueId(slug(p.name), new Set(Object.keys(Library.all())));
   Store.data.custom[p.id] = p;
   Store.save();
-  closeEditor();
-  renderPicker();
-  loadPathway(p.id);
+  modelCache.delete(p.id);
+  closeEditor(p.id);
 }
 
 document.addEventListener('click', e => {
@@ -249,14 +297,7 @@ document.addEventListener('click', e => {
   switch (act) {
     case 'save': return savePathway();
     case 'cancel': ask({ title: 'Discard changes?', ok: 'Discard', cancel: 'Keep editing' }).then(y => y && closeEditor()); return;
-    case 'export': {
-      // Downloads are blocked inside shared artifacts, so Export shows the JSON to copy, with a file download as the extra.
-      const name = (p.id || slug(p.name)) + '.json', text = JSON.stringify(p, null, 2);
-      const canSave = !window.PATHWAYS_ARTIFACT; // the shared artifact's frame blocks file downloads
-      ask({ title: `Export ${p.name}`, text: `Copy this and send it${canSave ? ` (or save it as ${name})` : ''}. The other person opens Edit → JSON, pastes it and presses Apply, then Save.`, input: 'area', value: text, ok: canSave ? 'Download file' : 'Done', cancel: canSave ? 'Close' : null, copy: true })
-        .then(v => v && canSave && download(name, text));
-      return;
-    }
+    case 'export': return exportPathway(p);
     case 'import': return $('#edFile').click();
     case 'json': E.json = !E.json; return renderEditor();
     case 'apply-json':
@@ -266,13 +307,13 @@ document.addEventListener('click', e => {
     case 'reset':
       ask({ title: 'Restore the built-in version?', text: 'Your edits to this pathway will be thrown away.', ok: 'Restore' }).then(y => {
         if (!y) return;
-        delete Store.data.custom[E.origId]; Store.save(); const id = E.origId; closeEditor(); renderPicker(); loadPathway(id);
+        delete Store.data.custom[E.origId]; Store.save(); modelCache.delete(E.origId); closeEditor(E.origId);
       });
       return;
     case 'delete':
       ask({ title: `Delete ${p.name}?`, text: 'This can’t be undone. Export it first if you might want it back.', ok: 'Delete' }).then(y => {
         if (!y) return;
-        delete Store.data.custom[E.origId]; Store.save(); closeEditor(); renderPicker(); loadPathway(Library.list()[0].id);
+        delete Store.data.custom[E.origId]; Store.save(); modelCache.delete(E.origId); closeEditor(null);
       });
       return;
     case 'add-step': {

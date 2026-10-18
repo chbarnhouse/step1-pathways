@@ -40,6 +40,26 @@
     "dulcitol"
    ],
    "notes": "Osmotically active in the lens → cataracts."
+  },
+  "lactose": {
+   "name": "Lactose",
+   "short": "",
+   "aliases": [
+    "milk sugar"
+   ],
+   "notes": "Glucose + galactose (β-1,4)."
+  },
+  "glucose": {
+   "name": "Glucose",
+   "short": "Glc",
+   "aliases": []
+  },
+  "galb": {
+   "name": "Galactose (lumen)",
+   "short": "",
+   "aliases": [
+    "galactose"
+   ]
   }
  },
  "enzymes": {
@@ -70,9 +90,61 @@
    "short": "AR",
    "aliases": [],
    "notes": "Same enzyme that makes sorbitol from glucose (polyol pathway)."
+  },
+  "lactase": {
+   "name": "Lactase",
+   "short": "",
+   "aliases": [
+    "β-galactosidase",
+    "beta-galactosidase",
+    "lactase-phlorizin hydrolase"
+   ],
+   "notes": "Brush-border enzyme; declines after weaning in most adults → lactose intolerance (osmotic diarrhea, bloating; ↑ breath hydrogen, stool pH <6). Secondary loss after gastroenteritis or celiac disease."
+  },
+  "sglt1": {
+   "name": "SGLT1",
+   "short": "",
+   "aliases": [
+    "sodium-glucose cotransporter 1",
+    "Na+-glucose cotransporter",
+    "sodium glucose cotransporter"
+   ],
+   "notes": "Apical Na⁺-coupled uptake of glucose and galactose into enterocytes (then GLUT2 out to the blood). Fructose uses GLUT5 instead."
   }
  },
  "reactions": [
+  {
+   "id": "r0",
+   "enzyme": "lactase",
+   "from": "lactose",
+   "to": "galb",
+   "also_to": [
+    "glucose"
+   ],
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "loc": "brush border",
+   "tissue": "small intestine"
+  },
+  {
+   "id": "r0b",
+   "enzyme": "sglt1",
+   "from": "galb",
+   "to": "galactose",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "apical membrane → blood",
+   "tissue": "small intestine"
+  },
   {
    "id": "r1",
    "enzyme": "galk",
@@ -90,7 +162,8 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "tissue": "liver"
   },
   {
    "id": "r2",
@@ -106,7 +179,8 @@
      "udpgal"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "tissue": "liver"
   },
   {
    "id": "r3",
@@ -118,7 +192,8 @@
     "in": [],
     "out": []
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "tissue": "liver"
   },
   {
    "id": "r4",
@@ -135,7 +210,8 @@
     ]
    },
    "branch": true,
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "tissue": "liver"
   }
  ],
  "distractors": {
@@ -156,5 +232,6 @@
    "Hexokinase",
    "Glycogen phosphorylase"
   ]
- }
+ },
+ "tissue": "small intestine, then liver"
 }

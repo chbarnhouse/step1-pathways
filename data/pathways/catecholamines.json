@@ -116,13 +116,14 @@
      "h2o"
     ]
    },
-   "loc": "liver cytosol",
+   "loc": "cytosol",
    "tags": [
     "irreversible"
    ],
    "requires": [
     "BH₄ (tetrahydrobiopterin)"
-   ]
+   ],
+   "tissue": "liver"
   },
   {
    "id": "r2",
@@ -146,7 +147,8 @@
    ],
    "requires": [
     "BH₄ (tetrahydrobiopterin)"
-   ]
+   ],
+   "tissue": "adrenal medulla, neurons"
   },
   {
    "id": "r3",
@@ -166,7 +168,8 @@
    ],
    "requires": [
     "B6 (pyridoxal phosphate)"
-   ]
+   ],
+   "tissue": "adrenal medulla, neurons"
   },
   {
    "id": "r4",
@@ -190,7 +193,8 @@
    "requires": [
     "Vitamin C",
     "Copper"
-   ]
+   ],
+   "tissue": "adrenal medulla, neurons"
   },
   {
    "id": "r5",
@@ -206,10 +210,11 @@
      "sah"
     ]
    },
-   "loc": "adrenal medulla cytosol",
+   "loc": "cytosol",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "tissue": "adrenal medulla"
   }
  ],
  "distractors": {
@@ -232,5 +237,6 @@
    "Dihydropteridine reductase",
    "Thyroid peroxidase"
   ]
- }
+ },
+ "tissue": "adrenal medulla and catecholaminergic neurons"
 }

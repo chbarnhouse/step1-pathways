@@ -224,7 +224,7 @@
     ]
    },
    "multiplier": 2,
-   "loc": "cytosol (and mitochondria)",
+   "loc": "cytosol",
    "tags": [
     "irreversible"
    ]
@@ -369,7 +369,8 @@
    "loc": "ER lumen",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "tissue": "liver, kidney (not muscle)"
   }
  ],
  "distractors": {
@@ -393,5 +394,6 @@
    "Malate dehydrogenase",
    "Glycerol kinase"
   ]
- }
+ },
+ "tissue": "liver (also kidney, small intestine)"
 }

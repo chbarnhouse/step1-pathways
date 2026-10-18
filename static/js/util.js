@@ -17,10 +17,15 @@ const ICON = {
 };
 const icon = k => `<svg class="ic ${k}" viewBox="0 0 16 16" aria-hidden="true">${ICON[k]}</svg>`;
 
-// Case-, space- and punctuation-insensitive; "phosphate" ≡ "P", "bisphosphate"/"diphosphate" ≡ "BP"; α/β spelled out.
+// Greek letters fold to their Latin initial, whether typed as α, "alpha" or just "a": a-ketoglutarate ≡ α-ketoglutarate.
+// Applied to both the answer and what was typed, so any word that happens to start "beta…" folds the same on both sides.
+const GREEK = { α: 'a', β: 'b', γ: 'g', δ: 'd', ε: 'e', θ: 'th', κ: 'k', ω: 'o' };
+const GREEK_WORDS = { alpha: 'a', beta: 'b', gamma: 'g', delta: 'd', epsilon: 'e', theta: 'th', kappa: 'k', omega: 'o' };
+const foldGreek = s => String(s).replace(/[αβγδεθκω]/g, c => GREEK[c]);
+// Case-, space- and punctuation-insensitive; "phosphate" ≡ "P", "bisphosphate"/"diphosphate" ≡ "BP"; Greek folded.
 function norm(s) {
-  return String(s).toLowerCase()
-    .replace(/α/g, 'alpha').replace(/β/g, 'beta').replace(/γ/g, 'gamma').replace(/δ/g, 'delta')
+  return foldGreek(String(s).toLowerCase())
+    .replace(/\b(alpha|beta|gamma|delta|epsilon|theta|kappa|omega)/g, w => GREEK_WORDS[w])
     .normalize('NFKD').replace(/[̀-ͯ]/g, '')
     .replace(/\b(bis|di)phosphate\b/g, 'bp').replace(/\bphosphate\b/g, 'p')
     .replace(/[\s\-_,.'’()\/]/g, '');
