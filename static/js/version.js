@@ -3,8 +3,11 @@
    with every entry since then. Brand-new visitors get the tour instead. */
 'use strict';
 
-const APP_VERSION = '3.6.0';
+const APP_VERSION = '3.7.0';
 const CHANGELOG = [
+  { v: '3.7.0', date: '2026-10-18', items: [
+    'Report a problem: describe a bug, a fact that looks wrong, or a suggestion from the Report button at the top. It opens a Google Form with your report filled in; sign in with Google and press Submit. Reports are private.',
+  ] },
   { v: '3.6.0', date: '2026-10-17', items: [
     'Automatic backups. In Chrome or Edge, link a backup file in Settings and every change is saved to it. In any browser, turn on a backup download each time you leave a quiz.',
     'What’s new: after an update, this window shows what changed.',

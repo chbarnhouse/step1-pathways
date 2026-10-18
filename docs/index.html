@@ -809,8 +809,11 @@ function toast(msg) {
    with every entry since then. Brand-new visitors get the tour instead. */
 'use strict';
 
-const APP_VERSION = '3.6.0';
+const APP_VERSION = '3.7.0';
 const CHANGELOG = [
+  { v: '3.7.0', date: '2026-10-18', items: [
+    'Report a problem: describe a bug, a fact that looks wrong, or a suggestion from the Report button at the top. It opens a Google Form with your report filled in; sign in with Google and press Submit. Reports are private.',
+  ] },
   { v: '3.6.0', date: '2026-10-17', items: [
     'Automatic backups. In Chrome or Edge, link a backup file in Settings and every change is saved to it. In any browser, turn on a backup download each time you leave a quiz.',
     'What’s new: after an update, this window shows what changed.',
@@ -3167,13 +3170,19 @@ function maybeAutoTour() {
 }
 </script>
 <script>
-/* "Report a problem": a form for people who don't use GitHub. Diagnostics (version, browser, page, current quiz)
-   are attached so a report can be reproduced. Where reports go is set by REPORT_ENDPOINT; until one is set
-   the form stays hidden, so nobody fills in a form that can't be sent. */
+/* "Report a problem": a form for people who don't use GitHub. The app gathers the report plus technical details
+   (version, browser, page, current quiz), then opens the report Google Form in a new tab with everything filled in.
+   The form collects verified emails, so the reporter signs in with Google there and presses Submit — a page on
+   another site can't submit a sign-in-required form for them. With no form set, the Report button stays hidden. */
 'use strict';
 
-const REPORT_ENDPOINT = ''; // POST JSON {kind, what, expected, steps, email, diagnostics}; set when a destination is chosen
-const reportsEnabled = () => !!REPORT_ENDPOINT;
+// The report Google Form ("STEP 1 Pathways Issue Report"); responses stay private in Google Forms/Sheets.
+const REPORT_FORM = {
+  url: 'https://docs.google.com/forms/d/e/1FAIpQLSepiSeEgCt3DFbUpAcP1SDRFRemRIC-EW31ITNkiqWm6Qp1zQ/viewform',
+  kind: 'entry.1795629836', what: 'entry.1978413845', expected: 'entry.1823269642', date: 'entry.669806587', details: 'entry.1658303553',
+};
+const KIND_LABELS = { bug: 'Something isn’t working', content: 'A fact or answer looks wrong', idea: 'Suggestion' };
+const reportsEnabled = () => !!REPORT_FORM.url;
 
 function diagnostics() {
   return {
@@ -3188,14 +3197,12 @@ function openReport() {
   const diag = diagnostics();
   d.innerHTML = `<form class="dlg report" id="reportForm">
     <div class="dlg-h"><h2>${mi('flag', 'h-ic')} Report a problem</h2></div>
-    <p class="muted">Something wrong, confusing, or a fact that looks off? Tell us here; no account needed.</p>
+    <p class="muted">Something wrong, confusing, or a fact that looks off? Describe it here. Next, a Google Form opens with your report filled in: sign in with Google and press Submit. Reports are private.</p>
     <label class="field">What kind<select name="kind"><option value="bug">Something isn’t working</option><option value="content">A fact or answer looks wrong</option><option value="idea">Suggestion</option></select></label>
     <label class="field">What happened<textarea name="what" rows="4" required placeholder="e.g. Typing “PFK-1” wasn’t accepted for phosphofructokinase"></textarea></label>
     <label class="field">What you expected (optional)<textarea name="expected" rows="2"></textarea></label>
-    <label class="field">Your email, if you’d like a reply (optional)<input name="email" type="email" autocomplete="email"></label>
     <details class="diag"><summary>Technical details sent with the report</summary><pre>${esc(JSON.stringify(diag, null, 1))}</pre></details>
-    <p class="bad-note" id="reportErr" hidden></p>
-    <div class="actions"><button class="btn primary" type="submit">${mi('flag', 'sm')} Send report</button><button class="btn ghost" type="button" data-report="close">Cancel</button></div>
+    <div class="actions"><button class="btn primary" type="submit">${mi('flag', 'sm')} Continue to Google Forms</button><button class="btn ghost" type="button" data-report="close">Cancel</button></div>
   </form>`;
   d.showModal();
   d.querySelector('textarea').focus();
@@ -3204,20 +3211,17 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-report="open"]')) { e.preventDefault(); openReport(); }
   if (e.target.closest('[data-report="close"]')) $('#reportDialog')?.close();
 });
-document.addEventListener('submit', async e => {
+document.addEventListener('submit', e => {
   if (e.target.id !== 'reportForm') return;
   e.preventDefault();
-  const f = e.target, data = Object.fromEntries(new FormData(f)), btn = f.querySelector('[type=submit]'), err = f.querySelector('#reportErr');
-  btn.disabled = true; err.hidden = true;
-  try {
-    const r = await fetch(REPORT_ENDPOINT, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...data, diagnostics: diagnostics() }) });
-    if (!r.ok) throw new Error(`The report service answered ${r.status}.`);
-    $('#reportDialog').close();
-    toast('Thanks! Your report was sent.');
-  } catch (x) {
-    btn.disabled = false; err.hidden = false;
-    err.textContent = `Couldn’t send the report (${x.message}). Check your connection and try again.`;
-  }
+  const data = Object.fromEntries(new FormData(e.target));
+  // Open the prefilled form; the reporter signs in and submits there. (Opened from the click, so pop-up blockers allow it.)
+  const today = new Date(), ymd = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+  const q = new URLSearchParams({ usp: 'pp_url', [REPORT_FORM.kind]: KIND_LABELS[data.kind] || KIND_LABELS.bug, [REPORT_FORM.what]: data.what || '',
+    [REPORT_FORM.expected]: data.expected || '', [REPORT_FORM.date]: ymd, [REPORT_FORM.details]: 'Technical details: ' + JSON.stringify(diagnostics()) });
+  window.open(`${REPORT_FORM.url}?${q}`, '_blank', 'noopener');
+  $('#reportDialog').close();
+  toast('Finish in the Google Forms tab: sign in and press Submit.');
 });
 </script>
 <script>
