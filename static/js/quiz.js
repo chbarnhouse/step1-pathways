@@ -317,7 +317,8 @@ function buildResolved(q) {
    wrong mark doesn't change what you're asked to name. */
 function zonePlan(m) {
   const zoneOf = r => (r.loc ? zoneKey(m, r.loc, r.tissue) : '');
-  const tis = r => r.tissue || m.p.tissue || '';
+  // A boundary between two cells (same compartment, different tissue: liver cytosol → adrenal cytosol) is named as one.
+  const tis = r => r.tissue || m.p.tissue || '', cellsApart = (a, b) => tis(a) !== tis(b) && canonLoc(a.loc) === canonLoc(b.loc);
   const steps = m.seq.filter(k => k[0] === 'e').map(k => m.items[k]);
   const gaps = [], secs = [];
   let prev = null, first = null, lastT = null;
@@ -327,20 +328,21 @@ function zonePlan(m) {
     const z = zoneOf(r);
     if (!z) continue;
     if (prev) {
-      const g = { key: 'b:' + r.id, at: it.key, truth: zoneOf(prev.rxn) !== z, cells: tis(prev.rxn) !== tis(r) };
+      const g = { key: 'b:' + r.id, at: it.key, truth: zoneOf(prev.rxn) !== z, cells: cellsApart(prev.rxn, r) };
       gaps.push(g);
       if (g.truth) secs.push({ zone: z, at: it.key });
-    } else secs.push(secs.length && lastT ? { zone: z, afterKey: lastT } : { zone: z, top: true });
+    } else secs.push(lastT ? { zone: z, afterKey: lastT } : { zone: z, top: true });
     first = first || it; prev = it;
   }
   // A cycle's last part runs back into its first one (unless a transport sits in between).
   const ti = steps.findIndex(it => it.rxn.transport);
   if (m.p.circular && prev && first && prev !== first && ti < 0)
-    gaps.push({ key: 'b:' + first.rxn.id, at: 'wrap', truth: zoneOf(prev.rxn) !== zoneOf(first.rxn), cells: tis(prev.rxn) !== tis(first.rxn) });
+    gaps.push({ key: 'b:' + first.rxn.id, at: 'wrap', truth: zoneOf(prev.rxn) !== zoneOf(first.rxn), cells: cellsApart(prev.rxn, first.rxn) });
   return { gaps, secs: secs.filter(s => m.items['z:' + s.zone]) };
 }
 function startZones() {
   const m = Q.m = Q.models[0], plan = zonePlan(m);
+  if (m.p.layout === 'grid') { Q.round = { type: 'none', msg: `<b>${esc(m.p.name)}</b> branches out instead of running in one order, so there’s no list to put membranes in. Pick another pathway.` }; return; }
   if (!plan.secs.length) { Q.round = { type: 'none', msg: `No compartments are recorded for <b>${esc(m.p.name)}</b>, so there’s nothing to place. Pick another pathway.` }; return; }
   Q.round = { type: 'zones', phase: 'mark', plan, marks: {}, secs: plan.secs, pos: 0, secSt: {}, q: null, done: false, memNote: '' };
 }
@@ -357,6 +359,7 @@ function checkMembranes(revealed) {
   R.revealed = revealed;
   const n = real.length, w = n === 1 ? 'membrane' : 'membranes';
   R.memNote = revealed ? `${n} ${w} shown.` : !n && !extra.length ? 'Right: it all happens in one place.'
+    : !n ? `There are no membranes between these steps; ${extra.length} marked where there isn’t one.`
     : `${found} of ${n} ${w} found${extra.length ? `, ${extra.length} marked where there isn’t one` : ''}.`;
   R.phase = 'name'; R.pos = 0;
   if (!revealed) flash(found === n && !extra.length, answerRect() || $('#view .dock [data-act="checkmem"]')?.getBoundingClientRect(), found === n && !extra.length ? 'All right' : 'Not quite');
@@ -369,6 +372,11 @@ function loadZoneQ() {
   R.q = withAlong(itemQ(Q.m.items['z:' + R.secs[R.pos].zone], Q.m), Q.m);
 }
 function advanceZones() { Q.round.pos++; loadZoneQ(); renderQuiz(); }
+// Names that carry their compartment ("Fatty acyl-CoA (cytosol)", "Mitochondrial HMG-CoA synthase") would give the
+// answer away: that part of the name shows as "…" until the quiz is over.
+const LOC_WORD = /\b(mito\w*|cytos\w*|cytoplasm\w*|matrix|lumen|blood|lysosom\w*|peroxisom\w*|microsom\w*|nucle\w*|ER|endoplasmic\w*)\b/i;
+const maskLoc = name => String(name).replace(/\s*\(([^)]*)\)/g, (all, x) => (LOC_WORD.test(x) ? ' (…)' : all))
+  .replace(/\b(mitochondrial|cytosolic|lysosomal|peroxisomal|microsomal|nuclear)\b/gi, '…');
 function zonesStage() {
   const R = Q.round, m = Q.m, P = R.plan, mark = R.phase === 'mark';
   const gapAt = {}, wrap = P.gaps.findIndex(g => g.at === 'wrap');
@@ -395,10 +403,11 @@ function zonesStage() {
   for (const k of m.seq) {
     const it = m.items[k];
     if (it.kind === 'loc' || it.kind === 'cof') continue;
-    if (it.kind === 'met') { h += chip(it, 'shown'); continue; }
+    const shownIt = R.done ? it : { ...it, name: maskLoc(it.name) };
+    if (it.kind === 'met') { h += chip(shownIt, 'shown'); continue; }
     if (gapAt[k] != null) h += gap(gapAt[k]);
     if (before[k] != null) h += sec(before[k]);
-    h += `<div class="zrow${it.rxn.transport ? ' across' : ''}" data-key="${k}">${conn(m, it, 'shown', false, statusOf)}${it.rxn.transport ? '<span class="across-t">crosses a membrane</span>' : ''}</div>`;
+    h += `<div class="zrow${it.rxn.transport ? ' across' : ''}" data-key="${k}">${conn(m, shownIt, 'shown', false, statusOf)}${it.rxn.transport ? '<span class="across-t">crosses a membrane</span>' : ''}</div>`;
     if (after[k] != null) h += sec(after[k]);
   }
   if (wrap >= 0) h += gap(wrap);

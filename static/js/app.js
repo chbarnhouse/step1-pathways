@@ -101,7 +101,7 @@ function renderDashboard() {
   </div>`;
 }
 // What you studied, when, how, and how it went — newest first, grouped by day.
-const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
+const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', zones: 'Compartments', step: 'Single step' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
 function activityHTML() {
   const log = Store.data.log || [];
@@ -194,6 +194,7 @@ const MODES = [
   ['single', 'Fill the blanks', 'The whole pathway is shown with one piece hidden. Answer it and another goes missing, weakest first if you like.', 'First passes, and patching weak spots with the rest of the pathway as context.'],
   ['total', 'Full recall', 'Everything starts hidden (or with one anchor shown) and you fill it in, in order, step by step.', 'Proving you can rebuild a pathway end to end before an exam.'],
   ['build', 'Building blocks', 'Round 1 asks the first blank, round 2 the first two, and so on, always from the top. A slip clears that blank and asks again.', 'Learning a new pathway’s order from scratch.'],
+  ['zones', 'Compartments', 'No compartments shown. Mark every place the pathway crosses a membrane, then name each part it splits into. Always in list view.', 'Learning where each part of a pathway happens.'],
   ['step', 'Single step', 'One reaction at a time: given two metabolites, name the enzyme, cofactors and direction; or given an enzyme, say what it does.', 'Fast drilling of enzymes and cofactors, across pathways too.'],
 ];
 /* ---------- pathway browser (New quiz + Pathways) ----------
@@ -376,7 +377,7 @@ function renderCreate() {
           ${ans === 'type' ? nameModesHTML('data-cname', nameModesCfg(d)) : ''}
           ${elOf(d, 'cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-cflag="cofCount" ${d.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (as “1/2” while you type). Off: each step first asks which arrow its cofactors have (in and out, in only, out only)</label>` : ''}</div>
           ${laterBlanks}
-          ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
+          ${!['total', 'zones'].includes(d.mode) ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
         </details>
         <div class="side-foot">
           <button class="btn primary big" data-c="start" ${hasQuiz ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>

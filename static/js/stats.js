@@ -1,6 +1,7 @@
 /* Per-item answer history, keyed per pathway:
    m:<met>  e:<reaction> (enzyme)  c:<reaction> (cofactors)  d:<reaction> (direction)
-   r:/p:<reaction> (reactants / products, enzyme-given)  w:<reaction> (which pathway) */
+   r:/p:<reaction> (reactants / products, enzyme-given)  w:<reaction> (which pathway)
+   b:<reaction> (a membrane just before that step, Compartments mode)  z:<zone> (a compartment) */
 'use strict';
 
 const Stats = {
@@ -39,7 +40,8 @@ const Stats = {
           r: () => { label = `${en}: reactants`; kind = 'Reactants'; },
           p: () => { label = `${en}: products`; kind = 'Products'; },
           w: () => { label = `${en}: pathway`; kind = 'Pathway'; },
-          l: () => { label = `${en}: location`; kind = 'Location'; } })[t]?.();
+          l: () => { label = `${en}: location`; kind = 'Location'; },
+          b: () => { label = `Membrane before ${en}`; kind = 'Membrane'; } })[t]?.();
         if (!label) continue;
       }
       out.push({ pid: p.id, pname: p.name, key, label, kind, n: e.n, miss: e.miss, rate: e.miss / e.n, last: e.last || 0 });
