@@ -6,14 +6,14 @@
 'use strict';
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
-const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactor set' };
+const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactor set', loc: 'compartment' };
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- elements: show / quiz / hide ---------- */
 function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
 function elSpecFor(cfg) {
   return {
-    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Locations', ['show', 'hide']]],
+    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)];
@@ -25,13 +25,14 @@ function elOf(cfg, k) {
 }
 const el = k => elOf(Q.cfg, k);
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof' }[key[0]]);
-const answerStyle = () => Q.cfg.answer || Store.settings.answer;
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', z: 'loc' }[key[0]]);
+// Building blocks is typed only (typing or typing along).
+const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
 function quizSummary(cfg) {
   const by = { quiz: [], show: [], hide: [] };
   elSpecFor(cfg).forEach(([k, label]) => by[elOf(cfg, k)].push(label.toLowerCase()));
-  const mode = cfg.mode === 'single' ? 'Single blank' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
+  const mode = cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
   return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
 }
 
@@ -89,11 +90,17 @@ function alongTextFor(q, m, r) {
   if (q.kind === 'cof') return [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])].map(id => cofName(m, id)).join(', ') || 'none';
   if (q.kind === 'mets') return metNames(m, q.side === 'r' ? reactantsOf(r) : productsOf(r));
   if (q.kind === 'path') return m.p.name;
-  if (q.kind === 'loc') return r.loc;
+  if (q.kind === 'loc') return q.item ? q.item.name : r.loc;
   return q.item ? q.item.name : q.answerText;
 }
 function itemQ(item, m) {
   if (item.kind === 'cof') return cofQ(item.rxn, m, item);
+  if (item.kind === 'loc') {
+    const all = uniq(Library.atomic().flatMap(p => p.reactions.map(r => r.loc)).filter(Boolean)).filter(l => canonLoc(l) !== item.canon);
+    return baseQ({ kind: 'loc', label: 'Compartment', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name, placeholder: 'e.g. mitochondria',
+      options: answerStyle() === 'choice' ? pickOthers(item.name, uniq(all.map(l => l[0].toUpperCase() + l.slice(1)))) : null,
+      check: v => v === item.name || canonLoc(v) === item.canon || item.aliases.some(a => norm(a) === norm(v)) });
+  }
   const acc = acceptedFor(item);
   return baseQ({
     kind: item.kind, label: { met: 'Metabolite', enz: 'Enzyme', trn: 'Transporter' }[item.kind], item, statKey: item.key, pid: m.p.id,
@@ -183,6 +190,7 @@ function newRound() {
   if (!elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz')) Q.round = { type: 'none' };
   else if (Q.cfg.mode === 'single') { Q.round = { type: 'single', deck: [], target: null, q: null }; nextSingle(); }
   else if (Q.cfg.mode === 'total') { Q.round = { type: 'total', queue: Q.models.slice(1) }; Q.m = Q.models[0]; startTotal(); }
+  else if (Q.cfg.mode === 'build') startBuild();
   else if (Q.cfg.given === 'enz') { Q.round = { type: 'stepE', deck: [], qs: [] }; nextStepE(); }
   else { Q.round = { type: 'step', deck: [], pair: null, qs: [] }; nextStep(); }
 }
@@ -220,6 +228,43 @@ function loadTotalQ() {
   if (R.pos >= R.order.length) { R.done = true; R.q = null; return; }
   R.q = withAlong(itemQ(Q.m.items[Q.m.seq[R.order[R.pos]]], Q.m), Q.m);
 }
+/* ---------- Building blocks ----------
+   Round k: the first k blanks (in reading order) from the top; everything after them is shown.
+   A blank only counts when its answer is typed cleanly — a wrong answer, a hint or a reveal clears just that blank. */
+function startBuild() {
+  Q.m = Q.models[0];
+  const order = Q.m.seq.map((k, i) => i).filter(i => el(kindOf(Q.m.seq[i])) === 'quiz');
+  Q.round = { type: 'build', order, k: 1, pos: 0, done: !order.length, intro: new Set() };
+  loadBuildQ();
+}
+function loadBuildQ() {
+  const R = Q.round;
+  if (R.done) { R.q = null; return; }
+  R.q = withAlong(itemQ(Q.m.items[Q.m.seq[R.order[R.pos]]], Q.m), Q.m);
+}
+function buildResolved(q) {
+  const R = Q.round;
+  const clean = q.status === 'right' && !q.hints && !q.tries;
+  const key = q.item.key, first = !R.intro.has(key);
+  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); Q.score.total++; if (clean) Q.score.right++; }
+  Q.fact = factItemOf(q.item, Q.m); Q.factM = Q.m;
+  Q.history = (Q.history || []).filter(h => h.item !== Q.fact); Q.history.unshift({ item: Q.fact, m: Q.m, status: clean ? 'right' : 'missed' });
+  if (!clean) {
+    // Typed with help: wipe this blank and ask for it again, unaided.
+    R.q = withAlong(itemQ(q.item, Q.m), Q.m);
+    R.q.note = q.hints ? 'You used a hint. Now type it on your own.' : 'Now type it without a slip.';
+    return renderQuiz();
+  }
+  R.pos++;
+  if (R.pos >= R.k) {
+    R.k++; R.pos = 0;
+    if (R.k > R.order.length) { R.done = true; R.q = null; return renderQuiz(); }
+    R.roundMsg = `Round ${R.k}: from the top, one more blank.`;
+  } else R.roundMsg = '';
+  loadBuildQ();
+  renderQuiz();
+}
+
 function advanceTotal() { Q.round.pos++; loadTotalQ(); renderQuiz(); }
 function nextTotalPathway() { Q.m = Q.round.queue.shift(); startTotal(); }
 function nextStep() {
@@ -258,7 +303,7 @@ function nextStepE() {
 function withAlong(q, m, r = q.item?.rxn) {
   if (answerStyle() === 'along' && q.kind !== 'dir') q.along = alongTextFor(q, m, r);
   // Every accepted spelling, for letter-by-letter checking and hints (whichever one you're typing wins).
-  if (q.kind !== 'dir') q.targets = uniq(q.item && q.kind !== 'cof' ? [q.item.name, q.item.short, ...(q.item.aliases || [])].filter(Boolean)
+  if (q.kind !== 'dir') q.targets = uniq(q.item && q.kind !== 'cof' ? [q.item.name, q.item.short, ...(q.item.aliases || []), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
     : q.kind === 'path' ? [m.p.name, ...(m.p.aliases || [])] : [alongTextFor(q, m, r)]);
   return q;
 }
@@ -306,10 +351,19 @@ function nextQuestion() {
 function submit(q, v) {
   if (q.status !== 'open') return;
   if (!['dir', 'cof'].includes(q.kind) && !String(v).trim()) return;
+  if (Q.round.type === 'build') {
+    // Building blocks: right → next blank; wrong → this blank is cleared and asked again.
+    if (q.check(v)) { q.status = 'right'; return buildResolved(q); }
+    q.tries++; q.wrong.push(v); q.draft = ''; q.justWrong = true; q.alongErrs = 0; q.lastErrs = 0; return renderQuiz();
+  }
   if (q.check(v)) { q.status = 'right'; q.given = v; tally(q, q.tries === 0); resolved(q); }
   else { q.tries++; q.wrong.push(v); q.draft = v; q.justWrong = true; renderQuiz(); }
 }
-function reveal(q) { if (q.status !== 'open') return; q.status = 'missed'; tally(q, false); resolved(q); }
+function reveal(q) {
+  if (q.status !== 'open') return;
+  if (Q.round.type === 'build') { q.hints = (q.hints || 0) + 1; q.peek = q.answerText; return renderQuiz(); }
+  q.status = 'missed'; tally(q, false); resolved(q);
+}
 function peek(q) { q.status = 'peek'; renderQuiz(); }
 function selfGrade(q, ok) { q.status = ok ? 'right' : 'missed'; q.self = true; tally(q, ok); resolved(q); }
 function tally(q, firstTry) {
@@ -341,6 +395,13 @@ function statusOf(key) {
   if (R.type === 'single') {
     if (key !== R.target) return 'shown';
     return R.q.status === 'open' ? 'target' : R.q.status;
+  }
+  if (R.type === 'build') {
+    const j = R.order.indexOf(Q.m.seq.indexOf(key));
+    if (j < 0 || j >= R.k || R.done) return 'shown';
+    if (j < R.pos) return 'right';
+    if (j === R.pos) return R.q && R.q.status === 'open' ? 'target' : 'right';
+    return 'blank';
   }
   if (R.type === 'total') {
     if (R.start >= 0 && key === Q.m.seq[R.start]) return 'start';
@@ -477,14 +538,15 @@ function renderQuiz() {
   const V = $('#view');
   if (!Q.cfg) { location.hash = '#/'; return; }
   const R = Q.round;
-  const occ = R.type === 'single' || R.type === 'total';
+  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build';
   const cq = occ && R.q;
   INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open'
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null } : null;
   if (cq) cq.inline = !!INLINE;
   const flow = viewStyle() === 'flow', horiz = Store.settings.dir === 'h';
   const sub = R.type === 'stepE' && el('path') !== 'show' && Q.models.length > 1 ? `${Q.models.length} pathways` : esc(Q.m.p.name) + (Q.models.length > 1 && R.type !== 'stepE' ? ` <span class="muted">· ${Q.models.length} in this quiz</span>` : '');
-  const progress = R.type === 'total' && !R.done ? `<span class="prog">${R.pos + 1} / ${R.order.length}</span>` : '';
+  const progress = R.type === 'total' && !R.done ? `<span class="prog">${R.pos + 1} / ${R.order.length}</span>`
+    : R.type === 'build' && !R.done ? `<span class="prog" title="Round ${R.k} of ${R.order.length}">Round ${R.k} / ${R.order.length}</span>` : '';
 
   let stage = '', dock = '', below = '';
   if (R.type === 'none') {
@@ -553,6 +615,17 @@ function lastFactsHTML() {
 }
 function occDock() {
   const R = Q.round, q = R.q;
+  if (R.type === 'build') {
+    if (R.done) return `<div class="dock done-dock"><div class="dock-row">
+      <div class="dock-text"><div class="big">${mi('check')} Built</div><div class="muted">You typed all ${R.order.length} blanks in a row, cleanly.</div></div>
+      <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button><a class="btn ghost" href="#/">Done</a></div>
+    </div>${lastFactsHTML()}</div>`;
+    return `<div class="dock"><div class="dock-row">
+      <div class="dock-text"><span class="kind kind-${q.kind}">${KIND[q.kind]}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
+      <div class="dock-answer">${q.peek ? `<div class="hint-line"><span>Answer: <b>${esc(q.peek)}</b>. Now type it.</span></div>` : ''}${q.note ? `<div class="hint-line"><span class="bad-note">${esc(q.note)}</span></div>` : ''}${q.justWrong ? `<div class="hint-line"><span class="bad-note">${icon('no')} Not quite. That blank is cleared; try it again.</span></div>` : ''}${answerHTML(q, 0, true)}</div>
+      <div class="dock-actions"><button class="btn ghost" data-act="reveal" title="Show the answer (you'll still type it)">${mi('visibility', 'sm')} Show answer</button></div>
+    </div>${lastFactsHTML()}</div>`;
+  }
   if (R.type === 'total' && R.done) {
     const more = R.queue.length;
     return `<div class="dock done-dock"><div class="dock-row">
@@ -680,7 +753,10 @@ document.addEventListener('click', e => {
     case 'next': case 'skip': nextQuestion(); break;
     case 'continue': advanceTotal(); break;
     case 'nextpath': nextTotalPathway(); renderQuiz(); break;
-    case 'restart': Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; Q.score = { right: 0, total: 0 }; startTotal(); renderQuiz(); break;
+    case 'restart':
+      Q.score = { right: 0, total: 0 };
+      if (Q.round.type === 'build') startBuild(); else { Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; startTotal(); }
+      renderQuiz(); break;
   }
 });
 document.addEventListener('change', e => {
@@ -723,6 +799,7 @@ document.addEventListener('keydown', e => {
   const inInput = e.target.tagName === 'INPUT';
   const V = $('#view');
   if (e.key === 'Escape' && inInput && Q.round.q) { reveal(Q.round.q); return; }
+  if (Q.round.type === 'build') return;
   if (e.key === 'Enter' && !inInput) {
     const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
     if (btn) { e.preventDefault(); btn.click(); }

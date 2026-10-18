@@ -29,7 +29,10 @@ const Store = {
     this.data = Object.assign({ custom: {}, stats: {}, presets: [] }, raw);
     this.data.settings = Object.assign({}, DEFAULT_SETTINGS, raw.settings);
   },
-  save() { clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 400); },
+  save() {
+    clearTimeout(this.t); this.t = setTimeout(() => this.flush(), 400);
+    try { localStorage.setItem('pathways.changedAt', JSON.stringify(Date.now())); } catch {}
+  },
   async flush() {
     const body = JSON.stringify(this.data);
     if (this.mode === 'server') {

@@ -233,5 +233,7 @@
    "Glycogen phosphorylase"
   ]
  },
- "tissue": "small intestine, then liver"
+ "tissue": "small intestine, then liver",
+ "icon": "local_cafe",
+ "color": "slate"
 }

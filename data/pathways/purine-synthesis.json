@@ -563,5 +563,7 @@
    "Purine nucleoside phosphorylase"
   ]
  },
- "tissue": "liver (most cells salvage)"
+ "tissue": "liver (most cells salvage)",
+ "icon": "genetics",
+ "color": "blue"
 }

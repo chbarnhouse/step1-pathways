@@ -426,5 +426,7 @@
    "GLUT5"
   ]
  },
- "tissue": "every cell"
+ "tissue": "every cell",
+ "icon": "local_fire_department",
+ "color": "orange"
 }

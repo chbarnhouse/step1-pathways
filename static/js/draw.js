@@ -115,6 +115,7 @@ function cofBlank(x, y, st, anchor = 'start') {
 const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'missed' ? svgIcon(x, y, 'no') : '');
 
 function flowSVG(m, statusOf, opts = {}) {
+  ZONE_INLINE_DONE = false;
   if (m.p.layout === 'grid') return gridSVG(m, statusOf, opts);
   return m.p.circular ? cycleSVG(m, statusOf, opts) : linearSVG(m, statusOf, opts);
 }
@@ -161,8 +162,8 @@ const LANE_ORDER = { blood: 0, lumen: 0, 'brush border': 0, 'plasma membrane': 0
 function computeLanes(m) {
   const { p, spine, spineMets } = m;
   const tissues = uniq(spine.map(r => r.tissue || p.tissue || '').filter(Boolean));
-  const multiT = new Set(spine.map(r => r.tissue || '')).size > 1;
-  const keyOf = (loc, tissue) => (multiT ? (tissue || p.tissue || '') + '|' : '') + canonLoc(loc || '');
+  const multiT = m.multiTissue;
+  const keyOf = (loc, tissue) => zoneKey(m, loc, tissue);
   const where = {};
   spineMets.forEach(id => {
     const own = p.metabolites[id]?.loc;
@@ -191,6 +192,25 @@ function computeLanes(m) {
 }
 
 const LANE_W = 470;
+// A compartment's label: plain text, a blank to fill, or the answer field itself (only once per drawing).
+let ZONE_INLINE_DONE = false;
+function zoneLabel(m, statusOf, key, x, y, anchor = 'middle', fallback = '') {
+  const item = m.items['z:' + key];
+  if (!item) return fallback ? `<text class="zonet" x="${x}" y="${y}" text-anchor="${anchor}">${esc(fallback)}</text>` : '';
+  const st = statusOf(item.key);
+  if (st === 'hide') return '';
+  if (hidden(st)) {
+    if (st === 'target' && INLINE && !ZONE_INLINE_DONE) {
+      ZONE_INLINE_DONE = true;
+      const w = Math.max(200, INLINE.along ? INLINE.along.length * 8 + 28 : 0), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+      return `<g class="elab target"><rect x="${rx}" y="${y - 20}" width="${w}" height="30" rx="15"/></g>` + inlineField(rx + 4, y - 17, w - 8, 24);
+    }
+    const w = 64, rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+    return `<g class="elab ${st}" data-key="${item.key}"><rect x="${rx}" y="${y - 17}" width="${w}" height="24" rx="12"/><text x="${rx + w / 2}" y="${y - 5}" text-anchor="middle" dominant-baseline="central" style="font-style:normal;font-weight:700">?</text></g>`;
+  }
+  const mark = st === 'right' ? svgIcon(anchor === 'end' ? x + 12 : x - 12 - (anchor === 'middle' ? item.name.length * 3.5 : 0), y - 4, 'ok') : st === 'missed' ? svgIcon(anchor === 'end' ? x + 12 : x - 12 - (anchor === 'middle' ? item.name.length * 3.5 : 0), y - 4, 'no') : '';
+  return `<text class="zonet" data-key="${item.key}" x="${x}" y="${y}" text-anchor="${anchor}">${esc(item.name)}</text>${mark}`;
+}
 function linearSVG(m, statusOf, { zones = true } = {}) {
   const { p, items, spine, spineMets, branches, onSpine } = m;
   // Side steps between two main-line metabolites (gluconeogenic bypasses in a combined view) curve out to the right.
@@ -219,20 +239,13 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const x0 = laneX(i) - LANE_W / 2 + 20, x1 = i === L.list.length - 1 ? W : laneX(i) + LANE_W / 2 + 20;
       if (i % 2) s += `<rect class="zone alt" x="${x0}" y="0" width="${x1 - x0}" height="${H}"/>`;
       if (i > 0) s += `<line class="membrane" x1="${x0}" x2="${x0}" y1="0" y2="${H}"/>`;
-      s += `<text class="zonet" x="${laneX(i)}" y="16" text-anchor="middle">${esc(l.label)}</text>`;
+      s += zoneLabel(m, statusOf, l.key, laneX(i), 18, 'middle', l.label);
     });
-  } else if (zones) {
-    // One compartment: name it in the corner. (Single-lane pathways that change tissue keep horizontal bands.)
-    const groups = [];
-    spine.forEach(r => { const l = locLabel(m, r); if (!groups.length || groups[groups.length - 1].l !== l) groups.push({ l, rs: [r] }); else groups[groups.length - 1].rs.push(r); });
-    if (groups.length > 1) groups.forEach((g, i) => {
-      const yTop = i === 0 ? 0 : pos[g.rs[0].from].y + BH / 2;
-      const yBot = i === groups.length - 1 ? H : pos[g.rs[g.rs.length - 1].to].y + BH / 2;
-      s += `<rect class="zone${i % 2 ? ' alt' : ''}" x="0" y="${yTop}" width="${W}" height="${yBot - yTop}"/>`;
-      if (i > 0) s += `<line class="membrane" x1="0" x2="${W}" y1="${yTop}" y2="${yTop}"/>`;
-      if (g.l) s += `<text class="zonet" x="${W - 8}" y="${i === 0 ? 14 : yTop + BH / 2 + 16}" text-anchor="end">${esc(g.l)}</text>`;
-    });
-    else if (groups[0]?.l) s += `<text class="zonet" x="${W - 8}" y="14" text-anchor="end">${esc(groups[0].l)}</text>`;
+  }
+  if (zones) {
+    // Compartments without a lane of their own are listed in the top-right corner, one per line.
+    const drawn = new Set(lanesOn ? L.list.map(l => l.key) : []);
+    Object.values(items).filter(it => it.kind === 'loc' && !drawn.has(it.id)).forEach((it, i) => { s += zoneLabel(m, statusOf, it.id, W - 8, 18 + i * 30, 'end'); });
   }
   const mult = spine.map((r, i) => (r.multiplier > 1 ? i : -1)).filter(i => i >= 0);
   if (mult.length) {
@@ -289,7 +302,8 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   spine.forEach(r => { const l = locLabel(m, r); if (l) counts[l] = (counts[l] || 0) + 1; });
   const main = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
   let s = '';
-  if (zones && main) s += `<text class="zonet" x="${cx}" y="${cy + 4}" text-anchor="middle">${esc(main)}</text>`;
+  const keyOfR = r => zoneKey(m, r.loc, r.tissue), mainR = spine.find(r => locLabel(m, r) === main);
+  if (zones && mainR) s += zoneLabel(m, statusOf, keyOfR(mainR), cx, cy + 4, 'middle', main);
   // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
   const speed = t => Math.hypot(RX * Math.sin(t), RY * Math.cos(t));
   const ext = t => { const L = speed(t), ux = -RX * Math.sin(t) / L, uy = RY * Math.cos(t) / L; return (Math.abs(w / 2 * ux) + Math.abs(BH / 2 * uy) + 10) / L; };
@@ -308,7 +322,8 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     const tm = (s1 + s2) / 2, co = Math.cos(tm);
     const anchor = co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle';
     const [lx, ly0] = pt(tm, 28 + (anchor === 'middle' ? 16 : 0));
-    const here = locLabel(m, r), loc = zones && here && here !== main ? [here] : [];
+    const here = locLabel(m, r), zst = m.items['z:' + keyOfR(r)] ? statusOf('z:' + keyOfR(r)) : 'shown';
+    const loc = zones && here && here !== main && zst !== 'hide' ? [hidden(zst) ? '? (compartment)' : here] : [];
     const es = statusOf('e:' + r.id), it = items['e:' + r.id];
     s += enzLabel(lx, ly0, it, es, anchor, 20, 'center', loc);
     const cs = cofSt(m, statusOf, r);
@@ -331,7 +346,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
 }
 
 // Grids (steroidogenesis): every metabolite sets pos: [column, row]; optional grid_columns headers.
-function gridSVG(m, statusOf) {
+function gridSVG(m, statusOf, opts = {}) {
   const { p, items } = m, COLW = BW + 200, ROWH = BH + 96, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.grid_columns ? 34 : 0);
   const pos = {};
   for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
@@ -339,7 +354,13 @@ function gridSVG(m, statusOf) {
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
   p.reactions.forEach(r => { s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to]); });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id));
-  const W = Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24, H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24;
+  let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24;
+  const W = Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24;
+  if (opts.zones !== false) {
+    // Grids don't split into lanes, so the compartments are listed underneath (and quizzable there).
+    const zs = Object.values(items).filter(it => it.kind === 'loc');
+    if (zs.length) { s += `<text class="zonet" x="24" y="${H + 6}">Compartments:</text>`; zs.forEach((z, i) => { s += zoneLabel(m, statusOf, z.id, 150 + i * 230, H + 6, 'start'); }); H += 30; }
+  }
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} diagram">${s}</svg>`;
 }
 
@@ -373,7 +394,13 @@ function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
     const it = m.items[k], st = statusOf(k);
     if (it.kind === 'cof') return '';
     let row = '';
-    if (zones && it.rxn) { const l = locLabel(m, it.rxn); if (l && l !== lastLoc) row = `<div class="locrow">${esc(l)}</div>`; lastLoc = l || lastLoc; }
+    if (it.kind === 'loc') {
+      const st = statusOf(k);
+      if (!zones || st === 'hide') return '';
+      if (st === 'target' && INLINE) return `<form class="locrow inl" data-q="0">${inlineInput()}</form>`;
+      const ic = st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '';
+      return `<div class="locrow${hidden(st) ? ' blank' : ''}" data-key="${k}">${hidden(st) ? '? (compartment)' : esc(it.name)} ${ic}</div>`;
+    }
     return row + listPart(m, it, st, horiz, statusOf);
   });
   if (m.p.circular) parts.push(`<div class="conn"><span class="arr">↺</span><div class="meta"><span class="cofs">back to the start</span></div></div>`);

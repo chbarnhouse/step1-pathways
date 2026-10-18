@@ -167,5 +167,7 @@
    "Aspartate aminotransferase"
   ]
  },
- "tissue": "liver"
+ "tissue": "liver",
+ "icon": "water_drop",
+ "color": "gold"
 }

@@ -238,5 +238,7 @@
    "Thyroid peroxidase"
   ]
  },
- "tissue": "adrenal medulla and catecholaminergic neurons"
+ "tissue": "adrenal medulla and catecholaminergic neurons",
+ "icon": "bolt",
+ "color": "orange"
 }

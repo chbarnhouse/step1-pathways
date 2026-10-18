@@ -165,5 +165,7 @@
    "Sucrase"
   ]
  },
- "tissue": "liver"
+ "tissue": "liver",
+ "icon": "nutrition",
+ "color": "gold"
 }

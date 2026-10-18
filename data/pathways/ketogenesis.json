@@ -217,5 +217,7 @@
    "Malonyl-CoA decarboxylase"
   ]
  },
- "tissue": "liver"
+ "tissue": "liver",
+ "icon": "battery_charging_full",
+ "color": "teal"
 }

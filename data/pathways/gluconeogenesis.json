@@ -395,5 +395,7 @@
    "Glycerol kinase"
   ]
  },
- "tissue": "liver (also kidney, small intestine)"
+ "tissue": "liver (also kidney, small intestine)",
+ "icon": "hourglass_empty",
+ "color": "blue"
 }

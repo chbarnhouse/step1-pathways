@@ -488,5 +488,7 @@
    "Hypoxanthine-guanine phosphoribosyltransferase"
   ]
  },
- "tissue": "most cells"
+ "tissue": "most cells",
+ "icon": "biotech",
+ "color": "teal"
 }

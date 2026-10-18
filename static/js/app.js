@@ -15,43 +15,40 @@ const local = {
 const pageHead = (title, sub = '', actions = '') => `<div class="page-h"><div><h1>${title}</h1>${sub ? `<p class="muted">${sub}</p>` : ''}</div>${actions ? `<div class="btnrow">${actions}</div>` : ''}</div>`;
 const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts.map(([v, l]) => `<button ${attr}="${key}" data-v="${v}" role="radio" aria-checked="${String(cur) === String(v)}">${l}</button>`).join('')}</div>`;
 
-/* ================= Dashboard (#/) ================= */
+/* ================= Dashboard (#/) =================
+   Laid out to fit one screen: actions on top, then weak spots and progress side by side (each scrolls inside). */
 function renderDashboard() {
-  const last = local.get(LAST_QUIZ), worst = Stats.worst(6), mine = Store.data.presets;
-  const lastP = last?.cfg && Library.get(last.cfg.combine && pairOf(last.cfg.pathway) ? pairOf(last.cfg.pathway).id : last.cfg.pathway);
-  const studied = Library.list().filter(p => Stats.accuracy(p.id)).length;
+  const last = local.get(LAST_QUIZ), worst = Stats.worst(8), mine = Store.data.presets;
+  const lastD = last?.cfg && normalizeDraft(last.cfg), lastP = lastD && Library.get(lastD.combine && pairOf(lastD.pathway) ? pairOf(lastD.pathway).id : lastD.pathway);
+  const atomic = Library.atomic().sort((a, b) => groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
+  const studied = atomic.filter(p => Stats.accuracy(p.id)).length;
   $('#view').innerHTML = `<div class="page dash">
     <div class="dash-top">
       <a class="card hero-new" href="#/new"><span class="hero-ic">${mi('add')}</span><span><b>New quiz</b><span class="muted">Pick a pathway and how to study it.</span></span></a>
-      ${lastP ? `<button class="card hero-resume" data-dash="resume"><span class="hero-ic alt">${mi('play_arrow')}</span><span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(last.cfg)))}</span></span></button>` : ''}
-    </div>
-    <div class="dash-cols">
-      <section class="card pad">
-        <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
-        ${statsTableHTML(worst, { showPathway: true })}
-      </section>
-      <section class="card pad">
-        <div class="sec-h"><h2>${mi('library_books', 'h-ic')} Progress</h2><span class="muted">${studied} of ${Library.atomic().length} studied</span></div>
-        <ul class="plist">${Library.list().filter(p => !Library.get(p.id).compose).map(p => { const a = Stats.accuracy(p.id); return `<li><a href="#/pathways/${esc(p.id)}">${esc(p.name)}</a><span class="muted">${a ? `${a.pct}% first try` : 'not studied'}</span>${a ? `<span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>` : '<span class="meter blankmeter"></span>'}</li>`; }).join('')}</ul>
-      </section>
-    </div>
-    <div class="dash-cols">
-      ${mine.length ? `<section class="card pad"><h2>Your presets</h2><div class="chips">${mine.map(p => `<a class="chip-link" href="#/new" data-dash="preset" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} ${esc(p.name)}</a>`).join('')}</div></section>` : ''}
+      ${lastP ? `<button class="card hero-resume" data-dash="resume">${tileArt(lastP)}<span><b>Resume: ${esc(lastP.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(lastD)))}</span></span></button>` : ''}
       ${backupCardHTML()}
+    </div>
+    ${mine.length ? `<div class="dash-presets"><span class="glabel">Your presets</span>${mine.map(p => `<a class="chip-link" href="#/new" data-dash="preset" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} ${esc(p.name)}</a>`).join('')}</div>` : ''}
+    <div class="dash-cols">
+      <section class="card pad dash-card">
+        <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
+        <div class="dash-scroll">${statsTableHTML(worst, { showPathway: true })}</div>
+      </section>
+      <section class="card pad dash-card">
+        <div class="sec-h"><h2>${mi('library_books', 'h-ic')} Progress</h2><span class="muted">${studied} of ${atomic.length} studied</span></div>
+        <div class="dash-scroll"><ul class="pgrid">${atomic.map(p => { const a = Stats.accuracy(p.id); return `<li><a href="#/pathways/${esc(p.id)}">${tileArt(p, 'xs')}<span>${esc(p.name)}</span></a>${a ? `<span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span><span class="pct">${a.pct}%</span>` : '<span class="muted small">—</span><span></span>'}</li>`; }).join('')}</ul></div>
+      </section>
     </div>
   </div>`;
 }
 // Static builds keep everything in this browser, so the dashboard keeps the backup one click away.
 function backupCardHTML() {
-  if (Store.mode === 'server') return `<section class="card pad"><h2>${mi('download', 'h-ic')} Your data</h2><p class="muted">Saved on your Pathways server, so every device sees the same progress. You can still export a copy from Settings.</p></section>`;
-  const lb = local.get('pathways.lastBackup');
-  const ago = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
-  return `<section class="card pad backup${!lb || ago > 7 ? ' due' : ''}"><h2>${mi('download', 'h-ic')} Back up your progress</h2>
-    <p class="muted">Your progress, presets and pathways are stored in this browser only. Clearing site data or switching browsers loses them, so save a backup file now and then and restore it anywhere.</p>
-    <p><b>Last backup:</b> ${lb ? (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`) : 'never'}${Store.persisted ? ' · this browser has agreed to keep your data' : ''}</p>
-    <div class="btnrow"><button class="btn primary" data-data="download">${mi('download', 'sm')} Download backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Restore from file</button></div>
-    <input type="file" id="backupFile" accept=".json,application/json" hidden>
-  </section>`;
+  if (Store.mode === 'server') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Saved on your server</b><span class="muted">Every device sees the same progress.</span></span></div>`;
+  const lb = local.get('pathways.lastBackup'), ago = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
+  const when = lb ? (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`) : 'never';
+  return `<div class="card hero-data${unsavedChanges() ? ' due' : ''}"><span class="hero-ic alt">${mi('download')}</span><span><b>Last backup: ${when}</b><span class="muted">${unsavedChanges() ? 'You have progress that isn’t in a backup yet.' : 'Your progress is backed up.'}</span>
+    <span class="btnrow tight"><button class="btn small primary" data-data="download">${mi('download', 'sm')} Back up</button><button class="btn small ghost" data-data="import">${mi('upload', 'sm')} Restore</button></span></span>
+    <input type="file" id="backupFile" accept=".json,application/json" hidden></div>`;
 }
 document.addEventListener('click', e => {
   if (!$('#view .dash')) return;
@@ -100,27 +97,123 @@ function loadPresetInto(id) {
 const MODES = [
   ['single', 'Fill the blanks', 'The whole pathway, one piece missing at a time.'],
   ['total', 'Full recall', 'Rebuild the pathway in order, step by step.'],
+  ['build', 'Building blocks', 'One blank, then the first two, then three… each round from the top, until you can type the whole pathway.'],
   ['step', 'Single step', 'One step on its own: name what connects two metabolites, or what an enzyme does.'],
 ];
-const thumbCache = new Map();
-function thumbSVG(p) {
-  const hit = thumbCache.get(p.id);
-  if (hit && hit.src === p) return hit.svg;
-  let svg = '';
-  try { svg = flowSVG(modelFor(p), () => 'shown', { zones: true }); } catch {}
-  thumbCache.set(p.id, { src: p, svg });
-  return svg;
+/* ---------- pathway browser (New quiz + Pathways) ----------
+   Icon tiles with search, composable filters (group, your tags, status) and sorting. Filters stack:
+   any of the chosen groups AND any of the chosen tags AND the chosen status. Remembered per page. */
+const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Combined'];
+const BROWSE_DEFAULT = { q: '', groups: [], tags: [], status: '', sort: 'group' };
+const browse = page => Object.assign(clone(BROWSE_DEFAULT), local.get('pathways.browse.' + page) || {});
+const tagsOf = id => (Store.data.tags && Store.data.tags[id]) || [];
+const allTags = () => uniq(Object.values(Store.data.tags || {}).flat()).sort((a, b) => a.localeCompare(b));
+function setTags(id, tags) { Store.data.tags = Store.data.tags || {}; Store.data.tags[id] = uniq(tags.map(t => t.trim()).filter(Boolean)); if (!Store.data.tags[id].length) delete Store.data.tags[id]; Store.save(); }
+const lastStudied = id => Math.max(0, ...Object.values(Store.data.stats[id] || {}).map(e => e.last || 0));
+const hasWeak = id => Object.values(Store.data.stats[id] || {}).some(e => e.miss > 0);
+const groupRank = g => (GROUP_ORDER.indexOf(g) + 1) || 99;
+function searchText(p) {
+  return norm([p.name, p.group, ...(p.aliases || []), ...tagsOf(p.id), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || [])]),
+    ...Object.values(p.metabolites || {}).flatMap(x => [x.name, x.short])].filter(Boolean).join(' '));
 }
+function filterPathways(list, st) {
+  const q = norm(st.q || '');
+  return list.filter(p => (!q || searchText(p).includes(q))
+    && (!st.groups.length || st.groups.includes(p.group || 'Other'))
+    && (!st.tags.length || st.tags.some(t => tagsOf(p.id).includes(t)))
+    && (!st.status || (st.status === 'new' ? !Stats.accuracy(p.id) : st.status === 'studied' ? !!Stats.accuracy(p.id) : hasWeak(p.id))))
+    .sort((a, b) => st.sort === 'name' ? a.name.localeCompare(b.name)
+      : st.sort === 'weak' ? ((Stats.accuracy(a.id)?.pct ?? 101) - (Stats.accuracy(b.id)?.pct ?? 101)) || a.name.localeCompare(b.name)
+      : st.sort === 'recent' ? lastStudied(b.id) - lastStudied(a.id) || a.name.localeCompare(b.name)
+      : groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
+}
+function browseToolbar(page, st, list) {
+  const groups = uniq(list.map(p => p.group || 'Other')).sort((a, b) => groupRank(a) - groupRank(b));
+  const tags = allTags();
+  const chip = (attr, v, on, label) => `<button class="chip-tg small" ${attr}="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
+  const any = st.q || st.groups.length || st.tags.length || st.status;
+  return `<div class="browsebar" data-bpage="${page}">
+    <label class="search">${mi('search', 'sm')}<input type="search" data-bq placeholder="Search pathways, enzymes, metabolites, tags" value="${esc(st.q)}" aria-label="Search pathways"></label>
+    <label class="sortsel">${mi('sort', 'sm')}<select data-bsort aria-label="Sort">${[['group', 'By group'], ['name', 'A–Z'], ['weak', 'Weakest first'], ['recent', 'Recently studied']].map(([v, l]) => `<option value="${v}"${st.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+    <div class="filters">${mi('filter_list', 'sm filt-ic')}
+      ${groups.map(g => chip('data-bgroup', g, st.groups.includes(g), g)).join('')}
+      <span class="fsep"></span>${[['new', 'Not studied'], ['studied', 'Studied'], ['weak', 'Has weak spots']].map(([v, l]) => chip('data-bstatus', v, st.status === v, l)).join('')}
+      ${tags.length ? `<span class="fsep"></span>${tags.map(t => `<button class="chip-tg small tag" data-btag="${esc(t)}" aria-pressed="${st.tags.includes(t)}">${mi('sell', 'sm')}${esc(t)}</button>`).join('')}` : ''}
+      ${any ? '<button class="linkbtn" data-bclear>Clear</button>' : ''}
+    </div>
+  </div>`;
+}
+// Tile art: the pathway's Material Symbol on its color (falls back to a generic icon for your own pathways).
+const TONES = ['blue', 'orange', 'pink', 'teal', 'gold', 'slate'];
+const toneOf = p => (TONES.includes(p.color) ? p.color : TONES[[...p.id].reduce((a, c) => a + c.charCodeAt(0), 0) % TONES.length]);
+const iconOf = p => (MI[p.icon] ? p.icon : p.compose ? 'join' : 'route');
+function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)} ${size}">${mi(iconOf(p))}</span>`; }
+function tileHTML(p, page, selected) {
+  const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
+  const meta = `${(p.reactions || []).length} steps${pr ? ' · pairs up' : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
+  const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
+  const tagHTML = tags.length ? `<span class="tile-tags">${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
+  if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">
+      ${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span>${selected ? `<span class="tile-check">${mi('check')}</span>` : ''}</button>`;
+  return `<article class="ptile lib">
+      <a class="tile-link" href="#/pathways/${esc(p.id)}">${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span></a>
+      <div class="tile-actions"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${esc(p.id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn small ghost" data-lib="tags" data-id="${esc(p.id)}">${mi('sell', 'sm')} Tags</button></div>
+    </article>`;
+}
+function tilesHTML(page, selectedId) {
+  const st = browse(page), base = page === 'new' ? Library.atomic() : Object.values(Library.all());
+  const list = filterPathways(base, st);
+  if (!list.length) return `<p class="muted">No pathways match. <button class="linkbtn" data-bclear>Clear filters</button></p>`;
+  if (st.sort !== 'group') return `<div class="tiles-grid">${list.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div>`;
+  const groups = {};
+  for (const p of list) (groups[p.group || 'Other'] = groups[p.group || 'Other'] || []).push(p);
+  return Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)}</h2><div class="tiles-grid">${ps.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div></div>`).join('');
+}
+function browserHTML(page, selectedId) {
+  const base = page === 'new' ? Library.atomic() : Object.values(Library.all());
+  return `${browseToolbar(page, browse(page), base)}<div class="tiles" id="tiles">${tilesHTML(page, selectedId)}</div>`;
+}
+function refreshTiles(page) { const t = $('#tiles'); if (t) t.innerHTML = tilesHTML(page, page === 'new' ? C.draft?.pathway : null); }
+function rerenderBrowsePage(page) { page === 'new' ? renderCreate() : renderLibrary(); }
+document.addEventListener('input', e => {
+  const bar = e.target.closest('[data-bpage]');
+  if (!bar || !e.target.hasAttribute('data-bq')) return;
+  const page = bar.dataset.bpage, st = browse(page);
+  st.q = e.target.value; local.set('pathways.browse.' + page, st);
+  refreshTiles(page);
+});
+document.addEventListener('change', e => {
+  const bar = e.target.closest('[data-bpage]');
+  if (!bar || !e.target.hasAttribute('data-bsort')) return;
+  const page = bar.dataset.bpage, st = browse(page);
+  st.sort = e.target.value; local.set('pathways.browse.' + page, st); refreshTiles(page);
+});
+document.addEventListener('click', e => {
+  const page = $('#view .create') ? 'new' : $('#view .library') ? 'library' : null;
+  if (!page) return;
+  const t = e.target.closest('[data-bgroup],[data-btag],[data-bstatus],[data-bclear]');
+  if (!t) return;
+  const st = browse(page);
+  if (t.dataset.bgroup) st.groups = st.groups.includes(t.dataset.bgroup) ? st.groups.filter(x => x !== t.dataset.bgroup) : [...st.groups, t.dataset.bgroup];
+  else if (t.dataset.btag) st.tags = st.tags.includes(t.dataset.btag) ? st.tags.filter(x => x !== t.dataset.btag) : [...st.tags, t.dataset.btag];
+  else if (t.dataset.bstatus) st.status = st.status === t.dataset.bstatus ? '' : t.dataset.bstatus;
+  else Object.assign(st, { q: '', groups: [], tags: [], status: '' });
+  local.set('pathways.browse.' + page, st);
+  rerenderBrowsePage(page);
+});
+function editTags(id) {
+  const p = Library.get(id);
+  ask({ title: `Tags for ${p.name}`, text: 'Comma-separated, e.g. "block 2, high yield, review". Tags are yours: they filter the pathway lists.', input: true, value: tagsOf(id).join(', '), ok: 'Save', allowEmpty: true })
+    .then(v => { if (v === null) return; setTags(id, String(v).split(',')); router(); });
+}
+
 function renderCreate() {
   const d = homeDraft(), sel = Library.get(d.pathway), pair = pairOf(d.pathway);
   const partner = pair && pair.compose.filter(x => x !== d.pathway).map(x => Library.get(x)?.name).filter(Boolean).join(' and ');
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
-  const ans = d.answer || Store.settings.answer;
+  let ans = d.answer || Store.settings.answer;
+  if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
   const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz');
-  const groups = {};
-  const order = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme'];
-  for (const p of Library.atomic().sort((a, b) => ((order.indexOf(a.group) + 1) || 99) - ((order.indexOf(b.group) + 1) || 99) || a.name.localeCompare(b.name)))
-    (groups[p.group || 'Other'] = groups[p.group || 'Other'] || []).push(p);
   const els = elSpecFor(d).map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[v]]), elOf(d, k))}</div>`).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
@@ -133,22 +226,16 @@ function renderCreate() {
     <div class="create-grid">
       <section class="picker">
         <div class="page-h"><div><h1>New quiz</h1><p class="muted">Choose a pathway${allE ? ' (enzymes will come from every pathway)' : ''}.</p></div></div>
-        ${Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)}</h2><div class="thumbs">${ps.map(p => {
-          const on = p.id === d.pathway, a = Stats.accuracy(p.id), pr = pairOf(p.id);
-          return `<button class="thumb${on ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${on}">
-            <span class="thumb-img">${thumbSVG(p)}</span>
-            <span class="thumb-name">${on ? mi('check', 'sm') : ''}${esc(p.name)}</span>
-            <span class="thumb-meta muted">${(p.reactions || []).length} steps${a ? ` · ${a.pct}%` : ''}${pr ? ' · pairs up' : ''}</span>
-          </button>`; }).join('')}</div></div>`).join('')}
+        ${browserHTML('new', d.pathway)}
       </section>
       <aside class="sidebar card">
-        <div class="side-sel"><span class="glabel">Pathway</span><b>${esc(allE ? 'All pathways' : sel?.name || '')}</b></div>
+        <div class="side-sel">${sel && !allE ? tileArt(sel, 'sm') : ''}<span><span class="glabel">Pathway</span><b>${esc(allE ? 'All pathways' : sel?.name || '')}</b></span></div>
         ${pair && !allE ? `<label class="pairbox${d.combine ? ' on' : ''}"><input type="checkbox" data-cflag="combine" ${d.combine ? 'checked' : ''}>
           <span><b>Study together with ${esc(partner)}</b><span class="muted">${esc(pair.name)}: shared steps once, each one's own steps alongside.</span></span></label>` : ''}
         ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
         <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, b]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${b}</span></button>`).join('')}</div></div>
         ${modeOpts}
-        <div class="field"><span>Answer by</span>${seg('data-cs', 'answer', [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
+        <div class="field"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
           ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p></div>
@@ -214,17 +301,10 @@ const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide')
 
 /* ================= Library ================= */
 function renderLibrary() {
-  $('#view').innerHTML = `<div class="page">
+  $('#view').innerHTML = `<div class="page library">
     ${pageHead('Pathways', `${Library.list().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
-      `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('add', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
-    ${Object.entries(Library.groups()).map(([g, ps]) => `<section class="libgroup"><h2 class="glabel">${esc(g)}</h2><div class="cards">${ps.map(p => {
-      const a = Stats.accuracy(p.id);
-      return `<article class="pcard card">
-        <a class="pcard-main" href="#/pathways/${esc(p.id)}"><h3>${esc(p.name)}</h3>
-          <p class="muted">${p.steps} steps${p.status !== 'builtin' ? ` · <span class="pill">${p.status === 'edited' ? 'edited' : 'yours'}</span>` : ''}</p>
-          <div class="acc">${a ? `<span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span><span>${a.pct}% first try · ${a.n} answers</span>` : '<span class="muted">Not studied yet</span>'}</div></a>
-        <div class="pcard-actions"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${esc(p.id)}/edit">${mi('edit', 'sm')} Edit</a></div>
-      </article>`; }).join('')}</div></section>`).join('')}
+      `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('join', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
+    ${browserHTML('library')}
     <input type="file" id="libFile" accept=".json,application/json" hidden>
   </div>`;
 }
@@ -241,6 +321,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   if (b.dataset.lib === 'import') $('#libFile').click();
   if (b.dataset.lib === 'study') studyPathway(b.dataset.id);
+  if (b.dataset.lib === 'tags') editTags(b.dataset.id);
 });
 document.addEventListener('change', e => { if (e.target.id === 'libFile') importFile(e.target.files[0]); });
 
@@ -258,8 +339,9 @@ function renderPathway(id) {
   }).join('');
   $('#view').innerHTML = `<div class="page pathway">
     <a class="back" href="#/pathways">${mi('arrow_back', 'sm')} Library</a>
-    ${pageHead(esc(p.name), `${esc(p.group || 'Other')} · ${p.reactions.length} steps${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
+    ${pageHead(`${tileArt(p)} ${esc(p.name)}`, `${esc(p.group || 'Other')} · ${p.reactions.length} steps${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
       `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button><a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>`)}
+    <div class="tagrow">${mi('sell', 'sm')} ${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">
       <div class="sec-h"><div class="seg">${['flow', 'list'].map(v => `<button data-pwview="${v}" aria-pressed="${Store.settings.view === v}">${v === 'flow' ? 'Flow' : 'List'}</button>`).join('')}</div>${flow ? zoomBarHTML() : ''}</div>
@@ -302,6 +384,7 @@ function renderSettings() {
     </section>
     <section class="card pad"><h2>Your data</h2>
       <p class="muted">${Store.mode === 'server' ? 'Saved on your Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
+      ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
     </section>
@@ -322,10 +405,37 @@ document.addEventListener('click', e => {
 });
 document.addEventListener('change', e => {
   if (!$('#view .settings')) return;
+  if (e.target.hasAttribute('data-remind')) local.set('pathways.remind', e.target.checked ? 'on' : 'off');
   if (e.target.dataset.sflag) { Store.settings[e.target.dataset.sflag] = e.target.checked; Store.save(); }
 });
 
 /* ---------- backups (Settings and the dashboard) ---------- */
+// Only static copies (GitHub Pages, a downloaded file) keep data in the browser; the server copy never asks.
+const remindersOn = () => Store.mode === 'local' && local.get('pathways.remind') !== 'off';
+const unsavedChanges = () => (local.get('pathways.changedAt') || 0) > (local.get('pathways.lastBackup') || 0);
+const isFresh = () => !Object.keys(Store.data.stats).length && !Object.keys(Store.data.custom).length && !Store.data.presets.length && !local.get('pathways.seen');
+async function openingPrompt() {
+  if (Store.mode !== 'local') return;
+  if (isFresh()) {
+    local.set('pathways.seen', Date.now());
+    const v = await ask({ title: 'Welcome to Pathways', text: 'Everything you do here is saved in this browser. If you’ve used Pathways before and have a backup file, load it now to pick up where you left off.', ok: 'Start fresh', alt: 'Restore my backup', cancel: null });
+    if (v === 'alt') $('#backupFile')?.click() || pickBackupFile();
+    return;
+  }
+  local.set('pathways.seen', local.get('pathways.seen') || Date.now());
+  if (!remindersOn() || !unsavedChanges() || sessionStorage.getItem('pathways.reminded')) return;
+  try { sessionStorage.setItem('pathways.reminded', '1'); } catch {}
+  const v = await ask({ title: 'Back up your progress?', text: 'Your progress is stored only in this browser. A backup file lets you restore it if the browser clears its data or you switch devices.', ok: 'Download backup', alt: 'Stop reminding me', cancel: 'Not now' });
+  if (v === true) { downloadBackup(); route(); }
+  if (v === 'alt') { local.set('pathways.remind', 'off'); say('Reminders off', 'You can still back up from the dashboard or Settings, and turn reminders back on in Settings.'); }
+}
+function pickBackupFile() {
+  let f = $('#backupFile');
+  if (!f) { f = document.createElement('input'); f.type = 'file'; f.id = 'backupFile'; f.accept = '.json,application/json'; f.hidden = true; document.body.append(f); }
+  f.click();
+}
+// Leaving with progress that isn't in a backup: the browser shows its own "Leave site?" prompt.
+window.addEventListener('beforeunload', e => { if (remindersOn() && unsavedChanges()) { e.preventDefault(); e.returnValue = ''; } });
 function backupText() { return JSON.stringify({ pathwaysBackup: 1, savedAt: new Date().toISOString(), ...Store.data }, null, 1); }
 function downloadBackup() {
   if (download(`pathways-backup-${new Date().toISOString().slice(0, 10)}.json`, backupText())) local.set('pathways.lastBackup', Date.now());
@@ -338,7 +448,7 @@ document.addEventListener('click', e => {
     ask({ title: 'Export backup', text: 'Your pathways, presets, settings and history. Download it, or copy it somewhere safe.', input: 'area', value: backupText(), ok: 'Download file', cancel: 'Close', copy: true })
       .then(v => { if (v) { downloadBackup(); route(); } });
   }
-  if (db.dataset.data === 'import') $('#backupFile').click();
+  if (db.dataset.data === 'import') pickBackupFile();
   if (db.dataset.data === 'resetstats') ask({ title: 'Clear all answer history?', text: 'Weak spots and accuracy start over. Pathways and presets stay.', ok: 'Clear' }).then(y => { if (y) { Stats.reset(); route(); } });
 });
 document.addEventListener('change', e => {
@@ -390,4 +500,5 @@ window.addEventListener('hashchange', router);
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
+  openingPrompt();
 })();

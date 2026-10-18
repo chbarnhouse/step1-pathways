@@ -668,5 +668,7 @@
    "Squalene epoxidase",
    "CYP3A4"
   ]
- }
+ },
+ "icon": "science",
+ "color": "pink"
 }

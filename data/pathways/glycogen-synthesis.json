@@ -161,5 +161,7 @@
    "Phosphorylase kinase"
   ]
  },
- "tissue": "liver and skeletal muscle"
+ "tissue": "liver and skeletal muscle",
+ "icon": "inventory_2",
+ "color": "blue"
 }

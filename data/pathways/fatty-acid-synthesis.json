@@ -281,5 +281,7 @@
    "Hormone-sensitive lipase"
   ]
  },
- "tissue": "liver, adipose, lactating breast"
+ "tissue": "liver, adipose, lactating breast",
+ "icon": "oil_barrel",
+ "color": "gold"
 }

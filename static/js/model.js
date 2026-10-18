@@ -73,6 +73,24 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   }
   for (const k of Object.keys(items)) push(k); // anything unreachable still gets studied
 
+  // Compartments are items too ('z:<key>'): one per place the pathway runs, read just before its first step there.
+  const m0z = { p, multiTissue: new Set(rx.map(r => r.tissue || '')).size > 1 };
+  const zones = {};
+  for (const r of rx) {
+    if (!r.loc) continue;
+    const key = zoneKey(m0z, r.loc, r.tissue);
+    const z = zones[key] = zones[key] || { raw: {}, rs: [] };
+    z.raw[r.loc] = (z.raw[r.loc] || 0) + 1; z.rs.push(r); z.tissue = r.tissue || p.tissue;
+  }
+  for (const [key, z] of Object.entries(zones)) {
+    const loc = Object.entries(z.raw).sort((a, b) => b[1] - a[1])[0][0];
+    const name = (m0z.multiTissue && z.tissue ? z.tissue + ' · ' : '') + loc;
+    items['z:' + key] = { key: 'z:' + key, kind: 'loc', id: key, canon: canonLoc(loc), name, short: '', aliases: Object.keys(z.raw),
+      notes: 'Steps here: ' + uniq(z.rs.map(r => enzs[r.enzyme]?.name)).join(', ') + '.' };
+    const first = seq.findIndex(k => k[0] === 'e' && z.rs.includes(items[k].rxn));
+    if (first >= 0) seq.splice(first, 0, 'z:' + key); else seq.push('z:' + key);
+  }
+
   // Grids (steroidogenesis) have no single main line: read them in the order the steps are written.
   if (p.layout === 'grid') {
     seq.length = 0; seen.clear();
@@ -85,7 +103,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     for (const s of r.also_to || []) pairs.push({ r, a: r.from, b: s });
     for (const s of r.also_from || []) pairs.push({ r, a: s, b: r.to });
   }
-  return { p, cof, items, spine, spineMets, onSpine, branches, seq, pairs };
+  return { p, cof, items, spine, spineMets, onSpine, branches, seq, pairs, multiTissue: m0z.multiTissue };
 }
 
 /* ---------- cofactors ---------- */
@@ -163,6 +181,8 @@ const productsOf = r => [r.to, ...(r.also_to || [])];
 const metNames = (m, ids) => ids.map(id => m.p.metabolites[id]?.name || id).join(' + ');
 
 /* ---------- locations ---------- */
+// Which compartment (and tissue, when a pathway spans tissues) a step or metabolite sits in.
+const zoneKey = (m, loc, tissue) => (m.multiTissue ? (tissue || m.p.tissue || '') + '|' : '') + canonLoc(loc || '');
 // Label for where a step happens: compartment, plus tissue when the pathway spans more than one.
 function locLabel(m, r) {
   const tissues = new Set(m.p.reactions.map(x => x.tissue || '').filter(Boolean));
@@ -173,7 +193,7 @@ function canonLoc(s) {
   const n = norm(s);
   if (/intermembrane/.test(n)) return 'intermembrane space';
   if (/mito|matrix|innermembrane/.test(n)) return 'mitochondria';
+  if (/^er|^smoother|^rougher|endoplasmic|microsom/.test(n)) return 'er';
   if (/cyto(sol|plasm)|cytoplasm/.test(n)) return 'cytosol';
-  if (/^er|endoplasmic|smoother|rougher|microsom/.test(n)) return 'er';
   return [['lysosom', 'lysosome'], ['peroxisom', 'peroxisome'], ['nucle', 'nucleus'], ['vesic', 'vesicle'], ['brush', 'brush border'], ['plasmamembrane', 'plasma membrane'], ['blood', 'blood'], ['golgi', 'golgi']].find(([k]) => n.includes(k))?.[1] || n;
 }

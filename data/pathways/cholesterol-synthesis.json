@@ -498,5 +498,7 @@
    "Glucose-6-phosphate dehydrogenase"
   ]
  },
- "tissue": "liver (and most cells)"
+ "tissue": "liver (and most cells)",
+ "icon": "hexagon",
+ "color": "slate"
 }

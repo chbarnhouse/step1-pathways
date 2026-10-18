@@ -171,5 +171,7 @@
    "Phosphofructokinase-1"
   ]
  },
- "tissue": "liver and skeletal muscle"
+ "tissue": "liver and skeletal muscle",
+ "icon": "unarchive",
+ "color": "gold"
 }

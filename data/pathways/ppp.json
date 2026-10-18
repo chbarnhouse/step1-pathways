@@ -205,5 +205,7 @@
    "Hexokinase"
   ]
  },
- "tissue": "liver, adrenal cortex, adipose, lactating breast, RBCs"
+ "tissue": "liver, adrenal cortex, adipose, lactating breast, RBCs",
+ "icon": "shield",
+ "color": "pink"
 }

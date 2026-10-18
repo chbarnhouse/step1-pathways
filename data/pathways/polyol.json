@@ -96,5 +96,7 @@
    "Glucose-6-phosphate dehydrogenase"
   ]
  },
- "tissue": "lens, retina, Schwann cells, kidney (and liver, seminal vesicles)"
+ "tissue": "lens, retina, Schwann cells, kidney (and liver, seminal vesicles)",
+ "icon": "visibility",
+ "color": "blue"
 }

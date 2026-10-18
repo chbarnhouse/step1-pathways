@@ -319,5 +319,7 @@
    "PEP carboxykinase"
   ]
  },
- "tissue": "every cell with mitochondria (not RBCs)"
+ "tissue": "every cell with mitochondria (not RBCs)",
+ "icon": "cycle",
+ "color": "teal"
 }

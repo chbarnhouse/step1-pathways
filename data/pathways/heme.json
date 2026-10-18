@@ -329,5 +329,7 @@
    "Ferroportin"
   ]
  },
- "tissue": "bone marrow (erythroid) and liver"
+ "tissue": "bone marrow (erythroid) and liver",
+ "icon": "bloodtype",
+ "color": "pink"
 }

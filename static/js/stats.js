@@ -28,6 +28,7 @@ const Stats = {
       const [t, id] = key.split(':');
       let label, kind;
       if (t === 'm') { if (!p.metabolites[id]) continue; label = p.metabolites[id].name; kind = 'Metabolite'; }
+      else if (t === 'z') { label = id.split('|').reverse().join(' · '); kind = 'Compartment'; }
       else {
         const r = p.reactions.find(x => x.id === id); if (!r) continue;
         const en = p.enzymes[r.enzyme]?.name || r.enzyme, pair = `${mn(r.from)} → ${mn(r.to)}`;

@@ -350,5 +350,7 @@
    "Pyruvate carboxylase"
   ]
  },
- "tissue": "muscle, heart, liver (not brain or RBCs)"
+ "tissue": "muscle, heart, liver (not brain or RBCs)",
+ "icon": "local_gas_station",
+ "color": "orange"
 }
