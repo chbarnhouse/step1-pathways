@@ -9,7 +9,7 @@ const APP_VERSION = '3.8.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
-    'New quiz mode, Compartments: the pathway is shown as a list with no compartment colors or names. Click between two steps wherever it crosses a membrane, check, then name each part it splits into (“mito” counts as your name settings allow). Steps that carry something across a membrane are marked as crossings for you.',
+    'Compartments have a fourth choice, Place: no compartment colors or names; you click between steps wherever the pathway crosses a membrane, check, then name each part (“mito” counts as your name settings allow). In Fill the blanks it comes first; in Full recall and Building blocks, after you’ve rebuilt the pathway; on its own it’s the whole quiz. Steps that carry something across a membrane are marked as crossings for you.',
     'Cofactors: what goes in comes before what comes out (ATP, then ADP), but within each side any order counts (ATP and NADH, or NADH and ATP). Letter checking and hints follow the order you chose.',
     'New options under Advanced: submit right answers automatically (no Return needed, cofactors included), and show how many cofactors a step has (“1/2” while you type).',
     'Letter checking highlights runs of letters as one smooth band.',

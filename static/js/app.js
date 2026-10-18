@@ -101,7 +101,7 @@ function renderDashboard() {
   </div>`;
 }
 // What you studied, when, how, and how it went — newest first, grouped by day.
-const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', zones: 'Compartments', step: 'Single step' };
+const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
 function activityHTML() {
   const log = Store.data.log || [];
@@ -166,6 +166,7 @@ function normalizeDraft(d) {
   out.el = Object.assign(clone(DRAFT_DEFAULTS.el), (d && d.el) || {});
   if (!out.pathway && d?.pathways?.length) out.pathway = d.pathways[0];
   if (!Library.get(out.pathway) || Library.get(out.pathway).compose) out.pathway = Library.atomic()[0]?.id;
+  if (out.mode === 'zones') { out.mode = 'single'; out.el.loc = 'place'; } // the short-lived Compartments mode is now Compartments: Place
   if (!out.aheadChosen) out.ahead = 'hide'; // Building blocks hides later blanks unless "Show them" was picked
   return out;
 }
@@ -194,7 +195,6 @@ const MODES = [
   ['single', 'Fill the blanks', 'The whole pathway is shown with one piece hidden. Answer it and another goes missing, weakest first if you like.', 'First passes, and patching weak spots with the rest of the pathway as context.'],
   ['total', 'Full recall', 'Everything starts hidden (or with one anchor shown) and you fill it in, in order, step by step.', 'Proving you can rebuild a pathway end to end before an exam.'],
   ['build', 'Building blocks', 'Round 1 asks the first blank, round 2 the first two, and so on, always from the top. A slip clears that blank and asks again.', 'Learning a new pathway’s order from scratch.'],
-  ['zones', 'Compartments', 'No compartments shown. Mark every place the pathway crosses a membrane, then name each part it splits into. Always in list view.', 'Learning where each part of a pathway happens.'],
   ['step', 'Single step', 'One reaction at a time: given two metabolites, name the enzyme, cofactors and direction; or given an enzyme, say what it does.', 'Fast drilling of enzymes and cofactors, across pathways too.'],
 ];
 /* ---------- pathway browser (New quiz + Pathways) ----------
@@ -339,13 +339,18 @@ function renderCreate() {
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
   let ans = d.answer || Store.settings.answer;
   if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
-  const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz');
+  const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place');
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   try { const qp = d.combine && pair ? pair : sel; if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
-  const elNote = k => (k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
+  const placeNote = () => {
+    const grid = (d.combine && pair ? pair : sel)?.layout === 'grid';
+    const when = d.mode === 'single' ? 'First, before the blanks' : d.mode === 'total' || d.mode === 'build' ? 'After you’ve rebuilt the pathway' : '';
+    return `<span class="el-note muted small">${mi('help', 'sm')} ${grid ? 'This pathway branches out, so there’s no list to place compartments in; they’ll just show.' : `No compartment colors or names. ${when ? when + ', y' : 'Y'}ou mark where the pathway crosses a membrane, then name each part (in list view).`}</span>`;
+  };
+  const elNote = k => (k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
   const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length))
-    .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[v]]), elOf(d, k))}${elNote(k)}</div>`).join('');
+    .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', place: 'Place', hide: 'Hide' }[v]]), elOf(d, k))}${elNote(k)}</div>`).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
     const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
@@ -377,7 +382,7 @@ function renderCreate() {
           ${ans === 'type' ? nameModesHTML('data-cname', nameModesCfg(d)) : ''}
           ${elOf(d, 'cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-cflag="cofCount" ${d.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (as “1/2” while you type). Off: each step first asks which arrow its cofactors have (in and out, in only, out only)</label>` : ''}</div>
           ${laterBlanks}
-          ${!['total', 'zones'].includes(d.mode) ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
+          ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
         </details>
         <div class="side-foot">
           <button class="btn primary big" data-c="start" ${hasQuiz ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
@@ -460,7 +465,7 @@ document.addEventListener('change', e => {
 // Advanced starts collapsed on every visit to New quiz, and stays as you left it while you set the quiz up.
 document.addEventListener('toggle', e => { if (e.target.matches?.('details.adv')) C.advOpen = e.target.open; }, true);
 
-const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide');
+const visibleFor = (m, d) => m.seq.filter(k => !['hide', 'place'].includes(elOf(d, kindOf(k, m))));
 
 /* ================= Library ================= */
 function renderLibrary() {

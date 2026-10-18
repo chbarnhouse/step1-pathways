@@ -163,6 +163,7 @@ function normalizeQuiz(q) {
   const out = Object.assign(clone(QUIZ_DEFAULTS), clone(q || {}));
   out.el = Object.assign(clone(QUIZ_DEFAULTS.el), (q && q.el) || {});
   out.pathways = (out.pathways || []).filter(id => Library.get(id));
+  if (out.mode === 'zones') { out.mode = 'single'; out.el.loc = 'place'; } // the short-lived Compartments mode is now Compartments: Place
   return out;
 }
 /* ---------- combined pathways ----------

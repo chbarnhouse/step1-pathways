@@ -1035,3 +1035,10 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .list.zones form.locrow.inl { width: auto; padding: 4px 0; text-transform: none; letter-spacing: 0; font-weight: 600; }
 .list.zones form.locrow.inl :is(input.inl-in, .along) { min-width: 240px; height: 34px; border: 3px solid var(--orange); border-radius: 6px; background: var(--orange-bg); color: var(--ink); padding: 0 10px; font: inherit; font-size: var(--fs-md); text-align: left; }
 .list.zones form.locrow.inl .along { justify-content: flex-start; }
+/* four choices (Compartments: Show · Quiz · Place · Hide) stay on one line; the name column gives way first */
+@media (min-width: 561px) {
+  .el-grid { grid-template-columns: minmax(104px, 170px) auto; justify-content: start; }
+  details.adv .el-grid { grid-template-columns: 130px auto; }
+  .el-row { grid-column: 1 / -1; grid-template-columns: subgrid; }
+}
+.el-row .seg { flex-wrap: nowrap; }

@@ -11,12 +11,11 @@ const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? (q.side
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- elements: show / quiz / hide ---------- */
-function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : cfg.mode === 'zones' ? 'zones' : 'occ'; }
+function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
 function elSpecFor(cfg) {
   return {
-    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'hide']]],
+    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
-    zones: [['loc', 'Compartments', ['quiz']], ['cof', 'Cofactors', ['show', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)];
 }
@@ -26,16 +25,20 @@ function elOf(cfg, k) {
   return spec[2].includes(cfg.el[k]) ? cfg.el[k] : spec[2][0];
 }
 const el = k => elOf(Q.cfg, k);
+/* Compartments set to Place: no lanes, tints or names until you've placed them yourself in a round of their own
+   (mark the membranes, then name each part; see Compartments below). It runs while the whole pathway is showing:
+   first in Fill the blanks, after the rest in Full recall and Building blocks. Q.placed = that round is behind you. */
+const placing = () => el('loc') === 'place' && !Q.placed;
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
 const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', z: 'loc' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
 function quizSummary(cfg) {
-  const by = { quiz: [], show: [], hide: [] };
+  const by = { quiz: [], show: [], hide: [], place: [] };
   elSpecFor(cfg).forEach(([k, label]) => by[elOf(cfg, k)].push(label.toLowerCase()));
-  const mode = cfg.mode === 'zones' ? 'Compartments' : cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
-  return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
+  const mode = cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
+  return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.place.length && 'place ' + by.place.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
 }
 
 /* ---------- questions ---------- */
@@ -205,7 +208,7 @@ function pathQ(r, m) {
 
 /* ---------- rounds ---------- */
 const eligibleIn = m => m.seq.filter(k => el(kindOf(k, m)) === 'quiz');
-const visibleIn = m => m.seq.filter(k => el(kindOf(k, m)) !== 'hide');
+const visibleIn = m => m.seq.filter(k => !['hide', 'place'].includes(el(kindOf(k, m))));
 function quizPathways() {
   if (Q.cfg.mode === 'step' && Q.cfg.given === 'enz' && Q.cfg.allPathways) return Object.keys(Library.all());
   return Q.cfg.pathways.length ? Q.cfg.pathways : [Library.list()[0].id];
@@ -225,12 +228,14 @@ function startQuiz(cfg) {
 }
 function newRound() {
   Q.score = { right: 0, total: 0 };
-  Q.fact = null;
-  if (!elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz')) Q.round = { type: 'none' };
+  Q.fact = null; Q.placed = false;
+  const anyQuiz = elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz'), place = el('loc') === 'place';
+  if (place && !zonesUsable(Q.models[0])) Q.placed = true; // nothing to place (grid pathway, no compartments): shown as usual
+  if (!anyQuiz && !(place && !Q.placed)) Q.round = { type: 'none', msg: place ? zonesRefusal(Q.models[0]) : '' };
+  else if (place && !Q.placed && (!anyQuiz || Q.cfg.mode === 'single')) startZones(anyQuiz ? 'single' : null);
   else if (Q.cfg.mode === 'single') { Q.round = { type: 'single', deck: [], target: null, q: null }; nextSingle(); }
   else if (Q.cfg.mode === 'total') { Q.round = { type: 'total', queue: Q.models.slice(1) }; Q.m = Q.models[0]; startTotal(); }
   else if (Q.cfg.mode === 'build') startBuild();
-  else if (Q.cfg.mode === 'zones') startZones();
   else if (Q.cfg.given === 'enz') { Q.round = { type: 'stepE', deck: [], qs: [] }; nextStepE(); }
   else { Q.round = { type: 'step', deck: [], pair: null, qs: [] }; nextStep(); }
 }
@@ -340,11 +345,18 @@ function zonePlan(m) {
     gaps.push({ key: 'b:' + first.rxn.id, at: 'wrap', truth: zoneOf(prev.rxn) !== zoneOf(first.rxn), cells: cellsApart(prev.rxn, first.rxn) });
   return { gaps, secs: secs.filter(s => m.items['z:' + s.zone]) };
 }
-function startZones() {
-  const m = Q.m = Q.models[0], plan = zonePlan(m);
-  if (m.p.layout === 'grid') { Q.round = { type: 'none', msg: `<b>${esc(m.p.name)}</b> branches out instead of running in one order, so there’s no list to put membranes in. Pick another pathway.` }; return; }
-  if (!plan.secs.length) { Q.round = { type: 'none', msg: `No compartments are recorded for <b>${esc(m.p.name)}</b>, so there’s nothing to place. Pick another pathway.` }; return; }
-  Q.round = { type: 'zones', phase: 'mark', plan, marks: {}, secs: plan.secs, pos: 0, secSt: {}, q: null, done: false, memNote: '' };
+const zonesUsable = m => !!m && m.p.layout !== 'grid' && zonePlan(m).secs.length > 0;
+const zonesRefusal = m => (m?.p.layout === 'grid' ? `<b>${esc(m.p.name)}</b> branches out instead of running in one order, so there’s no list to put membranes in. Pick another pathway, or set something else to Quiz.`
+  : `No compartments are recorded for <b>${esc(m?.p.name || 'this pathway')}</b>, so there’s nothing to place. Pick another pathway, or set something else to Quiz.`);
+// after: the round to run once the compartments are placed ('single' = Fill the blanks), or null when this is the whole quiz.
+function startZones(after = null) {
+  const m = Q.m = Q.round?.type === 'total' ? Q.m : Q.models[0], plan = zonePlan(m);
+  Q.round = { type: 'zones', phase: 'mark', plan, marks: {}, secs: plan.secs, pos: 0, secSt: {}, q: null, done: false, memNote: '', after };
+}
+function afterZones() {
+  Q.placed = true; Q.fact = null;
+  if (Q.round.after === 'single') { Q.round = { type: 'single', deck: [], target: null, q: null }; nextSingle(); }
+  renderQuiz();
 }
 function checkMembranes(revealed) {
   const R = Q.round, pid = Q.m.p.id;
@@ -368,7 +380,7 @@ function checkMembranes(revealed) {
 }
 function loadZoneQ() {
   const R = Q.round;
-  if (R.pos >= R.secs.length) { R.done = true; R.q = null; logAnswer(true); return; }
+  if (R.pos >= R.secs.length) { R.done = true; R.q = null; Q.placed = !R.after; logAnswer(!R.after); return; }
   R.q = withAlong(itemQ(Q.m.items['z:' + R.secs[R.pos].zone], Q.m), Q.m);
 }
 function advanceZones() { Q.round.pos++; loadZoneQ(); renderQuiz(); }
@@ -416,6 +428,10 @@ function zonesStage() {
 }
 function zonesDock() {
   const R = Q.round, q = R.q;
+  if (R.done && R.after) return `<div class="dock done-dock"><div class="dock-row">
+      <div class="dock-text"><div class="big">${mi('check')} Compartments placed</div><div class="muted">${esc(R.memNote)} Now the rest, with the compartments showing.</div></div>
+      <div class="dock-actions">${factsToggle()}<button class="btn primary" data-act="afterzones">Continue: Fill the blanks <kbd>↵</kbd></button></div>
+    </div>${lastFactsHTML()}</div>`;
   if (R.done) return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${Q.score.right} / ${Q.score.total}</div><div class="muted">right on the first try: ${esc(R.memNote)}</div></div>
       <div class="dock-actions">${factsToggle()}<button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
@@ -698,7 +714,7 @@ function resolved(q) {
 /* ---------- diagram status ---------- */
 function statusOf(key) {
   const R = Q.round, mode = el(kindOf(key));
-  if (mode === 'hide') return 'hide';
+  if (mode === 'hide' || (mode === 'place' && !Q.placed)) return 'hide';
   if (R.type === 'single') {
     if (key !== R.target) return 'shown';
     return R.q.status === 'open' ? 'target' : R.q.status;
@@ -906,11 +922,11 @@ function optionsHTML() {
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       ${ans === 'type' ? nameModesHTML('data-qname', nameModesCfg(Q.cfg)) : ''}
       ${el('cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-qflag="cofCount" ${Q.cfg.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (off: pick the arrow type first)</label>` : ''}
-      ${Q.cfg.mode === 'zones' ? '' : `<label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}`}
-      ${view === 'list' && Q.cfg.mode !== 'zones' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
+      ${Q.round?.type === 'zones' ? '' : `<label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}`}
+      ${view === 'list' && Q.round?.type !== 'zones' ? `<label>List</label>${seg('dir', [['v', 'Top–bottom'], ['h', 'Left–right']], s.dir)}` : ''}
       <label class="cb"><input type="checkbox" data-qflag="facts" ${s.facts ? 'checked' : ''}> Show facts after each answer</label>
-      ${['total', 'zones'].includes(Q.cfg.mode) ? `<label class="cb"><input type="checkbox" data-qflag="autoAdvance" ${s.autoAdvance ? 'checked' : ''}> Move on after a right answer</label>` : ''}
-      ${!['total', 'zones'].includes(Q.cfg.mode) ? `<label class="cb"><input type="checkbox" data-qflag="weak" ${Q.cfg.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
+      ${Q.cfg.mode === 'total' || el('loc') === 'place' ? `<label class="cb"><input type="checkbox" data-qflag="autoAdvance" ${s.autoAdvance ? 'checked' : ''}> Move on after a right answer</label>` : ''}
+      ${Q.cfg.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-qflag="weak" ${Q.cfg.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
     </div></details>`;
 }
 // A cofactor slot's facts are its reaction's.
@@ -939,7 +955,7 @@ function renderQuiz() {
     stage = zonesStage();
     dock = zonesDock();
   } else if (occ) {
-    const zones = el('loc') !== 'hide';
+    const zones = el('loc') !== 'hide' && !placing();
     stage = flow ? flowSVG(Q.m, statusOf, { zones }) : listHTML(Q.m, statusOf, { horiz, zones });
     dock = occDock();
   } else {
@@ -998,7 +1014,7 @@ function stillOpen(m, key) {
   const R = Q.round;
   if (!R || !Q.m || !m || m.p.id !== Q.m.p.id) return false;
   if (R.qs) return R.qs.some(q => q.statKey === key && q.status === 'open');
-  if (R.type === 'zones') return !R.done && /^[zl]:/.test(key);
+  if (/^[zl]:/.test(key) && (R.type === 'zones' ? !R.done || R.after : placing())) return true;
   if (!['single', 'total', 'build'].includes(R.type) || !m.items[key]) return false;
   return hidden(statusOf(key));
 }
@@ -1056,12 +1072,13 @@ function lastFactsHTML() {
   const open = Store.settings.factsOpen !== false;
   return `<details class="facts"${open ? ' open' : ''}><summary>${mi('lightbulb', 'facts-ic')}<span><span class="muted">Last answer:</span> <b>${esc(factItemOf(Q.fact, Q.factM || Q.m).name)}</b></span>${mi('expand_more', 'chev')}</summary>${factsCard(factItemOf(Q.fact, Q.factM || Q.m), Q.factM || Q.m)}</details>`;
 }
+const placeBtn = () => `<button class="btn primary" data-act="placezones">${mi('arrow_forward', 'sm')} Place the compartments <kbd>↵</kbd></button>`;
 function occDock() {
   const R = Q.round, q = R.q;
   if (R.type === 'build') {
     if (R.done) return `<div class="dock done-dock"><div class="dock-row">
-      <div class="dock-text"><div class="big">${mi('check')} Built</div><div class="muted">You typed all ${R.order.length} blanks in a row, cleanly.</div></div>
-      <div class="dock-actions">${factsToggle()}<button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
+      <div class="dock-text"><div class="big">${mi('check')} Built</div><div class="muted">You typed all ${R.order.length} blanks in a row, cleanly.${placing() ? ' Now place the compartments.' : ''}</div></div>
+      <div class="dock-actions">${factsToggle()}${placing() ? placeBtn() : ''}<button class="btn${placing() ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
     return `<div class="dock"><div class="dock-row">
       <div class="dock-text"><span class="kind kind-${q.kind}">${kindLabel(q)}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
@@ -1073,8 +1090,8 @@ function occDock() {
     const more = R.queue.length;
     return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${Q.score.right} / ${Q.score.total}</div><div class="muted">right on the first try in ${esc(Q.m.p.name)}</div></div>
-      <div class="dock-actions">${factsToggle()}${more ? `<button class="btn primary" data-act="nextpath">${mi('skip_next')} Next: ${esc(R.queue[0].p.name)}</button>` : ''}
-        <button class="btn${more ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
+      <div class="dock-actions">${factsToggle()}${more ? `<button class="btn primary" data-act="nextpath">${mi('skip_next')} Next: ${esc(R.queue[0].p.name)}</button>` : placing() ? placeBtn() : ''}
+        <button class="btn${more || placing() ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
   }
   const open = q.status === 'open' || q.status === 'peek';
@@ -1181,10 +1198,14 @@ document.addEventListener('click', e => {
     case 'mgap': if (R.type === 'zones' && R.phase === 'mark') { const g = R.plan.gaps[+b.dataset.g]; R.marks[g.key] = !R.marks[g.key]; renderQuiz(); $(`#stage [data-g="${b.dataset.g}"]`)?.focus({ preventScroll: true }); } break;
     case 'checkmem': checkMembranes(false); break;
     case 'showmem': checkMembranes(true); break;
+    case 'afterzones': afterZones(); break;
+    case 'placezones': startZones(); renderQuiz(); break;
     case 'nextpath': nextTotalPathway(); renderQuiz(); break;
     case 'restart':
       Q.score = { right: 0, total: 0 };
-      if (Q.round.type === 'build') startBuild(); else if (Q.round.type === 'zones') startZones(); else { Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; startTotal(); }
+      if (Q.round.type === 'zones') { restartQuiz(); break; }
+      Q.placed = false;
+      if (Q.round.type === 'build') startBuild(); else { Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; startTotal(); }
       renderQuiz(); break;
   }
 });
@@ -1240,7 +1261,7 @@ document.addEventListener('keydown', e => {
   if (Q.round.type === 'build') return;
   if (e.key === 'Enter' && !inInput) {
     if (e.target.closest?.('.mgap')) return; // Enter on a gap marks it
-    const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="checkmem"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
+    const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="checkmem"],[data-act="afterzones"],[data-act="placezones"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
     if (btn) { e.preventDefault(); btn.click(); }
     return;
   }
