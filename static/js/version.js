@@ -8,6 +8,8 @@
 const APP_VERSION = '3.10.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+  ] },
   { v: '3.10.0', date: '2026-10-18', items: [
     'Diagrams use right-angle connectors instead of slanted lines: steps that cross a membrane go down, across and down; side steps and extra products turn at right angles into their boxes.',
     'Activity: every session (older ones too) has ▶ to run that quiz again and a star to add it to favorites.',
