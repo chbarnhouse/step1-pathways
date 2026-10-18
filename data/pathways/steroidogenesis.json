@@ -2,12 +2,15 @@
  "id": "steroidogenesis",
  "name": "Steroidogenesis",
  "group": "Lipids",
- "layout": "grid",
+ "systems": [
+  "Endo/Repro"
+ ],
  "aliases": [
   "steroid synthesis",
   "adrenal steroid synthesis",
   "steroid hormone synthesis"
  ],
+ "layout": "grid",
  "tissue": "adrenal cortex (and gonads)",
  "grid_columns": [
   "Mineralocorticoids",
@@ -679,5 +682,12 @@
   ]
  },
  "icon": "stress_management",
- "color": "pink"
+ "color": "pink",
+ "links": [
+  {
+   "at": "chol",
+   "to": "cholesterol-synthesis",
+   "dir": "in"
+  }
+ ]
 }

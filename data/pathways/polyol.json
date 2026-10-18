@@ -2,6 +2,11 @@
  "id": "polyol",
  "name": "Polyol pathway",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "Endo/Repro",
+  "Neuro"
+ ],
  "aliases": [
   "sorbitol pathway"
  ],
@@ -100,5 +105,12 @@
  },
  "tissue": "lens, retina, Schwann cells, kidney (and liver, seminal vesicles)",
  "icon": "visibility",
- "color": "blue"
+ "color": "blue",
+ "links": [
+  {
+   "at": "fructose",
+   "to": "fructose",
+   "dir": "out"
+  }
+ ]
 }

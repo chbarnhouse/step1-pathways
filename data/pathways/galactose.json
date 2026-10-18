@@ -2,6 +2,10 @@
  "id": "galactose",
  "name": "Galactose metabolism",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "GI"
+ ],
  "aliases": [
   "Leloir pathway",
   "galactose metabolism"
@@ -236,5 +240,12 @@
  },
  "tissue": "small intestine, then liver",
  "icon": "breastfeeding",
- "color": "slate"
+ "color": "slate",
+ "links": [
+  {
+   "at": "g6p",
+   "to": "glycolysis",
+   "dir": "out"
+  }
+ ]
 }

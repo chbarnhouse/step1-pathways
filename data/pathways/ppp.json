@@ -2,6 +2,13 @@
  "id": "ppp",
  "name": "Pentose phosphate pathway",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "Heme"
+ ],
+ "tags": [
+  "Fed state"
+ ],
  "aliases": [
   "HMP shunt",
   "hexose monophosphate shunt",
@@ -209,5 +216,18 @@
  },
  "tissue": "liver, adrenal cortex, adipose, lactating breast, RBCs",
  "icon": "shield",
- "color": "pink"
+ "color": "pink",
+ "links": [
+  {
+   "at": "g6p",
+   "to": "glycolysis",
+   "dir": "in"
+  },
+  {
+   "at": "r5p",
+   "to": "purine-synthesis",
+   "dir": "out",
+   "via": "as PRPP"
+  }
+ ]
 }

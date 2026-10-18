@@ -2,6 +2,15 @@
  "id": "beta-oxidation",
  "name": "β-Oxidation",
  "group": "Lipids",
+ "systems": [
+  "Fundamentals",
+  "MSK",
+  "Cardio"
+ ],
+ "tags": [
+  "Fasting",
+  "Energy"
+ ],
  "aliases": [
   "beta-oxidation",
   "beta oxidation",
@@ -355,5 +364,17 @@
  },
  "tissue": "muscle, heart, liver (not brain or RBCs)",
  "icon": "local_fire_department",
- "color": "orange"
+ "color": "orange",
+ "links": [
+  {
+   "at": "acetylcoa",
+   "to": "tca",
+   "dir": "out"
+  },
+  {
+   "at": "acetylcoa",
+   "to": "ketogenesis",
+   "dir": "out"
+  }
+ ]
 }

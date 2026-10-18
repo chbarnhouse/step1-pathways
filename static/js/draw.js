@@ -194,6 +194,44 @@ function cofRow(x, y, anchor, parts) {
 }
 const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'missed' ? svgIcon(x, y, 'no') : '');
 
+/* Connections to other pathways (p.links): a dotted line from a box to a small tag naming where it leads ("→ TCA cycle")
+   or comes from ("from Glycolysis"). On a pathway page the tag opens that pathway (LINK_NAV); in a quiz it's only a
+   label, and it waits until its box is answered so it never hints at a blank.
+   boxes: metabolite id → { x, y, w, h } (top-left); prefer(id): 'right' (default), 'left', 'up' or 'down'. */
+let LINK_NAV = false;
+function linkTags(m, statusOf, boxes, prefer = () => 'right') {
+  const out = { s: '', maxX: 0 }, byAt = {}, all = Object.values(boxes), taken = [];
+  for (const l of m.p.links || []) (byAt[l.at] = byAt[l.at] || []).push(l);
+  const hits = r => [...all, ...taken].some(b => r.x < b.x + b.w + 6 && r.x + r.w > b.x - 6 && r.y < b.y + b.h + 4 && r.y + r.h > b.y - 4);
+  for (const [at, ls] of Object.entries(byAt)) {
+    const b = boxes[at];
+    if (!b || hidden(statusOf('m:' + at)) || statusOf('m:' + at) === 'hide') continue;
+    ls.forEach((l, i) => {
+      const to = Library.get(l.to);
+      if (!to) return;
+      const label = (l.dir === 'in' ? 'from ' : '→ ') + to.name + (l.via ? ` (${l.via})` : ''), w = label.length * 6.3 + 24, h = 22;
+      const pref = prefer(at), bx = b.x + b.w / 2, yb = b.y + b.h / 2;
+      let r, line;
+      if (pref === 'up' || pref === 'down') {
+        // Straight above or below the box (cycles: the top and bottom boxes have enzyme labels on both sides).
+        const d = pref === 'up' ? -1 : 1, y = d < 0 ? b.y - 30 - h - i * (h + 6) : b.y + b.h + 30 + i * (h + 6);
+        r = { x: bx - w / 2, y, w, h };
+        line = `M${bx},${d < 0 ? b.y - 2 : b.y + b.h + 2}V${d < 0 ? y + h : y}`;
+      } else {
+        const cy = yb + (i - (ls.length - 1) / 2) * (h + 6);
+        const R = { x: b.x + b.w + 36, y: cy - h / 2, w, h }, L = { x: b.x - 36 - w, y: cy - h / 2, w, h };
+        r = (pref === 'left' ? [L, R] : [R, L]).find(c => c.x >= 0 && !hits(c)) || (R.x >= 0 ? R : L);
+        const right = r === R, x1 = right ? b.x + b.w + 2 : b.x - 2, x2 = right ? r.x : r.x + r.w, mx = (x1 + x2) / 2;
+        line = `M${x1},${yb} C${mx},${yb} ${mx},${cy} ${x2},${cy}`;
+      }
+      taken.push(r);
+      const g = `<path class="xline" d="${line}"/><rect class="xtag" x="${r.x}" y="${r.y}" width="${w}" height="${h}" rx="11"/><text class="xtagt" x="${r.x + w / 2}" y="${r.y + h / 2}" text-anchor="middle" dominant-baseline="central">${esc(label)}</text>`;
+      out.s += LINK_NAV ? `<a class="xlink nav" href="#/pathways/${esc(l.to)}" aria-label="${esc(label)}">${g}</a>` : `<g class="xlink">${g}</g>`;
+      out.maxX = Math.max(out.maxX, r.x + r.w);
+    });
+  }
+  return out;
+}
 function flowSVG(m, statusOf, opts = {}) {
   ZONE_INLINE_DONE = false;
   if (m.p.layout === 'grid') return gridSVG(m, statusOf, opts);
@@ -508,6 +546,8 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   });
   branches.filter(b => !bypass.includes(b)).forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, ctr(r.from), ctr(r.to)); });
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
+  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.x - BW / 2, y: q.y, w: BW, h: BH }])));
+  s += lk.s; W = Math.max(W, lk.maxX + 12);
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}${fg}</svg>`;
 }
 
@@ -588,7 +628,9 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   branches.forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to], w, w); });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id), w);
   const xs = Object.values(pos).map(q => q.cx), ys = Object.values(pos).map(q => q.cy);
-  const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20), H = Math.max(...ys) + BH / 2 + 180;
+  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH }])), id => (Math.abs(Math.sin(pos[id].t)) > 0.9 ? (Math.sin(pos[id].t) < 0 ? 'up' : 'down') : pos[id].cx < cx ? 'left' : 'right'));
+  s += lk.s;
+  const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20, lk.maxX + 12), H = Math.max(...ys) + BH / 2 + 180;
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} cycle diagram">${s}</svg>`;
 }
 
@@ -601,8 +643,10 @@ function gridSVG(m, statusOf, opts = {}) {
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
   p.reactions.forEach(r => { s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to]); });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id));
+  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }])));
+  s += lk.s;
   let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24;
-  const W = Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24;
+  const W = Math.max(Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24, lk.maxX + 12);
   if (opts.zones !== false) {
     // Grids don't split into lanes, so the compartments are listed underneath (and quizzable there).
     const zs = Object.values(items).filter(it => it.kind === 'loc');

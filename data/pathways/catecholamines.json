@@ -2,6 +2,14 @@
  "id": "catecholamines",
  "name": "Catecholamine synthesis",
  "group": "Nitrogen & amino acids",
+ "systems": [
+  "Neuro",
+  "Endo/Repro",
+  "Cardio"
+ ],
+ "tags": [
+  "Amino acids"
+ ],
  "aliases": [
   "catecholamine synthesis",
   "tyrosine derivatives",

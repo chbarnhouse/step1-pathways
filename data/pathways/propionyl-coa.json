@@ -2,6 +2,15 @@
  "id": "propionyl-coa",
  "name": "VOMIT pathway",
  "group": "Nitrogen & amino acids",
+ "systems": [
+  "Fundamentals",
+  "Heme",
+  "Neuro"
+ ],
+ "tags": [
+  "Amino acids",
+  "Vitamins"
+ ],
  "aliases": [
   "propionyl-CoA metabolism",
   "propionate pathway",
@@ -230,5 +239,12 @@
  },
  "tissue": "liver and most tissues",
  "icon": "call_split",
- "color": "gold"
+ "color": "gold",
+ "links": [
+  {
+   "at": "succoa",
+   "to": "tca",
+   "dir": "out"
+  }
+ ]
 }

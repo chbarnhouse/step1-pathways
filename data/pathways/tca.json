@@ -2,6 +2,12 @@
  "id": "tca",
  "name": "TCA cycle",
  "group": "Energy",
+ "systems": [
+  "Fundamentals"
+ ],
+ "tags": [
+  "Energy"
+ ],
  "aliases": [
   "Krebs cycle",
   "citric acid cycle",
@@ -327,5 +333,32 @@
  },
  "tissue": "every cell with mitochondria (not RBCs)",
  "icon": "cycle",
- "color": "teal"
+ "color": "teal",
+ "links": [
+  {
+   "at": "oaa",
+   "to": "gluconeogenesis",
+   "dir": "out"
+  },
+  {
+   "at": "citrate",
+   "to": "fatty-acid-synthesis",
+   "dir": "out"
+  },
+  {
+   "at": "succoa",
+   "to": "heme",
+   "dir": "out"
+  },
+  {
+   "at": "succoa",
+   "to": "propionyl-coa",
+   "dir": "in"
+  },
+  {
+   "at": "fumarate",
+   "to": "urea",
+   "dir": "in"
+  }
+ ]
 }

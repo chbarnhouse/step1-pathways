@@ -2,6 +2,14 @@
  "id": "purine-synthesis",
  "name": "Purine synthesis",
  "group": "Nucleotides",
+ "systems": [
+  "Fundamentals",
+  "MSK",
+  "Heme"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
  "aliases": [
   "de novo purine synthesis",
   "purine biosynthesis",
@@ -609,5 +617,12 @@
  },
  "tissue": "liver (most cells salvage)",
  "icon": "genetics",
- "color": "blue"
+ "color": "blue",
+ "links": [
+  {
+   "at": "r5p",
+   "to": "ppp",
+   "dir": "in"
+  }
+ ]
 }

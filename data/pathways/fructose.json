@@ -2,6 +2,10 @@
  "id": "fructose",
  "name": "Fructose metabolism",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "GI"
+ ],
  "aliases": [
   "fructolysis"
  ],
@@ -172,5 +176,17 @@
  },
  "tissue": "liver",
  "icon": "nutrition",
- "color": "gold"
+ "color": "gold",
+ "links": [
+  {
+   "at": "dhap",
+   "to": "glycolysis",
+   "dir": "out"
+  },
+  {
+   "at": "g3p",
+   "to": "glycolysis",
+   "dir": "out"
+  }
+ ]
 }

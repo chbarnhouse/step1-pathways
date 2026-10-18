@@ -2,6 +2,14 @@
  "id": "urea",
  "name": "Urea cycle",
  "group": "Nitrogen & amino acids",
+ "systems": [
+  "Fundamentals",
+  "GI",
+  "Renal"
+ ],
+ "tags": [
+  "Amino acids"
+ ],
  "aliases": [
   "ornithine cycle",
   "Krebs–Henseleit cycle",
@@ -169,5 +177,13 @@
  },
  "tissue": "liver",
  "icon": "wc",
- "color": "gold"
+ "color": "gold",
+ "links": [
+  {
+   "at": "argsucc",
+   "to": "tca",
+   "dir": "out",
+   "via": "fumarate"
+  }
+ ]
 }

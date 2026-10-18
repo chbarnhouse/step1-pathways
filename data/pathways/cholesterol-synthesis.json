@@ -2,6 +2,14 @@
  "id": "cholesterol-synthesis",
  "name": "Cholesterol synthesis",
  "group": "Lipids",
+ "systems": [
+  "Fundamentals",
+  "Cardio"
+ ],
+ "tags": [
+  "Fed state",
+  "Drug targets"
+ ],
  "aliases": [
   "cholesterol biosynthesis",
   "mevalonate pathway",
@@ -521,5 +529,12 @@
  },
  "tissue": "liver (and most cells)",
  "icon": "egg",
- "color": "slate"
+ "color": "slate",
+ "links": [
+  {
+   "at": "cholesterol",
+   "to": "steroidogenesis",
+   "dir": "out"
+  }
+ ]
 }

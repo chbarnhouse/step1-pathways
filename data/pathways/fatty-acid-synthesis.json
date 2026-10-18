@@ -2,6 +2,14 @@
  "id": "fatty-acid-synthesis",
  "name": "Fatty acid synthesis",
  "group": "Lipids",
+ "systems": [
+  "Fundamentals",
+  "GI"
+ ],
+ "tags": [
+  "Fed state",
+  "Storage"
+ ],
  "aliases": [
   "lipogenesis",
   "de novo lipogenesis",
@@ -285,5 +293,12 @@
  },
  "tissue": "liver, adipose, lactating breast",
  "icon": "opacity",
- "color": "gold"
+ "color": "gold",
+ "links": [
+  {
+   "at": "citm",
+   "to": "tca",
+   "dir": "in"
+  }
+ ]
 }

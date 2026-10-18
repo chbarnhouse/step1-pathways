@@ -2,6 +2,14 @@
  "id": "glycolysis",
  "name": "Glycolysis",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "Heme"
+ ],
+ "tags": [
+  "Fed state",
+  "Energy"
+ ],
  "aliases": [
   "Embden–Meyerhof pathway",
   "Embden-Meyerhof-Parnas pathway",
@@ -446,5 +454,23 @@
  },
  "tissue": "every cell",
  "icon": "call_split",
- "color": "orange"
+ "color": "orange",
+ "links": [
+  {
+   "at": "pyruvate",
+   "to": "tca",
+   "dir": "out",
+   "via": "as acetyl-CoA"
+  },
+  {
+   "at": "g6p",
+   "to": "ppp",
+   "dir": "out"
+  },
+  {
+   "at": "g6p",
+   "to": "glycogen-synthesis",
+   "dir": "out"
+  }
+ ]
 }

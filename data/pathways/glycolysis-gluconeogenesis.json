@@ -2,6 +2,9 @@
  "id": "glycolysis-gluconeogenesis",
  "name": "Glycolysis + gluconeogenesis",
  "group": "Combined",
+ "systems": [
+  "Fundamentals"
+ ],
  "aliases": [],
  "compose": [
   "glycolysis",

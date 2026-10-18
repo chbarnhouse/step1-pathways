@@ -2,6 +2,14 @@
  "id": "glycogen-synthesis",
  "name": "Glycogen synthesis",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "GI"
+ ],
+ "tags": [
+  "Fed state",
+  "Storage"
+ ],
  "aliases": [
   "glycogenesis"
  ],
@@ -165,5 +173,12 @@
  },
  "tissue": "liver and skeletal muscle",
  "icon": "inventory_2",
- "color": "blue"
+ "color": "blue",
+ "links": [
+  {
+   "at": "g6p",
+   "to": "glycolysis",
+   "dir": "in"
+  }
+ ]
 }

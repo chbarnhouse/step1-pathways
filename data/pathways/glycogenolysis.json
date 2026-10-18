@@ -2,6 +2,15 @@
  "id": "glycogenolysis",
  "name": "Glycogenolysis",
  "group": "Carbohydrates",
+ "systems": [
+  "Fundamentals",
+  "MSK",
+  "GI"
+ ],
+ "tags": [
+  "Fasting",
+  "Storage"
+ ],
  "aliases": [
   "glycogen breakdown",
   "glycogen degradation"
@@ -173,5 +182,12 @@
  },
  "tissue": "liver and skeletal muscle",
  "icon": "fitness_center",
- "color": "orange"
+ "color": "orange",
+ "links": [
+  {
+   "at": "g6p",
+   "to": "glycolysis",
+   "dir": "out"
+  }
+ ]
 }

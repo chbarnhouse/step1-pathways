@@ -668,7 +668,7 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .actlist { list-style: none; margin: 0; padding: 0; display: grid; }
 .act-day { padding: 10px 0 4px; }
 .act-day:first-child { padding-top: 0; }
-.act { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 64px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: var(--fs-md); }
+.act { display: grid; grid-template-columns: 26px minmax(0, 1fr) auto 64px 34px; gap: 10px; align-items: center; padding: 6px 0; border-top: 1px solid var(--line-soft); font-size: var(--fs-md); }
 .act-main, .act-score { display: grid; min-width: 0; }
 .act-main b { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .act-score { text-align: right; font-variant-numeric: tabular-nums; }
@@ -1052,3 +1052,14 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .fin-miss li { display: flex; gap: 6px; align-items: center; }
 .fin-clean { display: flex; gap: 6px; align-items: center; margin: 0; }
 .dlg.finish .actions { display: flex; flex-wrap: wrap; gap: 8px; }
+/* body-system tags: outlined, so they read apart from study tags without relying on color */
+.tagchip.sys { background: none; border: 1.5px solid var(--slate); font-weight: 700; }
+.act-fav { width: 34px; height: 34px; display: inline-grid; place-items: center; } .act-fav .mi { width: 20px; height: 20px; fill: var(--blue); }
+/* links to other pathways: dotted line + a small tag (outlined, dashed: never mistaken for a metabolite box) */
+.flow .xline { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 2 4; stroke-linecap: round; }
+.flow .xtag { fill: var(--card); stroke: var(--slate); stroke-width: 1.2; stroke-dasharray: 4 3; }
+.flow .xtagt { fill: var(--ink-2); font-size: var(--fs-xs); font-weight: 700; }
+.flow a.xlink.nav { cursor: pointer; }
+.flow a.xlink.nav:hover .xtag, .flow a.xlink.nav:focus-visible .xtag { stroke: var(--blue); stroke-dasharray: none; stroke-width: 2; }
+.flow a.xlink.nav:hover .xtagt { fill: var(--blue); text-decoration: underline; }
+.filters .flabel { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); align-self: center; }

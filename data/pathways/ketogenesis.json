@@ -2,6 +2,13 @@
  "id": "ketogenesis",
  "name": "Ketogenesis",
  "group": "Lipids",
+ "systems": [
+  "Fundamentals",
+  "Endo/Repro"
+ ],
+ "tags": [
+  "Fasting"
+ ],
  "aliases": [
   "ketone body synthesis"
  ],
@@ -228,5 +235,12 @@
  },
  "tissue": "liver",
  "icon": "psychology",
- "color": "teal"
+ "color": "teal",
+ "links": [
+  {
+   "at": "acetylcoa",
+   "to": "beta-oxidation",
+   "dir": "in"
+  }
+ ]
 }

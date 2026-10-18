@@ -2,6 +2,13 @@
  "id": "heme",
  "name": "Heme synthesis",
  "group": "Heme",
+ "systems": [
+  "Heme",
+  "Skin"
+ ],
+ "tags": [
+  "Vitamins"
+ ],
  "aliases": [
   "porphyrin synthesis",
   "heme biosynthesis"
@@ -341,5 +348,13 @@
  },
  "tissue": "bone marrow (erythroid) and liver",
  "icon": "bloodtype",
- "color": "pink"
+ "color": "pink",
+ "links": [
+  {
+   "at": "glycine",
+   "to": "tca",
+   "dir": "in",
+   "via": "succinyl-CoA joins here"
+  }
+ ]
 }

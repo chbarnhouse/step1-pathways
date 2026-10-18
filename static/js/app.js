@@ -129,6 +129,12 @@ function renderDashboard() {
 // What you studied, when, how, and how it went — newest first, grouped by day.
 const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
+// A star on each session that remembers its quiz (from this version on): favorite it straight from your history.
+function actFavBtn(e) {
+  if (!e.d) return '<span class="act-fav"></span>';
+  const on = !!findFav(normalizeDraft(e.d));
+  return `<button class="iconbtn act-fav" data-dash="actfav" data-id="${esc(e.id)}" aria-pressed="${on}" data-tip="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}" aria-label="${on ? 'Remove from favorites' : 'Add this quiz to favorites'}">${mi(on ? 'star_fill1' : 'star', 'sm')}</button>`;
+}
 function activityHTML() {
   const log = Store.data.log || [];
   if (!log.length) return '<p class="muted">Nothing yet. Your quiz sessions will show up here.</p>';
@@ -144,7 +150,7 @@ function activityHTML() {
     out += `<li class="act">${p ? tileArt(p, 'xs') : `<span class="tile-art xs tone-slate">${mi('route')}</span>`}
       <span class="act-main"><b>${esc(what)}</b><span class="muted small">${esc(how)}${e.done ? ' · finished' : ''}</span></span>
       <span class="act-score"><b>${e.right}/${e.total}</b><span class="muted small">${pct}% · ${mins} min</span></span>
-      <span class="act-time muted small">${new Date(e.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span></li>`;
+      <span class="act-time muted small">${new Date(e.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>${actFavBtn(e)}</li>`;
   }
   return `<ul class="actlist">${out}</ul>`;
 }
@@ -170,6 +176,7 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-dash]');
   if (!b) return;
   if (b.dataset.dash === 'resume') { const last = local.get(LAST_QUIZ); if (last) { const d = normalizeDraft(last.cfg); launchQuiz(quizFromDraft(d), d); } }
+  if (b.dataset.dash === 'actfav') { const e = (Store.data.log || []).find(x => x.id === b.dataset.id); if (e?.d) toggleFav(normalizeDraft(e.d), renderDashboard); return; }
   if (['recent', 'recentstart', 'recentfav'].includes(b.dataset.dash)) {
     const r = recentQuizzes()[+b.dataset.i];
     if (!r) return;
@@ -236,24 +243,32 @@ const MODES = [
    any of the chosen groups AND any of the chosen tags AND the chosen status. Remembered per page. */
 const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Combined'];
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
-const BROWSE_DEFAULT = { q: '', groups: [], tags: [], status: '', source: '', sort: 'group' };
+const BROWSE_DEFAULT = { q: '', groups: [], systems: [], tags: [], status: '', source: '', sort: 'group' };
 // Where a pathway came from: built in, shared by a classmate (reviewed and approved), or your own / your edit.
 const sourceOf = p => (Library.status(p.id) !== 'builtin' ? 'mine' : p.shared ? 'shared' : 'builtin');
 const browse = page => Object.assign(clone(BROWSE_DEFAULT), local.get('pathways.browse.' + page) || {});
-const tagsOf = id => (Store.data.tags && Store.data.tags[id]) || [];
-const allTags = () => uniq(Object.values(Store.data.tags || {}).flat()).sort((a, b) => a.localeCompare(b));
+/* Tags: each built-in pathway comes with body systems (Fundamentals, Heme, GI…) and a few study tags (Fed state,
+   Fasting, Drug targets…); your own tags sit alongside them. Only your own are editable. */
+const SYSTEM_ORDER = ['Fundamentals', 'Skin', 'MSK', 'Neuro', 'Cardio', 'Respiratory', 'Renal', 'Endo/Repro', 'Heme', 'GI'];
+const systemsOf = id => Library.get(id)?.systems || [];
+const myTagsOf = id => (Store.data.tags && Store.data.tags[id]) || [];
+const tagsOf = id => uniq([...(Library.get(id)?.tags || []), ...myTagsOf(id)]);
+const allTags = () => uniq([...Object.values(Store.data.tags || {}).flat(), ...Object.values(Library.all()).flatMap(p => p.tags || [])]).sort((a, b) => a.localeCompare(b));
+const allSystems = () => uniq(Object.values(Library.all()).flatMap(p => p.systems || [])).sort((a, b) => ((SYSTEM_ORDER.indexOf(a) + 1) || 99) - ((SYSTEM_ORDER.indexOf(b) + 1) || 99) || a.localeCompare(b));
+const sysChips = id => systemsOf(id).map(t => `<span class="tagchip sys">${esc(t)}</span>`).join('');
 function setTags(id, tags) { Store.data.tags = Store.data.tags || {}; Store.data.tags[id] = uniq(tags.map(t => t.trim()).filter(Boolean)); if (!Store.data.tags[id].length) delete Store.data.tags[id]; Store.save(); }
 const lastStudied = id => Math.max(0, ...Object.values(Store.data.stats[id] || {}).map(e => e.last || 0));
 const hasWeak = id => Object.values(Store.data.stats[id] || {}).some(e => e.miss > 0);
 const groupRank = g => (GROUP_ORDER.indexOf(g) + 1) || 99;
 function searchText(p) {
-  return norm([p.name, p.group, p.shared?.by, ...(p.aliases || []), ...tagsOf(p.id), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || []), ...(e.nicknames || [])]),
+  return norm([p.name, p.group, p.shared?.by, ...(p.aliases || []), ...tagsOf(p.id), ...(p.systems || []), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || []), ...(e.nicknames || [])]),
     ...Object.values(p.metabolites || {}).flatMap(x => [x.name, x.short])].filter(Boolean).join(' '));
 }
 function filterPathways(list, st) {
   const q = norm(st.q || '');
   return list.filter(p => (!q || searchText(p).includes(q))
     && (!st.groups.length || st.groups.includes(p.group || 'Other'))
+    && (!(st.systems || []).length || st.systems.some(t => systemsOf(p.id).includes(t)))
     && (!st.tags.length || st.tags.some(t => tagsOf(p.id).includes(t)))
     && (!st.source || sourceOf(p) === st.source)
     && (!st.status || (st.status === 'new' ? !Stats.accuracy(p.id) : st.status === 'studied' ? !!Stats.accuracy(p.id) : hasWeak(p.id))))
@@ -266,13 +281,15 @@ function browseToolbar(page, st, list) {
   const groups = uniq(list.map(p => p.group || 'Other')).sort((a, b) => groupRank(a) - groupRank(b));
   const tags = allTags();
   const chip = (attr, v, on, label) => `<button class="chip-tg small" ${attr}="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
-  const any = st.q || st.groups.length || st.tags.length || st.status || st.source;
+  const systems = allSystems(); st.systems = st.systems || [];
+  const any = st.q || st.groups.length || st.systems.length || st.tags.length || st.status || st.source;
   const sources = [['shared', 'Shared by classmates'], ['mine', 'Yours']].filter(([v]) => list.some(p => sourceOf(p) === v));
   return `<div class="browsebar" data-bpage="${page}">
     <label class="search">${mi('search', 'sm')}<input type="search" data-bq placeholder="Search pathways, enzymes, metabolites, tags" value="${esc(st.q)}" aria-label="Search pathways"></label>
     <label class="sortsel">${mi('sort', 'sm')}<select data-bsort aria-label="Sort">${[['group', 'By group'], ['name', 'A–Z'], ['weak', 'Weakest first'], ['recent', 'Recently studied']].map(([v, l]) => `<option value="${v}"${st.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
     <div class="filters">${mi('filter_list', 'sm filt-ic')}
       ${groups.map(g => chip('data-bgroup', g, st.groups.includes(g), g)).join('')}
+      ${systems.length ? `<span class="fsep"></span><span class="flabel">System</span>${systems.map(t => chip('data-bsys', t, st.systems.includes(t), t)).join('')}` : ''}
       ${sources.length ? `<span class="fsep"></span>${sources.map(([v, l]) => chip('data-bsource', v, st.source === v, l)).join('')}` : ''}
       <span class="fsep"></span>${[['new', 'Not studied'], ['studied', 'Studied'], ['weak', 'Has weak spots']].map(([v, l]) => chip('data-bstatus', v, st.status === v, l)).join('')}
       ${tags.length ? `<span class="fsep"></span>${tags.map(t => `<button class="chip-tg small tag" data-btag="${esc(t)}" aria-pressed="${st.tags.includes(t)}">${mi('sell', 'sm')}${esc(t)}</button>`).join('')}` : ''}
@@ -290,7 +307,7 @@ function tileHTML(p, page, selected) {
   const partner = pr && pr.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(', ');
   const meta = `${plural((p.reactions || []).length, 'step')}${p.shared?.by ? ` · by ${esc(p.shared.by)}` : ''}${pr ? ` · combines with ${partner}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
   const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
-  const tagHTML = tags.length ? `<span class="tile-tags">${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
+  const tagHTML = tags.length || systemsOf(p.id).length ? `<span class="tile-tags">${sysChips(p.id)}${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
   if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">
       ${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span>${selected ? `<span class="tile-check">${mi('check')}</span>` : ''}</button>`;
   return `<article class="ptile lib">
@@ -350,20 +367,24 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const page = $('#view .create') ? 'new' : $('#view .library') ? 'library' : null;
   if (!page) return;
-  const t = e.target.closest('[data-bgroup],[data-btag],[data-bstatus],[data-bsource],[data-bclear]');
+  const t = e.target.closest('[data-bgroup],[data-bsys],[data-btag],[data-bstatus],[data-bsource],[data-bclear]');
   if (!t) return;
   const st = browse(page);
   if (t.dataset.bgroup) st.groups = st.groups.includes(t.dataset.bgroup) ? st.groups.filter(x => x !== t.dataset.bgroup) : [...st.groups, t.dataset.bgroup];
+  else if (t.dataset.bsys) st.systems = (st.systems || []).includes(t.dataset.bsys) ? st.systems.filter(x => x !== t.dataset.bsys) : [...(st.systems || []), t.dataset.bsys];
   else if (t.dataset.btag) st.tags = st.tags.includes(t.dataset.btag) ? st.tags.filter(x => x !== t.dataset.btag) : [...st.tags, t.dataset.btag];
   else if (t.dataset.bstatus) st.status = st.status === t.dataset.bstatus ? '' : t.dataset.bstatus;
   else if (t.dataset.bsource) st.source = st.source === t.dataset.bsource ? '' : t.dataset.bsource;
-  else Object.assign(st, { q: '', groups: [], tags: [], status: '', source: '' });
+  else Object.assign(st, { q: '', groups: [], systems: [], tags: [], status: '', source: '' });
   local.set('pathways.browse.' + page, st);
   rerenderBrowsePage(page);
 });
+// The pathway page's diagram: its links to other pathways are clickable there (and only there).
+function pageFlowSVG(m) { LINK_NAV = true; try { return flowSVG(m, () => 'shown'); } finally { LINK_NAV = false; } }
 function editTags(id) {
   const p = Library.get(id);
-  ask({ title: `Tags for ${p.name}`, text: 'Comma-separated, e.g. "block 2, high yield, review". Tags are yours: they filter the pathway lists.', input: true, value: tagsOf(id).join(', '), ok: 'Save', allowEmpty: true })
+  const fixed = [...(p.systems || []), ...(p.tags || [])];
+  ask({ title: `Tags for ${p.name}`, text: `Comma-separated, e.g. "block 2, high yield, review". Tags are yours: they filter the pathway lists.${fixed.length ? ` Built in (always there): ${fixed.join(', ')}.` : ''}`, input: true, value: myTagsOf(id).join(', '), ok: 'Save', allowEmpty: true })
     .then(v => { if (v === null) return; setTags(id, String(v).split(',')); router(); });
 }
 
@@ -552,11 +573,11 @@ function renderPathway(id) {
     <a class="back" href="#/pathways">${mi('arrow_back', 'sm')} Library</a>
     ${pageHead(`${tileArt(p)} ${esc(p.name)}`, `${esc(p.group || 'Other')} · ${plural(p.reactions.length, 'step')}${p.shared?.by ? ` · shared by ${esc(p.shared.by)}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
       `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button><a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>${sharingEnabled() && st !== 'builtin' ? `<button class="btn ghost" data-pw="share">${mi('public', 'sm')} Share with classmates</button>` : ''}`)}
-    <div class="tagrow">${mi('sell', 'sm')} ${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
+    <div class="tagrow">${mi('sell', 'sm')} ${sysChips(id)}${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : systemsOf(id).length ? '' : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">
       <div class="sec-h"><div class="seg">${['flow', 'list'].map(v => `<button data-pwview="${v}" aria-pressed="${Store.settings.view === v}">${v === 'flow' ? 'Flow' : 'List'}</button>`).join('')}</div>${flow ? zoomBarHTML() : ''}</div>
-      ${flow ? `<div class="stage canvas" data-view="page:${esc(id)}">${canvasHTML(flowSVG(m, () => 'shown'))}</div>` : `<div class="stage">${listHTML(m, () => 'shown', { horiz: Store.settings.dir === 'h' })}</div>`}
+      ${flow ? `<div class="stage canvas" data-view="page:${esc(id)}">${canvasHTML(pageFlowSVG(m))}</div>` : `<div class="stage">${listHTML(m, () => 'shown', { horiz: Store.settings.dir === 'h' })}</div>`}
     </section>
     <section class="card pad"><h2>Steps</h2><div class="tablewrap"><table class="steps"><thead><tr><th class="num">#</th><th>Reaction</th><th>Enzyme</th><th>Cofactors</th><th>Where</th><th>Notes</th></tr></thead><tbody>${steps}</tbody></table></div></section>
     <section class="card pad"><div class="sec-h"><h2>Weak spots</h2>${Store.data.stats[id] ? '<button class="btn small ghost" data-pw="resetstats">Clear history</button>' : ''}</div>${statsTableHTML(Stats.rows(p))}</section>

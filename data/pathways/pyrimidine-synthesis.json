@@ -2,6 +2,13 @@
  "id": "pyrimidine-synthesis",
  "name": "Pyrimidine synthesis",
  "group": "Nucleotides",
+ "systems": [
+  "Fundamentals",
+  "Heme"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
  "aliases": [
   "de novo pyrimidine synthesis",
   "pyrimidine biosynthesis",
