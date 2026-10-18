@@ -35,11 +35,37 @@ function renderDashboard() {
         <div class="dash-scroll">${statsTableHTML(worst, { showPathway: true })}</div>
       </section>
       <section class="card pad dash-card">
+        <div class="sec-h"><h2>${mi('history', 'h-ic')} Activity</h2><span class="muted">${(Store.data.log || []).length ? `${(Store.data.log || []).length} session${(Store.data.log || []).length > 1 ? 's' : ''}` : ''}</span></div>
+        <div class="dash-scroll">${activityHTML()}</div>
+      </section>
+      <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('library_books', 'h-ic')} Progress</h2><span class="muted">${studied} of ${atomic.length} studied</span></div>
         <div class="dash-scroll"><ul class="pgrid">${atomic.map(p => { const a = Stats.accuracy(p.id); return `<li><a href="#/pathways/${esc(p.id)}">${tileArt(p, 'xs')}<span>${esc(p.name)}</span></a>${a ? `<span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span><span class="pct">${a.pct}%</span>` : '<span class="muted small">—</span><span></span>'}</li>`; }).join('')}</ul></div>
       </section>
     </div>
   </div>`;
+}
+// What you studied, when, how, and how it went — newest first, grouped by day.
+const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
+const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
+function activityHTML() {
+  const log = Store.data.log || [];
+  if (!log.length) return '<p class="muted">Nothing yet. Your quiz sessions will show up here.</p>';
+  const dayKey = t => new Date(t).toDateString(), today = dayKey(Date.now()), yest = dayKey(Date.now() - 86400000);
+  let out = '', cur = '';
+  for (const e of log.slice(0, 80)) {
+    const dk = dayKey(e.t);
+    if (dk !== cur) { cur = dk; out += `<li class="act-day glabel">${dk === today ? 'Today' : dk === yest ? 'Yesterday' : new Date(e.t).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}</li>`; }
+    const p = Library.get(e.pathways?.[0]), pct = e.total ? Math.round(100 * e.right / e.total) : 0;
+    const mins = Math.max(1, Math.round((e.last - e.t) / 60000));
+    const what = e.pathways?.length > 1 ? `${e.pathways.length} pathways` : p?.name || e.name;
+    const how = MODE_NAMES[e.mode] + (e.mode === 'step' ? (e.given === 'enz' ? ' (enzyme)' : ' (metabolites)') : '') + ' · ' + (ANSWER_NAMES[e.answer] || e.answer);
+    out += `<li class="act">${p ? tileArt(p, 'xs') : `<span class="tile-art xs tone-slate">${mi('route')}</span>`}
+      <span class="act-main"><b>${esc(what)}</b><span class="muted small">${esc(how)}${e.done ? ' · finished' : ''}</span></span>
+      <span class="act-score"><b>${e.right}/${e.total}</b><span class="muted small">${pct}% · ${mins} min</span></span>
+      <span class="act-time muted small">${new Date(e.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span></li>`;
+  }
+  return `<ul class="actlist">${out}</ul>`;
 }
 // Static builds keep everything in this browser, so the dashboard keeps the backup one click away.
 function backupCardHTML() {
@@ -146,7 +172,7 @@ function browseToolbar(page, st, list) {
 // Tile art: the pathway's Material Symbol on its color (falls back to a generic icon for your own pathways).
 const TONES = ['blue', 'orange', 'pink', 'teal', 'gold', 'slate'];
 const toneOf = p => (TONES.includes(p.color) ? p.color : TONES[[...p.id].reduce((a, c) => a + c.charCodeAt(0), 0) % TONES.length]);
-const iconOf = p => (MI[p.icon] ? p.icon : p.compose ? 'join' : 'route');
+const iconOf = p => (MI[p.icon] ? p.icon : p.compose ? 'sync_alt' : 'route');
 function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)} ${size}">${mi(iconOf(p))}</span>`; }
 function tileHTML(p, page, selected) {
   const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
@@ -235,7 +261,7 @@ function renderCreate() {
         ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
         <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, b]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${b}</span></button>`).join('')}</div></div>
         ${modeOpts}
-        <div class="field"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
+        <div class="field" data-tour="answer"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
           ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p></div>
@@ -303,7 +329,7 @@ const visibleFor = (m, d) => m.seq.filter(k => elOf(d, kindOf(k, m)) !== 'hide')
 function renderLibrary() {
   $('#view').innerHTML = `<div class="page library">
     ${pageHead('Pathways', `${Library.list().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
-      `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('join', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
+      `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('sync_alt', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
     ${browserHTML('library')}
     <input type="file" id="libFile" accept=".json,application/json" hidden>
   </div>`;
@@ -388,6 +414,9 @@ function renderSettings() {
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
     </section>
+    <section class="card pad"><h2>Guided tour</h2><p class="muted">A one-minute walk through the app.</p>
+      <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>
+      <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show it automatically when I open Pathways</label></div></section>
     <section class="card pad about"><h2>About</h2><p class="muted">Pathways · open source on <a href="https://github.com/chbarnhouse/pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p></section>
   </div>`;
 }
@@ -406,6 +435,7 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   if (!$('#view .settings')) return;
   if (e.target.hasAttribute('data-remind')) local.set('pathways.remind', e.target.checked ? 'on' : 'off');
+  if (e.target.id === 'tourNeverSetting') local.set('pathways.tourNever', e.target.checked ? null : Date.now());
   if (e.target.dataset.sflag) { Store.settings[e.target.dataset.sflag] = e.target.checked; Store.save(); }
 });
 
@@ -500,5 +530,6 @@ window.addEventListener('hashchange', router);
   // Ask the browser not to evict this site's storage (no prompt in most browsers; best effort).
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
-  openingPrompt();
+  await openingPrompt();
+  maybeAutoTour();
 })();

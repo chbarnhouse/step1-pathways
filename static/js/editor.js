@@ -3,6 +3,9 @@
    Export / Import move a pathway between people as a .json file. */
 'use strict';
 
+// Icons offered for pathways (all in icons.js).
+const PATHWAY_ICONS = ['route', 'call_split', 'no_meals', 'cycle', 'wc', 'shield', 'bloodtype', 'monitor_heart', 'breastfeeding', 'nutrition', 'visibility', 'psychology',
+  'inventory_2', 'fitness_center', 'opacity', 'local_fire_department', 'egg', 'stress_management', 'genetics', 'sync_alt', 'lightbulb', 'flag', 'bookmark_add'];
 const LOCS = ['cytosol', 'mitochondria', 'mitochondrial matrix', 'ER', 'peroxisome', 'lysosome', 'nucleus'];
 const E = { draft: null, origId: null, json: false, err: '' };
 
@@ -151,6 +154,8 @@ function renderEditor() {
           <label class="full">Summary (shown above the diagram)<textarea rows="2" data-path="summary">${esc(p.summary)}</textarea></label>
           <label>Layout<select data-layout>${[['line', 'Line'], ['cycle', 'Cycle (last step returns to the start)'], ['grid', 'Grid (place each metabolite)']].map(([v, l]) => `<option value="${v}"${(p.layout === 'grid' ? 'grid' : p.circular ? 'cycle' : 'line') === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
           <label class="wide">Where it runs<input data-path="tissue" value="${esc(p.tissue || '')}" placeholder="e.g. liver, kidney"></label>
+          <label>Icon<select data-path="icon">${PATHWAY_ICONS.map(i => `<option value="${i}"${(p.icon || 'route') === i ? ' selected' : ''}>${i.replace(/_/g, ' ')}</option>`).join('')}</select></label>
+          <label>Color<select data-path="color">${['blue', 'orange', 'pink', 'teal', 'gold', 'slate'].map(c => `<option value="${c}"${p.color === c ? ' selected' : ''}>${c}</option>`).join('')}</select></label>
           <label>“Runs ×” label<input data-path="multiplier_label" value="${esc(p.multiplier_label || '')}" placeholder="per glucose"></label>
           ${p.layout === 'grid' ? `<label class="full">Column headings (comma-separated)<input data-path="grid_columns" data-list value="${esc(listStr(p.grid_columns))}"></label>` : ''}
         </div></section>

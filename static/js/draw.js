@@ -290,7 +290,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   const { p, items, spine, spineMets, branches } = m;
   const n = spineMets.length, w = 176;
   const RY = Math.max(170, n * 30), RX = Math.round(RY * 1.5);
-  const cx = RX + w / 2 + 220, cy = RY + 90;
+  const cx = RX + w / 2 + 300, cy = RY + 190;
   const pt = (t, d = 0) => [cx + (RX + d) * Math.cos(t), cy + (RY + d) * Math.sin(t)];
   const pos = {};
   spineMets.forEach((id, i) => { const t = -Math.PI / 2 + 2 * Math.PI * i / n; const [x, y] = pt(t); pos[id] = { cx: x, cy: y, t }; });
@@ -302,8 +302,28 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   spine.forEach(r => { const l = locLabel(m, r); if (l) counts[l] = (counts[l] || 0) + 1; });
   const main = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
   let s = '';
-  const keyOfR = r => zoneKey(m, r.loc, r.tissue), mainR = spine.find(r => locLabel(m, r) === main);
-  if (zones && mainR) s += zoneLabel(m, statusOf, keyOfR(mainR), cx, cy + 4, 'middle', main);
+  const keyOfR = r => zoneKey(m, r.loc, r.tissue);
+  const keyCount = {};
+  spine.forEach(r => { if (r.loc) keyCount[keyOfR(r)] = (keyCount[keyOfR(r)] || 0) + 1; });
+  const mainKey = Object.entries(keyCount).sort((a, b) => b[1] - a[1])[0]?.[0];
+  if (zones && mainKey) s += zoneLabel(m, statusOf, mainKey, cx, cy + 4, 'middle', main);
+  // Steps in another compartment get a shaded wedge of the ring, dashed membranes at its edges, and its own label.
+  const inRegion = new Set();
+  if (zones && mainKey) {
+    const runs = [];
+    spine.forEach((r, i) => { const k = r.loc ? keyOfR(r) : mainKey; if (k === mainKey) return; const last = runs[runs.length - 1]; if (last && last.k === k && last.end === i - 1) { last.end = i; last.rs.push(r); } else runs.push({ k, start: i, end: i, rs: [r] }); });
+    const wedgePt = (t, f, d = 0) => [cx + (RX * f + d) * Math.cos(t), cy + (RY * f + d) * Math.sin(t)];
+    runs.forEach(run => {
+      run.rs.forEach(r => inRegion.add(r));
+      let t1 = pos[run.rs[0].from].t, t2 = pos[run.rs[run.rs.length - 1].to].t; if (t2 <= t1) t2 += 2 * Math.PI;
+      const OUT = 150, f = 0.42, large = t2 - t1 > Math.PI ? 1 : 0;
+      const [ax, ay] = wedgePt(t1, 1, OUT), [bx, by] = wedgePt(t2, 1, OUT), [cx2, cy2] = wedgePt(t2, f), [dx, dy] = wedgePt(t1, f);
+      s += `<path class="zone alt" d="M${ax},${ay} A${RX + OUT},${RY + OUT} 0 ${large} 1 ${bx},${by} L${cx2},${cy2} A${RX * f},${RY * f} 0 ${large} 0 ${dx},${dy} Z"/>`;
+      s += `<line class="membrane" x1="${dx}" y1="${dy}" x2="${ax}" y2="${ay}"/><line class="membrane" x1="${cx2}" y1="${cy2}" x2="${bx}" y2="${by}"/>`;
+      const tm = (t1 + t2) / 2, co = Math.cos(tm), [lx, ly] = wedgePt(tm, 1, OUT + 18);
+      s += zoneLabel(m, statusOf, run.k, lx, ly + 4, co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle');
+    });
+  }
   // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
   const speed = t => Math.hypot(RX * Math.sin(t), RY * Math.cos(t));
   const ext = t => { const L = speed(t), ux = -RX * Math.sin(t) / L, uy = RY * Math.cos(t) / L; return (Math.abs(w / 2 * ux) + Math.abs(BH / 2 * uy) + 10) / L; };
@@ -323,7 +343,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     const anchor = co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle';
     const [lx, ly0] = pt(tm, 28 + (anchor === 'middle' ? 16 : 0));
     const here = locLabel(m, r), zst = m.items['z:' + keyOfR(r)] ? statusOf('z:' + keyOfR(r)) : 'shown';
-    const loc = zones && here && here !== main && zst !== 'hide' ? [hidden(zst) ? '? (compartment)' : here] : [];
+    const loc = zones && here && here !== main && zst !== 'hide' && !inRegion.has(r) ? [hidden(zst) ? '? (compartment)' : here] : [];
     const es = statusOf('e:' + r.id), it = items['e:' + r.id];
     s += enzLabel(lx, ly0, it, es, anchor, 20, 'center', loc);
     const cs = cofSt(m, statusOf, r);
@@ -341,7 +361,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   branches.forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to], w, w); });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id), w);
   const xs = Object.values(pos).map(q => q.cx), ys = Object.values(pos).map(q => q.cy);
-  const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20), H = Math.max(...ys) + BH / 2 + 80;
+  const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20), H = Math.max(...ys) + BH / 2 + 180;
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} cycle diagram">${s}</svg>`;
 }
 

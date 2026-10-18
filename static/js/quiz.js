@@ -181,6 +181,9 @@ function startQuiz(cfg) {
   Q.cfg.allPathways = !!cfg.allPathways;
   Q.models = quizPathways().map(id => { try { return modelFor(Library.get(id)); } catch { return null; } }).filter(Boolean);
   Q.history = []; Q.fact = null; Q.drawer = false; Q.focus = null;
+  // Activity log entry: written on the first answer, updated as you go (sessions with no answers aren't logged).
+  Q.log = { id: Date.now().toString(36), t: Date.now(), last: Date.now(), pathways: Q.models.map(m => m.p.id), name: Q.cfg.name,
+    mode: Q.cfg.mode, given: Q.cfg.given, answer: answerStyle(), right: 0, total: 0, done: false };
   Q.m = Q.models[0];
   newRound();
 }
@@ -225,7 +228,7 @@ function startTotal() {
 }
 function loadTotalQ() {
   const R = Q.round;
-  if (R.pos >= R.order.length) { R.done = true; R.q = null; return; }
+  if (R.pos >= R.order.length) { R.done = true; R.q = null; if (!R.queue?.length) logAnswer(true); return; }
   R.q = withAlong(itemQ(Q.m.items[Q.m.seq[R.order[R.pos]]], Q.m), Q.m);
 }
 /* ---------- Building blocks ----------
@@ -246,7 +249,7 @@ function buildResolved(q) {
   const R = Q.round;
   const clean = q.status === 'right' && !q.hints && !q.tries;
   const key = q.item.key, first = !R.intro.has(key);
-  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); Q.score.total++; if (clean) Q.score.right++; }
+  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); Q.score.total++; if (clean) Q.score.right++; logAnswer(); }
   Q.fact = factItemOf(q.item, Q.m); Q.factM = Q.m;
   Q.history = (Q.history || []).filter(h => h.item !== Q.fact); Q.history.unshift({ item: Q.fact, m: Q.m, status: clean ? 'right' : 'missed' });
   if (!clean) {
@@ -258,7 +261,7 @@ function buildResolved(q) {
   R.pos++;
   if (R.pos >= R.k) {
     R.k++; R.pos = 0;
-    if (R.k > R.order.length) { R.done = true; R.q = null; return renderQuiz(); }
+    if (R.k > R.order.length) { R.done = true; R.q = null; logAnswer(true); return renderQuiz(); }
     R.roundMsg = `Round ${R.k}: from the top, one more blank.`;
   } else R.roundMsg = '';
   loadBuildQ();
@@ -369,6 +372,16 @@ function selfGrade(q, ok) { q.status = ok ? 'right' : 'missed'; q.self = true; t
 function tally(q, firstTry) {
   firstTry = firstTry && !q.hints;
   Q.score.total++; if (firstTry) Q.score.right++; Stats.record(q.pid, q.statKey, firstTry);
+  logAnswer();
+}
+function logAnswer(done = false) {
+  const L = Q.log; if (!L) return;
+  Object.assign(L, { right: Q.score.right, total: Q.score.total, last: Date.now(), answer: answerStyle(), done: L.done || done });
+  const log = Store.data.log = Store.data.log || [];
+  const i = log.findIndex(x => x.id === L.id);
+  if (i >= 0) log[i] = { ...L }; else if (L.total) log.unshift({ ...L });
+  if (log.length > 300) log.length = 300;
+  Store.save();
 }
 function resolved(q) {
   const R = Q.round;
