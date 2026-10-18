@@ -12,6 +12,44 @@ const REPORT_FORM = {
 const KIND_LABELS = { bug: 'Something isn’t working', content: 'A fact or answer looks wrong', idea: 'Suggestion' };
 const reportsEnabled = () => !!REPORT_FORM.url;
 
+/* ---------- Share a pathway with classmates (curated) ----------
+   The pathway file is too big for a link, so: the app downloads it and opens the sharing Google Form with the
+   rest filled in; the classmate attaches the file and submits. Each submission is reviewed; approved pathways ship in the
+   library under "Shared by classmates", credited by display name (no accounts). Hidden until the form is set. */
+const SHARE_FORM = {
+  url: '', // The sharing Google Form ("STEP 1 Pathways — share a pathway"), …/viewform
+  name: '', pathway: '', kind: '', note: '', // entry.NNN ids from a pre-filled link
+};
+const sharingEnabled = () => !!SHARE_FORM.url;
+function openShare(id) {
+  const p = Library.get(id), edit = Library.status(id) === 'edited';
+  let d = $('#shareDialog');
+  if (!d) { d = document.createElement('dialog'); d.id = 'shareDialog'; document.body.append(d); }
+  d.innerHTML = `<form class="dlg report" id="shareForm">
+    <div class="dlg-h"><h2>${mi('public', 'h-ic')} ${edit ? 'Suggest your changes' : 'Share with classmates'}</h2></div>
+    <p class="muted">${edit ? `Your edits to <b>${esc(p.name)}</b> are sent for review, and may be added for everyone.` : `<b>${esc(p.name)}</b> is sent for review. Once approved, it appears in everyone’s library under <b>Shared by classmates</b>, with your name on it.`}</p>
+    <label class="field">Your name, as shown to classmates<input name="name" required maxlength="40" value="${esc(local.get('pathways.displayName') || '')}" placeholder="e.g. Sam K."></label>
+    <label class="field">Notes for the review (optional)<textarea name="note" rows="2" placeholder="${edit ? 'e.g. Fixed the cofactors of step 3' : 'e.g. Based on First Aid 2026, p. 82'}"></textarea></label>
+    <ol class="gate-steps"><li>Press <b>Download and open the form</b>. The pathway file lands in your Downloads, and a Google Form opens with your name filled in.</li><li>In the form, sign in with Google, press <b>Add file</b> and choose <b>${esc((p.id || 'pathway') + '.json')}</b> from Downloads.</li><li>Press <b>Submit</b>.</li></ol>
+    <div class="actions"><button class="btn primary" type="submit">${mi('download', 'sm')} Download and open the form</button><button class="btn ghost" type="button" data-share="close">Cancel</button></div>
+  </form>`;
+  d.showModal();
+  d.querySelector('input[name=name]').focus();
+}
+document.addEventListener('click', e => { if (e.target.closest('[data-share="close"]')) $('#shareDialog')?.close(); });
+document.addEventListener('submit', e => {
+  if (e.target.id !== 'shareForm') return;
+  e.preventDefault();
+  const v = Object.fromEntries(new FormData(e.target)), id = location.hash.match(/^#\/pathways\/([^/]+)/)?.[1], p = id && Library.get(decodeURIComponent(id));
+  if (!p) return;
+  local.set('pathways.displayName', v.name.trim());
+  download((p.id || 'pathway') + '.json', JSON.stringify(p, null, 2));
+  const q = new URLSearchParams({ usp: 'pp_url', [SHARE_FORM.name]: v.name.trim(), [SHARE_FORM.pathway]: p.name, [SHARE_FORM.kind]: Library.status(p.id) === 'edited' ? 'Changes to a built-in pathway' : 'A new pathway', [SHARE_FORM.note]: v.note || '' });
+  window.open(`${SHARE_FORM.url}?${q}`, '_blank', 'noopener');
+  $('#shareDialog').close();
+  toast('Now attach the downloaded file in the Google Form and press Submit.');
+});
+
 function diagnostics() {
   return {
     version: APP_VERSION, copy: Store.mode === 'server' ? 'self-hosted' : 'browser', page: location.hash || '#/',

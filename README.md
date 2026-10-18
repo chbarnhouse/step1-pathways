@@ -34,6 +34,9 @@ Users' history, tags, favorites and edits live in their own browsers (or `data/u
 - **Safety nets:** before upgrading, the browser keeps the old data (`pathways.safety.v<N>`); the server keeps a copy per day (last 30) and one before each deploy (last 10) in `data/user/backups/`. Data saved by a newer version is never overwritten by an older page: it goes read-only and asks for a reload (the server refuses such writes with 409).
 - Released ids are recorded in `tools/released-ids.json` by `release.sh`.
 
+## Pathways shared by classmates
+Classmates press **Share with classmates** on their own (or edited) pathway: the app downloads the `.json` and opens the sharing Google Form (set `SHARE_FORM` in `static/js/report.js`; the button is hidden until then). Submissions land in the sharing form's responses with the file in Drive. To approve one: give it an id `shared-<name>-<pathway>`, add `"shared": {"by": "<display name>", "on": "YYYY-MM-DD"}`, save it as `data/pathways/<id>.json`, run `node tools/validate.js`, add a changelog note, and release. It then appears for everyone under **Shared by classmates**. Once released, its ids are protected like any built-in. A suggested change to a built-in is applied to that built-in instead.
+
 ## Pathway files
 `data/pathways/*.json`, one per pathway; `node tools/validate.js` checks them all.
 - `metabolites` / `enzymes`: `{id: {name, short, aliases[], notes}}` (+ `pos: [col,row]` on metabolites in a grid)

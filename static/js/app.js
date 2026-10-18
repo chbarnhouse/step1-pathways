@@ -145,7 +145,10 @@ const MODES = [
    Icon tiles with search, composable filters (group, your tags, status) and sorting. Filters stack:
    any of the chosen groups AND any of the chosen tags AND the chosen status. Remembered per page. */
 const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Combined'];
-const BROWSE_DEFAULT = { q: '', groups: [], tags: [], status: '', sort: 'group' };
+const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
+const BROWSE_DEFAULT = { q: '', groups: [], tags: [], status: '', source: '', sort: 'group' };
+// Where a pathway came from: built in, shared by a classmate (reviewed and approved), or your own / your edit.
+const sourceOf = p => (Library.status(p.id) !== 'builtin' ? 'mine' : p.shared ? 'shared' : 'builtin');
 const browse = page => Object.assign(clone(BROWSE_DEFAULT), local.get('pathways.browse.' + page) || {});
 const tagsOf = id => (Store.data.tags && Store.data.tags[id]) || [];
 const allTags = () => uniq(Object.values(Store.data.tags || {}).flat()).sort((a, b) => a.localeCompare(b));
@@ -154,7 +157,7 @@ const lastStudied = id => Math.max(0, ...Object.values(Store.data.stats[id] || {
 const hasWeak = id => Object.values(Store.data.stats[id] || {}).some(e => e.miss > 0);
 const groupRank = g => (GROUP_ORDER.indexOf(g) + 1) || 99;
 function searchText(p) {
-  return norm([p.name, p.group, ...(p.aliases || []), ...tagsOf(p.id), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || [])]),
+  return norm([p.name, p.group, p.shared?.by, ...(p.aliases || []), ...tagsOf(p.id), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || [])]),
     ...Object.values(p.metabolites || {}).flatMap(x => [x.name, x.short])].filter(Boolean).join(' '));
 }
 function filterPathways(list, st) {
@@ -162,6 +165,7 @@ function filterPathways(list, st) {
   return list.filter(p => (!q || searchText(p).includes(q))
     && (!st.groups.length || st.groups.includes(p.group || 'Other'))
     && (!st.tags.length || st.tags.some(t => tagsOf(p.id).includes(t)))
+    && (!st.source || sourceOf(p) === st.source)
     && (!st.status || (st.status === 'new' ? !Stats.accuracy(p.id) : st.status === 'studied' ? !!Stats.accuracy(p.id) : hasWeak(p.id))))
     .sort((a, b) => st.sort === 'name' ? a.name.localeCompare(b.name)
       : st.sort === 'weak' ? ((Stats.accuracy(a.id)?.pct ?? 101) - (Stats.accuracy(b.id)?.pct ?? 101)) || a.name.localeCompare(b.name)
@@ -172,12 +176,14 @@ function browseToolbar(page, st, list) {
   const groups = uniq(list.map(p => p.group || 'Other')).sort((a, b) => groupRank(a) - groupRank(b));
   const tags = allTags();
   const chip = (attr, v, on, label) => `<button class="chip-tg small" ${attr}="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
-  const any = st.q || st.groups.length || st.tags.length || st.status;
+  const any = st.q || st.groups.length || st.tags.length || st.status || st.source;
+  const sources = [['shared', 'Shared by classmates'], ['mine', 'Yours']].filter(([v]) => list.some(p => sourceOf(p) === v));
   return `<div class="browsebar" data-bpage="${page}">
     <label class="search">${mi('search', 'sm')}<input type="search" data-bq placeholder="Search pathways, enzymes, metabolites, tags" value="${esc(st.q)}" aria-label="Search pathways"></label>
     <label class="sortsel">${mi('sort', 'sm')}<select data-bsort aria-label="Sort">${[['group', 'By group'], ['name', 'A–Z'], ['weak', 'Weakest first'], ['recent', 'Recently studied']].map(([v, l]) => `<option value="${v}"${st.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
     <div class="filters">${mi('filter_list', 'sm filt-ic')}
       ${groups.map(g => chip('data-bgroup', g, st.groups.includes(g), g)).join('')}
+      ${sources.length ? `<span class="fsep"></span>${sources.map(([v, l]) => chip('data-bsource', v, st.source === v, l)).join('')}` : ''}
       <span class="fsep"></span>${[['new', 'Not studied'], ['studied', 'Studied'], ['weak', 'Has weak spots']].map(([v, l]) => chip('data-bstatus', v, st.status === v, l)).join('')}
       ${tags.length ? `<span class="fsep"></span>${tags.map(t => `<button class="chip-tg small tag" data-btag="${esc(t)}" aria-pressed="${st.tags.includes(t)}">${mi('sell', 'sm')}${esc(t)}</button>`).join('')}` : ''}
       ${any ? '<button class="linkbtn" data-bclear>Clear</button>' : ''}
@@ -192,7 +198,7 @@ function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)}
 function tileHTML(p, page, selected) {
   const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
   const partner = pr && pr.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(', ');
-  const meta = `${(p.reactions || []).length} steps${pr ? ` · combines with ${partner}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
+  const meta = `${plural((p.reactions || []).length, 'step')}${p.shared?.by ? ` · by ${esc(p.shared.by)}` : ''}${pr ? ` · combines with ${partner}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
   const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
   const tagHTML = tags.length ? `<span class="tile-tags">${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
   if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">
@@ -234,13 +240,14 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const page = $('#view .create') ? 'new' : $('#view .library') ? 'library' : null;
   if (!page) return;
-  const t = e.target.closest('[data-bgroup],[data-btag],[data-bstatus],[data-bclear]');
+  const t = e.target.closest('[data-bgroup],[data-btag],[data-bstatus],[data-bsource],[data-bclear]');
   if (!t) return;
   const st = browse(page);
   if (t.dataset.bgroup) st.groups = st.groups.includes(t.dataset.bgroup) ? st.groups.filter(x => x !== t.dataset.bgroup) : [...st.groups, t.dataset.bgroup];
   else if (t.dataset.btag) st.tags = st.tags.includes(t.dataset.btag) ? st.tags.filter(x => x !== t.dataset.btag) : [...st.tags, t.dataset.btag];
   else if (t.dataset.bstatus) st.status = st.status === t.dataset.bstatus ? '' : t.dataset.bstatus;
-  else Object.assign(st, { q: '', groups: [], tags: [], status: '' });
+  else if (t.dataset.bsource) st.source = st.source === t.dataset.bsource ? '' : t.dataset.bsource;
+  else Object.assign(st, { q: '', groups: [], tags: [], status: '', source: '' });
   local.set('pathways.browse.' + page, st);
   rerenderBrowsePage(page);
 });
@@ -409,8 +416,8 @@ function renderPathway(id) {
   }).join('');
   $('#view').innerHTML = `<div class="page pathway">
     <a class="back" href="#/pathways">${mi('arrow_back', 'sm')} Library</a>
-    ${pageHead(`${tileArt(p)} ${esc(p.name)}`, `${esc(p.group || 'Other')} · ${p.reactions.length} steps${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
-      `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button><a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>`)}
+    ${pageHead(`${tileArt(p)} ${esc(p.name)}`, `${esc(p.group || 'Other')} · ${plural(p.reactions.length, 'step')}${p.shared?.by ? ` · shared by ${esc(p.shared.by)}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
+      `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button><a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>${sharingEnabled() && st !== 'builtin' ? `<button class="btn ghost" data-pw="share">${mi('public', 'sm')} Share with classmates</button>` : ''}`)}
     <div class="tagrow">${mi('sell', 'sm')} ${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">
@@ -431,6 +438,7 @@ document.addEventListener('click', e => {
   if (!b) return;
   if (b.dataset.pw === 'study') studyPathway(id);
   if (b.dataset.pw === 'export') exportPathway(Library.get(id));
+  if (b.dataset.pw === 'share') openShare(id);
   if (b.dataset.pw === 'resetstats') ask({ title: 'Clear the history for this pathway?', ok: 'Clear' }).then(y => { if (y) { Stats.reset(id); renderPathway(id); } });
 });
 
