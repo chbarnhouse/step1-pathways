@@ -15,7 +15,9 @@
    "short": "FA",
    "aliases": [
     "free fatty acid",
-    "long-chain fatty acid",
+    "long-chain fatty acid"
+   ],
+   "nicknames": [
     "FFA"
    ],
    "notes": "From adipose lipolysis (hormone-sensitive lipase), carried on albumin."
@@ -25,7 +27,6 @@
    "short": "acyl-CoA",
    "aliases": [
     "fatty acyl-CoA",
-    "acyl-CoA",
     "cytosolic acyl-CoA"
    ],
    "notes": "Can't cross the inner mitochondrial membrane on its own (short and medium chains can)."
@@ -45,7 +46,6 @@
    "short": "acyl-CoA",
    "aliases": [
     "fatty acyl-CoA",
-    "acyl-CoA",
     "mitochondrial acyl-CoA"
    ],
    "notes": "Enters the four-step β-oxidation spiral."
@@ -123,7 +123,9 @@
    "short": "CPT I",
    "aliases": [
     "carnitine palmitoyltransferase 1",
-    "carnitine acyltransferase I",
+    "carnitine acyltransferase I"
+   ],
+   "nicknames": [
     "CPT-1"
    ],
    "notes": "Rate-limiting; outer mitochondrial membrane. Inhibited by malonyl-CoA. Hepatic CPT I deficiency: hypoketotic hypoglycemia. Primary carnitine deficiency (OCTN2 transporter) blocks the shuttle too: weakness, hypotonia, cardiomyopathy, hypoketotic hypoglycemia."
@@ -133,7 +135,9 @@
    "short": "CPT II",
    "aliases": [
     "carnitine palmitoyltransferase 2",
-    "carnitine acyltransferase II",
+    "carnitine acyltransferase II"
+   ],
+   "nicknames": [
     "CPT-2"
    ],
    "notes": "Inner mitochondrial membrane, matrix side. Adult CPT II deficiency (most common): exercise- or fasting-induced muscle pain and rhabdomyolysis with myoglobinuria."
@@ -183,8 +187,7 @@
    "aliases": [
     "carnitine-acylcarnitine translocase",
     "carnitine acylcarnitine translocase",
-    "translocase",
-    "CACT"
+    "translocase"
    ],
    "notes": "Inner-membrane antiporter: acylcarnitine in, free carnitine out. Long-chain fatty acids need the whole carnitine shuttle; short and medium chains enter the matrix directly."
   }

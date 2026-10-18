@@ -18,11 +18,13 @@
    "name": "δ-Aminolevulinic acid",
    "short": "δ-ALA",
    "aliases": [
-    "ALA",
     "aminolevulinic acid",
     "delta-aminolevulinic acid",
     "5-aminolevulinate",
-    "aminolevulinate",
+    "aminolevulinate"
+   ],
+   "nicknames": [
+    "ALA",
     "delta ALA"
    ],
    "notes": "Exits the mitochondrion. Elevated in lead poisoning and acute intermittent porphyria."
@@ -94,8 +96,11 @@
     "aminolevulinic acid synthase",
     "δ-aminolevulinate synthase",
     "delta-aminolevulinic acid synthase",
-    "aminolevulinate synthase",
-    "ALA synthetase"
+    "aminolevulinate synthase"
+   ],
+   "nicknames": [
+    "ALA synthetase",
+    "ALA synthase"
    ],
    "notes": "Rate-limiting; needs B6 (pyridoxal phosphate). Repressed by heme; induced by drugs that use cytochrome P450 (barbiturates, etc.). ALAS2 (erythroid) defects or B6 deficiency (isoniazid) → sideroblastic anemia."
   },
@@ -108,16 +113,21 @@
     "δ-aminolevulinate dehydratase",
     "delta-aminolevulinic acid dehydratase"
    ],
+   "nicknames": [
+    "ALA dehydratase"
+   ],
    "notes": "Joins two ALA. Inhibited by lead (↑ ALA → neuro symptoms, basophilic stippling with ferrochelatase block)."
   },
   "pbgd": {
    "name": "Porphobilinogen deaminase",
    "short": "PBGD",
    "aliases": [
-    "PBG deaminase",
     "hydroxymethylbilane synthase",
-    "HMB synthase",
     "uroporphyrinogen I synthase"
+   ],
+   "nicknames": [
+    "PBG deaminase",
+    "HMB synthase"
    ],
    "notes": "Deficiency → acute intermittent porphyria (AD): painful abdomen, port-wine urine, polyneuropathy, psychological symptoms, precipitated by drugs/alcohol/starvation. No photosensitivity. Treat with glucose and hemin."
   },

@@ -18,7 +18,9 @@ const canvasHTML = (svg, extra = '') => `<div class="world">${svg}${extra}</div>
 function contentSize(st) { const vb = svgOf(st).viewBox.baseVal; return { w: vb.width, h: vb.height }; }
 function fitK(st, mode) {
   const { w, h } = contentSize(st), W = st.clientWidth - 2 * CANVAS.pad, H = st.clientHeight - 2 * CANVAS.pad;
-  return mode === 'fit' ? Math.max(CANVAS.min, Math.min(W / w, H / h, 1.6)) : Math.max(CANVAS.min, Math.min(1, W / w));
+  if (mode === 'fit') return Math.max(CANVAS.min, Math.min(W / w, H / h, 1.6));
+  if (mode === 'height') return Math.max(CANVAS.min, Math.min(H / h, 1.6));
+  return Math.max(CANVAS.min, Math.min(1, W / w));
 }
 // Keep some of the diagram on screen however far it is dragged.
 function clampView(st, v) {
@@ -62,7 +64,7 @@ function applyZoom(scope = document) {
   const { w, h } = contentSize(st);
   const k = typeof z === 'number' ? z : fitK(st, z);
   const x = Math.max(CANVAS.pad, (st.clientWidth - w * k) / 2);
-  const y = z === 'fit' ? Math.max(CANVAS.pad, (st.clientHeight - h * k) / 2) : CANVAS.pad;
+  const y = z === 'fit' || z === 'height' ? Math.max(CANVAS.pad, (st.clientHeight - h * k) / 2) : CANVAS.pad;
   setView(st, { k, x, y });
 }
 function zoomBy(d) {
@@ -73,6 +75,14 @@ function zoomBy(d) {
   }
   const k = Math.round(Math.min(CANVAS.max, Math.max(CANVAS.min, st._v.k + d)) * 10) / 10;
   Store.settings.zoom = k; Store.save();
+  zoomAt(st, k, st.clientWidth / 2, st.clientHeight / 2, true);
+  applyZoomButtons();
+}
+// Clicking the percentage: back to 100%, about the middle of the view.
+function zoomTo(k) {
+  const st = canvasStage();
+  Store.settings.zoom = k; Store.save();
+  if (!st || !st._v) return applyZoom();
   zoomAt(st, k, st.clientWidth / 2, st.clientHeight / 2, true);
   applyZoomButtons();
 }

@@ -16,6 +16,7 @@ const MI = {
 "zoom_in": "M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400Zm-40-60v-80h-80v-80h80v-80h80v80h80v80h-80v80h-80Z",
 "zoom_out": "M784-120 532-372q-30 24-69 38t-83 14q-109 0-184.5-75.5T120-580q0-109 75.5-184.5T380-840q109 0 184.5 75.5T640-580q0 44-14 83t-38 69l252 252-56 56ZM380-400q75 0 127.5-52.5T560-580q0-75-52.5-127.5T380-760q-75 0-127.5 52.5T200-580q0 75 52.5 127.5T380-400ZM280-540v-80h200v80H280Z",
 "fit_screen": "M800-600v-120H680v-80h120q33 0 56.5 23.5T880-720v120h-80Zm-720 0v-120q0-33 23.5-56.5T160-800h120v80H160v120H80Zm600 440v-80h120v-120h80v120q0 33-23.5 56.5T800-160H680Zm-520 0q-33 0-56.5-23.5T80-240v-120h80v120h120v80H160Zm80-160v-320h480v320H240Zm80-80h320v-160H320v160Zm0 0v-160 160Z",
+"fit_height": "M120-120h720v-80h-720v80Zm0-640h720v-80h-720v80ZM440-280h80v-80h-80v80Zm0-160h80v-80h-80v80Zm0-160h80v-80h-80v80Z",
 "fit_width": "M120-120v-720h80v720h-80Zm640 0v-720h80v720h-80ZM280-440v-80h80v80h-80Zm160 0v-80h80v80h-80Zm160 0v-80h80v80h-80Z",
 "center_focus_strong": "M200-120q-33 0-56.5-23.5T120-200v-160h80v160h160v80H200Zm400 0v-80h160v-160h80v160q0 33-23.5 56.5T760-120H600ZM120-600v-160q0-33 23.5-56.5T200-840h160v80H200v160h-80Zm640 0v-160H600v-80h160q33 0 56.5 23.5T840-760v160h-80ZM338.5-338.5Q280-397 280-480t58.5-141.5Q397-680 480-680t141.5 58.5Q680-563 680-480t-58.5 141.5Q563-280 480-280t-141.5-58.5ZM565-395q35-35 35-85t-35-85q-35-35-85-35t-85 35q-35 35-35 85t35 85q35 35 85 35t85-35Zm-85-85Z",
 "check": "M382-240 154-468l57-57 171 171 367-367 57 57-424 424Z",
@@ -74,4 +75,23 @@ const MI = {
 "star_fill1": "m233-120 65-281L80-590l288-25 112-265 112 265 288 25-218 189 65 281-247-149-247 149Z"
 };
 // mi('play_arrow') → inline SVG that inherits text color and size (1em).
+/* Tooltips: any element with data-tip shows it in a small label on hover or keyboard focus (native title tooltips are slow
+   to appear, and Safari often never shows them). One label for the whole page, kept on screen. */
+(() => {
+  let tip = null, on = null;
+  const hide = () => { on = null; if (tip) tip.hidden = true; };
+  const show = el => {
+    if (!tip) { tip = document.createElement('div'); tip.className = 'tip'; tip.setAttribute('role', 'tooltip'); document.body.append(tip); }
+    on = el; tip.textContent = el.dataset.tip; tip.hidden = false;
+    const r = el.getBoundingClientRect(), t = tip.getBoundingClientRect(), gap = 6;
+    const below = r.bottom + gap + t.height <= innerHeight - 4;
+    tip.style.top = (below ? r.bottom + gap : r.top - gap - t.height) + 'px';
+    tip.style.left = Math.min(innerWidth - t.width - 6, Math.max(6, r.left + r.width / 2 - t.width / 2)) + 'px';
+  };
+  document.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const el = e.target.closest?.('[data-tip]'); if (el && el !== on) show(el); else if (!el && on) hide(); });
+  document.addEventListener('pointerout', e => { if (on && !on.contains(e.relatedTarget)) hide(); });
+  document.addEventListener('focusin', e => { const el = e.target.closest?.('[data-tip]'); if (el && el.matches(':focus-visible')) show(el); });
+  document.addEventListener('focusout', hide);
+  for (const ev of ['pointerdown', 'scroll', 'keydown']) document.addEventListener(ev, hide, true);
+})();
 const mi = (name, cls = '') => `<svg class="mi ${cls}" viewBox="0 -960 960 960" aria-hidden="true"><path d="${MI[name]}"/></svg>`;

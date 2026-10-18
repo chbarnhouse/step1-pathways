@@ -8,7 +8,7 @@ const DEFAULT_SETTINGS = {
   answer: 'type',      // type | choice | self
   view: 'flow',        // flow | list
   dir: 'v',            // list direction: v | h
-  zoom: 'width',       // width | fit | number
+  zoom: 'width',       // width | height | fit | number
   follow: true,        // keep the current blank centered
   facts: true,         // show the facts card after each answer
   autoAdvance: true,   // Full recall moves on by itself after a right answer

@@ -18,6 +18,8 @@ const CHANGELOG = [
     'Cofactors can be separated any way you like, or not at all: “ATP, ADP”, “ATP ADP”, “ATP + ADP” and “ATPADP” all count.',
     'Dashboard: Favorites and Presets side by side. Clicking either opens New quiz with it loaded so you can adjust it first; ▶ on a favorite starts it right away.',
     'More spellings count: an enzyme named after a metabolite accepts any of that metabolite’s names (ALA synthase, δ-ALA synthase, δ-aminolevulinic acid synthase, 5-aminolevulinate synthase), “-ic acid” or “-ate”, and Greek letters as symbols or words.',
+    'Every element now has full names and nicknames. The answer panel lists both (“Also called” and “Sometimes written as”), whatever your settings. With Require full names on, only full names count: “δ-aminolevulinic acid synthase” yes, “ALA synthase” or “ALAS” no. The editor has a field for each.',
+    'Canvas controls: labels appear when you hover over them; new Fit height; Fit all turns off Follow (so the whole diagram stays in view); clicking the zoom percentage returns to 100%.',
   ] },
   { v: '3.8.1', date: '2026-10-18', items: [
     'Clear all history (Settings) now really starts over: everything saved here is erased, after an offer to download a backup first, and the app opens as on your first visit.',

@@ -294,7 +294,8 @@ function metPanel(id) {
     <div class="vx-fields">
       <label>Name<input data-path="${base}.name" value="${esc(m.name)}"></label>
       <label>Abbreviation<input data-path="${base}.short" value="${esc(m.short)}"></label>
-      <label>Also accept (comma-separated)<input data-path="${base}.aliases" data-list value="${esc(listStr(m.aliases))}"></label>
+      <label title="Spelled-out names. Always accepted.">Also called (full names, comma-separated)<input data-path="${base}.aliases" data-list value="${esc(listStr(m.aliases))}" placeholder="e.g. δ-aminolevulinate synthase"></label>
+      <label title="Abbreviations and short forms. Not accepted when Require full names is on.">Sometimes written as (nicknames, comma-separated)<input data-path="${base}.nicknames" data-list value="${esc(listStr(m.nicknames))}" placeholder="e.g. ALAS, ALA synthase"></label>
       <label>Facts shown after answering<textarea rows="3" data-path="${base}.notes">${esc(m.notes)}</textarea></label>
       ${isGrid() ? `<div class="vx-two" data-revwrap><label>Column<input type="number" min="0" step="any" data-gridpos="${esc(id)}" data-axis="0" value="${esc(m.pos?.[0] ?? 0)}"></label><label>Row<input type="number" min="0" step="any" data-gridpos="${esc(id)}" data-axis="1" value="${esc(m.pos?.[1] ?? 0)}"></label></div>` : ''}
       <label>Compartment (if not its steps’)<input data-path="${base}.loc" list="locList" value="${esc(m.loc || '')}" placeholder="from its steps"></label>
@@ -315,7 +316,8 @@ function rxnPanel(id) {
       ${e ? `<fieldset class="vx-enzf"><legend>${esc(e.name || r.enzyme)}${shared > 1 ? ` <span class="muted">· used by ${shared} steps</span>` : ''}</legend>
         <label>Name<input data-path="${eb}.name" value="${esc(e.name)}" data-focus="enz"></label>
         <label>Abbreviation<input data-path="${eb}.short" value="${esc(e.short)}"></label>
-        <label>Also accept (comma-separated)<input data-path="${eb}.aliases" data-list value="${esc(listStr(e.aliases))}"></label>
+        <label title="Spelled-out names. Always accepted.">Also called (full names, comma-separated)<input data-path="${eb}.aliases" data-list value="${esc(listStr(e.aliases))}" placeholder="e.g. δ-aminolevulinate synthase"></label>
+      <label title="Abbreviations and short forms. Not accepted when Require full names is on.">Sometimes written as (nicknames, comma-separated)<input data-path="${eb}.nicknames" data-list value="${esc(listStr(e.nicknames))}" placeholder="e.g. ALAS, ALA synthase"></label>
         <label>Facts shown after answering<textarea rows="3" data-path="${eb}.notes">${esc(e.notes)}</textarea></label>
         ${itemChange('enz', r.enzyme) === 'edited' ? `<div class="vx-chg">${changeBadge('edited')}<button type="button" class="ed-revert" data-revert-item="enz" data-id="${esc(r.enzyme)}">${mi('undo', 'sm')}Revert enzyme</button></div>` : ''}
       </fieldset>` : ''}

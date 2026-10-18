@@ -34,9 +34,10 @@
    "name": "Fructose-1,6-bisphosphate",
    "short": "F1,6BP",
    "aliases": [
-    "FBP",
-    "F16BP",
     "fructose-1,6-diphosphate"
+   ],
+   "nicknames": [
+    "FBP"
    ],
    "notes": "Feed-forward activator of pyruvate kinase."
   },
@@ -49,10 +50,10 @@
   "g3p": {
    "name": "Glyceraldehyde-3-phosphate",
    "short": "G3P",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "GAP",
-    "GA3P",
-    "G-3-P"
+    "GA3P"
    ],
    "notes": "Two per glucose (one from aldolase, one via TPI), so every later step runs twice."
   },
@@ -60,8 +61,9 @@
    "name": "1,3-Bisphosphoglycerate",
    "short": "1,3-BPG",
    "aliases": [
-    "13BPG",
-    "1,3-diphosphoglycerate",
+    "1,3-diphosphoglycerate"
+   ],
+   "nicknames": [
     "1,3-DPG"
    ],
    "notes": "High-energy acyl phosphate. In RBCs, bisphosphoglycerate mutase diverts it to 2,3-BPG (shifts the O₂ curve right), skipping the PGK ATP."
@@ -70,8 +72,10 @@
    "name": "3-Phosphoglycerate",
    "short": "3-PG",
    "aliases": [
-    "3PGA",
     "3-phosphoglyceric acid"
+   ],
+   "nicknames": [
+    "3PGA"
    ],
    "notes": "Precursor for serine (and from it glycine, cysteine)."
   },
@@ -79,8 +83,10 @@
    "name": "2-Phosphoglycerate",
    "short": "2-PG",
    "aliases": [
-    "2PGA",
     "2-phosphoglyceric acid"
+   ],
+   "nicknames": [
+    "2PGA"
    ]
   },
   "pep": {
@@ -114,10 +120,12 @@
    "aliases": [
     "hexokinase",
     "glucokinase",
-    "HK",
-    "GK",
     "hexokinase glucokinase",
     "glucokinase hexokinase"
+   ],
+   "nicknames": [
+    "HK",
+    "GK"
    ],
    "notes": "Hexokinase: most tissues, low Km / low Vmax, inhibited by G6P. Glucokinase: liver and pancreatic β cells, high Km / high Vmax, induced by insulin, held in the nucleus by GKRP (F6P promotes binding). Glucokinase mutations → MODY2. Gluconeogenic bypass: glucose-6-phosphatase."
   },
@@ -126,10 +134,12 @@
    "short": "PGI",
    "aliases": [
     "glucose-6-phosphate isomerase",
-    "GPI",
     "phosphohexose isomerase",
     "phosphoglucoisomerase",
     "glucose phosphate isomerase"
+   ],
+   "nicknames": [
+    "GPI"
    ],
    "notes": "Aldose → ketose isomerization. Reversible."
   },
@@ -138,8 +148,9 @@
    "short": "PFK-1",
    "aliases": [
     "phosphofructokinase",
-    "phosphofructokinase 1",
-    "PFK1",
+    "phosphofructokinase 1"
+   ],
+   "nicknames": [
     "PFK"
    ],
    "notes": "Rate-limiting, committed step. Activated by AMP and fructose-2,6-bisphosphate; inhibited by ATP and citrate. Gluconeogenic bypass: fructose-1,6-bisphosphatase."
@@ -159,7 +170,9 @@
    "name": "Triose phosphate isomerase",
    "short": "TPI",
    "aliases": [
-    "triosephosphate isomerase",
+    "triosephosphate isomerase"
+   ],
+   "nicknames": [
     "TIM"
    ],
    "notes": "Converts DHAP to G3P so both halves of glucose continue down the pathway. Reversible."
@@ -168,9 +181,11 @@
    "name": "Glyceraldehyde-3-phosphate dehydrogenase",
    "short": "GAPDH",
    "aliases": [
-    "G3PDH",
     "glyceraldehyde phosphate dehydrogenase",
     "G3P dehydrogenase"
+   ],
+   "nicknames": [
+    "G3PDH"
    ],
    "notes": "The only oxidation in glycolysis: makes NADH and adds inorganic phosphate (not from ATP) to form high-energy 1,3-BPG. Arsenate substitutes for Pi and bypasses the PGK ATP."
   },
@@ -183,7 +198,8 @@
   "pgm": {
    "name": "Phosphoglycerate mutase",
    "short": "PGM",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "PGAM"
    ],
    "notes": "Moves the phosphate from C3 to C2. Not to be confused with phosphoglucomutase (G6P ⇌ G1P, glycogen)."
@@ -206,14 +222,16 @@
    "name": "GLUT transporters",
    "short": "GLUT",
    "aliases": [
-    "GLUT",
     "glucose transporter",
     "glucose transporters",
+    "facilitated diffusion"
+   ],
+   "nicknames": [
     "GLUT1",
     "GLUT2",
     "GLUT3",
     "GLUT4",
-    "facilitated diffusion"
+    "GLUT transporters"
    ],
    "notes": "GLUT1: RBCs, brain, blood–brain barrier (insulin-independent). GLUT2: liver, β cells, kidney, small intestine (bidirectional, high capacity). GLUT3: neurons, placenta. GLUT4: skeletal muscle and adipose — insulin moves it to the membrane. GLUT5: fructose (intestine, sperm)."
   }

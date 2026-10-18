@@ -30,14 +30,16 @@
   "pg2": {
    "name": "2-Phosphoglycerate",
    "short": "2-PG",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "2PGA"
    ]
   },
   "pg3": {
    "name": "3-Phosphoglycerate",
    "short": "3-PG",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "3PGA"
    ]
   },
@@ -45,14 +47,14 @@
    "name": "1,3-Bisphosphoglycerate",
    "short": "1,3-BPG",
    "aliases": [
-    "13BPG",
     "1,3-diphosphoglycerate"
    ]
   },
   "g3p": {
    "name": "Glyceraldehyde-3-phosphate",
    "short": "G3P",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "GAP",
     "GA3P"
    ]
@@ -67,9 +69,10 @@
    "name": "Fructose-1,6-bisphosphate",
    "short": "F1,6BP",
    "aliases": [
-    "FBP",
-    "F16BP",
     "fructose-1,6-diphosphate"
+   ],
+   "nicknames": [
+    "FBP"
    ]
   },
   "f6p": {
@@ -103,6 +106,9 @@
    "aliases": [
     "phosphoenolpyruvate carboxykinase"
    ],
+   "nicknames": [
+    "PEP carboxykinase"
+   ],
    "notes": "Uses GTP. Induced by glucagon and cortisol. Second half of the pyruvate kinase bypass."
   },
   "enolase": {
@@ -114,7 +120,8 @@
   "pgm": {
    "name": "Phosphoglycerate mutase",
    "short": "PGM",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "PGAM"
    ],
    "notes": "Shared with glycolysis."
@@ -128,7 +135,8 @@
   "gapdh": {
    "name": "Glyceraldehyde-3-phosphate dehydrogenase",
    "short": "GAPDH",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "G3PDH"
    ],
    "notes": "Shared with glycolysis; consumes NADH in this direction."
@@ -137,7 +145,9 @@
    "name": "Triose phosphate isomerase",
    "short": "TPI",
    "aliases": [
-    "triosephosphate isomerase",
+    "triosephosphate isomerase"
+   ],
+   "nicknames": [
     "TIM"
    ],
    "notes": "Makes the DHAP that aldolase joins to G3P."
@@ -157,9 +167,11 @@
    "short": "F-1,6-BPase",
    "aliases": [
     "fructose 1,6-bisphosphatase",
-    "FBPase",
-    "FBPase-1",
     "fructose bisphosphatase"
+   ],
+   "nicknames": [
+    "FBPase",
+    "FBPase-1"
    ],
    "notes": "Rate-limiting. Inhibited by AMP and fructose-2,6-bisphosphate; activated by citrate. Bypass of PFK-1."
   },
@@ -168,8 +180,10 @@
    "short": "PGI",
    "aliases": [
     "glucose-6-phosphate isomerase",
-    "GPI",
     "phosphohexose isomerase"
+   ],
+   "nicknames": [
+    "GPI"
    ],
    "notes": "Shared with glycolysis."
   },

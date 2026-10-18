@@ -96,7 +96,8 @@ function itemRows(kind) {
     <div class="ed-item">
       <label>Name<input data-path="${base}.${esc(id)}.name" value="${esc(it.name)}"></label>
       <label>Abbreviation<input data-path="${base}.${esc(id)}.short" value="${esc(it.short)}"></label>
-      <label class="wide">Also accept (comma-separated)<input data-path="${base}.${esc(id)}.aliases" data-list value="${esc(listStr(it.aliases))}"></label>
+      <label class="wide" title="Spelled-out names. Always accepted.">Also called (full names, comma-separated)<input data-path="${base}.${esc(id)}.aliases" data-list value="${esc(listStr(it.aliases))}" placeholder="e.g. δ-aminolevulinate synthase"></label>
+      <label class="wide" title="Abbreviations and short forms. Not accepted when Require full names is on.">Sometimes written as (nicknames, comma-separated)<input data-path="${base}.${esc(id)}.nicknames" data-list value="${esc(listStr(it.nicknames))}" placeholder="e.g. ALAS, ALA synthase"></label>
       ${kind === 'met' && E.draft.layout === 'grid' ? `<label>Column<input type="number" min="0" step="any" data-gridpos="${esc(id)}" data-axis="0" value="${esc(it.pos?.[0] ?? 0)}"></label><label>Row<input type="number" min="0" step="any" data-gridpos="${esc(id)}" data-axis="1" value="${esc(it.pos?.[1] ?? 0)}"></label>` : ''}
       <label class="full">Facts shown after answering<textarea rows="2" data-path="${base}.${esc(id)}.notes">${esc(it.notes)}</textarea></label>
       <button class="btn ghost small" data-ed="del-${kind}" data-id="${esc(id)}">Remove</button>

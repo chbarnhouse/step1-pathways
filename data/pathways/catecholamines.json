@@ -24,11 +24,13 @@
    "name": "L-DOPA",
    "short": "DOPA",
    "aliases": [
-    "DOPA",
     "levodopa",
     "dihydroxyphenylalanine",
     "L-dihydroxyphenylalanine",
     "3,4-dihydroxyphenylalanine"
+   ],
+   "nicknames": [
+    "L-DOPA"
    ],
    "notes": "Crosses the blood–brain barrier; dopamine doesn't."
   },
@@ -75,9 +77,12 @@
    "short": "DDC",
    "aliases": [
     "aromatic L-amino acid decarboxylase",
-    "AADC",
     "aromatic amino acid decarboxylase",
     "dopa decarboxylase"
+   ],
+   "nicknames": [
+    "AADC",
+    "DOPA decarboxylase"
    ],
    "notes": "Needs B6. Carbidopa blocks it peripherally so more L-DOPA reaches the brain."
   },

@@ -31,6 +31,9 @@
     "beta-hydroxy-beta-methylglutaryl-CoA",
     "hydroxymethylglutaryl-CoA"
    ],
+   "nicknames": [
+    "HMG-CoA"
+   ],
    "notes": "Branch point: in the cytosol, HMG-CoA reductase turns it toward cholesterol."
   },
   "acac": {
@@ -47,9 +50,11 @@
    "aliases": [
     "beta-hydroxybutyrate",
     "3-hydroxybutyrate",
-    "BHB",
     "beta hydroxybutyrate",
     "β-hydroxybutyric acid"
+   ],
+   "nicknames": [
+    "BHB"
    ],
    "notes": "The main ketone in DKA (high NADH:NAD⁺ favors it) — missed by the nitroprusside test."
   },
@@ -76,8 +81,10 @@
    "name": "HMG-CoA synthase",
    "short": "HMGCS",
    "aliases": [
-    "HMG CoA synthase",
     "3-hydroxy-3-methylglutaryl-CoA synthase"
+   ],
+   "nicknames": [
+    "HMG CoA synthase"
    ],
    "notes": "Rate-limiting for ketogenesis (mitochondrial isoform; a cytosolic isoform feeds cholesterol synthesis)."
   },
@@ -94,7 +101,9 @@
    "short": "BDH",
    "aliases": [
     "beta-hydroxybutyrate dehydrogenase",
-    "3-hydroxybutyrate dehydrogenase",
+    "3-hydroxybutyrate dehydrogenase"
+   ],
+   "nicknames": [
     "β-hydroxybutyrate DH"
    ],
    "notes": "Reversible; in extrahepatic tissues it runs back to acetoacetate for use."

@@ -25,6 +25,9 @@
     "phosphoribosyl pyrophosphate",
     "5-phosphoribosyl pyrophosphate"
    ],
+   "nicknames": [
+    "PRPP"
+   ],
    "notes": "Shared by de novo purine and pyrimidine synthesis and by salvage (HGPRT, APRT). High PRPP drives purine overproduction and gout."
   },
   "pra": {
@@ -83,6 +86,9 @@
    "aliases": [
     "succinylaminoimidazole carboxamide ribonucleotide",
     "N-succinylo-5-aminoimidazole-4-carboxamide ribonucleotide"
+   ],
+   "nicknames": [
+    "SAICAR"
    ]
   },
   "aicar": {
@@ -90,8 +96,11 @@
    "short": "AICAR",
    "aliases": [
     "aminoimidazole carboxamide ribonucleotide",
-    "5-aminoimidazole-4-carboxamide ribonucleotide",
-    "ZMP"
+    "5-aminoimidazole-4-carboxamide ribonucleotide"
+   ],
+   "nicknames": [
+    "ZMP",
+    "AICAR"
    ]
   },
   "faicar": {
@@ -100,6 +109,9 @@
    "aliases": [
     "formamidoimidazole carboxamide ribonucleotide",
     "5-formamidoimidazole-4-carboxamide ribonucleotide"
+   ],
+   "nicknames": [
+    "FAICAR"
    ]
   },
   "imp": {
@@ -156,6 +168,9 @@
     "phosphoribosyl pyrophosphate synthetase",
     "ribose-phosphate diphosphokinase"
    ],
+   "nicknames": [
+    "PRPP synthetase"
+   ],
    "notes": "Transfers pyrophosphate from ATP (ATP → AMP). Overactive PRPP synthetase (X-linked) causes uric acid overproduction and gout."
   },
   "ppat": {
@@ -163,8 +178,10 @@
    "short": "GPAT",
    "aliases": [
     "amidophosphoribosyltransferase",
+    "glutamine phosphoribosylpyrophosphate amidotransferase"
+   ],
+   "nicknames": [
     "PRPP amidotransferase",
-    "glutamine phosphoribosylpyrophosphate amidotransferase",
     "glutamine PRPP amidotransferase"
    ],
    "notes": "Rate-limiting, committed step. Inhibited by AMP, GMP and IMP; activated by PRPP. 6-Mercaptopurine (and azathioprine, its prodrug) inhibits it — 6-MP is activated by HGPRT and degraded by xanthine oxidase and TPMT, so allopurinol raises 6-MP toxicity."
@@ -176,6 +193,9 @@
     "glycinamide ribonucleotide synthetase",
     "phosphoribosylamine-glycine ligase"
    ],
+   "nicknames": [
+    "GAR synthetase"
+   ],
    "notes": "Adds the whole glycine molecule (C4, C5, N7)."
   },
   "gart": {
@@ -184,6 +204,9 @@
    "aliases": [
     "glycinamide ribonucleotide transformylase",
     "phosphoribosylglycinamide formyltransferase"
+   ],
+   "nicknames": [
+    "GAR transformylase"
    ],
    "notes": "First of two folate-dependent steps (C8 from N¹⁰-formyl-THF). Pemetrexed inhibits it (and thymidylate synthase, DHFR)."
   },
@@ -194,6 +217,9 @@
     "formylglycinamidine ribonucleotide synthetase",
     "phosphoribosylformylglycinamidine synthase"
    ],
+   "nicknames": [
+    "FGAM synthetase"
+   ],
    "notes": "Second glutamine nitrogen (N3)."
   },
   "airs": {
@@ -202,6 +228,9 @@
    "aliases": [
     "aminoimidazole ribonucleotide synthetase",
     "phosphoribosylformylglycinamidine cyclo-ligase"
+   ],
+   "nicknames": [
+    "AIR synthetase"
    ],
    "notes": "Closes the imidazole ring."
   },
@@ -212,6 +241,9 @@
     "aminoimidazole ribonucleotide carboxylase",
     "phosphoribosylaminoimidazole carboxylase"
    ],
+   "nicknames": [
+    "AIR carboxylase"
+   ],
    "notes": "Adds C6 from CO₂ (no biotin, unlike most carboxylases)."
   },
   "saicars": {
@@ -219,6 +251,9 @@
    "short": "SAICARS",
    "aliases": [
     "phosphoribosylaminoimidazole-succinocarboxamide synthase"
+   ],
+   "nicknames": [
+    "SAICAR synthetase"
    ],
    "notes": "Aspartate donates N1."
   },
@@ -237,6 +272,9 @@
     "aminoimidazole carboxamide ribonucleotide transformylase",
     "phosphoribosylaminoimidazolecarboxamide formyltransferase"
    ],
+   "nicknames": [
+    "AICAR transformylase"
+   ],
    "notes": "Second folate-dependent step (C2 from N¹⁰-formyl-THF). Methotrexate polyglutamates inhibit it."
   },
   "impch": {
@@ -244,6 +282,9 @@
    "short": "",
    "aliases": [
     "inosine monophosphate cyclohydrolase"
+   ],
+   "nicknames": [
+    "IMP cyclohydrolase"
    ],
    "notes": "Closes the six-membered ring to give IMP; bifunctional with AICAR transformylase (ATIC)."
   },
@@ -261,6 +302,9 @@
    "aliases": [
     "inosine monophosphate dehydrogenase",
     "inosine-5′-monophosphate dehydrogenase"
+   ],
+   "nicknames": [
+    "IMP dehydrogenase"
    ],
    "notes": "Rate-limiting for GMP. Inhibited by mycophenolate (lymphocytes depend on de novo synthesis) and ribavirin; inhibited by GMP."
   },

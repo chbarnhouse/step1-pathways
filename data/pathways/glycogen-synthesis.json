@@ -22,7 +22,9 @@
    "name": "UDP-glucose",
    "short": "UDP-Glc",
    "aliases": [
-    "UDP glucose",
+    "UDP glucose"
+   ],
+   "nicknames": [
     "UDPG"
    ],
    "notes": "The activated glucose donor; also feeds galactose metabolism and glucuronidation."

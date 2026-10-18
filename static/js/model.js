@@ -27,11 +27,11 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
 
   const items = {};
   for (const [id, m] of Object.entries(mets))
-    items['m:' + id] = { key: 'm:' + id, kind: 'met', id, name: m.name, short: m.short, aliases: m.aliases || [], notes: m.notes };
+    items['m:' + id] = { key: 'm:' + id, kind: 'met', id, name: m.name, short: m.short, aliases: m.aliases || [], nicknames: m.nicknames, notes: m.notes };
   const m0 = { cof };
   for (const r of rx) {
     const e = enzs[r.enzyme];
-    items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], notes: e.notes };
+    items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes };
     // A reaction's cofactor set is its own quizzable item (only when it has one).
     const c = r.cofactors || {};
     if ((c.in || []).length || (c.out || []).length)
@@ -190,40 +190,59 @@ function cofProgress(m, raw, c) {
    synthase" all count. Plus "-ic acid" ≡ "-ate", and Greek letters written as letters or words. These display strings
    are also what letter-by-letter checking and hints follow, so whichever spelling you type is the one you're guided on. */
 const VARIANT_CAP = 160;
+/* Full names vs nicknames. Each element has full names (its name and "also called" aliases) and nicknames (its short
+   form and "sometimes written as" nicknames: Gly, PFK-1, ALAS). An element whose nickname list hasn't been written yet
+   (older or self-made pathways) is sorted by shape instead: one-word, short or capital-heavy spellings are nicknames. */
+const looksAbbreviated = v => !/\s/.test(v.trim()) && !/[a-z]{3,}/.test(v) && /[A-Z0-9]/.test(v) && (norm(v).length <= 4 || (v.match(/[A-Z0-9]/g) || []).length >= 2);
+function nameSets(x) {
+  const short = x.short && norm(x.short) !== norm(x.name) ? [x.short] : [];
+  const all = uniq([x.name, ...(x.aliases || [])].filter(Boolean));
+  const sorted = (x.nicknames || []).length > 0;
+  const listed = sorted ? x.nicknames.filter(Boolean) : all.filter(v => v !== x.name && looksAbbreviated(v));
+  const nick = uniq([...short, ...listed]), nn = new Set(nick.map(norm));
+  const full = all.filter(v => !nn.has(norm(v)));
+  // The display name is a nickname only when it's listed as one (PRPP) or, unsorted, looks like one and a full name exists.
+  if (!sorted && full.length > 1 && looksAbbreviated(x.name)) return { full: full.filter(v => v !== x.name), nick: [x.name, ...nick] };
+  return { full, nick };
+}
 let SYNONYMS = null;
 function synonymClasses() {
   if (SYNONYMS) return SYNONYMS;
   const seen = new Set();
   SYNONYMS = [];
   for (const p of Object.values(Library.builtin())) for (const met of Object.values(p.metabolites || {})) {
-    const names = uniq([met.name, met.short, ...(met.aliases || [])].filter(n => n && n.trim().length >= 3));
-    const key = names.map(norm).sort().join('|');
+    const { full, nick } = nameSets(met);
+    const names = [...full.map(n => ({ n, full: true })), ...nick.map(n => ({ n, full: false }))].filter(x => x.n.trim().length >= 3);
+    const key = names.map(x => norm(x.n)).sort().join('|');
     if (names.length > 1 && !seen.has(key)) { seen.add(key); SYNONYMS.push(names); }
   }
   return SYNONYMS;
 }
 const escRe = t => t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 const VARIANT_CACHE = new WeakMap();
+// Every spelling of an element, each marked full or not: a variant is full only if everything it's built from is.
 function variantsOf(item) {
   if (!item) return [];
   if (VARIANT_CACHE.has(item)) return VARIANT_CACHE.get(item);
-  const out = new Set([item.name, item.short, ...(item.aliases || [])].filter(Boolean));
-  const add = v => { if (out.size < VARIANT_CAP) out.add(v.replace(/\s+/g, ' ').trim()); };
+  const out = new Map(); // spelling → full?
+  const add = (v, full) => { v = v.replace(/\s+/g, ' ').trim(); if (!v) return; if (out.has(v)) { if (full) out.set(v, true); } else if (out.size < VARIANT_CAP) out.set(v, full); };
+  const { full, nick } = item.kind === 'loc' ? { full: [item.name, ...(item.aliases || [])], nick: [] } : nameSets(item);
+  full.forEach(v => add(v, true)); nick.forEach(v => add(v, false));
   const named = item.kind === 'enz' || item.kind === 'trn'; // a metabolite already lists its own names; compartment twins must stay apart
   if (item.kind !== 'loc') {
     // substitute any name of a metabolite that appears inside an enzyme's name (word-bounded, case-insensitive)
     if (named) for (const cls of synonymClasses()) for (const a of cls) {
-      const re = new RegExp(`(^|[^A-Za-z0-9])${escRe(a)}(?=$|[^A-Za-z0-9])`, 'i');
-      for (const v of [...out]) { const hit = v.match(re); if (!hit) continue; for (const b of cls) if (b !== a) add(v.replace(re, `$1${b}`)); }
+      const re = new RegExp(`(^|[^A-Za-z0-9])${escRe(a.n)}(?=$|[^A-Za-z0-9])`, 'i');
+      for (const [v, f] of [...out]) { if (!re.test(v)) continue; for (const b of cls) if (b.n !== a.n) add(v.replace(re, `$1${b.n}`), f && b.full); }
     }
-    for (const v of [...out]) {
-      add(v.replace(/\b(\w+)ic acid\b/gi, '$1ate'));                 // pyruvic acid → pyruvate
-      add(v.replace(/[αβγδ]-?/g, c => ({ α: 'alpha-', β: 'beta-', γ: 'gamma-', δ: 'delta-' })[c[0]])); // δ- → delta-
-      add(v.replace(/\b(alpha|beta|gamma|delta)[-\s]?/gi, w => ({ alpha: 'α-', beta: 'β-', gamma: 'γ-', delta: 'δ-' })[w.replace(/[-\s]/, '').toLowerCase()]));
-      if (named) add(v.replace(/\s*\([^)]*\)/g, ''));                // drop a parenthetical qualifier (enzymes only)
+    for (const [v, f] of [...out]) {
+      add(v.replace(/\b(\w+)ic acid\b/gi, '$1ate'), f);                 // pyruvic acid → pyruvate
+      add(v.replace(/[αβγδ]-?/g, c => ({ α: 'alpha-', β: 'beta-', γ: 'gamma-', δ: 'delta-' })[c[0]]), f); // δ- → delta-
+      add(v.replace(/\b(alpha|beta|gamma|delta)[-\s]?/gi, w => ({ alpha: 'α-', beta: 'β-', gamma: 'γ-', delta: 'δ-' })[w.replace(/[-\s]/, '').toLowerCase()]), f);
+      if (named) add(v.replace(/\s*\([^)]*\)/g, ''), f);               // drop a parenthetical qualifier (enzymes only)
     }
   }
-  const list = [...out];
+  const list = [...out].map(([v, f]) => ({ v, full: f }));
   VARIANT_CACHE.set(item, list);
   return list;
 }
@@ -233,22 +252,21 @@ const CLAIMS = new WeakMap();
 function claimsOf(m) {
   if (CLAIMS.has(m)) return CLAIMS.get(m);
   const own = new Map();
-  for (const it of Object.values(m.items)) if (['met', 'enz', 'trn'].includes(it.kind)) for (const f of variantsOf(it).map(norm)) (own.get(f) || own.set(f, new Set()).get(f)).add(it.name);
+  for (const it of Object.values(m.items)) if (['met', 'enz', 'trn'].includes(it.kind)) for (const { v } of variantsOf(it)) { const f = norm(v); (own.get(f) || own.set(f, new Set()).get(f)).add(it.name); }
   CLAIMS.set(m, own);
   return own;
 }
-// "Require full names": abbreviations stop counting. An abbreviation is the item's short form, or any one-word spelling
-// that looks like one (6 letters or fewer, or mostly capitals and digits: Gly, G6P, PFK-1, ALAS). The name exactly as
-// the app shows it always counts, even when it contains one (ALA synthase).
-const looksAbbreviated = v => !/\s/.test(v.trim()) && (norm(v).length <= 6 || (v.match(/[A-Z0-9]/g) || []).length >= 2);
-function spellingsFor(item, m, full = false) {
-  const data = new Set([item.name, item.short, ...(item.aliases || [])].filter(Boolean).map(norm));
+// "Require full names": only full spellings count, unless an element has none at all (then its nicknames still do).
+function spellingsFor(item, m, fullOnly = false) {
+  const { full, nick } = item.kind === 'loc' ? { full: [item.name], nick: [] } : nameSets(item);
+  const data = new Set([...full, ...nick].map(norm));
   const claims = m ? claimsOf(m) : null;
-  return variantsOf(item).filter(v => {
+  const all = variantsOf(item), anyFull = all.some(x => x.full);
+  return all.filter(({ v, full: f }) => {
+    if (fullOnly && anyFull && !f) return false;
     const n = norm(v);
-    if (full && v !== item.name && (n === norm(item.short || '\u0000') || looksAbbreviated(v))) return false;
     return data.has(n) || !claims || [...(claims.get(n) || [])].every(x => x === item.name);
-  });
+  }).map(x => x.v);
 }
 const acceptedFor = (item, m, full = false) => uniq(spellingsFor(item, m, full).map(norm));
 // Every right way to write a reaction's cofactors: each side in any order, ins before outs ("A + B → C", "B, A, C").
@@ -289,7 +307,7 @@ const pathwayAccepted = p => uniq([p.name, p.id, ...(p.aliases || [])].map(norm)
 // Names contain commas (fructose-1,6-bisphosphate), so tokens are re-joined greedily to the longest name that matches.
 function parseMets(m, raw) {
   const map = {};
-  for (const [id, x] of Object.entries(m.p.metabolites)) for (const a of [id, x.name, x.short, ...(x.aliases || [])]) if (a) map[norm(a)] = id;
+  for (const [id, x] of Object.entries(m.p.metabolites)) for (const a of [id, x.name, x.short, ...(x.aliases || []), ...(x.nicknames || [])]) if (a) map[norm(a)] = id;
   const toks = String(raw).split(/[,;+]|\band\b/i).map(t => t.trim()).filter(Boolean);
   const got = [];
   for (let i = 0; i < toks.length;) {

@@ -71,45 +71,34 @@
   "udpm": {
    "name": "Uridine diphosphate",
    "short": "UDP",
-   "aliases": [
-    "UDP"
-   ]
+   "aliases": []
   },
   "utpm": {
    "name": "Uridine triphosphate",
    "short": "UTP",
-   "aliases": [
-    "UTP"
-   ],
+   "aliases": [],
    "notes": "Inhibits CPS II (feedback)."
   },
   "ctp": {
    "name": "Cytidine triphosphate",
    "short": "CTP",
-   "aliases": [
-    "CTP"
-   ]
+   "aliases": []
   },
   "dudp": {
    "name": "Deoxyuridine diphosphate",
    "short": "dUDP",
-   "aliases": [
-    "dUDP"
-   ]
+   "aliases": []
   },
   "dutp": {
    "name": "Deoxyuridine triphosphate",
    "short": "dUTP",
-   "aliases": [
-    "dUTP"
-   ],
+   "aliases": [],
    "notes": "Kept low by dUTPase so uracil isn't built into DNA."
   },
   "dump": {
    "name": "Deoxyuridine monophosphate",
    "short": "dUMP",
    "aliases": [
-    "dUMP",
     "deoxyuridylate"
    ],
    "notes": "Also made from dCMP by deamination."
@@ -118,9 +107,10 @@
    "name": "Deoxythymidine monophosphate",
    "short": "dTMP",
    "aliases": [
-    "dTMP",
     "thymidylate",
-    "thymidine monophosphate",
+    "thymidine monophosphate"
+   ],
+   "nicknames": [
     "TMP"
    ],
    "notes": "The only nucleotide made solely for DNA. Folate or B12 deficiency starves this step → megaloblastic anemia."
@@ -132,7 +122,9 @@
    "short": "CPS II",
    "aliases": [
     "carbamoyl phosphate synthetase 2",
-    "carbamoyl-phosphate synthase II",
+    "carbamoyl-phosphate synthase II"
+   ],
+   "nicknames": [
     "CAD"
    ],
    "notes": "Rate-limiting; cytosolic; uses glutamine and 2 ATP. Activated by PRPP and ATP; inhibited by UTP. First domain of the trifunctional CAD protein."
@@ -155,7 +147,8 @@
   "dhodh": {
    "name": "Dihydroorotate dehydrogenase",
    "short": "DHODH",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "dihydroorotate DH"
    ],
    "notes": "The only mitochondrial step: inner membrane, passes electrons to CoQ. Inhibited by leflunomide/teriflunomide (RA, MS) — they block T-cell proliferation."
@@ -180,6 +173,9 @@
     "UMP synthase",
     "uridine monophosphate synthase"
    ],
+   "nicknames": [
+    "OMP decarboxylase"
+   ],
    "notes": "Second activity of UMP synthase (see orotate phosphoribosyltransferase)."
   },
   "umpk": {
@@ -196,8 +192,10 @@
    "name": "Nucleoside diphosphate kinase",
    "short": "NDK",
    "aliases": [
-    "NDP kinase",
     "nucleoside-diphosphate kinase"
+   ],
+   "nicknames": [
+    "NDP kinase"
    ],
    "notes": "Swaps a phosphate from ATP onto any NDP or dNDP."
   },

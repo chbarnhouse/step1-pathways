@@ -40,9 +40,11 @@
    "aliases": [
     "alpha-ketoglutarate",
     "2-oxoglutarate",
-    "aKG",
     "alpha ketoglutarate",
     "oxoglutarate"
+   ],
+   "nicknames": [
+    "aKG"
    ],
    "notes": "Interconverts with glutamate (transamination, glutamate dehydrogenase)."
   },
@@ -96,7 +98,8 @@
   "idh": {
    "name": "Isocitrate dehydrogenase",
    "short": "IDH",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "isocitrate DH"
    ],
    "notes": "Rate-limiting. Activated by ADP and Ca²⁺; inhibited by ATP and NADH. First NADH and CO₂ of the cycle."
@@ -127,7 +130,9 @@
    "name": "Succinate dehydrogenase",
    "short": "SDH",
    "aliases": [
-    "complex II",
+    "complex II"
+   ],
+   "nicknames": [
     "succinate DH"
    ],
    "notes": "Embedded in the inner membrane — it is complex II of the electron transport chain. FAD is covalently bound. Competitively inhibited by malonate."
@@ -143,7 +148,8 @@
   "mdh": {
    "name": "Malate dehydrogenase",
    "short": "MDH",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "malate DH"
    ],
    "notes": "Thermodynamically uphill; pulled forward by citrate synthase consuming OAA."

@@ -66,6 +66,9 @@
    "aliases": [
     "dehydroepiandrosterone"
    ],
+   "nicknames": [
+    "DHEA"
+   ],
    "notes": "Main adrenal androgen (with DHEA-S); weak on its own.",
    "pos": [
     2,
@@ -85,7 +88,9 @@
    "name": "17α-Hydroxyprogesterone",
    "short": "17-OH-progesterone",
    "aliases": [
-    "17-hydroxyprogesterone",
+    "17-hydroxyprogesterone"
+   ],
+   "nicknames": [
     "17-OHP"
    ],
    "notes": "↑ in 21-hydroxylase deficiency — the newborn screening marker.",
@@ -211,8 +216,7 @@
    "name": "StAR protein",
    "short": "StAR",
    "aliases": [
-    "steroidogenic acute regulatory protein",
-    "star"
+    "steroidogenic acute regulatory protein"
    ],
    "notes": "Moves cholesterol from the outer to the inner mitochondrial membrane — the acute, rate-limiting event. Mutations → congenital lipoid adrenal hyperplasia."
   },
@@ -223,8 +227,7 @@
     "cholesterol desmolase",
     "cholesterol side-chain cleavage enzyme",
     "side-chain cleavage enzyme",
-    "P450scc",
-    "CYP11A1"
+    "P450scc"
    ],
    "notes": "Rate-limiting enzyme. Stimulated by ACTH (adrenal) and LH (gonads). Inhibited by ketoconazole (also blocks 17,20-lyase)."
   },
@@ -232,9 +235,10 @@
    "name": "3β-Hydroxysteroid dehydrogenase",
    "short": "3β-HSD",
    "aliases": [
-    "3-beta-hydroxysteroid dehydrogenase",
-    "3 beta HSD",
-    "3β-HSD"
+    "3-beta-hydroxysteroid dehydrogenase"
+   ],
+   "nicknames": [
+    "3 beta HSD"
    ],
    "notes": "Acts at three spots (pregnenolone, 17-OH-pregnenolone, DHEA). Deficiency: ↓ all three classes, salt wasting; ambiguous genitalia in both sexes."
   },
@@ -244,7 +248,9 @@
    "aliases": [
     "17-alpha-hydroxylase",
     "17 alpha hydroxylase",
-    "17-hydroxylase",
+    "17-hydroxylase"
+   ],
+   "nicknames": [
     "CYP17"
    ],
    "notes": "Deficiency: ↓ cortisol and sex hormones, ↑ DOC → hypertension, hypokalemia; XY undervirilized (female-appearing), XX lacks secondary sexual development. Abiraterone inhibits CYP17."
@@ -265,7 +271,9 @@
    "aliases": [
     "21-hydroxylase",
     "21 hydroxylase",
-    "21-alpha-hydroxylase",
+    "21-alpha-hydroxylase"
+   ],
+   "nicknames": [
     "CYP21"
    ],
    "notes": "Most common CAH (>90%): ↓ cortisol and aldosterone, ↑ 17-OH-progesterone and androgens → salt wasting, hypotension, hyperkalemia, ↑ renin; virilized XX, precocious puberty in XY."
@@ -275,8 +283,7 @@
    "short": "CYP11B1",
    "aliases": [
     "11-beta-hydroxylase",
-    "11 beta hydroxylase",
-    "CYP11B1"
+    "11 beta hydroxylase"
    ],
    "notes": "Deficiency: ↓ cortisol and aldosterone but ↑ 11-deoxycorticosterone → hypertension and hypokalemia (↓ renin), plus virilization."
   },
@@ -285,8 +292,7 @@
    "short": "CYP11B2",
    "aliases": [
     "aldosterone synthetase",
-    "18-hydroxylase",
-    "CYP11B2"
+    "18-hydroxylase"
    ],
    "notes": "Zona glomerulosa only; activated by angiotensin II and hyperkalemia."
   },
@@ -294,9 +300,10 @@
    "name": "17β-Hydroxysteroid dehydrogenase",
    "short": "17β-HSD",
    "aliases": [
-    "17-beta-hydroxysteroid dehydrogenase",
-    "17 beta HSD",
-    "17β-HSD"
+    "17-beta-hydroxysteroid dehydrogenase"
+   ],
+   "nicknames": [
+    "17 beta HSD"
    ],
    "notes": "Testes (Leydig cells) and ovary. Deficiency → undervirilized XY."
   },
@@ -304,9 +311,11 @@
    "name": "Aromatase",
    "short": "CYP19A1",
    "aliases": [
-    "CYP19",
     "estrogen synthase",
     "aromatase"
+   ],
+   "nicknames": [
+    "CYP19"
    ],
    "notes": "Granulosa cells, adipose, placenta. Inhibitors (anastrozole, letrozole) treat ER+ breast cancer. Deficiency → maternal virilization in pregnancy."
   },

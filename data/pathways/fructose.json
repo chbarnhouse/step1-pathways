@@ -35,7 +35,8 @@
   "g3p": {
    "name": "Glyceraldehyde-3-phosphate",
    "short": "G3P",
-   "aliases": [
+   "aliases": [],
+   "nicknames": [
     "GAP",
     "GA3P"
    ]
@@ -46,7 +47,9 @@
    "name": "Fructokinase",
    "short": "",
    "aliases": [
-    "ketohexokinase",
+    "ketohexokinase"
+   ],
+   "nicknames": [
     "KHK"
    ],
    "notes": "Deficiency = essential fructosuria: benign, fructose in blood and urine (reducing sugar on urine test, glucose dipstick negative)."
@@ -73,7 +76,9 @@
    "name": "Triose phosphate isomerase",
    "short": "TPI",
    "aliases": [
-    "triosephosphate isomerase",
+    "triosephosphate isomerase"
+   ],
+   "nicknames": [
     "TIM"
    ],
    "notes": "Shared with glycolysis."

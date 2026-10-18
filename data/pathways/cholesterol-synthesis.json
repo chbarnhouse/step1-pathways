@@ -33,6 +33,9 @@
     "beta-hydroxy-beta-methylglutaryl-CoA",
     "hydroxymethylglutaryl-CoA"
    ],
+   "nicknames": [
+    "HMG-CoA"
+   ],
    "notes": "Branch point: in mitochondria HMG-CoA lyase makes ketone bodies; in the cytosol it goes on to cholesterol."
   },
   "mevalonate": {
@@ -64,7 +67,9 @@
    "name": "Isopentenyl pyrophosphate",
    "short": "IPP",
    "aliases": [
-    "isopentenyl diphosphate",
+    "isopentenyl diphosphate"
+   ],
+   "nicknames": [
     "isopentenyl-PP"
    ],
    "notes": "The activated 5-carbon isoprene unit. Isoprenoids also make dolichol, CoQ and prenyl groups for proteins (Ras farnesylation)."
@@ -73,7 +78,9 @@
    "name": "Dimethylallyl pyrophosphate",
    "short": "DMAPP",
    "aliases": [
-    "dimethylallyl diphosphate",
+    "dimethylallyl diphosphate"
+   ],
+   "nicknames": [
     "dimethylallyl-PP"
    ]
   },
@@ -81,7 +88,9 @@
    "name": "Geranyl pyrophosphate",
    "short": "GPP",
    "aliases": [
-    "geranyl diphosphate",
+    "geranyl diphosphate"
+   ],
+   "nicknames": [
     "geranyl-PP"
    ],
    "notes": "C10."
@@ -90,7 +99,9 @@
    "name": "Farnesyl pyrophosphate",
    "short": "FPP",
    "aliases": [
-    "farnesyl diphosphate",
+    "farnesyl diphosphate"
+   ],
+   "nicknames": [
     "farnesyl-PP"
    ],
    "notes": "C15. Bisphosphonates (nitrogen-containing) inhibit FPP synthase in osteoclasts."
@@ -148,8 +159,10 @@
    "name": "HMG-CoA synthase",
    "short": "HMGCS",
    "aliases": [
-    "HMG CoA synthase",
     "3-hydroxy-3-methylglutaryl-CoA synthase"
+   ],
+   "nicknames": [
+    "HMG CoA synthase"
    ],
    "notes": "Cytosolic isoform here; the mitochondrial isoform is rate-limiting for ketogenesis."
   },
@@ -157,8 +170,10 @@
    "name": "HMG-CoA reductase",
    "short": "HMGCR",
    "aliases": [
-    "HMG CoA reductase",
     "3-hydroxy-3-methylglutaryl-CoA reductase"
+   ],
+   "nicknames": [
+    "HMG CoA reductase"
    ],
    "notes": "Rate-limiting; ER membrane; uses 2 NADPH. Statins competitively inhibit it → fewer hepatocyte sterols → SREBP up-regulates LDL receptors → lower LDL. Statin side effects: myopathy (↑ with fibrates, niacin, CYP3A4 inhibitors), hepatotoxicity. Induced by insulin and thyroid hormone; repressed by glucagon and cholesterol (SREBP, and sterol-triggered degradation)."
   },
@@ -187,9 +202,11 @@
    "name": "Isopentenyl pyrophosphate isomerase",
    "short": "IDI",
    "aliases": [
-    "IPP isomerase",
     "isopentenyl-diphosphate delta-isomerase",
     "isopentenyl diphosphate isomerase"
+   ],
+   "nicknames": [
+    "IPP isomerase"
    ],
    "notes": "Interconverts IPP and DMAPP."
   },
@@ -197,9 +214,11 @@
    "name": "Farnesyl pyrophosphate synthase",
    "short": "FPPS",
    "aliases": [
-    "FPP synthase",
     "farnesyl diphosphate synthase",
     "geranyltranstransferase"
+   ],
+   "nicknames": [
+    "FPP synthase"
    ],
    "notes": "Adds IPP twice: DMAPP → GPP → FPP. Inhibited by nitrogen-containing bisphosphonates (alendronate, zoledronate)."
   },
@@ -243,8 +262,10 @@
    "name": "7-Dehydrocholesterol reductase",
    "short": "DHCR7",
    "aliases": [
-    "7-DHC reductase",
     "7-dehydrocholesterol Δ7-reductase"
+   ],
+   "nicknames": [
+    "7-DHC reductase"
    ],
    "notes": "Last step; uses NADPH. Deficiency = Smith-Lemli-Opitz syndrome (autosomal recessive): microcephaly, intellectual disability, 2–3 toe syndactyly, cleft palate, ambiguous genitalia in males, holoprosencephaly; ↑ 7-DHC, ↓ cholesterol."
   }

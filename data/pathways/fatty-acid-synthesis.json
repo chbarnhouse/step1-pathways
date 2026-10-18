@@ -130,7 +130,9 @@
     "citrate carrier",
     "tricarboxylate transporter",
     "tricarboxylate carrier",
-    "mitochondrial citrate transporter",
+    "mitochondrial citrate transporter"
+   ],
+   "nicknames": [
     "SLC25A1"
    ],
    "notes": "Exports citrate (in exchange for malate) so acetyl units reach the cytosol for fatty acid synthesis."

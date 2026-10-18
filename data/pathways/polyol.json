@@ -42,8 +42,10 @@
    "name": "Sorbitol dehydrogenase",
    "short": "SORD",
    "aliases": [
-    "sorbitol DH",
     "polyol dehydrogenase"
+   ],
+   "nicknames": [
+    "sorbitol DH"
    ],
    "notes": "Low or absent in lens, retina, Schwann cells and kidney — why sorbitol accumulates there."
   }

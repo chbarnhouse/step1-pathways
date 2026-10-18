@@ -18,9 +18,7 @@
   "gal1p": {
    "name": "Galactose-1-phosphate",
    "short": "Gal-1-P",
-   "aliases": [
-    "Gal1P"
-   ],
+   "aliases": [],
    "notes": "Accumulates and is toxic in classic galactosemia."
   },
   "g1p": {
@@ -108,6 +106,9 @@
     "sodium-glucose cotransporter 1",
     "Na+-glucose cotransporter",
     "sodium glucose cotransporter"
+   ],
+   "nicknames": [
+    "SGLT1"
    ],
    "notes": "Apical Na⁺-coupled uptake of glucose and galactose into enterocytes (then GLUT2 out to the blood). Fructose uses GLUT5 instead."
   }

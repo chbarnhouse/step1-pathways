@@ -564,7 +564,7 @@ function answerHTML(q, idx, compact) {
 }
 /* ---------- page ---------- */
 // Toolbar buttons carry a text label (hidden on narrow screens) as well as the icon.
-const tbtn = (attrs, icon, label, title = label) => `<button class="tbtn" ${attrs} title="${esc(title)}" aria-label="${esc(title)}">${mi(icon)}<span>${label}</span></button>`;
+const tbtn = (attrs, icon, label, title = label) => `<button class="tbtn" ${attrs} data-tip="${esc(title)}" aria-label="${esc(title)}">${mi(icon)}<span>${label}</span></button>`;
 // After a few answers typed straight into the diagram, the how-to line stops repeating itself.
 const INLINE_KNOWN = 3;
 const inlineHintShown = () => (local.get('pathways.inlineRight') || 0) < INLINE_KNOWN;
@@ -609,10 +609,11 @@ function updateCofCounts() {
 }
 function zoomBarHTML() {
   return `<div class="zoombar" role="group" aria-label="Diagram zoom">
-    <span class="zgroup"><button class="tbtn icon" data-zoom="out" title="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><span class="zpct" id="zoomPct">100%</span><button class="tbtn icon" data-zoom="in" title="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
-    ${tbtn('data-zoom="width"', 'fit_width', 'Fit width')}
-    ${tbtn('data-zoom="fit"', 'fit_screen', 'Fit all', 'Fit the whole diagram')}
-    ${tbtn('data-flag="follow"', 'center_focus_strong', 'Follow', 'Keep the current blank centered')}
+    <span class="zgroup"><button class="tbtn icon" data-zoom="out" data-tip="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><button type="button" class="zpct" id="zoomPct" data-zoom="actual" data-tip="Actual size (100%)" aria-label="Zoom level; set to 100%">100%</button><button class="tbtn icon" data-zoom="in" data-tip="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
+    ${tbtn('data-zoom="width"', 'fit_width', 'Fit width', 'Fit to width')}
+    ${tbtn('data-zoom="height"', 'fit_height', 'Fit height', 'Fit to height')}
+    ${tbtn('data-zoom="fit"', 'fit_screen', 'Fit all', 'Fit the whole diagram (turns off Follow)')}
+    ${tbtn('data-flag="follow"', 'center_focus_strong', 'Follow', 'Follow: keep the current blank centered')}
   </div>`;
 }
 function optionsHTML() {
@@ -717,7 +718,15 @@ function factsCard(item, m) {
     if (item.kind === 'enz') extra += `<p>Cofactors: ${esc(cofText(m, r.cofactors || {}))}${(r.requires || []).length ? ` · Requires ${esc(r.requires.join(', '))}` : ''}</p>`;
     if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · '))}</p>`;
   }
-  return `<div class="fact-body"><h3>${esc(item.name)}${item.short && item.short !== item.name ? ` <span class="muted">(${esc(item.short)})</span>` : ''}</h3>${tags ? `<div class="tags">${esc(tags)}</div>` : ''}${extra}${item.notes ? `<p>${esc(item.notes)}</p>` : item.kind === 'met' && !extra ? '<p class="muted">No notes for this one yet.</p>' : ''}</div>`;
+  // Every name it answers to, whatever "Require full names" is set to.
+  let names = '';
+  if (item.kind !== 'loc') {
+    const { full, nick } = nameSets(item), skip = new Set([norm(item.name), norm(item.short || '\u0000')]);
+    const list = xs => xs.filter(v => !skip.has(norm(v))).map(esc).join(' · ');
+    const also = list(full), writ = list(nick);
+    names = `${also ? `<p class="names"><span class="muted">Also called:</span> ${also}</p>` : ''}${writ ? `<p class="names"><span class="muted">Sometimes written as:</span> ${writ}</p>` : ''}`;
+  }
+  return `<div class="fact-body"><h3>${esc(item.name)}${item.short && item.short !== item.name ? ` <span class="muted">(${esc(item.short)})</span>` : ''}</h3>${names}${tags ? `<div class="tags">${esc(tags)}</div>` : ''}${extra}${item.notes ? `<p>${esc(item.notes)}</p>` : item.kind === 'met' && !extra ? '<p class="muted">No notes for this one yet.</p>' : ''}</div>`;
 }
 // The dock keeps the last answer's facts until the next answer, so moving on doesn't take them away.
 function lastFactsHTML() {
@@ -798,7 +807,8 @@ document.addEventListener('click', e => {
   const zb = e.target.closest('[data-zoom]');
   if (zb) {
     const v = zb.dataset.zoom;
-    if (v === 'in') zoomBy(0.1); else if (v === 'out') zoomBy(-0.1); else { Store.settings.zoom = v; Store.save(); CANVAS_VIEW = null; applyZoom(); } // Fit width / Fit all always re-fit
+    if (v === 'in') zoomBy(0.1); else if (v === 'out') zoomBy(-0.1); else if (v === 'actual') zoomTo(1);
+    else { Store.settings.zoom = v; if (v === 'fit') Store.settings.follow = false; Store.save(); CANVAS_VIEW = null; applyZoom(); } // fitting always re-fits; Fit all shows everything, so it stops following
     followTarget(); return;
   }
   if (e.target.closest('[data-flag="follow"]')) { Store.settings.follow = !Store.settings.follow; Store.save(); applyZoom(); followTarget(); return; }

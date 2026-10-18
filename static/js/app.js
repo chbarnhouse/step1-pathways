@@ -204,7 +204,7 @@ const lastStudied = id => Math.max(0, ...Object.values(Store.data.stats[id] || {
 const hasWeak = id => Object.values(Store.data.stats[id] || {}).some(e => e.miss > 0);
 const groupRank = g => (GROUP_ORDER.indexOf(g) + 1) || 99;
 function searchText(p) {
-  return norm([p.name, p.group, p.shared?.by, ...(p.aliases || []), ...tagsOf(p.id), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || [])]),
+  return norm([p.name, p.group, p.shared?.by, ...(p.aliases || []), ...tagsOf(p.id), ...Object.values(p.enzymes || {}).flatMap(e => [e.name, e.short, ...(e.aliases || []), ...(e.nicknames || [])]),
     ...Object.values(p.metabolites || {}).flatMap(x => [x.name, x.short])].filter(Boolean).join(' '));
 }
 function filterPathways(list, st) {
@@ -530,7 +530,7 @@ function renderSettings() {
       <div class="setup">
         <div class="set-row"><span class="glabel">Answer</span><div class="set-ctl">${opt('answer', [['type', 'Type'], ['along', 'Type along'], ['choice', 'Choice'], ['self', 'Self-check']])}</div></div>
         <div class="set-row"><span class="glabel">View</span><div class="set-ctl">${opt('view', [['flow', 'Flow'], ['list', 'List']])}${opt('dir', [['v', 'List top–bottom'], ['h', 'List left–right']])}</div></div>
-        <div class="set-row"><span class="glabel">Zoom</span><div class="set-ctl">${opt('zoom', [['width', 'Fit width'], ['fit', 'Fit to frame']])}<label class="cb"><input type="checkbox" data-sflag="follow" ${s.follow ? 'checked' : ''}> Follow the current blank</label></div></div>
+        <div class="set-row"><span class="glabel">Zoom</span><div class="set-ctl">${opt('zoom', [['width', 'Fit width'], ['height', 'Fit height'], ['fit', 'Fit to frame']])}<label class="cb"><input type="checkbox" data-sflag="follow" ${s.follow ? 'checked' : ''}> Follow the current blank</label></div></div>
         <div class="set-row"><span class="glabel">During a quiz</span><div class="set-ctl"><label class="cb"><input type="checkbox" data-sflag="facts" ${s.facts ? 'checked' : ''}> Show facts after each answer</label><label class="cb"><input type="checkbox" data-sflag="autoAdvance" ${s.autoAdvance ? 'checked' : ''}> Full recall moves on after a right answer</label></div></div>
       </div></section>
     <section class="card pad"><h2>Your presets</h2>

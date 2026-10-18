@@ -76,7 +76,9 @@
    "name": "6-Phosphogluconate dehydrogenase",
    "short": "6PGD",
    "aliases": [
-    "phosphogluconate dehydrogenase",
+    "phosphogluconate dehydrogenase"
+   ],
+   "nicknames": [
     "6-phosphogluconate DH"
    ],
    "notes": "Oxidative decarboxylation: the second NADPH and the CO₂."
