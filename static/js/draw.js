@@ -4,11 +4,15 @@
 'use strict';
 
 const hidden = st => st === 'blank' || st === 'target';
+// A blank says what goes there (on top of its shape: box = metabolite, pill = enzyme/transporter or cofactors, tag = compartment).
+const blankWord = item => (item?.kind === 'trn' || item?.rxn?.transport ? 'transporter' : { met: 'metabolite', enz: 'enzyme', cof: 'cofactors', loc: 'compartment' }[item?.kind] || '?');
+const blankText = (x, y, word) => `<text class="bk" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${esc(word)}</text>`;
+const pillW = word => Math.max(48, word.length * 7.2 + 26);
 // When set ({draft, bad}), the current blank becomes a text field right on the diagram (Type answers, occlusion modes).
 let INLINE = null;
-const inlineInput = () => INLINE.along ? alongWidget(INLINE.along, INLINE.draft)
-  : INLINE.check ? checkWidget(INLINE.check, INLINE.draft)
-  : `<input class="ans inl-in${INLINE.bad ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="?" aria-label="Your answer" value="${esc(INLINE.draft)}">`;
+const inlineInput = () => INLINE.along ? alongWidget(INLINE.along, INLINE.draft, INLINE.hinted)
+  : INLINE.check ? checkWidget(INLINE.check, INLINE.draft, INLINE.hinted)
+  : `<input class="ans inl-in${INLINE.bad ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(INLINE.kind || '?')}" aria-label="Your answer${INLINE.kind ? ': ' + esc(INLINE.kind) : ''}" value="${esc(INLINE.draft)}">`;
 // The answer field is real HTML floating over an empty slot in the diagram (placeInline in quiz.js keeps it there).
 // Not a <foreignObject>: Safari misplaces those once the diagram is zoomed.
 let INLINE_FORM = '';
@@ -57,8 +61,9 @@ function edgePt(c, tx, ty, w = BW) {
 function metBox(cx, y, item, st, w = BW) {
   const cls = st === 'peek' ? 'shown' : st;
   if (st === 'target' && INLINE) return `<g class="mbox target"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/></g>` + inlineField(cx - w / 2 + 4, y + 4, w - 8, BH - 8);
-  const label = hidden(st) ? '?' : item.name;
-  const fs = !hidden(st) && label.length * 7.6 > w - 14 ? ` style="font-size:${Math.max(10.5, (w - 14) / label.length / 0.56).toFixed(1)}px"` : '';
+  if (hidden(st)) return `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/>${blankText(cx, y + BH / 2, 'metabolite')}</g>`;
+  const label = item.name;
+  const fs = label.length * 7.6 > w - 14 ? ` style="font-size:${Math.max(10.5, (w - 14) / label.length / 0.56).toFixed(1)}px"` : '';
   let s = `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/><text x="${cx}" y="${y + BH / 2}"${fs}>${esc(label)}</text></g>`;
   if (st === 'right') s += svgIcon(cx - w / 2 - 16, y + BH / 2, 'ok');
   if (st === 'missed') s += svgIcon(cx - w / 2 - 16, y + BH / 2, 'no');
@@ -74,9 +79,9 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
     return `<g class="elab target"><rect x="${rx}" y="${ry}" width="${w}" height="32" rx="16"/></g>` + inlineField(rx + 4, ry + 3, w - 8, 26);
   }
   if (hidden(st)) {
-    const w = 48, rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+    const word = blankWord(item), w = pillW(word), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
     const ry = valign === 'bottom' ? y - 26 : y - 13;
-    return `<g class="elab ${cls}"><rect x="${rx}" y="${ry}" width="${w}" height="26" rx="13"/><text x="${rx + w / 2}" y="${ry + 13}" text-anchor="middle" dominant-baseline="central" style="font-style:normal;font-weight:700">?</text></g>`;
+    return `<g class="elab ${cls}"><rect x="${rx}" y="${ry}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, ry + 13, word)}</g>`;
   }
   const lines = wrap(item.name, max);
   const tags = (item.rxn.tags || []).filter(t => t !== 'irreversible');
@@ -111,10 +116,10 @@ function cofArc(m, x, y1, y2, c, up = false) {
 const cofSt = (m, statusOf, r) => (m.items['c:' + r.id] ? statusOf('c:' + r.id) : 'none');
 const cofVisible = st => !hidden(st) && st !== 'none' && st !== 'hide';
 function cofBlank(x, y, st, anchor = 'start') {
-  const live = st === 'target' && INLINE, w = live ? Math.max(170, INLINE.along ? INLINE.along.length * 8 + 28 : 0) : 48;
+  const live = st === 'target' && INLINE, w = live ? Math.max(170, INLINE.along ? INLINE.along.length * 8 + 28 : 0) : pillW('cofactors');
   const rx = anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x;
   if (live) return `<g class="elab target"><rect x="${rx}" y="${y - 16}" width="${w}" height="32" rx="16"/></g>` + inlineField(rx + 4, y - 13, w - 8, 26);
-  return `<g class="elab ${st}"><rect x="${rx}" y="${y - 13}" width="${w}" height="26" rx="13"/><text x="${rx + w / 2}" y="${y}" text-anchor="middle" dominant-baseline="central" style="font-style:normal;font-weight:700">?</text></g>`;
+  return `<g class="elab cofb ${st}"><rect x="${rx}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, y, 'cofactors')}</g>`;
 }
 const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'missed' ? svgIcon(x, y, 'no') : '');
 
@@ -151,11 +156,16 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   return s;
 }
 // Labels for slanted arrows sit beside the line, never on it: above a shallow line, left of a steep one.
-function diagLabel(m, statusOf, r, p1, p2) {
+// boxes: metabolite boxes {x, y, w, h} to keep clear of; the label flips to the other side of the line if it would hit one.
+function diagLabel(m, statusOf, r, p1, p2, boxes = []) {
   const dx = p2[0] - p1[0], dy = p2[1] - p1[1], L = Math.hypot(dx, dy) || 1, steep = Math.abs(dy) > Math.abs(dx);
   let nx = -dy / L, ny = dx / L;
   if (steep ? nx > 0 : ny > 0) { nx = -nx; ny = -ny; }
-  const x = (p1[0] + p2[0]) / 2 + nx * 14, y = (p1[1] + p2[1]) / 2 + ny * 14;
+  const at = (sx, sy) => [p1[0] + dx * 0.42 + sx * 14, p1[1] + dy * 0.42 + sy * 14]; // a little before the middle
+  const area = (x, y) => (steep ? { x: x - 130, y: y - 20, w: 130, h: 60 } : { x: x - 60, y: y - 34, w: 120, h: 34 });
+  const hits = ([x, y]) => { const a = area(x, y); return boxes.some(b => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 0 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 0); };
+  let [x, y] = at(nx, ny);
+  if (hits([x, y]) && !hits(at(-nx, -ny))) [x, y] = at(-nx, -ny);
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const anchor = steep ? 'end' : 'middle';
   let s = enzLabel(x, y, m.items['e:' + r.id], statusOf('e:' + r.id), anchor, 18, steep ? 'center' : 'bottom', ct ? [ct] : []);
@@ -232,8 +242,8 @@ function zoneLabel(m, statusOf, key, x, y, anchor = 'middle', fallback = '') {
       const w = Math.max(200, INLINE.along ? INLINE.along.length * 8 + 28 : 0), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
       return `<g class="elab target"><rect x="${rx}" y="${y - 20}" width="${w}" height="30" rx="15"/></g>` + inlineField(rx + 4, y - 17, w - 8, 24);
     }
-    const w = 64, rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
-    return `<g class="elab ${st}" data-key="${item.key}"><rect x="${rx}" y="${y - 17}" width="${w}" height="24" rx="12"/><text x="${rx + w / 2}" y="${y - 5}" text-anchor="middle" dominant-baseline="central" style="font-style:normal;font-weight:700">?</text></g>`;
+    const w = pillW('compartment'), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+    return `<g class="elab zone-blank ${st}" data-key="${item.key}"><rect x="${rx}" y="${y - 17}" width="${w}" height="24" rx="4"/>${blankText(rx + w / 2, y - 5, 'compartment')}</g>`;
   }
   const mark = st === 'right' ? svgIcon(anchor === 'end' ? x + 12 : x - 12 - (anchor === 'middle' ? item.name.length * 3.5 : 0), y - 4, 'ok') : st === 'missed' ? svgIcon(anchor === 'end' ? x + 12 : x - 12 - (anchor === 'middle' ? item.name.length * 3.5 : 0), y - 4, 'no') : '';
   return `<text class="zonet" data-key="${item.key}" x="${x}" y="${y}" text-anchor="${anchor}">${esc(item.name)}</text>${mark}`;
@@ -302,14 +312,14 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       addRect(zoneOfR(r), { x: pt.x - BW / 2 - 16, y: pt.y - 14, w: BW + 32, h: BH + 44 });
       continue;
     }
-    addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 30, w: BW + 24, h: BH + 60 });
+    addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 30, w: BW + 24, h: BH + 76 });
     // The step's own label (its enzyme) is in that compartment too.
     const other = r && pos[r.from === id ? r.to : r.from];
-    if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 30, w: g1 - g0 - 40, h: BH + 60 }); }
+    if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 30, w: g1 - g0 - 40, h: BH + 76 }); }
   }
   bypass.forEach((r, k) => {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10, my = (a.cy + b.cy) / 2;
-    addRect(zoneOfR(r), { x: xc - 4, y: my - 34, w: 200, h: 92 });
+    addRect(zoneOfR(r), { x: xc - 4, y: my - 34, w: 200, h: 108 });
   });
   // A transport straight down the main line (citrate leaving the mitochondria): box the end only this step touches.
   const uses = id => p.reactions.filter(x => x.from === id || x.to === id || (x.also_to || []).includes(id) || (x.also_from || []).includes(id)).length;
@@ -317,7 +327,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const a = pos[r.from], b = pos[r.to];
     if (!r.transport || !a || !b || a.x !== b.x) return;
     const far = uses(r.from) === 1 ? a : uses(r.to) === 1 ? b : null;
-    if (far) addRect(zoneOfR(r), { x: far.x - BW / 2 - 16, y: far.y - 14, w: BW + 32, h: BH + 44 });
+    if (far) addRect(zoneOfR(r), { x: far.x - BW / 2 - 16, y: far.y - 14, w: BW + 32, h: BH + 44, end: true });
   });
   // A main-line step that happens somewhere other than the boxes around it (DHODH on the inner mitochondrial
   // membrane, between two cytosolic metabolites) names its compartment under the enzyme, as cycles do.
@@ -326,7 +336,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const a = pos[r.from], b = pos[r.to], k = zoneOfR(r);
     if (!zones || !a || !b || a.x !== b.x || r.transport || !k || !m.items['z:' + k] || k === laneKeyAt(a.x)) return;
     const zst = statusOf('z:' + k);
-    if (zst !== 'hide') { stepLoc[r.id] = [hidden(zst) ? '? (compartment)' : m.items['z:' + k].name]; sideRects[k] = sideRects[k] || []; }
+    if (zst !== 'hide') { stepLoc[r.id] = [hidden(zst) ? '(compartment?)' : m.items['z:' + k].name]; sideRects[k] = sideRects[k] || []; }
   });
   const clusters = {};
   for (const [k, rects] of Object.entries(sideRects)) clusters[k] = clusterRects(rects);
@@ -360,7 +370,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   }
   if (zones) {
     for (const [k, cs] of Object.entries(clusters)) {
-      cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>` + zoneLabel(m, statusOf, k, c.x + 12, c.y + c.h - 9, 'start'); }); // named along the bottom edge
+      cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>` + (c.end ? zoneLabel(m, statusOf, k, c.x + c.w - 12, c.y + c.h - 9, 'end') : zoneLabel(m, statusOf, k, c.x + 12, c.y + c.h - 9, 'start')); }); // named along the bottom edge
       drawn.add(k);
     }
     // A transport on the main line that crosses into the next lane is named where it crosses.
@@ -399,7 +409,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     } else {
       // Crosses a membrane: slant from one lane to the other.
       const p1 = [xa + Math.sign(xb - xa) * 40, y1 + 4], p2 = [xb - Math.sign(xb - xa) * 40, y2 - 4];
-      s += arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r)) + diagLabel(m, statusOf, r, p1, p2);
+      s += arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r)) + diagLabel(m, statusOf, r, p1, p2, Object.values(pos).map(q => ({ x: q.x - BW / 2, y: q.y, w: BW, h: BH })));
     }
     // Extra products/reactants leave from the box's lower-right corner, clear of the cofactor text beside the arrow.
     for (const sd of r.also_to || []) { const sx = xa + BW / 2 - 12, e = edgePt(ctr(sd), sx, y1 + 2); s += arrow(sx, y1 + 2, e[0], e[1], r.reversible); }
@@ -478,7 +488,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     const anchor = co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle';
     const [lx, ly0] = pt(tm, 28 + (anchor === 'middle' ? 16 : 0));
     const here = locLabel(m, r), zst = m.items['z:' + keyOfR(r)] ? statusOf('z:' + keyOfR(r)) : 'shown';
-    const loc = zones && here && here !== main && zst !== 'hide' && !inRegion.has(r) ? [hidden(zst) ? '? (compartment)' : here] : [];
+    const loc = zones && here && here !== main && zst !== 'hide' && !inRegion.has(r) ? [hidden(zst) ? '(compartment?)' : here] : [];
     const es = statusOf('e:' + r.id), it = items['e:' + r.id];
     s += enzLabel(lx, ly0, it, es, anchor, 20, 'center', loc);
     const cs = cofSt(m, statusOf, r);
@@ -531,7 +541,7 @@ function chip(item, st) {
   const ic = st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '';
   const badge = st === 'start' ? '<span class="badge">START</span>' : '';
   if (st === 'target' && INLINE) return `<form class="chip target inl" data-q="0">${inlineInput()}</form>`;
-  return `<div class="chip ${cls}">${badge}${hidden(st) ? '?' : esc(item.name)}${ic}</div>`;
+  return `<div class="chip ${cls}">${badge}${hidden(st) ? `<span class="bk">${blankWord(item)}</span>` : esc(item.name)}${ic}</div>`;
 }
 function conn(m, item, st, horiz, statusOf) {
   const r = item.rxn;
@@ -539,13 +549,13 @@ function conn(m, item, st, horiz, statusOf) {
   const cls = st === 'peek' ? 'shown' : st;
   const ic = st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '';
   const badge = st === 'start' ? '<span class="badge">START</span> ' : '';
-  const name = st === 'target' && INLINE ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(st) ? '?' : esc(item.name);
+  const name = st === 'target' && INLINE ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(st) ? `<span class="bk">${blankWord(item)}</span>` : esc(item.name);
   const tags = hidden(st) ? [] : (r.tags || []).filter(t => t !== 'irreversible');
   const cs = cofSt(m, statusOf, r);
   const cic = cs === 'right' ? icon('ok') : cs === 'missed' ? icon('no') : '';
   const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + cic
     : cs === 'target' && INLINE ? `<form class="inl" data-q="0">${inlineInput()}</form>`
-    : hidden(cs) ? `<span class="ename ${cs}">?</span>` : '';
+    : hidden(cs) ? `<span class="ename ${cs}"><span class="bk">cofactors</span></span>` : '';
   const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags].filter(Boolean).join(' · ');
   return `<div class="conn"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}">${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
 }
@@ -560,7 +570,7 @@ function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
       if (!zones || st === 'hide') return '';
       if (st === 'target' && INLINE) return `<form class="locrow inl" data-q="0">${inlineInput()}</form>`;
       const ic = st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '';
-      return `<div class="locrow${hidden(st) ? ' blank' : ''}" data-key="${k}">${hidden(st) ? '? (compartment)' : esc(it.name)} ${ic}</div>`;
+      return `<div class="locrow${hidden(st) ? ' blank' : ''}" data-key="${k}">${hidden(st) ? '<span class="bk">compartment</span>' : esc(it.name)} ${ic}</div>`;
     }
     return row + listPart(m, it, st, horiz, statusOf);
   });

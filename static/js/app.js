@@ -144,6 +144,7 @@ function normalizeDraft(d) {
   out.el = Object.assign(clone(DRAFT_DEFAULTS.el), (d && d.el) || {});
   if (!out.pathway && d?.pathways?.length) out.pathway = d.pathways[0];
   if (!Library.get(out.pathway) || Library.get(out.pathway).compose) out.pathway = Library.atomic()[0]?.id;
+  if (!out.aheadChosen) out.ahead = 'hide'; // Building blocks hides later blanks unless "Show them" was picked
   return out;
 }
 function homeDraft() {
@@ -166,11 +167,12 @@ function loadPresetInto(id) {
   C.draft = normalizeDraft({ ...p, pathway: keep, combine });
   C.presetId = id;
 }
+// [value, name, how it works, what it's best for]
 const MODES = [
-  ['single', 'Fill the blanks', 'The whole pathway, one piece missing at a time.'],
-  ['total', 'Full recall', 'Rebuild the pathway in order, step by step.'],
-  ['build', 'Building blocks', 'One blank, then the first two, then three… each round from the top, until you can type the whole pathway.'],
-  ['step', 'Single step', 'One step on its own: name what connects two metabolites, or what an enzyme does.'],
+  ['single', 'Fill the blanks', 'The whole pathway is shown with one piece hidden. Answer it and another goes missing, weakest first if you like.', 'First passes, and patching weak spots with the rest of the pathway as context.'],
+  ['total', 'Full recall', 'Everything starts hidden (or with one anchor shown) and you fill it in, in order, step by step.', 'Proving you can rebuild a pathway end to end before an exam.'],
+  ['build', 'Building blocks', 'Round 1 asks the first blank, round 2 the first two, and so on, always from the top. A slip clears that blank and asks again.', 'Learning a new pathway’s order from scratch.'],
+  ['step', 'Single step', 'One reaction at a time: given two metabolites, name the enzyme, cofactors and direction; or given an enzyme, say what it does.', 'Fast drilling of enzymes and cofactors, across pathways too.'],
 ];
 /* ---------- pathway browser (New quiz + Pathways) ----------
    Icon tiles with search, composable filters (group, your tags, status) and sorting. Filters stack:
@@ -247,13 +249,33 @@ function tilesHTML(page, selectedId) {
   if (st.sort !== 'group') return `<div class="tiles-grid">${list.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div>`;
   const groups = {};
   for (const p of list) (groups[p.group || 'Other'] = groups[p.group || 'Other'] || []).push(p);
-  return Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)} <span class="muted small">${ps.length}</span></h2><div class="${page === 'library' ? 'tiles-row' : 'tiles-grid'}">${ps.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div></div>`).join('');
+  // Each group is one row that scrolls sideways: the next tile peeks in, the edge fades, and arrows appear where there's more.
+  return Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)} <span class="muted small">${ps.length}</span></h2>
+    <div class="rowwrap"><button class="rowbtn prev" data-rowscroll="-1" aria-label="Scroll ${esc(g)} left" tabindex="-1">${mi('chevron_left')}</button>
+      <div class="tiles-row">${ps.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div>
+      <button class="rowbtn next" data-rowscroll="1" aria-label="Scroll ${esc(g)} right" tabindex="-1">${mi('chevron_right')}</button></div></div>`).join('');
 }
+// Which ends of each row have more to see (drives the fade and the arrow buttons).
+function updateRows(scope = document) {
+  scope.querySelectorAll('.rowwrap').forEach(w => {
+    const r = w.querySelector('.tiles-row'); if (!r) return;
+    w.classList.toggle('more-left', r.scrollLeft > 4);
+    w.classList.toggle('more-right', r.scrollLeft + r.clientWidth < r.scrollWidth - 4);
+  });
+}
+document.addEventListener('scroll', e => { if (e.target.classList?.contains('tiles-row')) updateRows(e.target.parentElement.parentElement); }, true);
+window.addEventListener('resize', () => updateRows());
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-rowscroll]');
+  if (!b) return;
+  const r = b.parentElement.querySelector('.tiles-row');
+  r.scrollBy({ left: Number(b.dataset.rowscroll) * r.clientWidth * 0.8, behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+});
 function browserHTML(page, selectedId) {
   const base = Library.atomic();
   return `${browseToolbar(page, browse(page), base)}<div class="tiles" id="tiles">${tilesHTML(page, selectedId)}</div>`;
 }
-function refreshTiles(page) { const t = $('#tiles'); if (t) t.innerHTML = tilesHTML(page, page === 'new' ? C.draft?.pathway : null); }
+function refreshTiles(page) { const t = $('#tiles'); if (t) t.innerHTML = tilesHTML(page, page === 'new' ? C.draft?.pathway : null); updateRows(); }
 function rerenderBrowsePage(page) { page === 'new' ? renderCreate() : renderLibrary(); }
 document.addEventListener('input', e => {
   const bar = e.target.closest('[data-bpage]');
@@ -306,7 +328,7 @@ function renderCreate() {
     const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
     modeOpts = `<label class="field">Start<select id="cStart"><option value="random">A random point</option><option value="begin">The beginning, nothing shown</option><optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup></select></label>`;
   }
-  if (d.mode === 'build') modeOpts = `<div class="field"><span>Later blanks</span>${seg('data-cs', 'ahead', [['show', 'Show them'], ['hide', 'Hide them']], d.ahead || 'show')}<span class="muted small">${d.ahead === 'hide' ? 'Blanks you haven’t reached yet are empty boxes, so you recall the whole pathway.' : 'Blanks you haven’t reached yet show their answers.'}</span></div>`;
+  const laterBlanks = d.mode === 'build' ? `<div class="field"><span>Later blanks</span>${seg('data-cs', 'ahead', [['hide', 'Hide them'], ['show', 'Show them']], d.ahead === 'show' ? 'show' : 'hide')}<p class="muted small">${d.ahead === 'show' ? 'Blanks you haven’t reached yet show their answers.' : 'Blanks you haven’t reached yet stay empty, so you recall the whole pathway.'}</p></div>` : '';
   if (d.mode === 'step') modeOpts = `<div class="field"><span>You're given</span>${seg('data-cs', 'given', [['mets', 'Two metabolites'], ['enz', 'An enzyme']], d.given)}</div>
     ${d.given === 'enz' ? `<label class="cb"><input type="checkbox" data-cflag="allPathways" ${d.allPathways ? 'checked' : ''}> Draw enzymes from every pathway</label>` : ''}`;
   $('#view').innerHTML = `<div class="page create">
@@ -320,15 +342,16 @@ function renderCreate() {
         ${pair && !allE ? `<label class="pairbox${d.combine ? ' on' : ''}"><input type="checkbox" data-cflag="combine" ${d.combine ? 'checked' : ''}>
           <span><b>Study together with ${esc(partner)}</b><span class="muted">${esc(pair.name)}: shared steps once, each one's own steps alongside.</span></span></label>` : ''}
         ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
-        <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, b]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${b}</span></button>`).join('')}</div></div>
+        <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, how, best]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${how}</span><span class="best"><b>Best for</b> ${best}</span></button>`).join('')}</div></div>
         ${modeOpts}
+        <div class="field"><span>What to show, quiz or hide</span><div class="el-grid">${els}</div>
+          ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}</div>
+        <details class="adv"${local.get('pathways.advOpen') ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: answering, hints and more${mi('expand_more', 'chev')}</summary>
         <div class="field" data-tour="answer"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
+          <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p>
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
-          ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
-          <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p></div>
-        <details class="adv"${local.get('pathways.advOpen') ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: what to show, quiz or hide${mi('expand_more', 'chev')}</summary>
-          <div class="el-grid">${els}</div>
-          ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}
+          ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-cflag="hints" ${d.hints ? 'checked' : ''}> “Give me a letter” hints (button, or → at the end of your answer)</label>` : ''}</div>
+          ${laterBlanks}
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
         </details>
         <div class="side-foot">
@@ -340,9 +363,13 @@ function renderCreate() {
     </div>
   </div>`;
   const st = $('#cStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
+  // Keep the chosen pathway visible in its row, then mark which row ends have more.
+  const on = $('#tiles .ptile.on'), row = on?.closest('.tiles-row');
+  if (on && row) { const o = on.offsetLeft - row.offsetLeft; if (o < row.scrollLeft || o + on.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollLeft = o - 24; }
+  updateRows();
 }
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
-const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
 const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
 const favorites = () => Store.data.favorites || [];
 const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));
@@ -376,7 +403,7 @@ document.addEventListener('click', e => {
     return renderCreate();
   }
   const sb = e.target.closest('[data-cs]');
-  if (sb) { d[sb.dataset.cs] = sb.dataset.v; C.presetId = ''; return renderCreate(); }
+  if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; C.presetId = ''; return renderCreate(); }
   const eb = e.target.closest('[data-cel]');
   if (eb) { d.el[eb.dataset.cel] = eb.dataset.v; C.presetId = ''; return renderCreate(); }
   const a = e.target.closest('[data-c]');
@@ -415,6 +442,7 @@ function renderLibrary() {
     ${browserHTML('library')}
     <input type="file" id="libFile" accept=".json,application/json" hidden>
   </div>`;
+  updateRows();
 }
 function studyPathway(id) {
   homeDraft();

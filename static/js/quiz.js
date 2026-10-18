@@ -73,18 +73,18 @@ function alongState(target, typed) {
   const errs = st.filter(x => x === 'err').length + extra;
   return { st, pos: i, errs, done: j >= target.length && !errs };
 }
-function alongGhost(target, typed) {
+function alongGhost(target, typed, hinted = 0) {
   const { st, pos } = alongState(target, typed);
   let h = '';
   [...target].forEach((c, k) => {
     if (k === pos) h += '<span class="caret" aria-hidden="true"></span>';
-    h += `<span class="${k < pos ? (st[k] === 'err' ? 'a-err' : 'a-ok') : 'a-rest'}">${esc(c)}</span>`;
+    h += `<span class="${k < pos ? (k < hinted ? 'a-hint' : st[k] === 'err' ? 'a-err' : 'a-ok') : 'a-rest'}">${esc(c)}</span>`;
   });
   if (pos >= target.length) h += '<span class="caret" aria-hidden="true"></span>';
   return h;
 }
-function alongWidget(target, typed) {
-  return `<span class="along"><span class="ghost">${alongGhost(target, typed)}</span><input class="ans along-in" data-along="${esc(target)}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type: ${esc(target)}" value="${esc(typed)}"></span>`;
+function alongWidget(target, typed, hinted = 0) {
+  return `<span class="along"><span class="ghost">${alongGhost(target, typed, hinted)}</span><input class="ans along-in" data-along="${esc(target)}" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Type: ${esc(target)}" value="${esc(typed)}"></span>`;
 }
 function alongTextFor(q, m, r) {
   if (q.kind === 'cof') return [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])].map(id => cofName(m, id)).join(', ') || 'none';
@@ -327,12 +327,14 @@ function checkState(target, typed) {
   }
   return out;
 }
-function checkGhost(targets, typed) {
+// hinted: how many leading letters came from "Give me a letter" (shown plain, neither right nor wrong).
+function checkGhost(targets, typed, hinted = 0) {
   const t = bestTarget({ targets }, typed), st = checkState(t, typed);
-  return [...typed].map((c, k) => `<span class="${st[k] === 'err' ? 'c-err' : st[k] === 'ok' ? 'c-ok' : 'c-sep'}">${esc(c)}</span>`).join('') + '<span class="caret" aria-hidden="true"></span>';
+  return [...typed].map((c, k) => `<span class="${k < hinted ? 'c-hint' : st[k] === 'err' ? 'c-err' : st[k] === 'ok' ? 'c-ok' : 'c-sep'}">${esc(c)}</span>`).join('') + '<span class="caret" aria-hidden="true"></span>';
 }
-function checkWidget(targets, typed) {
-  return `<span class="along check"><span class="ghost">${checkGhost(targets, typed)}</span><input class="ans along-in" data-check="1" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your answer" value="${esc(typed)}"></span>`;
+
+function checkWidget(targets, typed, hinted = 0) {
+  return `<span class="along check"><span class="ghost">${checkGhost(targets, typed, hinted)}</span><input class="ans along-in" data-check="1" autocomplete="off" autocapitalize="off" spellcheck="false" aria-label="Your answer" value="${esc(typed)}"></span>`;
 }
 // "Give me a letter": keep what's right so far and add the next letter of the closest spelling.
 function hintLetter(q) {
@@ -341,6 +343,7 @@ function hintLetter(q) {
   pos = Math.min(pos, s.pos);
   let next = pos; while (next < t.length && ALONG_SEP.test(t[next])) next++;
   q.draft = t.slice(0, Math.min(t.length, next + 1));
+  q.hintLen = q.draft.length; // these letters were given, not typed: counted as typed, never tinted right/wrong
   q.hints = (q.hints || 0) + 1;
   if (q.along ? alongState(t, q.draft).done : q.draft === t) { submit(q, q.correct); return; }
   renderQuiz();
@@ -413,7 +416,7 @@ function statusOf(key) {
   if (R.type === 'build') {
     const j = R.order.indexOf(Q.m.seq.indexOf(key));
     if (j < 0 || R.done) return 'shown';
-    if (j >= R.k) return Q.cfg.ahead === 'hide' ? 'blank' : 'shown'; // not reached this round
+    if (j >= R.k) return Q.cfg.ahead === 'show' ? 'shown' : 'blank'; // not reached this round (hidden unless chosen)
     if (j < R.pos) return 'right';
     if (j === R.pos) return R.q && R.q.status === 'open' ? 'target' : 'right';
     return 'blank';
@@ -508,10 +511,10 @@ function answerHTML(q, idx, compact) {
   if (q.status === 'peek') return `<div class="result"><span><b>${esc(q.answerText)}</b></span></div>
     <div class="btnrow"><button class="btn good" data-act="got" data-q="${idx}">${icon('ok')} Got it <kbd>1</kbd></button><button class="btn" data-act="miss" data-q="${idx}">${icon('no')} Missed <kbd>2</kbd></button></div>`;
   if (style === 'self') return `<button class="btn primary" data-act="peek" data-q="${idx}">${mi('visibility')} Show answer</button>`;
-  const hintBtn = Q.cfg.hints && q.targets ? `<button class="btn small ghost" data-act="hint" data-q="${idx}">${mi('lightbulb', 'sm')} Give me a letter</button>` : '';
+  const hintBtn = Q.cfg.hints && q.targets ? `<button class="btn small ghost" data-act="hint" data-q="${idx}" title="Give me a letter (→ at the end of your answer)">${mi('lightbulb', 'sm')} Give me a letter <kbd>→</kbd></button>` : '';
   if (q.inline && q.along) return `<div class="hint-line">Type what you see in the highlighted box${q.alongErrs ? ` <span class="bad-note">${q.alongErrs} slip${q.alongErrs > 1 ? 's' : ''}</span>` : ''}${hintBtn}</div>`;
   if (q.along) return `<form class="ansform" data-q="${idx}">${alongWidget(q.along, q.draft)}</form>${hintBtn}`;
-  if (!q.inline && Q.cfg.letterCheck && style === 'type' && q.targets) return `<form class="ansform" data-q="${idx}">${checkWidget(q.targets, q.draft)}<button class="btn">Check</button></form>${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}${hintBtn}`;
+  if (!q.inline && Q.cfg.letterCheck && style === 'type' && q.targets) return `<form class="ansform" data-q="${idx}">${checkWidget(q.targets, q.draft, q.hintLen || 0)}<button class="btn">Check</button></form>${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}${hintBtn}`;
   if (q.inline) return `<div class="hint-line">${q.justWrong ? `<span class="bad-note">${icon('no')} Not quite. Try again or reveal.</span>` : inlineHintShown() ? `Type in the highlighted box, then ${mi('keyboard_return', 'sm')} Enter` : ''}${hintBtn}</div>`;
   if (optsFor) return `<div class="opts${compact ? ' row' : ''}">${optsFor.map((o, i) => {
     const bad = q.wrong.includes(o.v);
@@ -565,7 +568,7 @@ function optionsHTML() {
   return `<details class="qopts"><summary class="tbtn icon" title="Options" aria-label="Options">${mi('tune')}</summary>
     <div class="pop">
       <label>Answer by</label>${seg('answer', Q.cfg.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
-      ${Q.cfg.mode === 'build' ? `<label>Later blanks</label>${seg('ahead', [['show', 'Show'], ['hide', 'Hide']], Q.cfg.ahead || 'show')}` : ''}
+      ${Q.cfg.mode === 'build' ? `<label>Later blanks</label>${seg('ahead', [['hide', 'Hide'], ['show', 'Show']], Q.cfg.ahead === 'show' ? 'show' : 'hide')}` : ''}
       ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-qflag="letterCheck" ${Q.cfg.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
       ${['type', 'along'].includes(ans) ? `<label class="cb"><input type="checkbox" data-qflag="hints" ${Q.cfg.hints ? 'checked' : ''}> “Give me a letter” button</label>` : ''}
       <label>View</label>${seg('view', [['flow', 'Flow'], ['list', 'List']], view)}
@@ -585,7 +588,7 @@ function renderQuiz() {
   const occ = R.type === 'single' || R.type === 'total' || R.type === 'build';
   const cq = occ && R.q;
   INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open'
-    ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null } : null;
+    ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: KIND[cq.kind] || '' } : null;
   if (cq) cq.inline = !!INLINE;
   const flow = viewStyle() === 'flow', horiz = Store.settings.dir === 'h';
   const sub = R.type === 'stepE' && el('path') !== 'show' && Q.models.length > 1 ? `${Q.models.length} pathways` : esc(Q.m.p.name) + (Q.models.length > 1 && R.type !== 'stepE' ? ` <span class="muted">· ${Q.models.length} in this quiz</span>` : '');
@@ -630,7 +633,7 @@ function renderQuiz() {
   applyZoom();
   followTarget();
   const inp = $('#stage input.ans') || $('#view .ansform input');
-  if (inp && (!matchMedia('(hover: none)').matches || inp.closest('#stage'))) { inp.focus({ preventScroll: true }); inp.select(); }
+  if (inp && (!matchMedia('(hover: none)').matches || inp.closest('#stage'))) { inp.focus({ preventScroll: true }); if (inp.value) inp.setSelectionRange(inp.value.length, inp.value.length); else inp.select(); }
   for (const q of R.qs || (R.q ? [R.q] : [])) q.justWrong = false;
 }
 // Facts drawer: the item you clicked (if any), then everything answered this quiz, newest first.
@@ -811,12 +814,13 @@ document.addEventListener('input', e => {
   const q = formQ(f), v = e.target.value;
   const grew = v.length > q.draft.length;
   q.draft = v;
-  if (e.target.dataset.check) { f.querySelector('.ghost').innerHTML = checkGhost(q.targets, v); return; }
+  if (q.hintLen && v.length < q.hintLen) q.hintLen = v.length; // backspacing into given letters
+  if (e.target.dataset.check) { f.querySelector('.ghost').innerHTML = checkGhost(q.targets, v, q.hintLen || 0); return; }
   if (!q.along || q.status !== 'open') return;
   const s = alongState(q.along, v);
   if (grew && s.errs > (q.lastErrs || 0)) { q.alongErrs = (q.alongErrs || 0) + 1; e.target.closest('.along').classList.remove('shake'); void e.target.offsetWidth; e.target.closest('.along').classList.add('shake'); }
   q.lastErrs = s.errs;
-  f.querySelector('.ghost').innerHTML = alongGhost(q.along, v);
+  f.querySelector('.ghost').innerHTML = alongGhost(q.along, v, q.hintLen || 0);
   if (s.done) { if (q.alongErrs) q.tries = 1; submit(q, q.check(q.correct) ? q.correct : q.along); }
 });
 document.addEventListener('keydown', e => {
@@ -842,4 +846,14 @@ document.addEventListener('keydown', e => {
 document.addEventListener('keydown', e => {
   if (!inQuiz() || !Q.drawer || e.altKey || e.metaKey || e.ctrlKey || e.target.closest?.('input, textarea, select, [contenteditable]')) return;
   if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); focusStep(e.key === 'ArrowLeft' ? -1 : 1); }
+});
+// → at the end of an answer = "Give me a letter" (when hints are on). Mid-word it still just moves the cursor.
+document.addEventListener('keydown', e => {
+  if (e.key !== 'ArrowRight' || e.altKey || e.metaKey || e.ctrlKey || e.shiftKey || !inQuiz() || !Q.cfg.hints) return;
+  const inp = e.target.closest?.('#view .quiz input.ans'), f = inp?.closest('form.ansform, form.inl');
+  if (!f || inp.selectionStart !== inp.value.length || inp.selectionEnd !== inp.value.length) return;
+  const q = formQ(f);
+  if (!q || !q.targets || q.status !== 'open') return;
+  e.preventDefault();
+  hintLetter(q);
 });

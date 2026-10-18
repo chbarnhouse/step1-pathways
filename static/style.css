@@ -36,7 +36,7 @@
     --teal: #5cc6cc; --teal-bg: #0f2c2e;
     --slate: #98a3b3; --slate-bg: #1d222a;
     --gold: #e3bd55; --gold-bg: #2f2710;
-    --good: #4ac26b; --bad: #ff6b6b;
+    --good: #4ac26b; --bad: #ff6b6b; --good-bg: rgba(74,194,107,.24); --bad-bg: rgba(255,107,107,.24);
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
     --bg: var(--paper);
     color-scheme: dark;
@@ -52,7 +52,7 @@
     --teal: #5cc6cc; --teal-bg: #0f2c2e;
     --slate: #98a3b3; --slate-bg: #1d222a;
     --gold: #e3bd55; --gold-bg: #2f2710;
-    --good: #4ac26b; --bad: #ff6b6b;
+    --good: #4ac26b; --bad: #ff6b6b; --good-bg: rgba(74,194,107,.24); --bad-bg: rgba(255,107,107,.24);
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
     --bg: var(--paper);
     color-scheme: dark;
@@ -70,14 +70,14 @@
   --ink: #ffffff; --ink-2: #eaf1fb; --muted: #d6e4f6; --blue: #ffffff; --line: rgba(255,255,255,.45); --line-soft: rgba(255,255,255,.25); --sunk: rgba(255,255,255,.14);
   color: var(--ink);
 }
-:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .btn, .chip-tg, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
+:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .rowbtn, .btn, .chip-tg, .search, select, .seg, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .mode, .qcard, input, textarea, .hero-new, .hero-resume, .hero-data, .sidebar) {
   --ink: #14181f; --ink-2: #3d4654; --muted: #5d6877; --blue: #1d5fa8; --line: #dde2ea; --line-soft: #e9edf2; --sunk: #eef0f4;
 }
 /* Containers also put the text color back (buttons and inputs keep their own rules). */
-:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) { color: var(--ink); }
+:root[data-theme="default"] :is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .rowbtn, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) { color: var(--ink); }
 :root[data-theme="default"] .quiz .stage { background: var(--card); }
 /* See-through buttons sitting straight on the blue page stay white. */
-:root[data-theme="default"] .view .btn.ghost:not(:is(.card, .ptile, .favtile, .zoomfloat, .help-pop, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) *) { --ink: #ffffff; --line: rgba(255,255,255,.55); }
+:root[data-theme="default"] .view .btn.ghost:not(:is(.card, .ptile, .favtile, .zoomfloat, .help-pop, .rowbtn, dialog, .pop, .drawer, .dock, .qbar, .stage, .tour-pop, .qcard, .sidebar) *) { --ink: #ffffff; --line: rgba(255,255,255,.55); }
 :root[data-theme="default"] .page-h .btn.primary { background: #ffffff; border-color: #ffffff; color: #1d5fa8; }
 
 * { box-sizing: border-box; }
@@ -517,10 +517,12 @@ details.facts .fact-body { padding: 0 14px 12px 40px; }
 .flow [data-key] { cursor: pointer; }
 .flow .mbox.blank, .flow .mbox.target, .flow .elab.blank, .flow .elab.target { cursor: default; }
 /* Check each letter: green right, red wrong (wrong also gets a wavy underline). */
-:root { --good: #1a7f37; --bad: #c62828; }
+:root { --good: #1a7f37; --bad: #c62828; --good-bg: rgba(26,127,55,.16); --bad-bg: rgba(198,40,40,.15); }
 /* dark values of --good / --bad live with the dark theme tokens at the top */
-.along.check .c-ok { color: var(--good); }
-.along.check .c-err { color: var(--bad); text-decoration: underline wavy var(--bad); }
+/* Check each letter: right letters on green, wrong ones on red with a wavy underline; letters from "Give me a letter" plain. */
+.along.check .c-ok { color: var(--good); background: var(--good-bg); border-radius: 2px; }
+.along.check .c-err { color: var(--bad); background: var(--bad-bg); border-radius: 2px; text-decoration: underline wavy var(--bad); }
+.along.check .c-hint, .along .a-hint { color: var(--ink); background: none; }
 .along.check .c-sep { color: var(--muted); }
 .along.check .ghost:empty::before, .along.check .ghost > .caret:first-child { }
 
@@ -908,3 +910,26 @@ form.inl.inl-float { position: absolute; z-index: 2; transform-origin: 0 0; marg
 .appbar-in { min-width: 0; }
 @media (max-width: 900px) { .nav a:not(.nav-cta) { font-size: 0; gap: 0; padding: 8px 10px; } .nav a:not(.nav-cta) .mi { width: 20px; height: 20px; } }
 @media (max-width: 640px) { .brand > span:last-child { display: none; } .preview-badge { font-size: 0; gap: 0; padding: 4px 6px; } .nav a.nav-cta { font-size: 0; gap: 0; padding: 8px 12px; } .nav a.nav-cta .mi { width: 20px; height: 20px; } .preview-badge .mi { margin: 0; } .appbar-in { gap: 8px; } }
+/* Blanks name their kind, in small capitals (the shapes already differ: box, pill, tag). */
+.flow text.bk { font-style: normal; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; fill: var(--muted); }
+.bk { font-style: normal; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+.flow .elab.target text.bk, .flow .mbox.target text.bk { fill: var(--orange); }
+input.inl-in::placeholder { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); opacity: 1; }
+/* Pathway rows (Library and New quiz): the next tile peeks in; a fade and an arrow mark each end with more to see. */
+.rowwrap { position: relative; }
+.rowwrap .tiles-row { grid-auto-columns: minmax(230px, 250px); scroll-padding-inline: 24px; }
+.rowwrap.more-right .tiles-row { -webkit-mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent); mask-image: linear-gradient(to right, #000 calc(100% - 64px), transparent); }
+.rowwrap.more-left .tiles-row { -webkit-mask-image: linear-gradient(to left, #000 calc(100% - 64px), transparent); mask-image: linear-gradient(to left, #000 calc(100% - 64px), transparent); }
+.rowwrap.more-left.more-right .tiles-row { -webkit-mask-image: linear-gradient(to right, transparent, #000 64px, #000 calc(100% - 64px), transparent); mask-image: linear-gradient(to right, transparent, #000 64px, #000 calc(100% - 64px), transparent); }
+.rowbtn { position: absolute; top: calc(50% - 22px); z-index: 2; display: none; place-items: center; width: 40px; height: 40px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); color: var(--ink); box-shadow: var(--shadow); cursor: pointer; }
+.rowbtn .mi { width: 24px; height: 24px; fill: currentColor; }
+.rowbtn.prev { left: -6px; } .rowbtn.next { right: -6px; }
+.rowwrap.more-left .rowbtn.prev, .rowwrap.more-right .rowbtn.next { display: grid; }
+.rowbtn:hover { border-color: var(--blue); color: var(--blue); }
+/* Mode cards: how it works, then what it's best for. */
+.mode .best { color: var(--ink-2); font-size: var(--fs-sm); }
+.mode .best b { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); margin-right: 4px; }
+.mode .best b { display: inline; }
+/* Grids whose single column must not grow to fit a sideways-scrolling row. */
+.page, .picker, .tiles, .tgroup { grid-template-columns: minmax(0, 1fr); min-width: 0; }
+.adv > .field, .adv > label.cb { margin-top: 12px; } .adv .field p.muted { margin: 2px 0 0; text-transform: none; letter-spacing: 0; }
