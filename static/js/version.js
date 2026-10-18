@@ -8,6 +8,10 @@
 const APP_VERSION = '3.8.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+    'Cofactors can be typed in any order, with letter checking and hints following the order you chose.',
+    'More spellings count: an enzyme named after a metabolite accepts any of that metabolite’s names (ALA synthase, δ-ALA synthase, δ-aminolevulinic acid synthase, 5-aminolevulinate synthase), “-ic acid” or “-ate”, and Greek letters as symbols or words.',
+  ] },
   { v: '3.8.1', date: '2026-10-18', items: [
     'Clear all history (Settings) now really starts over: everything saved here is erased, after an offer to download a backup first, and the app opens as on your first visit.',
   ] },
