@@ -478,7 +478,7 @@ function renderSettings() {
       <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>${reportsEnabled() ? `<button class="btn" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show the tour automatically when I open Pathways</label></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''} · open source on <a href="https://github.com/chbarnhouse/step1-pathways" target="_blank" rel="noopener">GitHub</a>. Icons: Material Symbols.</p>
+    <section class="card pad about"><h2>About</h2><p class="muted">STEP 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''}. Icons: Material Symbols.</p>
       <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${Store.mode === 'server' && isPreview() ? `<button class="btn small" data-preview>${mi('science', 'sm')} Not released yet</button>` : ''}</div></section>
   </div>`;
 }
@@ -519,7 +519,8 @@ function dataGate() {
       <div class="dlg-h"><h2>${mi('download', 'h-ic')} ${DATA_NOTICE_TITLE}</h2></div>
       <div class="ask-text">${DATA_NOTICE_HTML}</div>
       <section class="gate-backup" aria-labelledby="gbH"><h3 id="gbH">${mi('download', 'sm')} Set up your backup file now <span class="muted small">(recommended)</span></h3><div id="gateBackup"></div></section>
-      <label class="cb ack"><input type="checkbox" id="gateAck"> ${DATA_ACK_LABEL}</label>
+      <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAck"> ${DATA_ACK_LABEL}</label>
+      ${AutoBackup.supported ? '' : `<label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckBrowser"> I understand that this browser can’t keep a backup file up to date for me, so I need to download backups myself (Chrome and Edge can do it automatically).</label>`}
       <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
     // The backup step, written out click by click; it redraws itself after linking.
     const drawBackup = () => {
@@ -542,9 +543,11 @@ function dataGate() {
     };
     drawBackup();
     d.oncancel = e => e.preventDefault(); // Esc can't dismiss it
-    d.querySelector('#gateAck').onchange = e => { d.querySelector('#gateGo').disabled = !e.target.checked; };
+    // Continue needs every box ticked: the notice, plus the browser limit where it applies.
+    const allTicked = () => [...d.querySelectorAll('.gate-req')].every(x => x.checked);
+    d.querySelectorAll('.gate-req').forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !allTicked(); }; });
     d.querySelector('#gateGo').onclick = () => {
-      if (!d.querySelector('#gateAck').checked) return;
+      if (!allTicked()) return;
       local.set('pathways.dataAck', Date.now());
       d.close(); res();
     };

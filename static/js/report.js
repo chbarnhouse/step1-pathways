@@ -29,7 +29,7 @@ function openShare(id) {
     <div class="dlg-h"><h2>${mi('public', 'h-ic')} ${edit ? 'Suggest your changes' : 'Share with classmates'}</h2></div>
     <p class="muted">${edit ? `Your edits to <b>${esc(p.name)}</b> are sent for review, and may be added for everyone.` : `<b>${esc(p.name)}</b> is sent for review. Once approved, it appears in everyone’s library under <b>Shared by classmates</b>, with your name on it.`}</p>
     <label class="field">Your name, as shown to classmates<input name="name" required maxlength="40" value="${esc(local.get('pathways.displayName') || '')}" placeholder="e.g. Sam K."></label>
-    <label class="field">Notes for the review (optional)<textarea name="note" rows="2" placeholder="${edit ? 'e.g. Fixed the cofactors of step 3' : 'e.g. Based on First Aid 2026, p. 82'}"></textarea></label>
+    <label class="field">Anything the reviewer should know (optional)<textarea name="note" rows="2" placeholder="${edit ? 'e.g. Fixed the cofactors of step 3' : 'e.g. Based on First Aid 2026, p. 82'}"></textarea></label>
     <ol class="gate-steps"><li>Press <b>Download and open the form</b>. The pathway file lands in your Downloads, and a Google Form opens with your name filled in.</li><li>In the form, sign in with Google, press <b>Add file</b> and choose <b>${esc((p.id || 'pathway') + '.json')}</b> from Downloads.</li><li>Press <b>Submit</b>.</li></ol>
     <div class="actions"><button class="btn primary" type="submit">${mi('download', 'sm')} Download and open the form</button><button class="btn ghost" type="button" data-share="close">Cancel</button></div>
   </form>`;

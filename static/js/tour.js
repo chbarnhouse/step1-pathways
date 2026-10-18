@@ -1,6 +1,7 @@
 /* Guided tour: spotlights each part of the app in turn, across the dashboard, New quiz, a demo quiz, the library
-   and Settings. Shown automatically on a visitor's first open of each session until they tick "Don't show the tour
-   again" (on any step). Skip ends it for now. It can be retaken any time from Settings.
+   and Settings. Shown automatically on a visitor's first open of each session until they finish it: the last step
+   has "Don't show the tour automatically again", already ticked. Skipping or closing early leaves it on.
+   It can be retaken any time from Settings.
    In the static copy the required data notice comes after the tour ends, however it ends (finish, skip or Esc). */
 'use strict';
 
@@ -42,14 +43,13 @@ async function waitForSel(sel, tries = 20) { for (let i = 0; i < tries; i++) { c
 
 async function showTourStep() {
   const step = TOUR_STEPS[Tour.i], n = TOUR_STEPS.length, last = Tour.i === n - 1;
-  if (step.when && !step.when()) { Tour.i += Tour.dir || 1; return Tour.i >= 0 && Tour.i < n ? showTourStep() : endTour(); }
+  if (step.when && !step.when()) { Tour.i += Tour.dir || 1; return Tour.i >= 0 && Tour.i < n ? showTourStep() : endTour(Tour.i >= n); }
   step.before?.();
   if (step.route && location.hash !== step.route) { location.hash = step.route; await waitMs(220); }
   const target = await waitForSel(step.sel);
-  if (step.sel && !target) { Tour.i += Tour.dir || 1; return Tour.i >= 0 && Tour.i < n ? showTourStep() : endTour(); } // e.g. no Resume card yet
+  if (step.sel && !target) { Tour.i += Tour.dir || 1; return Tour.i >= 0 && Tour.i < n ? showTourStep() : endTour(Tour.i >= n); } // e.g. no Resume card yet
   target?.scrollIntoView({ block: 'center', inline: 'nearest' });
   await waitMs(60);
-  const never = !!local.get(TOUR_NEVER);
   const text = typeof step.text === 'function' ? step.text() : step.text;
   const el = tourEl();
   el.innerHTML = `<div class="tour-block"></div>${target ? '<div class="tour-spot"></div>' : '<div class="tour-dim"></div>'}
@@ -58,7 +58,7 @@ async function showTourStep() {
       <h2 id="tourTitle">${esc(step.title)}</h2>
       <p>${esc(text)}</p>
       <div class="tour-foot">
-        <label class="cb"><input type="checkbox" id="tourNever" ${never ? 'checked' : ''}> Don’t show the tour again</label>
+        ${last ? '<label class="cb"><input type="checkbox" id="tourNever" checked> Don’t show the tour automatically again</label>' : '<span></span>'}
         <span class="btnrow tight">
           ${last ? '' : '<button class="btn ghost small" data-tour-act="skip">Skip tour</button>'}
           ${Tour.i ? '<button class="btn small" data-tour-act="back">Back</button>' : ''}
@@ -89,9 +89,11 @@ function startTour() {
   try { sessionStorage.setItem('pathways.tourShown', '1'); } catch {}
   showTourStep();
 }
-function endTour() {
+// Finished: the last step's box decides (ticked unless they unticked it). Skipped or closed early: nothing changes,
+// so a first-time visitor sees it again next time, and someone who turned it off in Settings keeps it off.
+function endTour(finished = false) {
   const nv = $('#tourNever');
-  if (nv) local.set(TOUR_NEVER, nv.checked ? Date.now() : null);
+  if (finished) local.set(TOUR_NEVER, nv?.checked ? Date.now() : null);
   Tour.active = false;
   $('#tour')?.remove();
   if (location.hash === '#/quiz' && Q.cfg?.name === 'Tour demo') location.hash = '#/';
@@ -101,7 +103,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-tour-act]');
   if (b) {
     const a = b.dataset.tourAct;
-    if (a === 'skip' || (a === 'next' && Tour.i === TOUR_STEPS.length - 1)) return endTour();
+    if (a === 'skip') return endTour(false);
+    if (a === 'next' && Tour.i === TOUR_STEPS.length - 1) return endTour(true);
     Tour.dir = a === 'back' ? -1 : 1;
     Tour.i += Tour.dir;
     return showTourStep();
@@ -109,7 +112,6 @@ document.addEventListener('click', e => {
   if (e.target.closest('[data-tour-start]')) { e.preventDefault(); startTour(); }
 });
 document.addEventListener('change', e => {
-  if (e.target.id === 'tourNever') local.set(TOUR_NEVER, e.target.checked ? Date.now() : null);
 });
 document.addEventListener('keydown', e => {
   if (!Tour.active || !$('#tour')) return;
