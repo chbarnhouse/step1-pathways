@@ -369,11 +369,13 @@ function locLabel(m, r) {
   return [tissues.size > 1 || (tissues.size === 1 && m.p.reactions.some(x => !x.tissue)) ? r.tissue || m.p.tissue : '', r.loc].filter(Boolean).join(' · ');
 }
 // Loose match for typed locations: "mito", "matrix" and "mitochondrion" all mean mitochondria; cytoplasm = cytosol.
+// Other proper names for a compartment, offered to letter checking and hints (grading already reads them via canonLoc).
+const LOC_ALSO = { cytosol: ['cytoplasm'], mitochondria: ['mitochondrion', 'mitochondrial matrix'], er: ['endoplasmic reticulum'] };
 function canonLoc(s) {
   const n = norm(s);
   if (/intermembrane/.test(n)) return 'intermembrane space';
   if (/mito|matrix|innermembrane/.test(n)) return 'mitochondria';
   if (/^er|^smoother|^rougher|endoplasmic|microsom/.test(n)) return 'er';
-  if (/cyto(sol|plasm)|cytoplasm/.test(n)) return 'cytosol';
+  if (/cyto(sol|plasm)|cytoplasm|^cyto$/.test(n)) return 'cytosol'; // "cyto" is a common abbreviation, like "mito"
   return [['lysosom', 'lysosome'], ['peroxisom', 'peroxisome'], ['nucle', 'nucleus'], ['vesic', 'vesicle'], ['brush', 'brush border'], ['plasmamembrane', 'plasma membrane'], ['blood', 'blood'], ['golgi', 'golgi']].find(([k]) => n.includes(k))?.[1] || n;
 }

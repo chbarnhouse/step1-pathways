@@ -26,6 +26,7 @@ const CHANGELOG = [
     'A small “Right” or “Not quite” badge appears beside the blank you just answered, and in Building blocks a notice says when a round is done and the quiz goes back to the top.',
     'Show facts / Hide facts button in the bottom bar.',
     'Cofactors on sideways steps and steps across a membrane also get the curved arrow, bowing in toward the step.',
+    '“Cytoplasm” checks letter by letter as a full name for the cytosol (it was already accepted), and “cyto” counts as a common abbreviation, like “mito”.',
     'Building blocks starts with the first two blanks (1, 2 · 1, 2, 3 · …), so the first one isn’t typed twice in a row.',
     'Cofactors that go in and cofactors that come out are now two separate blanks (“cofactors in → out”), each answered in any order.',
     'The answer panel no longer gives away what you haven’t answered yet (including cofactors and compartments mentioned in the notes): those parts are covered until you click them.',

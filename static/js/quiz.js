@@ -345,7 +345,7 @@ function withAlong(q, m, r = q.item?.rxn) {
   if (answerStyle() === 'along' && q.kind !== 'dir') q.along = alongTextFor(q, m, r);
   // Every accepted spelling, for letter-by-letter checking and hints (whichever one you're typing wins).
   if (q.kind !== 'dir') q.targets = uniq(q.kind === 'cof' ? cofTargets(m, q.cofs || {})
-    : q.item ? [...spellingsFor(q.item, m, 'any'), ...(q.kind === 'loc' ? [q.item.canon] : [])].filter(Boolean)
+    : q.item ? [...spellingsFor(q.item, m, 'any'), ...(q.kind === 'loc' ? [q.item.canon, ...(LOC_ALSO[q.item.canon] || [])] : [])].filter(Boolean)
     : q.kind === 'path' ? [m.p.name, ...(m.p.aliases || [])] : [alongTextFor(q, m, r)]);
   if (q.targets) q.targetTier = Object.fromEntries(q.targets.map(t => [t, q.tierOf(t) ?? 0]));
   return q;
