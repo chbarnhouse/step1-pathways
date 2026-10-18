@@ -938,3 +938,5 @@ input.inl-in::placeholder { font-size: var(--fs-xs); font-weight: 700; letter-sp
 form.inl, form.ansform { position: relative; }
 .cofcount { position: absolute; right: 8px; top: 50%; transform: translateY(-50%); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .04em; font-variant-numeric: tabular-nums; color: var(--muted); background: var(--sunk); border-radius: 999px; padding: 1px 7px; pointer-events: none; }
 form.ansform .cofcount { right: 92px; }
+/* Segmented selectors are as wide as their options, not the whole row (grids would stretch them). */
+.seg { justify-self: start; align-self: start; }
