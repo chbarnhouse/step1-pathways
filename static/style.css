@@ -958,3 +958,7 @@ form.ansform .cofcount { right: 92px; }
 .quick-actions .iconbtn .mi { fill: var(--blue); }
 .quick-actions [data-dash="unfav"] .mi { fill: var(--muted); }
 .quick-actions .iconbtn { width: 34px; height: 34px; display: inline-grid; place-items: center; } .quick-actions .iconbtn .mi { width: 22px; height: 22px; }
+/* On the canvas the diagram may paint past its own box: compartment tints and membranes reach the canvas edges. */
+.stage.canvas svg.flow { overflow: visible; }
+/* The typing field takes the shape it sits in: no box of its own on top of the diagram. */
+.stage.canvas form.inl.inl-float input.inl-in, .stage.canvas form.inl.inl-float .along { background: transparent; border-radius: 0; }

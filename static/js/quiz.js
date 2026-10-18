@@ -99,7 +99,7 @@ function itemQ(item, m) {
     const all = uniq(Library.atomic().flatMap(p => p.reactions.map(r => r.loc)).filter(Boolean)).filter(l => canonLoc(l) !== item.canon);
     return baseQ({ kind: 'loc', label: 'Compartment', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name, placeholder: 'e.g. mitochondria',
       options: answerStyle() === 'choice' ? pickOthers(item.name, uniq(all.map(l => l[0].toUpperCase() + l.slice(1)))) : null,
-      check: v => v === item.name || canonLoc(v) === item.canon || item.aliases.some(a => norm(a) === norm(v)) });
+      check: v => v === item.name || (canonLoc(v) === item.canon && (!Q.cfg.fullNames || !shortenedLoc(v, item))) || item.aliases.some(a => norm(a) === norm(v) && (!Q.cfg.fullNames || !shortenedLoc(a, item))) });
   }
   return baseQ({
     kind: item.kind, label: { met: 'Metabolite', enz: 'Enzyme', trn: 'Transporter' }[item.kind], item, statKey: item.key, pid: m.p.id,
@@ -107,6 +107,14 @@ function itemQ(item, m) {
     options: answerStyle() === 'choice' ? mcOptions(item, m) : null,
     check: v => v === item.name || acceptedFor(item, m, !!Q.cfg.fullNames).includes(norm(v)), // reads “Require full names” live
   });
+}
+// With "Require full names", a compartment can't be a clipped word ("mito", "cyto") or an acronym ("ER", "RER");
+// whole words still count, including other proper names for it ("mitochondrion", "matrix").
+function shortenedLoc(v, item) {
+  const t = String(v).trim(), n = norm(t);
+  if (/^[A-Z]{2,4}$/.test(t)) return true;
+  const full = uniq([item.name, item.canon, ...(item.aliases || [])].filter(Boolean).map(norm)).filter(f => f.length > n.length);
+  return full.some(f => f.startsWith(n) || f.includes(n) && n.length <= 4);
 }
 function cofQ(r, m, item = null) {
   const t = cofText(m, r.cofactors || {});

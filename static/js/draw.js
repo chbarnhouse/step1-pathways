@@ -212,6 +212,9 @@ function computeLanes(m) {
 }
 
 const LANE_W = 470;
+// On the canvas, compartment tints and membranes run past the drawing to the canvas edges (the SVG may paint outside
+// its box there); anywhere else the browser clips them to the drawing as before.
+const BLEED = 20000;
 const SIDE_STEP = BW + 170; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
@@ -355,17 +358,17 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   const drawn = new Set();
   if (lanesOn) {
     L.list.forEach((l, i) => {
-      const x0 = laneLeft(i), x1 = i === last ? W : laneLeft(i + 1);
-      bg += `<rect class="zone t-${zoneTone(l.key)}" x="${x0}" y="0" width="${x1 - x0}" height="${H}"/>`;
+      const x0 = i === 0 ? -BLEED : laneLeft(i), x1 = i === last ? W + BLEED : laneLeft(i + 1);
+      bg += `<rect class="zone t-${zoneTone(l.key)}" x="${x0}" y="${-BLEED}" width="${x1 - x0}" height="${H + 2 * BLEED}"/>`;
       // A new tissue is a different cell: solid wall. Same cell, new compartment: dashed membrane.
-      if (i > 0) bg += `<line class="${zoneTissue(l.key) !== zoneTissue(L.list[i - 1].key) ? 'cellwall' : 'membrane'}" x1="${x0}" x2="${x0}" y1="0" y2="${H}"/>`;
+      if (i > 0) bg += `<line class="${zoneTissue(l.key) !== zoneTissue(L.list[i - 1].key) ? 'cellwall' : 'membrane'}" x1="${x0}" x2="${x0}" y1="${-BLEED}" y2="${H + BLEED}"/>`;
       bg += zoneLabel(m, statusOf, l.key, laneX(i), 18, 'middle', l.label);
       drawn.add(l.key);
     });
   } else if (oneZone) {
     // The whole main line is in one compartment: tint the drawing and name it once, at the top.
     const k = L.list[0].key;
-    bg += `<rect class="zone t-${zoneTone(k)}" x="0" y="0" width="${W}" height="${H}" rx="14"/>` + zoneLabel(m, statusOf, k, 16, 18, 'start');
+    bg += `<rect class="zone t-${zoneTone(k)}" x="${-BLEED}" y="${-BLEED}" width="${W + 2 * BLEED}" height="${H + 2 * BLEED}"/>` + zoneLabel(m, statusOf, k, 16, 18, 'start');
     drawn.add(k);
   }
   // A region's name sits on its top border, on a small tab at the right end, so the dashed line never runs through it.
@@ -457,7 +460,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   const keyCount = {};
   spine.forEach(r => { if (r.loc) keyCount[keyOfR(r)] = (keyCount[keyOfR(r)] || 0) + 1; });
   const mainKey = Object.entries(keyCount).sort((a, b) => b[1] - a[1])[0]?.[0];
-  if (zones && mainKey) s += zoneLabel(m, statusOf, mainKey, cx, cy + 4, 'middle', main);
+  if (zones && mainKey) s += `<rect class="zone t-${zoneTone(mainKey)}" x="${-BLEED}" y="${-BLEED}" width="${2 * BLEED}" height="${2 * BLEED}"/>` + zoneLabel(m, statusOf, mainKey, cx, cy + 4, 'middle', main);
   // Steps in another compartment get a shaded wedge of the ring, dashed membranes at its edges, and its own label.
   const inRegion = new Set();
   if (zones && mainKey) {
