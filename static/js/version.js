@@ -5,10 +5,10 @@
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.7.0';
+const APP_VERSION = '3.8.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
-  { v: 'next', items: [
+  { v: '3.8.0', date: '2026-10-18', items: [
     'Diagrams are now a canvas: drag to move around, pinch (or Ctrl/⌘ and scroll) to zoom. The typing box stays on its spot at any zoom, in every browser.',
     'Clearer compartments: each has its own tint with its name on a tab, membranes are dashed, and a step that happens somewhere else (glucose in the blood, pyruvate carboxylase in the mitochondria) gets its own labeled box.',
     'Blanks say what goes there: metabolite, enzyme, transporter, cofactors or compartment.',
