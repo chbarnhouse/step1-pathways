@@ -632,7 +632,7 @@ function occDock() {
   if (R.type === 'build') {
     if (R.done) return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${mi('check')} Built</div><div class="muted">You typed all ${R.order.length} blanks in a row, cleanly.</div></div>
-      <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button><a class="btn ghost" href="#/">Done</a></div>
+      <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
     return `<div class="dock"><div class="dock-row">
       <div class="dock-text"><span class="kind kind-${q.kind}">${KIND[q.kind]}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
@@ -645,7 +645,7 @@ function occDock() {
     return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${Q.score.right} / ${Q.score.total}</div><div class="muted">right on the first try in ${esc(Q.m.p.name)}</div></div>
       <div class="dock-actions">${more ? `<button class="btn primary" data-act="nextpath">${mi('skip_next')} Next: ${esc(R.queue[0].p.name)}</button>` : ''}
-        <button class="btn${more ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button><a class="btn ghost" href="#/">Done</a></div>
+        <button class="btn${more ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
   }
   const open = q.status === 'open' || q.status === 'peek';

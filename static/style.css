@@ -657,3 +657,11 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .fav-x:hover { background: var(--sunk); color: var(--ink); }
 .dash-hint { display: flex; align-items: center; gap: 6px; }
 [data-c="fav"][aria-pressed="true"] .mi, [data-act="fav"][aria-pressed="true"] .mi { fill: var(--gold); }
+/* data notice */
+.tour-gate { font-family: var(--body); font-size: 14.5px; line-height: 1.5; color: var(--ink-2); display: grid; gap: 8px; }
+.tour-gate b, .gate b { color: var(--ink); }
+.cb.ack { align-items: flex-start; font-weight: 600; padding: 10px 12px; border-radius: 10px; background: var(--orange-bg); border: 1.5px solid var(--orange); }
+.cb.ack input { margin-top: 2px; flex: none; }
+.gate .ask-text p + p { margin-top: 8px; }
+.tour-pop:has(.tour-gate) { width: min(520px, calc(100vw - 24px)); }
+#gateDialog { width: min(560px, calc(100vw - 32px)); }

@@ -670,6 +670,14 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .fav-x:hover { background: var(--sunk); color: var(--ink); }
 .dash-hint { display: flex; align-items: center; gap: 6px; }
 [data-c="fav"][aria-pressed="true"] .mi, [data-act="fav"][aria-pressed="true"] .mi { fill: var(--gold); }
+/* data notice */
+.tour-gate { font-family: var(--body); font-size: 14.5px; line-height: 1.5; color: var(--ink-2); display: grid; gap: 8px; }
+.tour-gate b, .gate b { color: var(--ink); }
+.cb.ack { align-items: flex-start; font-weight: 600; padding: 10px 12px; border-radius: 10px; background: var(--orange-bg); border: 1.5px solid var(--orange); }
+.cb.ack input { margin-top: 2px; flex: none; }
+.gate .ask-text p + p { margin-top: 8px; }
+.tour-pop:has(.tour-gate) { width: min(520px, calc(100vw - 24px)); }
+#gateDialog { width: min(560px, calc(100vw - 32px)); }
 </style>
 </head>
 <body data-page="home">
@@ -994,6 +1002,14 @@ const Presets = {
   },
   remove(id) { Store.data.presets = Store.data.presets.filter(p => p.id !== id); Store.save(); },
 };
+
+/* ---------- data notice text (used by the tour and the standalone gate in app.js) ---------- */
+const needsDataAck = () => Store.mode === 'local' && !local.get('pathways.dataAck');
+const DATA_NOTICE_TITLE = 'Your progress is saved only in this browser';
+const DATA_NOTICE_HTML = `<p>STEP 1 Pathways has no accounts and no server, so nothing you do here is saved online. Your history, presets, favorites, tags and settings live in this browser’s storage.</p>
+  <p>Browsers can erase that storage without warning: clearing history or site data, private windows, running low on space, or switching browsers or devices. If that happens, everything is lost and can’t be recovered.</p>
+  <p><b>To keep your progress, download a backup often, and always at the end of a study session.</b> You can restore it in any browser from the dashboard or Settings.</p>`;
+const DATA_ACK_LABEL = 'I understand my progress is saved only in this browser, and that I need to back it up.';
 </script>
 <script>
 /* Pathway JSON → study model.
@@ -2674,7 +2690,7 @@ function occDock() {
   if (R.type === 'build') {
     if (R.done) return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${mi('check')} Built</div><div class="muted">You typed all ${R.order.length} blanks in a row, cleanly.</div></div>
-      <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button><a class="btn ghost" href="#/">Done</a></div>
+      <div class="dock-actions"><button class="btn primary" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
     return `<div class="dock"><div class="dock-row">
       <div class="dock-text"><span class="kind kind-${q.kind}">${KIND[q.kind]}</span><span class="muted"> blank ${R.pos + 1} of ${R.k}</span>${R.roundMsg && R.pos === 0 ? `<div class="round-note">${esc(R.roundMsg)}</div>` : ''}</div>
@@ -2687,7 +2703,7 @@ function occDock() {
     return `<div class="dock done-dock"><div class="dock-row">
       <div class="dock-text"><div class="big">${Q.score.right} / ${Q.score.total}</div><div class="muted">right on the first try in ${esc(Q.m.p.name)}</div></div>
       <div class="dock-actions">${more ? `<button class="btn primary" data-act="nextpath">${mi('skip_next')} Next: ${esc(R.queue[0].p.name)}</button>` : ''}
-        <button class="btn${more ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button><a class="btn ghost" href="#/">Done</a></div>
+        <button class="btn${more ? '' : ' primary'}" data-act="restart">${mi('restart_alt')} Go again</button><button class="btn" data-act="facts">${mi('lightbulb', 'sm')} Review facts</button>${Store.mode === 'local' ? `<button class="btn" data-data="download">${mi('download', 'sm')} Back up</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
     </div>${lastFactsHTML()}</div>`;
   }
   const open = q.status === 'open' || q.status === 'peek';
@@ -2880,6 +2896,8 @@ const TOUR_NEVER = 'pathways.tourNever';
 const Tour = { i: 0, active: false };
 const TOUR_STEPS = [
   { route: '#/', title: 'Welcome to STEP 1 Pathways', text: 'A one-minute tour of where everything is. Skip it any time; you can take it again from the Tour button at the top.' },
+  // Required in the static copy: Next stays disabled until "I understand" is ticked, and the tour can't be skipped before it.
+  { route: '#/', gate: true, when: () => Store.mode === 'local', title: DATA_NOTICE_TITLE },
   { route: '#/', sel: '.hero-new', title: 'Start a quiz', text: 'New quiz is where you pick a pathway and how to study it.' },
   { route: '#/', sel: '.hero-resume', title: 'Pick up where you left off', text: 'Resume reopens your last quiz with the same settings.' },
   { route: '#/', sel: '.dash-cols .dash-card', title: 'Weak spots', text: 'Every answer you miss, reveal or need a hint for is tracked. “Drill these” runs a quiz on just those items.' },
@@ -2888,7 +2906,7 @@ const TOUR_STEPS = [
     ? 'This copy saves to your STEP 1 Pathways server, so every device sees the same progress.'
     : 'Everything is saved in this browser only. Back up now and then; restore the file in any browser to carry on.' },
   { route: '#/new', sel: '.browsebar', title: 'Find a pathway', text: 'Search by pathway, enzyme, metabolite or tag. Filters stack: pick groups, your tags and a status together. Sort by group, A–Z, weakest first or recently studied.' },
-  { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. Pathways marked “pairs up” (glycolysis and gluconeogenesis) can also be studied together.' },
+  { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. A pathway that “combines with” another (glycolysis and gluconeogenesis) can be studied on its own or together with it.' },
   { route: '#/new', sel: '.modes', title: 'How to study', text: 'Fill the blanks hides one item at a time. Full recall rebuilds the pathway in order. Building blocks adds one blank per round, from the top, until you can type the whole thing. Single step drills one reaction from either side.' },
   { route: '#/new', sel: '[data-tour="answer"]', title: 'How to answer', text: 'Type the name (abbreviations count; a/alpha work for α), type along with a faint answer, pick from choices, or self-check. Typing can check each letter and offer “Give me a letter” hints.' },
   { route: '#/new', sel: '.adv', title: 'What to show, quiz or hide', text: 'Advanced lets you set metabolites, enzymes, transporters, cofactors and compartments to Show, Quiz or Hide.' },
@@ -2914,6 +2932,7 @@ async function waitForSel(sel, tries = 20) { for (let i = 0; i < tries; i++) { c
 
 async function showTourStep() {
   const step = TOUR_STEPS[Tour.i], n = TOUR_STEPS.length, last = Tour.i === n - 1;
+  if (step.when && !step.when()) { Tour.i += Tour.dir || 1; return Tour.i >= 0 && Tour.i < n ? showTourStep() : endTour(); }
   step.before?.();
   if (step.route && location.hash !== step.route) { location.hash = step.route; await waitMs(220); }
   const target = await waitForSel(step.sel);
@@ -2927,13 +2946,13 @@ async function showTourStep() {
     <div class="tour-pop" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
       <div class="tour-count">${Tour.i + 1} of ${n}</div>
       <h2 id="tourTitle">${esc(step.title)}</h2>
-      <p>${esc(text)}</p>
+      ${step.gate ? `<div class="tour-gate">${DATA_NOTICE_HTML}</div><label class="cb ack"><input type="checkbox" id="tourAck" ${needsDataAck() ? '' : 'checked'}> ${DATA_ACK_LABEL}</label>` : `<p>${esc(text)}</p>`}
       <div class="tour-foot">
         <label class="cb"><input type="checkbox" id="tourNever" ${never ? 'checked' : ''}> Don’t show the tour again</label>
         <span class="btnrow tight">
-          ${last ? '' : '<button class="btn ghost small" data-tour-act="skip">Skip tour</button>'}
+          ${last || (needsDataAck() && Tour.i <= gateIndex()) ? '' : '<button class="btn ghost small" data-tour-act="skip">Skip tour</button>'}
           ${Tour.i ? '<button class="btn small" data-tour-act="back">Back</button>' : ''}
-          <button class="btn primary small" data-tour-act="next">${last ? 'Finish' : `Next ${mi('arrow_forward', 'sm')}`}</button>
+          <button class="btn primary small" data-tour-act="next" ${step.gate && needsDataAck() ? 'disabled' : ''}>${step.gate ? 'Continue' : last ? 'Finish' : `Next ${mi('arrow_forward', 'sm')}`}</button>
         </span>
       </div>
     </div>`;
@@ -2955,6 +2974,7 @@ function placeTour(target) {
   const x = Math.min(Math.max(12, left), vw - pw - 12);
   pop.style.left = x + 'px'; pop.style.top = y + 'px';
 }
+const gateIndex = () => TOUR_STEPS.findIndex(s => s.gate);
 function startTour() {
   Tour.active = true; Tour.i = 0; Tour.dir = 1;
   try { sessionStorage.setItem('pathways.tourShown', '1'); } catch {}
@@ -2971,6 +2991,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-tour-act]');
   if (b) {
     const a = b.dataset.tourAct;
+    if (a === 'skip' && needsDataAck()) return; // can't skip past the data notice
+    if (a === 'next' && TOUR_STEPS[Tour.i].gate) { if (!$('#tourAck')?.checked) return; local.set('pathways.dataAck', local.get('pathways.dataAck') || Date.now()); }
     if (a === 'skip' || (a === 'next' && Tour.i === TOUR_STEPS.length - 1)) return endTour();
     Tour.dir = a === 'back' ? -1 : 1;
     Tour.i += Tour.dir;
@@ -2978,20 +3000,25 @@ document.addEventListener('click', e => {
   }
   if (e.target.closest('[data-tour-start]')) { e.preventDefault(); startTour(); }
 });
-document.addEventListener('change', e => { if (e.target.id === 'tourNever') local.set(TOUR_NEVER, e.target.checked ? Date.now() : null); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'tourNever') local.set(TOUR_NEVER, e.target.checked ? Date.now() : null);
+  if (e.target.id === 'tourAck') { const b = $('[data-tour-act="next"]'); if (b) b.disabled = !e.target.checked; }
+});
 document.addEventListener('keydown', e => {
   if (!Tour.active || !$('#tour')) return;
-  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); endTour(); }
-  else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); $('[data-tour-act="next"]')?.click(); }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!needsDataAck()) endTour(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); const b = $('[data-tour-act="next"]'); if (b && !b.disabled) b.click(); }
   else if (e.key === 'ArrowLeft' && Tour.i) { e.preventDefault(); e.stopImmediatePropagation(); $('[data-tour-act="back"]')?.click(); }
 }, true);
 window.addEventListener('resize', () => { if (Tour.active) placeTour(TOUR_STEPS[Tour.i].sel && $(TOUR_STEPS[Tour.i].sel)); });
 // First open of a session, unless they've opted out (and never mid-quiz or mid-edit).
+// Returns true when the tour started (it then shows the data notice itself); otherwise boot shows the notice on its own.
 function maybeAutoTour() {
-  if (local.get(TOUR_NEVER)) return;
-  try { if (sessionStorage.getItem('pathways.tourShown')) return; } catch {}
-  if (!['', '#', '#/', '#/new'].includes(location.hash)) return;
+  if (local.get(TOUR_NEVER)) return false;
+  try { if (sessionStorage.getItem('pathways.tourShown')) return false; } catch {}
+  if (!['', '#', '#/', '#/new'].includes(location.hash)) return false;
   startTour();
+  return true;
 }
 </script>
 <script>
@@ -3073,7 +3100,7 @@ function backupCardHTML() {
   if (Store.mode === 'server') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Saved on your server</b><span class="muted">Every device sees the same progress.</span></span></div>`;
   const lb = local.get('pathways.lastBackup'), ago = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
   const when = lb ? (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`) : 'never';
-  return `<div class="card hero-data${unsavedChanges() ? ' due' : ''}"><span class="hero-ic alt">${mi('download')}</span><span><b>Last backup: ${when}</b><span class="muted">${unsavedChanges() ? 'You have progress that isn’t in a backup yet.' : 'Your progress is backed up.'}</span>
+  return `<div class="card hero-data${unsavedChanges() ? ' due' : ''}"><span class="hero-ic alt">${mi('download')}</span><span><b>Last backup: ${when}</b><span class="muted">${unsavedChanges() ? 'You have progress that isn’t in a backup yet.' : lb ? 'Your progress is backed up.' : 'Nothing to back up yet.'}</span>
     <span class="btnrow tight"><button class="btn small primary" data-data="download">${mi('download', 'sm')} Back up</button><button class="btn small ghost" data-data="import">${mi('upload', 'sm')} Restore</button></span></span>
     <input type="file" id="backupFile" accept=".json,application/json" hidden></div>`;
 }
@@ -3179,7 +3206,8 @@ const iconOf = p => (MI[p.icon] ? p.icon : p.compose ? 'sync_alt' : 'route');
 function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)} ${size}">${mi(iconOf(p))}</span>`; }
 function tileHTML(p, page, selected) {
   const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
-  const meta = `${(p.reactions || []).length} steps${pr ? ' · pairs up' : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
+  const partner = pr && pr.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(', ');
+  const meta = `${(p.reactions || []).length} steps${pr ? ` · combines with ${partner}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
   const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
   const tagHTML = tags.length ? `<span class="tile-tags">${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
   if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">
@@ -3468,6 +3496,28 @@ document.addEventListener('change', e => {
 const remindersOn = () => Store.mode === 'local' && local.get('pathways.remind') !== 'off';
 const unsavedChanges = () => (local.get('pathways.changedAt') || 0) > (local.get('pathways.lastBackup') || 0);
 const isFresh = () => !Object.keys(Store.data.stats).length && !Object.keys(Store.data.custom).length && !Store.data.presets.length && !local.get('pathways.seen');
+/* ---------- data notice: required once per browser in the static copy ----------
+   Shown as a step of the tour, or on its own if the tour doesn't run. There is no way past it except
+   ticking "I understand" and pressing Continue. */
+function dataGate() {
+  return new Promise(res => {
+    let d = $('#gateDialog');
+    if (!d) { d = document.createElement('dialog'); d.id = 'gateDialog'; document.body.append(d); }
+    d.innerHTML = `<div class="dlg gate">
+      <div class="dlg-h"><h2>${mi('download', 'h-ic')} ${DATA_NOTICE_TITLE}</h2></div>
+      <div class="ask-text">${DATA_NOTICE_HTML}</div>
+      <label class="cb ack"><input type="checkbox" id="gateAck"> ${DATA_ACK_LABEL}</label>
+      <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
+    d.oncancel = e => e.preventDefault(); // Esc can't dismiss it
+    d.querySelector('#gateAck').onchange = e => { d.querySelector('#gateGo').disabled = !e.target.checked; };
+    d.querySelector('#gateGo').onclick = () => {
+      if (!d.querySelector('#gateAck').checked) return;
+      local.set('pathways.dataAck', Date.now());
+      d.close(); res();
+    };
+    d.showModal();
+  });
+}
 async function openingPrompt() {
   if (Store.mode !== 'local') return;
   if (isFresh()) {
@@ -3521,6 +3571,14 @@ document.addEventListener('change', e => {
 
 /* ================= Router ================= */
 const route = () => router();
+let lastPage = null;
+// Leaving a quiz is the natural end of a session: offer a backup then (the browser itself won't allow a prompt on close).
+async function endOfSessionPrompt() {
+  if (!remindersOn() || !unsavedChanges() || document.querySelector('dialog[open]')) return;
+  const v = await ask({ title: 'Download a backup before you go?', text: 'This session’s progress is only in this browser. A backup keeps it safe if the browser’s storage is ever cleared.', ok: 'Download backup', alt: 'Stop reminding me', cancel: 'Not now' });
+  if (v === true) { downloadBackup(); route(); }
+  if (v === 'alt') { local.set('pathways.remind', 'off'); say('Reminders off', 'You can still back up from the dashboard or Settings, and turn reminders back on in Settings.'); }
+}
 function router() {
   const h = location.hash || '#/';
   let page = 'home', m;
@@ -3541,6 +3599,8 @@ function router() {
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
   else { location.replace('#/'); return; }
   document.body.dataset.page = page;
+  if (lastPage === 'quiz' && page !== 'quiz' && !Tour.active) setTimeout(endOfSessionPrompt, 150);
+  lastPage = page;
   $$('.nav a').forEach(a => a.setAttribute('aria-current', a.dataset.nav === page ? 'page' : 'false'));
   if (page !== 'quiz') window.scrollTo(0, 0);
 }
@@ -3555,7 +3615,7 @@ window.addEventListener('hashchange', router);
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
   await openingPrompt();
-  maybeAutoTour();
+  if (!maybeAutoTour() && needsDataAck()) await dataGate();
 })();
 </script>
 </body>

@@ -76,7 +76,7 @@ function backupCardHTML() {
   if (Store.mode === 'server') return `<div class="card hero-data"><span class="hero-ic alt">${mi('download')}</span><span><b>Saved on your server</b><span class="muted">Every device sees the same progress.</span></span></div>`;
   const lb = local.get('pathways.lastBackup'), ago = lb ? Math.floor((Date.now() - lb) / 86400000) : null;
   const when = lb ? (ago === 0 ? 'today' : ago === 1 ? 'yesterday' : `${ago} days ago`) : 'never';
-  return `<div class="card hero-data${unsavedChanges() ? ' due' : ''}"><span class="hero-ic alt">${mi('download')}</span><span><b>Last backup: ${when}</b><span class="muted">${unsavedChanges() ? 'You have progress that isn’t in a backup yet.' : 'Your progress is backed up.'}</span>
+  return `<div class="card hero-data${unsavedChanges() ? ' due' : ''}"><span class="hero-ic alt">${mi('download')}</span><span><b>Last backup: ${when}</b><span class="muted">${unsavedChanges() ? 'You have progress that isn’t in a backup yet.' : lb ? 'Your progress is backed up.' : 'Nothing to back up yet.'}</span>
     <span class="btnrow tight"><button class="btn small primary" data-data="download">${mi('download', 'sm')} Back up</button><button class="btn small ghost" data-data="import">${mi('upload', 'sm')} Restore</button></span></span>
     <input type="file" id="backupFile" accept=".json,application/json" hidden></div>`;
 }
@@ -182,7 +182,8 @@ const iconOf = p => (MI[p.icon] ? p.icon : p.compose ? 'sync_alt' : 'route');
 function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)} ${size}">${mi(iconOf(p))}</span>`; }
 function tileHTML(p, page, selected) {
   const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
-  const meta = `${(p.reactions || []).length} steps${pr ? ' · pairs up' : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
+  const partner = pr && pr.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(', ');
+  const meta = `${(p.reactions || []).length} steps${pr ? ` · combines with ${partner}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
   const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
   const tagHTML = tags.length ? `<span class="tile-tags">${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
   if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">
@@ -471,6 +472,28 @@ document.addEventListener('change', e => {
 const remindersOn = () => Store.mode === 'local' && local.get('pathways.remind') !== 'off';
 const unsavedChanges = () => (local.get('pathways.changedAt') || 0) > (local.get('pathways.lastBackup') || 0);
 const isFresh = () => !Object.keys(Store.data.stats).length && !Object.keys(Store.data.custom).length && !Store.data.presets.length && !local.get('pathways.seen');
+/* ---------- data notice: required once per browser in the static copy ----------
+   Shown as a step of the tour, or on its own if the tour doesn't run. There is no way past it except
+   ticking "I understand" and pressing Continue. */
+function dataGate() {
+  return new Promise(res => {
+    let d = $('#gateDialog');
+    if (!d) { d = document.createElement('dialog'); d.id = 'gateDialog'; document.body.append(d); }
+    d.innerHTML = `<div class="dlg gate">
+      <div class="dlg-h"><h2>${mi('download', 'h-ic')} ${DATA_NOTICE_TITLE}</h2></div>
+      <div class="ask-text">${DATA_NOTICE_HTML}</div>
+      <label class="cb ack"><input type="checkbox" id="gateAck"> ${DATA_ACK_LABEL}</label>
+      <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
+    d.oncancel = e => e.preventDefault(); // Esc can't dismiss it
+    d.querySelector('#gateAck').onchange = e => { d.querySelector('#gateGo').disabled = !e.target.checked; };
+    d.querySelector('#gateGo').onclick = () => {
+      if (!d.querySelector('#gateAck').checked) return;
+      local.set('pathways.dataAck', Date.now());
+      d.close(); res();
+    };
+    d.showModal();
+  });
+}
 async function openingPrompt() {
   if (Store.mode !== 'local') return;
   if (isFresh()) {
@@ -524,6 +547,14 @@ document.addEventListener('change', e => {
 
 /* ================= Router ================= */
 const route = () => router();
+let lastPage = null;
+// Leaving a quiz is the natural end of a session: offer a backup then (the browser itself won't allow a prompt on close).
+async function endOfSessionPrompt() {
+  if (!remindersOn() || !unsavedChanges() || document.querySelector('dialog[open]')) return;
+  const v = await ask({ title: 'Download a backup before you go?', text: 'This session’s progress is only in this browser. A backup keeps it safe if the browser’s storage is ever cleared.', ok: 'Download backup', alt: 'Stop reminding me', cancel: 'Not now' });
+  if (v === true) { downloadBackup(); route(); }
+  if (v === 'alt') { local.set('pathways.remind', 'off'); say('Reminders off', 'You can still back up from the dashboard or Settings, and turn reminders back on in Settings.'); }
+}
 function router() {
   const h = location.hash || '#/';
   let page = 'home', m;
@@ -544,6 +575,8 @@ function router() {
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
   else { location.replace('#/'); return; }
   document.body.dataset.page = page;
+  if (lastPage === 'quiz' && page !== 'quiz' && !Tour.active) setTimeout(endOfSessionPrompt, 150);
+  lastPage = page;
   $$('.nav a').forEach(a => a.setAttribute('aria-current', a.dataset.nav === page ? 'page' : 'false'));
   if (page !== 'quiz') window.scrollTo(0, 0);
 }
@@ -558,5 +591,5 @@ window.addEventListener('hashchange', router);
   if (Store.mode === 'local' && navigator.storage?.persist) { try { Store.persisted = await navigator.storage.persisted() || await navigator.storage.persist(); } catch {} }
   router();
   await openingPrompt();
-  maybeAutoTour();
+  if (!maybeAutoTour() && needsDataAck()) await dataGate();
 })();

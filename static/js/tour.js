@@ -7,6 +7,8 @@ const TOUR_NEVER = 'pathways.tourNever';
 const Tour = { i: 0, active: false };
 const TOUR_STEPS = [
   { route: '#/', title: 'Welcome to STEP 1 Pathways', text: 'A one-minute tour of where everything is. Skip it any time; you can take it again from the Tour button at the top.' },
+  // Required in the static copy: Next stays disabled until "I understand" is ticked, and the tour can't be skipped before it.
+  { route: '#/', gate: true, when: () => Store.mode === 'local', title: DATA_NOTICE_TITLE },
   { route: '#/', sel: '.hero-new', title: 'Start a quiz', text: 'New quiz is where you pick a pathway and how to study it.' },
   { route: '#/', sel: '.hero-resume', title: 'Pick up where you left off', text: 'Resume reopens your last quiz with the same settings.' },
   { route: '#/', sel: '.dash-cols .dash-card', title: 'Weak spots', text: 'Every answer you miss, reveal or need a hint for is tracked. “Drill these” runs a quiz on just those items.' },
@@ -15,7 +17,7 @@ const TOUR_STEPS = [
     ? 'This copy saves to your STEP 1 Pathways server, so every device sees the same progress.'
     : 'Everything is saved in this browser only. Back up now and then; restore the file in any browser to carry on.' },
   { route: '#/new', sel: '.browsebar', title: 'Find a pathway', text: 'Search by pathway, enzyme, metabolite or tag. Filters stack: pick groups, your tags and a status together. Sort by group, A–Z, weakest first or recently studied.' },
-  { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. Pathways marked “pairs up” (glycolysis and gluconeogenesis) can also be studied together.' },
+  { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. A pathway that “combines with” another (glycolysis and gluconeogenesis) can be studied on its own or together with it.' },
   { route: '#/new', sel: '.modes', title: 'How to study', text: 'Fill the blanks hides one item at a time. Full recall rebuilds the pathway in order. Building blocks adds one blank per round, from the top, until you can type the whole thing. Single step drills one reaction from either side.' },
   { route: '#/new', sel: '[data-tour="answer"]', title: 'How to answer', text: 'Type the name (abbreviations count; a/alpha work for α), type along with a faint answer, pick from choices, or self-check. Typing can check each letter and offer “Give me a letter” hints.' },
   { route: '#/new', sel: '.adv', title: 'What to show, quiz or hide', text: 'Advanced lets you set metabolites, enzymes, transporters, cofactors and compartments to Show, Quiz or Hide.' },
@@ -41,6 +43,7 @@ async function waitForSel(sel, tries = 20) { for (let i = 0; i < tries; i++) { c
 
 async function showTourStep() {
   const step = TOUR_STEPS[Tour.i], n = TOUR_STEPS.length, last = Tour.i === n - 1;
+  if (step.when && !step.when()) { Tour.i += Tour.dir || 1; return Tour.i >= 0 && Tour.i < n ? showTourStep() : endTour(); }
   step.before?.();
   if (step.route && location.hash !== step.route) { location.hash = step.route; await waitMs(220); }
   const target = await waitForSel(step.sel);
@@ -54,13 +57,13 @@ async function showTourStep() {
     <div class="tour-pop" role="dialog" aria-modal="true" aria-labelledby="tourTitle">
       <div class="tour-count">${Tour.i + 1} of ${n}</div>
       <h2 id="tourTitle">${esc(step.title)}</h2>
-      <p>${esc(text)}</p>
+      ${step.gate ? `<div class="tour-gate">${DATA_NOTICE_HTML}</div><label class="cb ack"><input type="checkbox" id="tourAck" ${needsDataAck() ? '' : 'checked'}> ${DATA_ACK_LABEL}</label>` : `<p>${esc(text)}</p>`}
       <div class="tour-foot">
         <label class="cb"><input type="checkbox" id="tourNever" ${never ? 'checked' : ''}> Don’t show the tour again</label>
         <span class="btnrow tight">
-          ${last ? '' : '<button class="btn ghost small" data-tour-act="skip">Skip tour</button>'}
+          ${last || (needsDataAck() && Tour.i <= gateIndex()) ? '' : '<button class="btn ghost small" data-tour-act="skip">Skip tour</button>'}
           ${Tour.i ? '<button class="btn small" data-tour-act="back">Back</button>' : ''}
-          <button class="btn primary small" data-tour-act="next">${last ? 'Finish' : `Next ${mi('arrow_forward', 'sm')}`}</button>
+          <button class="btn primary small" data-tour-act="next" ${step.gate && needsDataAck() ? 'disabled' : ''}>${step.gate ? 'Continue' : last ? 'Finish' : `Next ${mi('arrow_forward', 'sm')}`}</button>
         </span>
       </div>
     </div>`;
@@ -82,6 +85,7 @@ function placeTour(target) {
   const x = Math.min(Math.max(12, left), vw - pw - 12);
   pop.style.left = x + 'px'; pop.style.top = y + 'px';
 }
+const gateIndex = () => TOUR_STEPS.findIndex(s => s.gate);
 function startTour() {
   Tour.active = true; Tour.i = 0; Tour.dir = 1;
   try { sessionStorage.setItem('pathways.tourShown', '1'); } catch {}
@@ -98,6 +102,8 @@ document.addEventListener('click', e => {
   const b = e.target.closest('[data-tour-act]');
   if (b) {
     const a = b.dataset.tourAct;
+    if (a === 'skip' && needsDataAck()) return; // can't skip past the data notice
+    if (a === 'next' && TOUR_STEPS[Tour.i].gate) { if (!$('#tourAck')?.checked) return; local.set('pathways.dataAck', local.get('pathways.dataAck') || Date.now()); }
     if (a === 'skip' || (a === 'next' && Tour.i === TOUR_STEPS.length - 1)) return endTour();
     Tour.dir = a === 'back' ? -1 : 1;
     Tour.i += Tour.dir;
@@ -105,18 +111,23 @@ document.addEventListener('click', e => {
   }
   if (e.target.closest('[data-tour-start]')) { e.preventDefault(); startTour(); }
 });
-document.addEventListener('change', e => { if (e.target.id === 'tourNever') local.set(TOUR_NEVER, e.target.checked ? Date.now() : null); });
+document.addEventListener('change', e => {
+  if (e.target.id === 'tourNever') local.set(TOUR_NEVER, e.target.checked ? Date.now() : null);
+  if (e.target.id === 'tourAck') { const b = $('[data-tour-act="next"]'); if (b) b.disabled = !e.target.checked; }
+});
 document.addEventListener('keydown', e => {
   if (!Tour.active || !$('#tour')) return;
-  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); endTour(); }
-  else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); $('[data-tour-act="next"]')?.click(); }
+  if (e.key === 'Escape') { e.preventDefault(); e.stopImmediatePropagation(); if (!needsDataAck()) endTour(); }
+  else if (e.key === 'ArrowRight') { e.preventDefault(); e.stopImmediatePropagation(); const b = $('[data-tour-act="next"]'); if (b && !b.disabled) b.click(); }
   else if (e.key === 'ArrowLeft' && Tour.i) { e.preventDefault(); e.stopImmediatePropagation(); $('[data-tour-act="back"]')?.click(); }
 }, true);
 window.addEventListener('resize', () => { if (Tour.active) placeTour(TOUR_STEPS[Tour.i].sel && $(TOUR_STEPS[Tour.i].sel)); });
 // First open of a session, unless they've opted out (and never mid-quiz or mid-edit).
+// Returns true when the tour started (it then shows the data notice itself); otherwise boot shows the notice on its own.
 function maybeAutoTour() {
-  if (local.get(TOUR_NEVER)) return;
-  try { if (sessionStorage.getItem('pathways.tourShown')) return; } catch {}
-  if (!['', '#', '#/', '#/new'].includes(location.hash)) return;
+  if (local.get(TOUR_NEVER)) return false;
+  try { if (sessionStorage.getItem('pathways.tourShown')) return false; } catch {}
+  if (!['', '#', '#/', '#/new'].includes(location.hash)) return false;
   startTour();
+  return true;
 }
