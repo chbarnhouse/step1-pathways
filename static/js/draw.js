@@ -116,6 +116,7 @@ function cofArcParts(x, y1, y2, parts, up = false) {
   for (const [p, y] of [[pin, a[1]], [pout, b[1]]]) {
     if (!p) continue;
     const x0 = x + 50;
+    DRAW_LABELS.push({ x: x0, y: y - 14, w: hidden(p.st) ? 160 : p.text.length * cw + 24, h: 28 });
     if (isLive(p)) { const w = Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64); s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24); }
     else if (hidden(p.st)) { const w = pillW(cofWord(p, two)); s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`; }
     else s += `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(x0 + p.text.length * cw + 14, y, p.st);
@@ -124,12 +125,27 @@ function cofArcParts(x, y1, y2, parts, up = false) {
 }
 // The same curved side arrow beside any straight step (sideways, slanted across a membrane): it sits on side n of the
 // line p1→p2, inputs where it starts, outputs where it ends, and its middle bows in toward the step's arrow.
-function cofArcLine(p1, p2, n, parts) {
+// The metabolite boxes of the diagram being drawn (top-left x, y, w, h): side labels steer around them.
+// DRAW_LABELS: enzyme and cofactor labels already placed, so later labels and link tags keep clear of them too.
+let DRAW_BOXES = [], DRAW_LABELS = [];
+const overlaps = (r, b) => r.x < b.x + b.w + 4 && r.x + r.w > b.x - 4 && r.y < b.y + b.h + 2 && r.y + r.h > b.y - 2;
+const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b => overlaps(r, b));
+const labelRect = (x, y, anchor, text, max = 18, valign = 'center') => {
+  const lines = Math.max(1, Math.ceil(text.length / max)), w = Math.min(text.length, max) * 6.6, h = lines * 15;
+  return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h };
+};
+function cofArcLine(p1, p2, n, parts, flip = false) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
   if (parts.length === 1 && !parts[0].side) return cofRow((p1[0] + p2[0]) / 2 + n[0] * 30, (p1[1] + p2[1]) / 2 + n[1] * 30, Math.abs(n[0]) > 0.5 ? (n[0] > 0 ? 'start' : 'end') : 'middle', parts);
   const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out');
   if (!pin && !pout) return '';
   const dx = p2[0] - p1[0], dy = p2[1] - p1[1], L = Math.hypot(dx, dy) || 1, u = [dx / L, dy / L];
+  if (flip) {
+    // A slanted step: put the curve on whichever side of the arrow is less crowded (boxes, labels already drawn).
+    const crowd = nn => { const pts = [0.3, 0.5, 0.7].map(t => [p1[0] + dx * t + nn[0] * 44, p1[1] + dy * t + nn[1] * 44]);
+      return pts.filter(([x, y]) => hitsBox({ x: x - 50, y: y - 14, w: 100, h: 28 })).length; };
+    if (crowd(n) > crowd([-n[0], -n[1]])) n = [-n[0], -n[1]];
+  }
   const at = (t, off) => [p1[0] + u[0] * L * t + n[0] * off, p1[1] + u[1] * L * t + n[1] * off];
   // A compact curve around the middle of the step (long slanted steps would otherwise stretch it box to box).
   const h = Math.min(0.3, 55 / L), tS = 0.5 - h, tE = 0.5 + h;
@@ -144,10 +160,16 @@ function cofArcLine(p1, p2, n, parts) {
   for (const [p, P, first] of [[pin, S, true], [pout, E, false]]) {
     if (!p) continue;
     // Two sides spread apart along the line; a lone side leans away from the line, clear of the boxes at its ends.
-    const anchor = side || (two ? ((u[0] >= 0) === first ? 'end' : 'start') : n[0] >= 0 ? 'start' : 'end');
-    const lx = P[0] + n[0] * 10, ly = P[1] + n[1] * 16;
+    // Level steps (grids, side steps) center each label under its end, clear of the columns' labels on either side.
+    const level = Math.abs(u[1]) < 0.1 && two;
+    let anchor = side || (level ? 'middle' : two ? ((u[0] >= 0) === first ? 'end' : 'start') : n[0] >= 0 ? 'start' : 'end');
+    const lx = P[0] + n[0] * 10, ly = P[1] + n[1] * (level ? 20 : 16);
     const live = isLive(p), w = live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw;
-    const x0 = anchor === 'end' ? lx - w : anchor === 'middle' ? lx - w / 2 : lx;
+    const xAt = a => (a === 'end' ? lx - w : a === 'middle' ? lx - w / 2 : lx);
+    // A label that would run under a box goes the other way instead (Dehydroascorbate beside norepinephrine).
+    if (hitsBox({ x: xAt(anchor), y: ly - 13, w, h: 26 })) anchor = ['start', 'end', 'middle'].filter(a => a !== anchor).find(a => !hitsBox({ x: xAt(a), y: ly - 13, w, h: 26 })) || anchor;
+    const x0 = xAt(anchor);
+    DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
     if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
     else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
     else s += `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
@@ -201,8 +223,8 @@ const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'mi
 let LINK_NAV = false;
 const tagLabel = l => (l.dir === 'in' ? 'from ' : '→ ') + (Library.get(l.to)?.name || l.to) + (l.via ? ` (${l.via})` : '');
 const tagLabelW = l => tagLabel(l).length * 6.3 + 24;
-function linkTags(m, statusOf, boxes, prefer = () => 'right') {
-  const out = { s: '', maxX: 0 }, byAt = {}, all = Object.values(boxes), taken = [];
+function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
+  const out = { s: '', maxX: 0 }, byAt = {}, all = [...Object.values(boxes), ...obstacles, ...DRAW_LABELS], taken = []; // obstacles: compartment regions
   for (const l of m.p.links || []) (byAt[l.at] = byAt[l.at] || []).push(l);
   const hits = r => [...all, ...taken].some(b => r.x < b.x + b.w + 6 && r.x + r.w > b.x - 6 && r.y < b.y + b.h + 4 && r.y + r.h > b.y - 4);
   for (const [at, ls] of Object.entries(byAt)) {
@@ -225,9 +247,10 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right') {
       } else {
         const cy = yb + (i - (ls.length - 1) / 2) * (h + 6);
         const R = { x: b.x + b.w + 36, y: cy - h / 2, w, h }, L = { x: b.x - 36 - w, y: cy - h / 2, w, h };
-        r = (pref === 'left' ? [L, R] : [R, L]).find(c => c.x >= 0 && !hits(c)) || (R.x >= 0 ? R : L);
-        const right = r === R, x1 = right ? b.x + b.w + 2 : b.x - 2, x2 = right ? r.x : r.x + r.w, mx = (x1 + x2) / 2;
-        line = `M${x1},${yb} C${mx},${yb} ${mx},${cy} ${x2},${cy}`;
+        const down = k => ({ ...R, y: R.y + k * (h + 6) }); // both sides taken (a region, another tag): step down beside the box
+        r = [...(pref === 'left' ? [L, R] : [R, L]), down(1), down(2), down(3)].find(c => c.x >= 0 && !hits(c)) || (R.x >= 0 ? R : L);
+        const right = r !== L, x1 = right ? b.x + b.w + 2 : b.x - 2, x2 = right ? r.x : r.x + r.w, mx = (x1 + x2) / 2, ty = r.y + h / 2;
+        line = `M${x1},${yb} C${mx},${yb} ${mx},${ty} ${x2},${ty}`;
       }
       taken.push(r);
       const g = `<path class="xline" d="${line}"/><rect class="xtag" x="${r.x}" y="${r.y}" width="${w}" height="${h}" rx="11"/><text class="xtagt" x="${r.x + w / 2}" y="${r.y + h / 2}" text-anchor="middle" dominant-baseline="central">${esc(label)}</text>`;
@@ -253,7 +276,7 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
   if (Math.abs(p1[1] - p2[1]) < 4) {
-    s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom');
+    s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(labelRect(mx, my - 8, 'middle', it?.name || '', 16, 'bottom'));
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center');
@@ -275,8 +298,9 @@ function diagLabel(m, statusOf, r, p1, p2, boxes = []) {
   const cs = cofSt(m, statusOf, r), side = (x - (p1[0] + dx * 0.42)) * nx + (y - (p1[1] + dy * 0.42)) * ny >= 0 ? 1 : -1;
   const anchor = steep ? 'end' : 'middle';
   let s = enzLabel(x, y, m.items['e:' + r.id], statusOf('e:' + r.id), anchor, 18, steep ? 'center' : 'bottom');
-  // Cofactors curve along the other side of the line from the enzyme's name.
-  if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [-nx * side, -ny * side], cofParts(m, statusOf, r));
+  DRAW_LABELS.push(labelRect(x, y, anchor, m.items['e:' + r.id]?.name || '', 18, steep ? 'center' : 'bottom'));
+  // Cofactors curve along the other side of the line from the enzyme's name (or back across it if that side is crowded).
+  if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [-nx * side, -ny * side], cofParts(m, statusOf, r), true);
   return s;
 }
 
@@ -305,8 +329,10 @@ function computeLanes(m) {
     const w = where[id], k = keyOf(w.loc, w.tissue);
     (lanes[k] = lanes[k] || { key: k, labels: {}, tissue: w.tissue || p.tissue || '', comp: canonLoc(w.loc || '') }).labels[w.loc || ''] = ((lanes[k].labels[w.loc || ''] || 0) + 1);
   }
-  const list = Object.values(lanes).sort((a, b) =>
-    (multiT ? tissues.indexOf(a.tissue) - tissues.indexOf(b.tissue) : 0) || (LANE_ORDER[a.comp] ?? 1.5) - (LANE_ORDER[b.comp] ?? 1.5));
+  // A pathway can set its own left-to-right order (p.lanes: compartments) when the usual one would make it zigzag.
+  const own = (p.lanes || []).map(canonLoc), ownAt = c => (own.includes(c) ? own.indexOf(c) : own.length);
+  const list = Object.values(lanes).sort((a, b) => (own.length ? ownAt(a.comp) - ownAt(b.comp) : 0)
+    || (multiT ? tissues.indexOf(a.tissue) - tissues.indexOf(b.tissue) : 0) || (LANE_ORDER[a.comp] ?? 1.5) - (LANE_ORDER[b.comp] ?? 1.5));
   list.forEach((l, i) => {
     l.i = i;
     const loc = Object.entries(l.labels).sort((a, b) => b[1] - a[1])[0][0];
@@ -321,7 +347,7 @@ const LANE_W = 470;
 // On the canvas, compartment tints and membranes run past the drawing to the canvas edges (the SVG may paint outside
 // its box there); anywhere else the browser clips them to the drawing as before.
 const BLEED = 20000;
-const SIDE_STEP = BW + 170; // box + the gap a sideways step's enzyme and cofactor text needs
+const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
   mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
@@ -396,6 +422,11 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const n = forks[anchor] = (forks[anchor] || 0) + 1, y = pos[anchor].y + (n - 1) * (BH + GAP);
       // Off the last box of the main line, the second arm simply continues straight down.
       if (n > 1 && anchor === spineMets[spineMets.length - 1]) { pos[id] = { x: pos[anchor].x, y }; return; }
+      // A chain of side steps (UDP → dUDP → dUTP → dUMP → dTMP) runs down its own column, not off sideways in a row.
+      if (n === 1 && !onSpine.has(anchor)) {
+        const below = { x: pos[anchor].x, y: pos[anchor].y + BH + GAP };
+        if (!Object.values(pos).some(q => q.x === below.x && Math.abs(q.y - below.y) < BH + GAP)) { pos[id] = below; return; }
+      }
       place(id, y);
     };
     for (let pass = 0; pass < 3; pass++) branches.forEach(b => {
@@ -406,6 +437,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   layout(); // counts the columns each lane needs
   if (Object.keys(cols).length) layout(); // then lays out again with the lanes widened
   const ctr = id => ({ cx: pos[id].x, cy: pos[id].y + BH / 2 });
+  DRAW_BOXES = Object.values(pos).map(q => ({ x: q.x - BW / 2, y: q.y, w: BW, h: BH })); DRAW_LABELS = [];
   const xs = Object.values(pos).map(q => q.x);
   let W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).some(k => k.startsWith('side|')) ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
   const bottom = Math.max(top + spineMets.length * (BH + GAP) - GAP, ...Object.values(pos).map(q => q.y + BH));
@@ -522,6 +554,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const X = xa;
       s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r));
       s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
+      DRAW_LABELS.push(labelRect(X - 34, (y1 + y2) / 2, 'end', items['e:' + r.id]?.name || '', 24));
       const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
       if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, y1, y2, cofParts(m, statusOf, r));
     } else {
@@ -551,7 +584,8 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   });
   branches.filter(b => !bypass.includes(b)).forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, ctr(r.from), ctr(r.to)); });
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
-  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.x - BW / 2, y: q.y, w: BW, h: BH }])));
+  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.x - BW / 2, y: q.y, w: BW, h: BH }])), undefined, Object.values(clusters).flat());
+  DRAW_BOXES = [];
   s += lk.s; W = Math.max(W, lk.maxX + 12);
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}${fg}</svg>`;
 }
@@ -570,6 +604,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     const [sp, sd] = pos[b.from] ? [b.from, b.to] : [b.to, b.from];
     if (pos[sp] && !pos[sd]) { const t = pos[sp].t; const [x, y] = pt(t, 170); pos[sd] = { cx: x, cy: y, t }; }
   });
+  DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
   const counts = {};
   spine.forEach(r => { const l = locLabel(m, r); if (l) counts[l] = (counts[l] || 0) + 1; });
   const main = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
@@ -634,22 +669,23 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id), w);
   const xs = Object.values(pos).map(q => q.cx), ys = Object.values(pos).map(q => q.cy);
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH }])), id => (Math.abs(Math.sin(pos[id].t)) > 0.9 ? (Math.sin(pos[id].t) < 0 ? 'up' : 'down') : pos[id].cx < cx ? 'left' : 'right'));
-  s += lk.s;
+  s += lk.s; DRAW_BOXES = [];
   const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20, lk.maxX + 12), H = Math.max(...ys) + BH / 2 + 180;
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} cycle diagram">${s}</svg>`;
 }
 
 // Grids (steroidogenesis): every metabolite sets pos: [column, row]; optional grid_columns headers.
 function gridSVG(m, statusOf, opts = {}) {
-  const { p, items } = m, COLW = BW + 200, ROWH = BH + 96, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.grid_columns ? 34 : 0);
+  const { p, items } = m, COLW = BW + 320, ROWH = BH + 96, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.grid_columns ? 34 : 0);
   const pos = {};
   for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
+  DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
   p.reactions.forEach(r => { s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to]); });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id));
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }])));
-  s += lk.s;
+  s += lk.s; DRAW_BOXES = [];
   let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24;
   const W = Math.max(Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24, lk.maxX + 12);
   if (opts.zones !== false) {
@@ -657,7 +693,7 @@ function gridSVG(m, statusOf, opts = {}) {
     const zs = Object.values(items).filter(it => it.kind === 'loc');
     // In columns wide enough for the longest name, one per line, so long tissue names never run into each other.
     if (zs.length) {
-      const colW = Math.max(...zs.map(z => z.name.length)) * 7.4 + 40, ncol = Math.max(1, Math.floor((W - 150) / colW)), rows = Math.ceil(zs.length / ncol);
+      const colW = Math.max(...zs.map(z => z.name.length)) * 8.6 + 48, ncol = Math.max(1, Math.floor((W - 150) / colW)), rows = Math.ceil(zs.length / ncol);
       s += `<text class="zonet" x="24" y="${H + 6}">Compartments:</text>`;
       zs.forEach((z, i) => { s += zoneLabel(m, statusOf, z.id, 150 + Math.floor(i / rows) * colW, H + 6 + (i % rows) * 28, 'start'); });
       H += rows * 28 + 4;

@@ -425,5 +425,10 @@
    "to": "tca",
    "dir": "in"
   }
+ ],
+ "lanes": [
+  "mitochondria",
+  "cytosol",
+  "er"
  ]
 }

@@ -47,9 +47,19 @@
    "name": "Glucose",
    "short": "Glc",
    "aliases": [
-    "free glucose",
     "D-glucose"
-   ]
+   ],
+   "notes": "Made in the ER lumen by glucose-6-phosphatase (liver and kidney) and exported to the blood. Muscle lacks this enzyme, so its glycogen only feeds its own glycolysis."
+  },
+  "glucosec": {
+   "name": "Glucose (cytosol)",
+   "short": "Glc",
+   "aliases": [
+    "free glucose",
+    "cytosolic glucose"
+   ],
+   "loc": "cytosol",
+   "notes": "About 8–10% of the glucose from glycogen: the debranching enzyme frees each α-1,6 branch point as glucose, not G1P."
   }
  },
  "enzymes": {
@@ -118,7 +128,7 @@
    "id": "r2",
    "enzyme": "gde",
    "from": "limit",
-   "to": "glucose",
+   "to": "glucosec",
    "reversible": false,
    "cofactors": {
     "in": [

@@ -52,7 +52,8 @@
    "aliases": [
     "mevalonic acid"
    ],
-   "notes": "Committed product."
+   "notes": "Committed product.",
+   "loc": "cytosol"
   },
   "mev5p": {
    "name": "Mevalonate-5-phosphate",
