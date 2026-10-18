@@ -338,13 +338,15 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     sideX = laneX(lanesOn ? last : 0) + SIDE_STEP + (bypass.length ? 190 : 0);
     pos = {}; perRow = {}; const forks = {};
     spineMets.forEach((id, i) => { pos[id] = { x: laneX(L.laneOf[id] || 0), y: top + i * (BH + GAP) }; });
-    const place = (id, y) => {
+    const place = (id, y, stack = 0) => {
       if (pos[id]) return;
+      // Many extra inputs into one step (VOMIT → propionyl-CoA) stack in a column beside the line, not a long row.
+      if (stack) { pos[id] = { x: sideX, y: y + (stack - 1) * (BH + GAP) }; return; }
       const li = sideLane(id), row = (li >= 0 ? li : 'side') + '|' + y, k = perRow[row] = (perRow[row] || 0) + 1;
       if (li >= 0) { cols[li] = Math.max(cols[li] || 0, k); pos[id] = { x: laneX(li) + k * SIDE_STEP, y }; return; }
       pos[id] = { x: sideX + (k - 1) * SIDE_STEP, y };
     };
-    spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach(x => place(x, pos[r.from].y)); });
+    spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach((x, i, all) => place(x, pos[r.from].y, all.length >= 3 ? i + 1 : 0)); });
     // A second branch out of the same box (IMP → AMP and IMP → GMP) starts a row lower, so the two arms never cross.
     const fork = (anchor, id) => {
       if (pos[id]) return;
@@ -486,7 +488,14 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     }
     // Extra products/reactants leave from the box's lower-right corner, clear of the cofactor text beside the arrow.
     for (const sd of r.also_to || []) { const sx = xa + BW / 2 - 12, e = edgePt(ctr(sd), sx, y1 + 2); s += arrow(sx, y1 + 2, e[0], e[1], r.reversible); }
-    for (const sd of r.also_from || []) { const sx = xb + BW / 2 - 12, e = edgePt(ctr(sd), sx, y2 - 2); s += arrow(e[0], e[1], sx, y2 - 2, r.reversible); }
+    const many = (r.also_from || []).length >= 3;
+    if (many) {
+      // A stacked column of inputs joins one line that runs up beside them and enters the target from the side.
+      const t = ctr(r.to), xr = xb + BW / 2 + 6, srcs = r.also_from.map(ctr), xl = Math.min(...srcs.map(c => c.cx)) - BW / 2 - 6, bus = (xr + xl) / 2;
+      const ys = srcs.map(c => c.cy), top = Math.min(t.cy, ...ys), bot = Math.max(t.cy, ...ys);
+      srcs.forEach(c => { s += `<path class="ln" d="M${xl},${c.cy}H${bus}"/>`; });
+      s += `<path class="ln" d="M${bus},${top}V${bot}"/>` + arrow(bus, t.cy, xr, t.cy, r.reversible);
+    } else for (const sd of r.also_from || []) { const sx = xb + BW / 2 - 12, e = edgePt(ctr(sd), sx, y2 - 2); s += arrow(e[0], e[1], sx, y2 - 2, r.reversible); }
   });
   bypass.forEach((r, k) => {
     const a = ctr(r.from), b = ctr(r.to), x0 = Math.max(a.cx, b.cx) + BW / 2 + 6, xc = x0 + 120 + (k % 2) * 10;

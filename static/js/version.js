@@ -9,6 +9,9 @@ const APP_VERSION = '3.9.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'When a quiz is done, a summary pops up: your score, time, and anything to look at again, with Go again, Change settings (opens New quiz with this quiz loaded) and Review facts.',
+    'Dashboard: Recent quizzes, the last few different quizzes you took, ready to start again (▶), open in New quiz, or star as a favorite.',
+    'New pathway: VOMIT (propionyl-CoA → succinyl-CoA). Valine, Odd-chain fatty acids, Methionine, Isoleucine and Threonine feed propionyl-CoA; then propionyl-CoA carboxylase (biotin), methylmalonyl-CoA epimerase and methylmalonyl-CoA mutase (B12).',
   ] },
   { v: '3.9.0', date: '2026-10-18', items: [
     'New quiz: hover over Show, Quiz, Place or Hide to see what each one does.',

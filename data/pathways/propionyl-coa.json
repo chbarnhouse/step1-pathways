@@ -1,0 +1,234 @@
+{
+ "id": "propionyl-coa",
+ "name": "VOMIT pathway",
+ "group": "Nitrogen & amino acids",
+ "aliases": [
+  "propionyl-CoA metabolism",
+  "propionate pathway",
+  "propionyl-CoA to succinyl-CoA",
+  "VOMIT"
+ ],
+ "summary": "Mitochondria. Valine, Odd-chain fatty acids, Methionine, Isoleucine and Threonine (VOMIT) are broken down to propionyl-CoA, which is carboxylated (biotin) and rearranged (B12) into succinyl-CoA for the TCA cycle. Propionyl-CoA carboxylase deficiency → propionic acidemia; methylmalonyl-CoA mutase or B12 deficiency → methylmalonic acidemia / raised methylmalonic acid.",
+ "metabolites": {
+  "valine": {
+   "name": "Valine",
+   "short": "Val",
+   "aliases": [],
+   "nicknames": [
+    "V"
+   ],
+   "notes": "Branched-chain amino acid; its breakdown also needs branched-chain α-ketoacid dehydrogenase (deficient in maple syrup urine disease)."
+  },
+  "oddfa": {
+   "name": "Odd-chain fatty acids",
+   "short": "",
+   "aliases": [
+    "odd chain fatty acids",
+    "odd-chain fatty acid",
+    "odd chain fatty acid",
+    "odd-numbered fatty acids"
+   ],
+   "nicknames": [
+    "OCFA"
+   ],
+   "notes": "β-oxidation of an odd-chain fatty acid ends with one propionyl-CoA (plus acetyl-CoAs)."
+  },
+  "methionine": {
+   "name": "Methionine",
+   "short": "Met",
+   "aliases": [],
+   "notes": "Via SAM → homocysteine → cystathionine → α-ketobutyrate → propionyl-CoA."
+  },
+  "isoleucine": {
+   "name": "Isoleucine",
+   "short": "Ile",
+   "aliases": [],
+   "notes": "Branched-chain amino acid; gives propionyl-CoA and acetyl-CoA (both glucogenic and ketogenic)."
+  },
+  "threonine": {
+   "name": "Threonine",
+   "short": "Thr",
+   "aliases": [],
+   "notes": "Via α-ketobutyrate → propionyl-CoA."
+  },
+  "propcoa": {
+   "name": "Propionyl-CoA",
+   "short": "",
+   "aliases": [
+    "propionyl coenzyme A",
+    "propanoyl-CoA"
+   ],
+   "notes": "Three-carbon acyl-CoA. Builds up in propionic acidemia."
+  },
+  "dmmcoa": {
+   "name": "D-Methylmalonyl-CoA",
+   "short": "",
+   "aliases": [
+    "D methylmalonyl-CoA",
+    "(S)-methylmalonyl-CoA",
+    "S-methylmalonyl-CoA"
+   ],
+   "nicknames": [
+    "D-MM-CoA"
+   ],
+   "notes": "The product of the carboxylase; must be converted to the L form before the mutase can use it."
+  },
+  "lmmcoa": {
+   "name": "L-Methylmalonyl-CoA",
+   "short": "",
+   "aliases": [
+    "L methylmalonyl-CoA",
+    "(R)-methylmalonyl-CoA",
+    "R-methylmalonyl-CoA"
+   ],
+   "nicknames": [
+    "L-MM-CoA"
+   ],
+   "notes": "Accumulates (and spills over as methylmalonic acid) when the mutase or B12 is lacking."
+  },
+  "succoa": {
+   "name": "Succinyl-CoA",
+   "short": "",
+   "aliases": [
+    "succinyl coenzyme A"
+   ],
+   "notes": "Enters the TCA cycle; also used for heme synthesis (with glycine)."
+  }
+ },
+ "enzymes": {
+  "catab": {
+   "name": "Catabolism (several steps)",
+   "short": "",
+   "aliases": [
+    "catabolism",
+    "breakdown",
+    "degradation",
+    "several steps",
+    "β-oxidation and amino acid catabolism"
+   ],
+   "notes": "Not one enzyme: each source has its own route to propionyl-CoA. Mnemonic: VOMIT."
+  },
+  "pcc": {
+   "name": "Propionyl-CoA carboxylase",
+   "short": "PCC",
+   "aliases": [
+    "propionyl coenzyme A carboxylase"
+   ],
+   "nicknames": [
+    "propionyl-CoA carboxylase"
+   ],
+   "notes": "Biotin-dependent (like pyruvate carboxylase and acetyl-CoA carboxylase). Deficiency → propionic acidemia: poor feeding, vomiting, hypotonia, anion gap metabolic acidosis, hyperammonemia."
+  },
+  "mme": {
+   "name": "Methylmalonyl-CoA epimerase",
+   "short": "MCEE",
+   "aliases": [
+    "methylmalonyl-CoA racemase",
+    "methylmalonyl coenzyme A epimerase",
+    "methylmalonyl coenzyme A racemase"
+   ],
+   "notes": "Flips D- to L-methylmalonyl-CoA."
+  },
+  "mcm": {
+   "name": "Methylmalonyl-CoA mutase",
+   "short": "MUT",
+   "aliases": [
+    "methylmalonyl coenzyme A mutase"
+   ],
+   "nicknames": [
+    "MCM"
+   ],
+   "notes": "Needs vitamin B12 (adenosylcobalamin). Deficiency of the enzyme or of B12 → methylmalonic acidemia; raised methylmalonic acid separates B12 deficiency from folate deficiency (both raise homocysteine)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "catab",
+   "from": "valine",
+   "to": "propcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "also_from": [
+    "oddfa",
+    "methionine",
+    "isoleucine",
+    "threonine"
+   ],
+   "loc": "mitochondria"
+  },
+  {
+   "id": "r2",
+   "enzyme": "pcc",
+   "from": "propcoa",
+   "to": "dmmcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp",
+     "hco3"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "requires": [
+    "Biotin (B7)"
+   ],
+   "tags": [
+    "irreversible"
+   ],
+   "loc": "mitochondria"
+  },
+  {
+   "id": "r3",
+   "enzyme": "mme",
+   "from": "dmmcoa",
+   "to": "lmmcoa",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "mitochondria"
+  },
+  {
+   "id": "r4",
+   "enzyme": "mcm",
+   "from": "lmmcoa",
+   "to": "succoa",
+   "reversible": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "requires": [
+    "Vitamin B12 (adenosylcobalamin)"
+   ],
+   "loc": "mitochondria"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Malonyl-CoA",
+   "Acetoacetyl-CoA",
+   "Methylmalonic acid",
+   "Leucine",
+   "Lysine",
+   "α-Ketoglutarate"
+  ],
+  "enzymes": [
+   "Pyruvate carboxylase",
+   "Acetyl-CoA carboxylase",
+   "Succinyl-CoA synthetase",
+   "Branched-chain α-ketoacid dehydrogenase"
+  ]
+ },
+ "tissue": "liver and most tissues",
+ "icon": "call_split",
+ "color": "gold"
+}

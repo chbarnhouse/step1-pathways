@@ -227,7 +227,7 @@ function startQuiz(cfg) {
   newRound();
 }
 function newRound() {
-  Q.score = { right: 0, total: 0 };
+  Q.score = { right: 0, total: 0 }; Q.misses = []; Q.finishShown = false; Q.t0 = Date.now();
   Q.fact = null; Q.placed = false;
   const anyQuiz = elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz'), place = el('loc') === 'place';
   if (place && !zonesUsable(Q.models[0])) Q.placed = true; // nothing to place (grid pathway, no compartments): shown as usual
@@ -293,7 +293,7 @@ function buildResolved(q) {
   const R = Q.round;
   const clean = q.status === 'right' && !q.hints && !q.tries;
   const key = q.item.key, first = !R.intro.has(key);
-  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); Q.score.total++; if (clean) Q.score.right++; logAnswer(); }
+  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); Q.score.total++; if (clean) Q.score.right++; else noteMiss(q); logAnswer(); }
   Q.fact = factItemOf(q.item, Q.m); Q.factM = Q.m;
   Q.history = (Q.history || []).filter(h => h.item !== Q.fact); Q.history.unshift({ item: Q.fact, m: Q.m, status: clean ? 'right' : 'missed' });
   if (!clean) {
@@ -595,7 +595,7 @@ function snapshot(q, keys = null) {
   if (R.cofShape) c.cofShape = new Set(R.cofShape);
   const stat = q && Store.data.stats[q.pid]?.[q.statKey];
   Q.undo = Q.undo || [];
-  Q.undo.push({ round: c, m: Q.m, score: { ...Q.score }, history: (Q.history || []).slice(), fact: Q.fact, factM: Q.factM,
+  Q.undo.push({ round: c, m: Q.m, score: { ...Q.score }, misses: (Q.misses || []).slice(), history: (Q.history || []).slice(), fact: Q.fact, factM: Q.factM,
     stat: q && { pid: q.pid, key: q.statKey, v: stat ? JSON.parse(JSON.stringify(stat)) : null }, log: Q.log && { ...Q.log },
     stats: keys && keys.map(([pid, key]) => { const v = Store.data.stats[pid]?.[key]; return { pid, key, v: v ? JSON.parse(JSON.stringify(v)) : null }; }) });
   if (Q.undo.length > 200) Q.undo.shift();
@@ -603,7 +603,7 @@ function snapshot(q, keys = null) {
 function stepBack() {
   const u = Q.undo?.pop();
   if (!u) return;
-  Q.round = u.round; Q.m = u.m; Q.score = u.score; Q.history = u.history; Q.fact = u.fact; Q.factM = u.factM;
+  Q.round = u.round; Q.m = u.m; Q.score = u.score; Q.misses = u.misses || []; Q.history = u.history; Q.fact = u.fact; Q.factM = u.factM;
   for (const st of [u.stat, ...(u.stats || [])]) { if (!st) continue; const S = Store.data.stats; S[st.pid] = S[st.pid] || {}; if (st.v) S[st.pid][st.key] = st.v; else delete S[st.pid][st.key]; }
   if (u.log) { Q.log = u.log; const log = Store.data.log || [], i = log.findIndex(x => x.id === u.log.id); if (i >= 0) { if (u.log.total) log[i] = { ...u.log }; else log.splice(i, 1); } }
   Store.save();
@@ -670,13 +670,63 @@ function reveal(q) {
 }
 function peek(q) { q.status = 'peek'; renderQuiz(); }
 function selfGrade(q, ok) { snapshot(q); q.status = ok ? 'right' : 'missed'; q.self = true; tally(q, ok); resolved(q); }
+// What to look at again: anything not right on the first try (shown when the quiz is done).
+function noteMiss(q) {
+  const r = q.item?.rxn || q.factItem?.rxn, en = r && Q.m.items['e:' + r.id]?.name;
+  const label = q.kind === 'cof' ? `${en || 'Step'}: ${kindLabel(q)}` : q.kind === 'loc' ? `${q.item?.name || q.answerText} (compartment)` : q.item?.name || `${en || ''} ${q.label.toLowerCase()}`.trim();
+  Q.misses = Q.misses || [];
+  if (!Q.misses.includes(label)) Q.misses.push(label);
+}
 function tally(q, firstTry) {
   firstTry = firstTry && !q.hints;
+  if (!firstTry) noteMiss(q);
   Q.score.total++; if (firstTry) Q.score.right++; Stats.record(q.pid, q.statKey, firstTry);
   logAnswer();
 }
+/* Quiz complete: a popup with how it went, what to look at again, and the ways on: the same quiz again, the same
+   quiz with its settings open to change, the facts, or the dashboard. Shown once per run, a moment after the last answer. */
+function showFinish() {
+  if (Q.finishShown) return;
+  Q.finishShown = true;
+  setTimeout(() => {
+    if (!location.hash.startsWith('#/quiz') || !Q.round?.done) return;
+    let d = $('#finishDialog');
+    if (!d) { d = document.createElement('dialog'); d.id = 'finishDialog'; document.body.append(d); }
+    const s = Q.score, pct = s.total ? Math.round(100 * s.right / s.total) : 0, mins = Math.max(1, Math.round((Date.now() - (Q.t0 || Q.log?.t || Date.now())) / 60000));
+    const what = Q.models.length > 1 ? `${Q.models.length} pathways` : Q.models[0]?.p.name || '';
+    const miss = Q.misses || [];
+    d.innerHTML = `<div class="dlg finish">
+      <div class="dlg-h"><h2>${mi('check', 'h-ic')} Quiz complete</h2><p class="muted">${esc(Q.cfg.name)}${what && what !== Q.cfg.name ? ` · ${esc(what)}` : ''}</p></div>
+      <div class="fin-stats">
+        <div><b>${s.right} / ${s.total}</b><span class="muted small">right first try</span></div>
+        <div><b>${pct}%</b><span class="muted small">accuracy</span></div>
+        <div><b>${mins} min</b><span class="muted small">time</span></div>
+      </div>
+      ${miss.length ? `<div class="fin-miss"><span class="glabel">To look at again (${miss.length})</span><ul>${miss.slice(0, 12).map(x => `<li>${icon('no')} ${esc(x)}</li>`).join('')}${miss.length > 12 ? `<li class="muted">and ${miss.length - 12} more</li>` : ''}</ul></div>`
+        : `<p class="fin-clean">${icon('ok')} Everything right on the first try.</p>`}
+      <div class="actions">
+        <button class="btn primary" data-fin="again">${mi('restart_alt', 'sm')} Go again</button>
+        ${Q.draft ? `<button class="btn" data-fin="adjust">${mi('tune', 'sm')} Change settings</button>` : ''}
+        <button class="btn" data-fin="facts">${mi('lightbulb', 'sm')} Review facts</button>
+        <a class="btn ghost" href="#/" data-fin="home">Dashboard</a>
+        <button class="btn ghost" data-fin="close">Close</button>
+      </div></div>`;
+    d.showModal();
+    d.querySelector('[data-fin="again"]').focus();
+  }, 700);
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('#finishDialog [data-fin]');
+  if (!b) return;
+  const d = $('#finishDialog'), v = b.dataset.fin;
+  d.close();
+  if (v === 'again') restartQuiz();
+  if (v === 'adjust' && Q.draft) { C.draft = normalizeDraft(clone(Q.draft)); C.presetId = ''; location.hash = '#/new'; }
+  if (v === 'facts') { Q.drawer = true; Q.focus = null; renderQuiz(); }
+});
 function logAnswer(done = false) {
   const L = Q.log; if (!L) return;
+  if (done) showFinish();
   Object.assign(L, { right: Q.score.right, total: Q.score.total, last: Date.now(), answer: answerStyle(), done: L.done || done });
   const log = Store.data.log = Store.data.log || [];
   const i = log.findIndex(x => x.id === L.id);
@@ -1202,7 +1252,7 @@ document.addEventListener('click', e => {
     case 'placezones': startZones(); renderQuiz(); break;
     case 'nextpath': nextTotalPathway(); renderQuiz(); break;
     case 'restart':
-      Q.score = { right: 0, total: 0 };
+      Q.score = { right: 0, total: 0 }; Q.misses = []; Q.finishShown = false; Q.t0 = Date.now();
       if (Q.round.type === 'zones') { restartQuiz(); break; }
       Q.placed = false;
       if (Q.round.type === 'build') startBuild(); else { Q.round.queue = Q.models.slice(1); Q.m = Q.models[0]; startTotal(); }
