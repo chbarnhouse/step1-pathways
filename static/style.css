@@ -1109,3 +1109,15 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .gate-ai { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
 .gate-ai h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-md); }
 .gate-ai p { margin: 0; }
+/* Library tabs (Pathways · Metabolites · Enzymes · Cofactors): the current one is underlined and bold, not just colored. */
+.libtabs { display: flex; flex-wrap: wrap; gap: 4px; margin: 4px 0 16px; border-bottom: 1px solid var(--line); }
+.libtabs a { display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; margin-bottom: -1px; border-bottom: 3px solid transparent; color: var(--ink-2); font-weight: 600; text-decoration: none; }
+.libtabs a:hover { color: var(--ink); }
+.libtabs a[aria-current="page"] { color: var(--ink); font-weight: 800; border-bottom-color: var(--blue); }
+.libtabs .n { font-size: var(--fs-xs); font-weight: 700; padding: 1px 7px; border-radius: 999px; background: var(--sunk); color: var(--ink-2); }
+.catalog .browsebar { margin-bottom: 8px; }
+.catlist { list-style: none; margin: 8px 0 0; padding: 0; display: grid; gap: 6px; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); }
+.catlist a { display: grid; gap: 2px; padding: 10px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--card); color: var(--ink); text-decoration: none; min-width: 0; }
+.catlist a:hover { border-color: var(--blue); }
+.catitem .card { margin-top: 14px; }
+.catitem td a, .catitem .page-h a { color: var(--blue); }

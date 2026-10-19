@@ -599,6 +599,7 @@ function renderLibrary() {
   $('#view').innerHTML = `<div class="page library">
     ${pageHead('Library', `${Library.atomic().length} pathways. Built-in ones can be edited; your edits are kept as a copy you can reset.`,
       `<a class="btn primary" href="#/pathways/new">${mi('add', 'sm')} New pathway</a><a class="btn" href="#/pathways/new-combined">${mi('sync_alt', 'sm')} Combine pathways</a><button class="btn" data-lib="import">${mi('upload', 'sm')} Import</button>`)}
+    ${libTabs('pathways')}
     ${browserHTML('library')}
     <input type="file" id="libFile" accept=".json,application/json" hidden>
   </div>`;
@@ -922,6 +923,8 @@ function router() {
   else if ((m = h.match(/^#\/pathways\/([^/]+)\/edit$/))) { page = 'pathways'; openEditor(decodeURIComponent(m[1])); }
   else if ((m = h.match(/^#\/pathways\/([^/]+)\/edit\/(.+)$/))) { page = 'pathways'; openEditor(decodeURIComponent(m[1]), null, decodeURIComponent(m[2])); }
   else if ((m = h.match(/^#\/pathways\/([^/]+)$/))) { page = 'pathways'; renderPathway(decodeURIComponent(m[1])); }
+  else if ((m = h.match(/^#\/library\/([a-z]+)$/))) { page = 'pathways'; renderCatalog(m[1]); }
+  else if ((m = h.match(/^#\/library\/([a-z]+)\/(.+)$/))) { page = 'pathways'; renderCatItem(m[1], decodeURIComponent(m[2])); }
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
   else { location.replace('#/'); return; }
   document.body.dataset.page = page;
