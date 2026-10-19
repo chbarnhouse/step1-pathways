@@ -8,6 +8,8 @@
 const APP_VERSION = '3.10.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+  ] },
   { v: '3.10.1', date: '2026-10-19', items: [
     'Steroidogenesis: cortisol ⇄ cortisone. 11β-HSD2 (kidney, colon, salivary glands, placenta; NAD⁺ → NADH) inactivates cortisol; 11β-HSD1 (liver, adipose, brain; NADPH → NADP⁺) reactivates it. Notes cover licorice and apparent mineralocorticoid excess.',
   ] },
