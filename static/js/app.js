@@ -237,7 +237,7 @@ const MODES = [
 /* ---------- pathway browser (New quiz + Pathways) ----------
    Icon tiles with search, composable filters (group, your tags, status) and sorting. Filters stack:
    any of the chosen groups AND any of the chosen tags AND the chosen status. Remembered per page. */
-const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Combined'];
+const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Blood & immunity', 'Combined'];
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const BROWSE_DEFAULT = { q: '', groups: [], systems: [], tags: [], status: '', source: '', sort: 'group' };
 // Where a pathway came from: built in, shared by a classmate (reviewed and approved), or your own / your edit.

@@ -432,5 +432,29 @@
   "aliases": [
    "phosphorylcholine"
   ]
+ },
+ "ca": {
+  "name": "Ca²⁺",
+  "aliases": [
+   "Ca2+",
+   "Ca",
+   "calcium",
+   "calcium ion",
+   "factor IV"
+  ]
+ },
+ "phospholipid": {
+  "name": "Phospholipid",
+  "aliases": [
+   "phospholipid",
+   "phospholipids",
+   "platelet phospholipid",
+   "phosphatidylserine",
+   "PF3",
+   "platelet factor 3",
+   "negatively charged phospholipid",
+   "phospholipid (platelet surface)",
+   "platelet surface"
+  ]
  }
 }

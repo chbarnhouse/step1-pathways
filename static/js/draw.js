@@ -372,8 +372,8 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
 }
 // One of a vertical pair of opposite steps: the downward one runs on the left with its labels further left, the upward
 // one on the right with its labels further right, so neither crosses the other.
-function twinEdge(m, statusOf, r, a, b) {
-  const down = b.cy > a.cy, side = down ? -1 : 1, x = a.cx + side * 14;
+function twinEdge(m, statusOf, r, a, b, forceSide = 0) {
+  const down = b.cy > a.cy, side = forceSide || (down ? -1 : 1), x = a.cx + side * 14;
   const y1 = down ? a.cy + BH / 2 + 4 : a.cy - BH / 2 - 4, y2 = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), mid = (y1 + y2) / 2, anchor = side < 0 ? 'end' : 'start';
   // The name sits outside the cofactor text (which hugs the arrow), so the two never overlap.
@@ -381,6 +381,18 @@ function twinEdge(m, statusOf, r, a, b) {
   let s = arrow(x, y1, x, y2, r.reversible, rxCls(r)) + enzLabel(lx, mid, it, es, anchor, 22, 'center');
   DRAW_LABELS.push(enzRect(lx, mid, anchor, it, 22));
   if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x, y1], [x, y2], [side, 0], cofParts(m, statusOf, r));
+  return s;
+}
+// One of two level steps between the same boxes: the first runs just above center with its label above it, the
+// second just below with its label (and cofactors) below.
+function pairEdge(m, statusOf, r, a, b, i) {
+  const dir = Math.sign(b.cx - a.cx) || 1, x1 = a.cx + dir * (BW / 2 + 4), x2 = b.cx - dir * (BW / 2 + 4), y = a.cy + (i ? 8 : -8), mx = (x1 + x2) / 2;
+  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r);
+  let s = arrow(x1, y, x2, y, r.reversible, rxCls(r));
+  if (!i) { s += enzLabel(mx, y - 8, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(enzRect(mx, y - 8, 'middle', it, 22, 'bottom')); return s; }
+  const h = enzRect(mx, 0, 'middle', it, 22).h, ly = y + 12 + h / 2;
+  s += enzLabel(mx, ly, it, es, 'middle', 22, 'center'); DRAW_LABELS.push(enzRect(mx, ly, 'middle', it, 22));
+  if (cs !== 'none' && cs !== 'hide') s += cofRow(mx, ly + h / 2 + 16, 'middle', cofParts(m, statusOf, r));
   return s;
 }
 // Labels for slanted arrows sit beside the line, never on it: above a shallow line, left of a steep one.
@@ -818,7 +830,14 @@ function gridSVG(m, statusOf, opts = {}) {
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
   // Two one-way steps between the same boxes, in opposite directions (cortisol ⇄ cortisone, two enzymes): side by side.
   const twin = r => p.reactions.find(o => o !== r && o.from === r.to && o.to === r.from);
-  p.reactions.forEach(r => { s += twin(r) && Math.abs(pos[r.from].cx - pos[r.to].cx) < 4 ? twinEdge(m, statusOf, r, pos[r.from], pos[r.to]) : drawEdge(m, statusOf, r, pos[r.from], pos[r.to]); });
+  // Two enzymes doing the same step (factor X: intrinsic and extrinsic tenase): side by side, or one above the other.
+  const pair = r => { const ps = p.reactions.filter(o => o.from === r.from && o.to === r.to); return ps.length === 2 ? ps.indexOf(r) : -1; };
+  p.reactions.forEach(r => {
+    const a = pos[r.from], b = pos[r.to], i = pair(r);
+    if (i >= 0 && Math.abs(a.cx - b.cx) < 4) s += twinEdge(m, statusOf, r, a, b, i ? 1 : -1);
+    else if (i >= 0 && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, i);
+    else s += twin(r) && Math.abs(a.cx - b.cx) < 4 ? twinEdge(m, statusOf, r, a, b) : drawEdge(m, statusOf, r, a, b);
+  });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id));
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }])));
   s += lk.s; DRAW_BOXES = [];

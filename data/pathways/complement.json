@@ -1,0 +1,519 @@
+{
+ "id": "complement",
+ "name": "Complement cascade",
+ "group": "Blood & immunity",
+ "systems": [
+  "Heme"
+ ],
+ "tags": [
+  "Immunology"
+ ],
+ "aliases": [
+  "complement",
+  "complement system",
+  "complement pathways",
+  "classical pathway",
+  "alternative pathway",
+  "lectin pathway",
+  "membrane attack complex"
+ ],
+ "summary": "Three ways in, one way out. Classical (C1 on IgG/IgM–antigen complexes) and lectin (MBL on microbial mannose) cut C4 and C2 into C4b2a; the alternative pathway (spontaneous C3 on microbial surfaces, factor B, factor D) makes C3bBb. Both C3 convertases cut C3: C3b opsonizes and joins them to make C5 convertases; C3a and C5a are anaphylatoxins (C5a also draws neutrophils). C5b with C6–C9 forms the membrane attack complex, which lyses Neisseria. Regulators: C1 inhibitor (HAE), DAF/CD55 and CD59 (PNH), factor H.",
+ "tissue": "blood plasma and tissue fluid (made mostly in the liver)",
+ "icon": "shield",
+ "color": "teal",
+ "layout": "grid",
+ "grid_columns": [
+  "Classical and lectin",
+  "Common",
+  "Alternative"
+ ],
+ "cofactors": {
+  "c4a": {
+   "name": "C4a",
+   "aliases": [
+    "complement C4a"
+   ]
+  },
+  "c2b": {
+   "name": "C2b",
+   "aliases": [
+    "complement C2b",
+    "C2a (older naming)"
+   ]
+  },
+  "ba": {
+   "name": "Ba",
+   "aliases": [
+    "factor Ba",
+    "Ba fragment"
+   ]
+  },
+  "c3a": {
+   "name": "C3a",
+   "aliases": [
+    "complement C3a",
+    "anaphylatoxin C3a"
+   ]
+  },
+  "c5a": {
+   "name": "C5a",
+   "aliases": [
+    "complement C5a",
+    "anaphylatoxin C5a"
+   ]
+  },
+  "c6": {
+   "name": "C6",
+   "aliases": [
+    "complement C6"
+   ]
+  },
+  "c7": {
+   "name": "C7",
+   "aliases": [
+    "complement C7"
+   ]
+  },
+  "c8": {
+   "name": "C8",
+   "aliases": [
+    "complement C8"
+   ]
+  },
+  "c9": {
+   "name": "C9",
+   "aliases": [
+    "complement C9",
+    "poly-C9"
+   ]
+  }
+ },
+ "distractors": {
+  "metabolites": [
+   "C1q",
+   "iC3b",
+   "C3d",
+   "Properdin",
+   "C4b"
+  ],
+  "enzymes": [
+   "Factor H",
+   "Factor I",
+   "C1 esterase inhibitor",
+   "Decay-accelerating factor",
+   "CD59",
+   "Properdin"
+  ]
+ },
+ "metabolites": {
+  "c42": {
+   "name": "C4 + C2",
+   "short": "",
+   "aliases": [
+    "C4 and C2",
+    "C2 + C4",
+    "C4, C2",
+    "C4 C2"
+   ],
+   "notes": "Cleaved into C4b and C2a, which join on the microbe’s surface. C2 or C4 deficiency raises the risk of SLE.",
+   "pos": [
+    0,
+    0
+   ]
+  },
+  "c3b_fb": {
+   "name": "C3(H₂O) + factor B",
+   "short": "",
+   "aliases": [
+    "C3 + factor B",
+    "C3(H2O) + factor B",
+    "C3H2O and factor B",
+    "C3 and factor B",
+    "C3b + factor B"
+   ],
+   "notes": "C3 hydrolyzes on its own all the time (tickover); on a microbe’s surface, with no host regulators to stop it, the product binds factor B.",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "c4b2a": {
+   "name": "C4b2a",
+   "short": "",
+   "aliases": [
+    "C4bC2a",
+    "C4b-2a",
+    "C4b2b",
+    "classical C3 convertase",
+    "lectin C3 convertase",
+    "C3 convertase (classical)"
+   ],
+   "notes": "The C3 convertase of the classical and lectin pathways (newer naming: C4b2b). Decay-accelerating factor (DAF, CD55) takes it apart on host cells.",
+   "pos": [
+    0,
+    1
+   ]
+  },
+  "c3bbb": {
+   "name": "C3bBb",
+   "short": "",
+   "aliases": [
+    "C3b-Bb",
+    "C3bBbP",
+    "alternative C3 convertase",
+    "C3 convertase (alternative)"
+   ],
+   "notes": "The C3 convertase of the alternative pathway; properdin stabilizes it, factor H and DAF take it apart. Every C3b it makes can make another: an amplification loop.",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "c3": {
+   "name": "C3",
+   "short": "",
+   "aliases": [
+    "complement C3",
+    "complement component 3"
+   ],
+   "notes": "The hub of all three pathways. C3 deficiency: severe, recurrent pyogenic infections (sinus, respiratory) and immune complex disease.",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "c3b": {
+   "name": "C3b",
+   "short": "",
+   "aliases": [
+    "complement C3b"
+   ],
+   "notes": "The main opsonin (with IgG): coats microbes for phagocytosis. Also joins the C3 convertases to make the C5 convertases, and clears immune complexes.",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "c4b2a3b": {
+   "name": "C4b2a3b",
+   "short": "",
+   "aliases": [
+    "C4bC2aC3b",
+    "C4b-2a-3b",
+    "C4b2b3b",
+    "classical C5 convertase",
+    "C5 convertase (classical)"
+   ],
+   "notes": "The C5 convertase of the classical and lectin pathways.",
+   "pos": [
+    0,
+    4
+   ]
+  },
+  "c3bbb3b": {
+   "name": "C3bBb3b",
+   "short": "",
+   "aliases": [
+    "C3bBbC3b",
+    "C3b-Bb-3b",
+    "alternative C5 convertase",
+    "C5 convertase (alternative)"
+   ],
+   "notes": "The C5 convertase of the alternative pathway.",
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "c5": {
+   "name": "C5",
+   "short": "",
+   "aliases": [
+    "complement C5",
+    "complement component 5"
+   ],
+   "notes": "Eculizumab binds C5 and blocks its cleavage (PNH, atypical HUS); it raises the risk of Neisseria infection, so patients are vaccinated.",
+   "pos": [
+    1,
+    5
+   ]
+  },
+  "c5b": {
+   "name": "C5b",
+   "short": "",
+   "aliases": [
+    "complement C5b"
+   ],
+   "pos": [
+    1,
+    6
+   ]
+  },
+  "mac": {
+   "name": "Membrane attack complex (C5b–9)",
+   "short": "MAC",
+   "aliases": [
+    "MAC",
+    "C5b-9",
+    "C5b–9",
+    "C5b-C9",
+    "membrane attack complex",
+    "terminal complement complex"
+   ],
+   "notes": "A pore that lyses cells, most importantly Neisseria. Deficiency of C5–C9: recurrent Neisseria (meningococcal, gonococcal) infection. CD59 (protectin) keeps it off host cells; without CD59 and DAF (PNH), red cells lyse.",
+   "pos": [
+    1,
+    7
+   ]
+  }
+ },
+ "enzymes": {
+  "c1": {
+   "name": "C1 (C1q, C1r, C1s)",
+   "short": "C1",
+   "aliases": [
+    "C1",
+    "C1qrs",
+    "C1q",
+    "C1 complex",
+    "C1s",
+    "C1 esterase",
+    "classical pathway"
+   ],
+   "notes": "Classical pathway: C1q binds antibody on an antigen (IgM best, or two IgG; GM makes classic: IgG and IgM). C1 esterase inhibitor keeps it in check; its deficiency causes hereditary angioedema (with high bradykinin; avoid ACE inhibitors)."
+  },
+  "masp": {
+   "name": "MBL–MASP",
+   "short": "MBL",
+   "aliases": [
+    "mannose-binding lectin",
+    "MBL",
+    "MASP",
+    "MASP-2",
+    "MBL-MASP",
+    "lectin pathway",
+    "mannose-binding lectin–associated serine protease"
+   ],
+   "notes": "Lectin pathway: mannose-binding lectin binds mannose on microbe surfaces, and its MASP proteases cleave C4 and C2 like C1s."
+  },
+  "fd": {
+   "name": "Factor D",
+   "short": "D",
+   "aliases": [
+    "complement factor D",
+    "adipsin",
+    "alternative pathway"
+   ],
+   "notes": "Cuts factor B (to Bb) once it has bound C3b."
+  },
+  "c3conv_cl": {
+   "name": "C3 convertase (C4b2a)",
+   "short": "",
+   "aliases": [
+    "C4b2a",
+    "classical C3 convertase",
+    "C4bC2a",
+    "C4b2b"
+   ]
+  },
+  "c3conv_alt": {
+   "name": "C3 convertase (C3bBb)",
+   "short": "",
+   "aliases": [
+    "C3bBb",
+    "alternative C3 convertase"
+   ]
+  },
+  "addc3b_cl": {
+   "name": "C3b joins C4b2a",
+   "short": "",
+   "aliases": [
+    "C3b",
+    "C3b binding",
+    "binding of C3b"
+   ],
+   "notes": "A C3b sitting next to the C3 convertase turns it into a C5 convertase."
+  },
+  "addc3b_alt": {
+   "name": "C3b joins C3bBb",
+   "short": "",
+   "aliases": [
+    "C3b",
+    "C3b binding",
+    "binding of C3b"
+   ]
+  },
+  "c5conv_cl": {
+   "name": "C5 convertase (C4b2a3b)",
+   "short": "",
+   "aliases": [
+    "C4b2a3b",
+    "classical C5 convertase",
+    "C4bC2aC3b"
+   ]
+  },
+  "c5conv_alt": {
+   "name": "C5 convertase (C3bBb3b)",
+   "short": "",
+   "aliases": [
+    "C3bBb3b",
+    "alternative C5 convertase"
+   ]
+  },
+  "mac_asm": {
+   "name": "MAC assembly (C6–C9)",
+   "short": "",
+   "aliases": [
+    "C6-C9",
+    "C6–C9",
+    "C6, C7, C8, C9",
+    "MAC assembly",
+    "terminal pathway"
+   ],
+   "notes": "C5b gathers C6, C7, C8 and then many C9s into a pore."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "c1",
+   "from": "c42",
+   "to": "c4b2a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c4a",
+     "c2b"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r2",
+   "enzyme": "masp",
+   "from": "c42",
+   "to": "c4b2a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c4a",
+     "c2b"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r3",
+   "enzyme": "fd",
+   "from": "c3b_fb",
+   "to": "c3bbb",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "ba"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r4",
+   "enzyme": "c3conv_cl",
+   "from": "c3",
+   "to": "c3b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c3a"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r5",
+   "enzyme": "c3conv_alt",
+   "from": "c3",
+   "to": "c3b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c3a"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r6",
+   "enzyme": "addc3b_cl",
+   "from": "c4b2a",
+   "to": "c4b2a3b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r7",
+   "enzyme": "addc3b_alt",
+   "from": "c3bbb",
+   "to": "c3bbb3b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r8",
+   "enzyme": "c5conv_cl",
+   "from": "c5",
+   "to": "c5b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c5a"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r9",
+   "enzyme": "c5conv_alt",
+   "from": "c5",
+   "to": "c5b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c5a"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r10",
+   "enzyme": "mac_asm",
+   "from": "c5b",
+   "to": "mac",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "c6",
+     "c7",
+     "c8",
+     "c9"
+    ],
+    "out": []
+   },
+   "loc": "microbial membrane"
+  }
+ ]
+}

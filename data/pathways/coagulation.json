@@ -1,0 +1,639 @@
+{
+ "id": "coagulation",
+ "name": "Coagulation cascade",
+ "group": "Blood & immunity",
+ "systems": [
+  "Heme"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "clotting cascade",
+  "coagulation",
+  "secondary hemostasis",
+  "blood clotting",
+  "intrinsic and extrinsic pathways"
+ ],
+ "summary": "Secondary hemostasis: a cascade of zymogens, each activated by the one before, ending in thrombin and a cross-linked fibrin clot. Extrinsic (tissue factor + VII, measured by the PT/INR) and intrinsic (XII → XI → IX with VIII, measured by the PTT) pathways meet at factor X; the common pathway is X → prothrombin (II) → thrombin → fibrin. Vitamin K–dependent factors: II, VII, IX, X (and proteins C and S). Drugs: heparin (antithrombin, IIa and Xa), warfarin (vitamin K), direct Xa inhibitors (-xabans), direct thrombin inhibitors (dabigatran, argatroban, bivalirudin).",
+ "tissue": "blood plasma, on activated platelets (factors made in the liver; VIII also by endothelium)",
+ "icon": "bloodtype",
+ "color": "pink",
+ "layout": "grid",
+ "grid_columns": [
+  "Intrinsic",
+  "",
+  "Common",
+  "",
+  "Extrinsic and feedback",
+  ""
+ ],
+ "cofactors": {
+  "fibrinopeptides": {
+   "name": "Fibrinopeptides A and B",
+   "aliases": [
+    "fibrinopeptides",
+    "fibrinopeptide A",
+    "fibrinopeptide B",
+    "FPA",
+    "FPB",
+    "fibrinopeptide A and B"
+   ]
+  }
+ },
+ "distractors": {
+  "metabolites": [
+   "Plasminogen",
+   "Plasmin",
+   "von Willebrand factor",
+   "Protein C",
+   "Antithrombin",
+   "Factor IV"
+  ],
+  "enzymes": [
+   "Plasmin",
+   "Antithrombin",
+   "Activated protein C",
+   "Tissue plasminogen activator",
+   "Kallikrein",
+   "Factor Xa"
+  ]
+ },
+ "metabolites": {
+  "f12": {
+   "name": "Factor XII",
+   "short": "XII",
+   "aliases": [
+    "Hageman factor",
+    "FXII",
+    "factor 12"
+   ],
+   "notes": "Hageman factor. Deficiency prolongs the PTT but causes no bleeding (it may even predispose to clots).",
+   "pos": [
+    0,
+    0
+   ]
+  },
+  "f12a": {
+   "name": "Factor XIIa",
+   "short": "XIIa",
+   "aliases": [
+    "activated factor XII",
+    "FXIIa",
+    "factor 12a"
+   ],
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "f11": {
+   "name": "Factor XI",
+   "short": "XI",
+   "aliases": [
+    "plasma thromboplastin antecedent",
+    "FXI",
+    "factor 11"
+   ],
+   "notes": "Deficiency is hemophilia C (Ashkenazi Jewish ancestry): mild bleeding, prolonged PTT.",
+   "pos": [
+    0,
+    1
+   ]
+  },
+  "f11a": {
+   "name": "Factor XIa",
+   "short": "XIa",
+   "aliases": [
+    "activated factor XI",
+    "FXIa",
+    "factor 11a"
+   ],
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "f9": {
+   "name": "Factor IX",
+   "short": "IX",
+   "aliases": [
+    "Christmas factor",
+    "FIX",
+    "factor 9"
+   ],
+   "notes": "Deficiency is hemophilia B (X-linked recessive): hemarthroses, prolonged PTT, normal PT. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
+   "pos": [
+    0,
+    2
+   ]
+  },
+  "f9a": {
+   "name": "Factor IXa",
+   "short": "IXa",
+   "aliases": [
+    "activated factor IX",
+    "FIXa",
+    "factor 9a"
+   ],
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "f7": {
+   "name": "Factor VII",
+   "short": "VII",
+   "aliases": [
+    "proconvertin",
+    "FVII",
+    "factor 7"
+   ],
+   "notes": "Shortest half-life of the vitamin K–dependent factors, so the PT rises first when warfarin starts or the liver fails. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
+   "pos": [
+    5,
+    2
+   ]
+  },
+  "f7a": {
+   "name": "Factor VIIa",
+   "short": "VIIa",
+   "aliases": [
+    "activated factor VII",
+    "FVIIa",
+    "factor 7a"
+   ],
+   "notes": "With tissue factor it starts coagulation in vivo (the extrinsic pathway, measured by the PT). Recombinant VIIa treats bleeding in hemophilia with inhibitors.",
+   "pos": [
+    4,
+    2
+   ]
+  },
+  "f8": {
+   "name": "Factor VIII",
+   "short": "VIII",
+   "aliases": [
+    "antihemophilic factor",
+    "FVIII",
+    "factor 8"
+   ],
+   "notes": "Carried in plasma by von Willebrand factor, which protects it; vWF disease can lower VIII. Deficiency is hemophilia A (X-linked recessive), the most common hemophilia; treat with factor VIII concentrate, desmopressin in mild cases.",
+   "pos": [
+    5,
+    3
+   ]
+  },
+  "f8a": {
+   "name": "Factor VIIIa",
+   "short": "VIIIa",
+   "aliases": [
+    "activated factor VIII",
+    "FVIIIa",
+    "factor 8a"
+   ],
+   "notes": "Cofactor of IXa in the intrinsic tenase. Inactivated by activated protein C (with protein S).",
+   "pos": [
+    4,
+    3
+   ]
+  },
+  "f10": {
+   "name": "Factor X",
+   "short": "X",
+   "aliases": [
+    "Stuart–Prower factor",
+    "Stuart-Prower factor",
+    "FX",
+    "factor 10"
+   ],
+   "notes": "Where the intrinsic and extrinsic pathways meet: the start of the common pathway. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "f10a": {
+   "name": "Factor Xa",
+   "short": "Xa",
+   "aliases": [
+    "activated factor X",
+    "FXa",
+    "factor 10a"
+   ],
+   "notes": "Inhibited by antithrombin (much faster with heparin; LMWH and fondaparinux mostly act here) and directly by rivaroxaban, apixaban and edoxaban.",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "f5": {
+   "name": "Factor V",
+   "short": "V",
+   "aliases": [
+    "proaccelerin",
+    "labile factor",
+    "FV",
+    "factor 5"
+   ],
+   "notes": "Factor V Leiden (Arg506Gln) resists cleavage by activated protein C: the most common inherited thrombophilia.",
+   "pos": [
+    5,
+    5
+   ]
+  },
+  "f5a": {
+   "name": "Factor Va",
+   "short": "Va",
+   "aliases": [
+    "activated factor V",
+    "FVa",
+    "factor 5a"
+   ],
+   "notes": "Cofactor of Xa in the prothrombinase. Inactivated by activated protein C (with protein S).",
+   "pos": [
+    4,
+    5
+   ]
+  },
+  "f2": {
+   "name": "Prothrombin",
+   "short": "II",
+   "aliases": [
+    "factor II",
+    "FII",
+    "factor 2"
+   ],
+   "notes": "Prothrombin G20210A (3′ untranslated region) raises prothrombin levels: an inherited thrombophilia. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
+   "pos": [
+    2,
+    5
+   ]
+  },
+  "f2a": {
+   "name": "Thrombin",
+   "short": "IIa",
+   "aliases": [
+    "factor IIa",
+    "FIIa",
+    "activated factor II",
+    "factor 2a"
+   ],
+   "notes": "The cascade’s amplifier: cuts fibrinogen and activates V, VIII, XI and XIII, and activates platelets (PAR-1). Inhibited by antithrombin (with heparin) and directly by dabigatran, argatroban and bivalirudin. With thrombomodulin it turns on protein C instead.",
+   "pos": [
+    3,
+    5
+   ]
+  },
+  "fbg": {
+   "name": "Fibrinogen",
+   "short": "I",
+   "aliases": [
+    "factor I",
+    "FI",
+    "factor 1"
+   ],
+   "notes": "Also bridges platelets through GPIIb/IIIa. An acute-phase reactant; low in DIC.",
+   "pos": [
+    2,
+    6
+   ]
+  },
+  "fbn": {
+   "name": "Fibrin",
+   "short": "",
+   "aliases": [
+    "fibrin monomer",
+    "soluble fibrin",
+    "fibrin polymer"
+   ],
+   "pos": [
+    3,
+    6
+   ]
+  },
+  "f13": {
+   "name": "Factor XIII",
+   "short": "XIII",
+   "aliases": [
+    "fibrin-stabilizing factor",
+    "FXIII",
+    "factor 13"
+   ],
+   "notes": "Deficiency: delayed bleeding (e.g. from the umbilical stump) with normal PT and PTT.",
+   "pos": [
+    5,
+    7
+   ]
+  },
+  "f13a": {
+   "name": "Factor XIIIa",
+   "short": "XIIIa",
+   "aliases": [
+    "activated factor XIII",
+    "FXIIIa",
+    "factor 13a"
+   ],
+   "pos": [
+    4,
+    7
+   ]
+  },
+  "xfbn": {
+   "name": "Cross-linked fibrin",
+   "short": "",
+   "aliases": [
+    "stable fibrin clot",
+    "cross-linked fibrin clot",
+    "fibrin mesh",
+    "stabilized fibrin"
+   ],
+   "notes": "Plasmin (from plasminogen, via tPA) breaks it down, releasing D-dimers.",
+   "pos": [
+    3,
+    7
+   ]
+  }
+ },
+ "enzymes": {
+  "contact": {
+   "name": "Contact activation",
+   "short": "",
+   "aliases": [
+    "kallikrein",
+    "prekallikrein",
+    "HMWK",
+    "high-molecular-weight kininogen",
+    "negatively charged surface",
+    "collagen",
+    "surface contact"
+   ],
+   "notes": "Factor XII is activated on negatively charged surfaces (collagen, glass, kaolin in the PTT test) with prekallikrein and high-molecular-weight kininogen. Kallikrein also makes bradykinin; C1 inhibitor blocks kallikrein (its deficiency causes hereditary angioedema)."
+  },
+  "e12a": {
+   "name": "Factor XIIa",
+   "short": "XIIa",
+   "aliases": [
+    "activated factor XII",
+    "FXIIa"
+   ]
+  },
+  "e11a": {
+   "name": "Factor XIa",
+   "short": "XIa",
+   "aliases": [
+    "activated factor XI",
+    "FXIa"
+   ]
+  },
+  "tf": {
+   "name": "Tissue factor",
+   "short": "TF",
+   "aliases": [
+    "factor III",
+    "thromboplastin",
+    "tissue thromboplastin",
+    "CD142"
+   ],
+   "notes": "Exposed when the vessel wall is injured; binds factor VII and lets it activate. The PT test adds tissue factor to plasma."
+  },
+  "itenase": {
+   "name": "Intrinsic tenase (IXa + VIIIa)",
+   "short": "",
+   "aliases": [
+    "tenase",
+    "intrinsic tenase",
+    "IXa-VIIIa",
+    "IXa–VIIIa",
+    "factor IXa",
+    "IXa and VIIIa",
+    "IXa with VIIIa",
+    "tenase complex"
+   ],
+   "notes": "IXa with its cofactor VIIIa on the platelet phospholipid surface, with Ca²⁺. Makes most of the Xa once clotting is under way."
+  },
+  "etenase": {
+   "name": "Extrinsic tenase (tissue factor–VIIa)",
+   "short": "",
+   "aliases": [
+    "TF-VIIa",
+    "TF–VIIa",
+    "tissue factor–VIIa",
+    "tissue factor-VIIa",
+    "factor VIIa",
+    "extrinsic tenase",
+    "VIIa and tissue factor"
+   ],
+   "notes": "Starts clotting: the first bit of Xa (and IXa). Quickly shut down by tissue factor pathway inhibitor (TFPI)."
+  },
+  "pthase": {
+   "name": "Prothrombinase (Xa + Va)",
+   "short": "",
+   "aliases": [
+    "prothrombinase",
+    "Xa-Va",
+    "Xa–Va",
+    "factor Xa",
+    "Xa and Va",
+    "Xa with Va",
+    "prothrombinase complex"
+   ],
+   "notes": "Xa with its cofactor Va on the platelet phospholipid surface, with Ca²⁺."
+  },
+  "thrombin": {
+   "name": "Thrombin",
+   "short": "IIa",
+   "aliases": [
+    "factor IIa",
+    "activated factor II",
+    "FIIa"
+   ],
+   "notes": "Its feedback (activating V, VIII and XI) turns a trickle of thrombin into a burst."
+  },
+  "e13a": {
+   "name": "Factor XIIIa",
+   "short": "XIIIa",
+   "aliases": [
+    "activated factor XIII",
+    "FXIIIa",
+    "transglutaminase",
+    "fibrin-stabilizing factor"
+   ],
+   "notes": "A transglutaminase: cross-links fibrin (glutamine to lysine), which needs Ca²⁺."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "contact",
+   "from": "f12",
+   "to": "f12a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r2",
+   "enzyme": "e12a",
+   "from": "f11",
+   "to": "f11a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r3",
+   "enzyme": "e11a",
+   "from": "f9",
+   "to": "f9a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "tf",
+   "from": "f7",
+   "to": "f7a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "itenase",
+   "from": "f10",
+   "to": "f10a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺",
+    "Phospholipid"
+   ]
+  },
+  {
+   "id": "r6",
+   "enzyme": "etenase",
+   "from": "f10",
+   "to": "f10a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺",
+    "Phospholipid"
+   ]
+  },
+  {
+   "id": "r7",
+   "enzyme": "pthase",
+   "from": "f2",
+   "to": "f2a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺",
+    "Phospholipid"
+   ]
+  },
+  {
+   "id": "r8",
+   "enzyme": "thrombin",
+   "from": "fbg",
+   "to": "fbn",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "fibrinopeptides"
+    ]
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r9",
+   "enzyme": "e13a",
+   "from": "fbn",
+   "to": "xfbn",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺"
+   ]
+  },
+  {
+   "id": "r10",
+   "enzyme": "thrombin",
+   "from": "f8",
+   "to": "f8a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "branch": true
+  },
+  {
+   "id": "r11",
+   "enzyme": "thrombin",
+   "from": "f5",
+   "to": "f5a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "branch": true
+  },
+  {
+   "id": "r12",
+   "enzyme": "thrombin",
+   "from": "f13",
+   "to": "f13a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "requires": [
+    "Ca²⁺"
+   ],
+   "branch": true
+  }
+ ]
+}
