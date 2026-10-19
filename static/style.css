@@ -604,10 +604,12 @@ h1 .tile-art { vertical-align: middle; margin-right: 6px; }
 .ptile.lib { flex-direction: column; cursor: default; gap: 8px; }
 .tile-link { display: flex; gap: 12px; align-items: flex-start; color: inherit; text-decoration: none; min-width: 0; width: 100%; }
 .tile-link:hover .tile-name { color: var(--blue); }
-.tile-text { display: grid; gap: 3px; min-width: 0; }
-.tile-name { font-weight: 700; font-size: var(--fs-md); line-height: 1.25; }
+.tile-text { display: grid; gap: 3px; min-width: 0; flex: 1 1 auto; grid-template-columns: minmax(0, 1fr); } /* one column that can shrink: the tag row and long names wrap instead of pushing the tile wider */
+.tile-name { font-weight: 700; font-size: var(--fs-md); line-height: 1.25; overflow-wrap: anywhere; hyphens: auto; }
+.tile-art { flex: none; }
+.ptile.lib .tile-name { padding-right: 0; } /* the room on the right is for New quiz's check mark */
 .ptile.on .tile-name { color: var(--blue); }
-.tile-meta { font-size: var(--fs-sm); color: var(--muted); }
+.tile-meta { font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
 .tile-acc { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .tile-acc .meter { width: 70px; min-width: 70px; }
 .tile-tags, .tagrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
