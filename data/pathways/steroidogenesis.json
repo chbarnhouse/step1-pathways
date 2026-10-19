@@ -212,6 +212,16 @@
     0,
     6
    ]
+  },
+  "cortisone": {
+   "name": "Cortisone",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    1,
+    6
+   ],
+   "notes": "Inactive: it doesn't activate the glucocorticoid or mineralocorticoid receptor. Tissues switch cortisol off (11β-HSD2) or back on (11β-HSD1). Given as a drug, it works only after the liver converts it to cortisol (likewise prednisone → prednisolone)."
   }
  },
  "enzymes": {
@@ -331,6 +341,34 @@
     "5α reductase"
    ],
    "notes": "Peripheral tissues (prostate, skin, hair follicles). Finasteride inhibits it (BPH, male-pattern baldness). Deficiency → ambiguous genitalia at birth, virilizing at puberty."
+  },
+  "hsd11b2": {
+   "name": "11β-Hydroxysteroid dehydrogenase type 2",
+   "short": "11β-HSD2",
+   "aliases": [
+    "11-beta-hydroxysteroid dehydrogenase type 2",
+    "11β-hydroxysteroid dehydrogenase 2",
+    "11-beta-hydroxysteroid dehydrogenase 2"
+   ],
+   "nicknames": [
+    "11 beta HSD2",
+    "11β-HSD type 2"
+   ],
+   "notes": "Kidney (collecting duct), colon, salivary glands, placenta. Inactivates cortisol so it can't occupy the mineralocorticoid receptor, which binds cortisol as well as aldosterone. Blocked by glycyrrhetinic acid (black licorice), or absent (syndrome of apparent mineralocorticoid excess) → hypertension, hypokalemia, metabolic alkalosis, low renin and aldosterone. Very high cortisol (Cushing syndrome, ectopic ACTH) overwhelms it. In the placenta it shields the fetus from maternal cortisol."
+  },
+  "hsd11b1": {
+   "name": "11β-Hydroxysteroid dehydrogenase type 1",
+   "short": "11β-HSD1",
+   "aliases": [
+    "11-beta-hydroxysteroid dehydrogenase type 1",
+    "11β-hydroxysteroid dehydrogenase 1",
+    "11-beta-hydroxysteroid dehydrogenase 1"
+   ],
+   "nicknames": [
+    "11 beta HSD1",
+    "11β-HSD type 1"
+   ],
+   "notes": "Liver, adipose tissue, brain: regenerates active cortisol from cortisone inside cells (NADPH comes from hexose-6-phosphate dehydrogenase in the ER lumen). Why oral cortisone and prednisone work: they're activated here."
   }
  },
  "reactions": [
@@ -660,6 +698,40 @@
    },
    "loc": "ER",
    "tissue": "prostate, skin, hair follicles"
+  },
+  {
+   "id": "r19",
+   "enzyme": "hsd11b2",
+   "from": "cortisol",
+   "to": "cortisone",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "kidney, colon, salivary glands, placenta"
+  },
+  {
+   "id": "r20",
+   "enzyme": "hsd11b1",
+   "from": "cortisone",
+   "to": "cortisol",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "ER lumen",
+   "tissue": "liver, adipose, brain"
   }
  ],
  "distractors": {

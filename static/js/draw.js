@@ -335,6 +335,19 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   }
   return s;
 }
+// One of a vertical pair of opposite steps: the downward one runs on the left with its labels further left, the upward
+// one on the right with its labels further right, so neither crosses the other.
+function twinEdge(m, statusOf, r, a, b) {
+  const down = b.cy > a.cy, side = down ? -1 : 1, x = a.cx + side * 14;
+  const y1 = down ? a.cy + BH / 2 + 4 : a.cy - BH / 2 - 4, y2 = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
+  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), mid = (y1 + y2) / 2, anchor = side < 0 ? 'end' : 'start';
+  // The name sits outside the cofactor text (which hugs the arrow), so the two never overlap.
+  const cw = Math.max(0, ...cofParts(m, statusOf, r).map(q => (hidden(q.st) ? 110 : q.text.length * 7))), lx = x + side * (54 + cw + 14);
+  let s = arrow(x, y1, x, y2, r.reversible, rxCls(r)) + enzLabel(lx, mid, it, es, anchor, 22, 'center');
+  DRAW_LABELS.push(labelRect(lx, mid, anchor, it?.name || '', 22));
+  if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x, y1], [x, y2], [side, 0], cofParts(m, statusOf, r));
+  return s;
+}
 // Labels for slanted arrows sit beside the line, never on it: above a shallow line, left of a steep one.
 // boxes: metabolite boxes {x, y, w, h} to keep clear of; the label flips to the other side of the line if it would hit one.
 function diagLabel(m, statusOf, r, p1, p2, boxes = []) {
@@ -737,13 +750,15 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
 
 // Grids (steroidogenesis): every metabolite sets pos: [column, row]; optional grid_columns headers.
 function gridSVG(m, statusOf, opts = {}) {
-  const { p, items } = m, COLW = BW + 320, ROWH = BH + 96, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.grid_columns ? 34 : 0);
+  const { p, items } = m, COLW = BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.grid_columns ? 34 : 0);
   const pos = {};
   for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
-  p.reactions.forEach(r => { s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to]); });
+  // Two one-way steps between the same boxes, in opposite directions (cortisol ⇄ cortisone, two enzymes): side by side.
+  const twin = r => p.reactions.find(o => o !== r && o.from === r.to && o.to === r.from);
+  p.reactions.forEach(r => { s += twin(r) && Math.abs(pos[r.from].cx - pos[r.to].cx) < 4 ? twinEdge(m, statusOf, r, pos[r.from], pos[r.to]) : drawEdge(m, statusOf, r, pos[r.from], pos[r.to]); });
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id));
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }])));
   s += lk.s; DRAW_BOXES = [];
