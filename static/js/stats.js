@@ -6,13 +6,21 @@
 
 const Stats = {
   of(pid) { return (Store.data.stats[pid] = Store.data.stats[pid] || {}); },
+  // A connected quiz ("link:a+b") files each answer under the pathway(s) it belongs to.
+  targets(pid, key) { return String(pid).startsWith(LINK_PREFIX) ? stitchTargets(Library.get(pid), key) : [[pid, key]]; },
   record(pid, key, ok) {
-    const s = this.of(pid), e = (s[key] = s[key] || { n: 0, miss: 0 });
-    e.n++; if (!ok) e.miss++; e.last = Date.now();
+    for (const [p, k] of this.targets(pid, key)) {
+      const s = this.of(p), e = (s[k] = s[k] || { n: 0, miss: 0 });
+      e.n++; if (!ok) e.miss++; e.last = Date.now();
+    }
     Store.save();
   },
   // Smoothed miss rate: unseen items sit at 0.5 so new material still comes up.
-  rate(pid, key) { const e = Store.data.stats[pid]?.[key]; return e ? (e.miss + 0.5) / (e.n + 1) : 0.5; },
+  rate(pid, key) {
+    const one = (p, k) => { const e = Store.data.stats[p]?.[k]; return e ? (e.miss + 0.5) / (e.n + 1) : 0.5; };
+    const ts = this.targets(pid, key);
+    return ts.length ? Math.max(...ts.map(([p, k]) => one(p, k))) : 0.5;
+  },
   reset(pid) { if (pid) delete Store.data.stats[pid]; else Store.data.stats = {}; Store.save(); },
   // First-try accuracy over everything answered in a pathway, or null if nothing yet.
   accuracy(pid) {

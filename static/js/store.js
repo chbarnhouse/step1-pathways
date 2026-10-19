@@ -124,7 +124,10 @@ const Library = {
     for (const id of new Set([...Object.keys(this.builtin()), ...Object.keys(Store.data.custom)])) { const p = this.get(id); if (p) out[id] = p; }
     return out;
   },
-  get(id) { const p = this.raw(id); return p && p.compose ? composePathway(p) : p; },
+  get(id) {
+    if (String(id).startsWith(LINK_PREFIX)) return stitchPathway(id.slice(LINK_PREFIX.length).split('+'));
+    const p = this.raw(id); return p && p.compose ? composePathway(p) : p;
+  },
   atomic() { return Object.values(this.all()).filter(p => !p.compose); },
   status(id) { return Store.data.custom[id] ? (this.builtin()[id] ? 'edited' : 'custom') : 'builtin'; },
   list() {
@@ -214,6 +217,78 @@ function composePathway(def) {
   out.distractors.enzymes = uniq(out.distractors.enzymes);
   composeCache.set(def.id, { sig, p: out });
   return out;
+}
+
+/* ---------- connected pathways ----------
+   A quiz on several pathways that connect (glycolysis → TCA cycle → …): "link:glycolysis+tca". Each part keeps its own
+   drawing (a "tile"); a metabolite they share (acetyl-CoA, in the matrix) is one box, owned by the first part that has it.
+   Shared means same name (a place in brackets aside: "Citrate (mitochondria)") in the same compartment. The same molecule
+   in two compartments (pyruvate: glycolysis in the cytosol, PDH in the matrix) stays two boxes, joined by a transport arrow.
+   Ids are prefixed with their part ("tca.r1") so parts never collide; answers are filed under the parts themselves. */
+const LINK_PREFIX = 'link:';
+// "Citrate (mitochondria)" and "Citrate" are the same molecule; "Acyl-CoA (n−2)" keeps its brackets.
+const baseMetName = n => norm(String(n).replace(/\s*\(([^)]*)\)\s*$/, (all, inner) => (/cytosol|cytoplasm|mitochondri|matrix|\ber\b|lumen|blood|gut|liver|plasma|intermembrane|nucle|lysosom|peroxisom/i.test(inner) ? '' : all)));
+const linkId = ids => LINK_PREFIX + ids.join('+');
+const stitchCache = new Map();
+function stitchPathway(ids) {
+  const tiles = ids.map(id => Library.get(id)).filter(p => p && !p.stitch && (p.reactions || []).length);
+  if (!tiles.length) return null;
+  const id = linkId(tiles.map(t => t.id));
+  const hit = stitchCache.get(id);
+  if (hit && hit.tiles.length === tiles.length && hit.tiles.every((t, i) => t === tiles[i])) return hit.p;
+  const out = { id, name: tiles.map(t => t.name).join(' + '), group: 'Connected', summary: '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
+    distractors: { metabolites: [], enzymes: [] }, links: [], stitch: { parts: tiles.map(t => t.id), tiles: [], origin: { m: {}, r: {} }, joins: [] } };
+  const byBase = new Map(), inSet = new Set(tiles.flatMap(t => [t.id, ...(t.compose || [])])); // a pair counts as both its parts
+  for (const t of tiles) {
+    const mid = {}, eid = {}, pre = x => `${t.id}.${x}`, where = tileWhere(t);
+    for (const [k, m] of Object.entries(t.metabolites)) {
+      const base = baseMetName(m.name), zone = canonLoc(where[k]?.loc || ''), cands = byBase.get(base) || [];
+      const have = cands.find(c => c.tile !== t.id && (c.zone === zone || !c.zone || !zone)); // never two boxes of one part
+      if (have) { mid[k] = have.id; out.stitch.origin.m[have.id].push([t.id, k]); continue; }
+      mid[k] = pre(k); out.stitch.origin.m[mid[k]] = [[t.id, k]];
+      // Only where the two pathways name this molecule as their hand-off (glycolysis's pyruvate → TCA cycle).
+      const handoff = c => (t.links || []).some(l => l.to === c.tile && l.at === k) || (Library.get(c.tile)?.links || []).some(l => l.to === t.id && l.at === c.raw);
+      const other = cands.find(c => c.tile !== t.id && handoff(c)); if (other) out.stitch.joins.push([other.id, mid[k]]); // same molecule, other side of a membrane
+      byBase.set(base, [...cands, { id: mid[k], zone, tile: t.id, raw: k }]);
+      const { pos, ...rest } = clone(m); out.metabolites[mid[k]] = rest;
+    }
+    for (const [k, e] of Object.entries(t.enzymes)) { eid[k] = pre(k); out.enzymes[eid[k]] = clone(e); }
+    const rx = t.reactions.map(r => {
+      const nr = { ...clone(r), id: pre(r.id), enzyme: eid[r.enzyme], from: mid[r.from], to: mid[r.to] };
+      if (r.also_to) nr.also_to = r.also_to.map(x => mid[x]);
+      if (r.also_from) nr.also_from = r.also_from.map(x => mid[x]);
+      out.stitch.origin.r[nr.id] = [t.id, r.id];
+      return nr;
+    });
+    out.reactions.push(...rx);
+    Object.assign(out.cofactors, t.cofactors || {});
+    out.distractors.metabolites.push(...(t.distractors?.metabolites || []));
+    out.distractors.enzymes.push(...(t.distractors?.enzymes || []));
+    // The part as drawn on its own, with the shared ids: its tile. Links to other parts are drawn as real arrows instead.
+    const links = (t.links || []).filter(l => !inSet.has(l.to)).map(l => ({ ...l, at: mid[l.at] })).filter(l => l.at);
+    out.links.push(...links);
+    const sub = { ...clone(t), id: `${id}#${t.id}`, name: t.name, links, reactions: rx,
+      metabolites: Object.fromEntries(Object.entries(t.metabolites).map(([k, m]) => [mid[k], { ...clone(out.metabolites[mid[k]]), ...(m.pos ? { pos: m.pos } : {}) }])),
+      enzymes: Object.fromEntries(Object.keys(t.enzymes).map(k => [eid[k], out.enzymes[eid[k]]])) };
+    delete sub.compose;
+    out.stitch.tiles.push({ id: t.id, p: sub, rawLinks: t.links || [], mid });
+  }
+  out.distractors.metabolites = uniq(out.distractors.metabolites);
+  out.distractors.enzymes = uniq(out.distractors.enzymes);
+  stitchCache.set(id, { tiles, p: out });
+  return out;
+}
+// Where an answer in a connected quiz is filed: under each part it belongs to, with that part's own ids.
+function stitchTargets(p, key) {
+  const st = p?.stitch, i = key.indexOf(':'), t = key.slice(0, i), id = key.slice(i + 1);
+  if (!st) return [[p?.id, key]];
+  if (t === 'm') return (st.origin.m[id] || []).map(([pid, k]) => [pid, 'm:' + k]);
+  if (t === 'z') return st.parts.filter(pid => (Library.get(pid)?.reactions || []).some(r => canonLoc(r.loc || '') === canonLoc(id.split('|').pop()))).map(pid => {
+    const m = modelFor(Library.get(pid)), z = Object.values(m.items).find(it => it.kind === 'loc' && it.canon === canonLoc(id.split('|').pop()));
+    return z ? [pid, z.key] : null;
+  }).filter(Boolean);
+  const o = st.origin.r[id];
+  return o ? [[o[0], `${t}:${o[1]}`]] : [];
 }
 
 const Presets = {

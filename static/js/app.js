@@ -61,7 +61,7 @@ const seg = (attr, key, opts, cur) => `<div class="seg" role="radiogroup">${opts
 function favoritesCardHTML() {
   const favs = favorites();
   return `<section class="card pad quick-card" data-tour="favs"><div class="sec-h"><h2>${mi('star', 'h-ic')} Favorites</h2><span class="muted">${favs.length || ''}</span></div>
-    ${favs.length ? `<ul class="quick-list">${favs.map(f => { const d = normalizeDraft(f.d), pid = d.combine && pairOf(d.pathway) ? pairOf(d.pathway).id : d.pathway, p = Library.get(pid);
+    ${favs.length ? `<ul class="quick-list">${favs.map(f => { const d = normalizeDraft(f.d), pid = draftPathway(d), p = Library.get(pid);
       return `<li><button class="quick-go" data-dash="fav" data-id="${esc(f.id)}" title="Open in New quiz to check the settings, then start">${p ? tileArt(p, 'sm') : ''}<span class="quick-text"><b>${esc(f.name)}</b><span class="muted small">${esc(p ? p.name : '')} · ${esc(quizSummary(normalizeQuiz(d)))}</span></span></button>
         <span class="quick-actions"><button class="iconbtn" data-dash="favstart" data-id="${esc(f.id)}" data-tip="Start right away" aria-label="Start ${esc(f.name)} right away">${mi('play_arrow')}</button><button class="iconbtn" data-dash="favrename" data-id="${esc(f.id)}" data-tip="Rename" aria-label="Rename ${esc(f.name)}">${mi('edit', 'sm')}</button><button class="iconbtn" data-dash="unfav" data-id="${esc(f.id)}" data-tip="Remove from favorites" aria-label="Remove ${esc(f.name)} from favorites">${mi('close', 'sm')}</button></span></li>`; }).join('')}</ul>`
       : `<p class="muted small">${mi('star', 'sm')} Star a quiz on New quiz, or while you're in one, to keep it here.</p>`}
@@ -75,7 +75,7 @@ function presetsCardHTML() {
 }
 function renderDashboard() {
   const last = local.get(LAST_QUIZ), worst = Stats.worst(8), mine = Store.data.presets;
-  const lastD = last?.cfg && normalizeDraft(last.cfg), lastP = lastD && Library.get(lastD.combine && pairOf(lastD.pathway) ? pairOf(lastD.pathway).id : lastD.pathway);
+  const lastD = last?.cfg && normalizeDraft(last.cfg), lastP = lastD && Library.get(draftPathway(lastD));
   const atomic = Library.atomic().sort((a, b) => groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
   const studied = atomic.filter(p => Stats.accuracy(p.id)).length;
   $('#view').innerHTML = `<div class="page dash">
@@ -110,8 +110,9 @@ function actDraft(e) {
   if (e.d) return normalizeDraft(e.d);
   const p = e.pathways?.length === 1 && Library.get(e.pathways[0]);
   if (!p) return null;
-  const pathway = p.compose ? p.compose[0] : p.id;
-  return normalizeDraft({ pathway, combine: !!p.compose, mode: e.mode, given: e.given, answer: e.answer, weak: e.name === 'Weak spots', start: e.mode === 'total' ? 'begin' : 'random' });
+  const [first, ...rest] = p.stitch ? p.stitch.parts : [p.id], fp = Library.get(first);
+  const pathway = fp?.compose ? fp.compose[0] : first;
+  return normalizeDraft({ pathway, combine: !!fp?.compose, extra: rest, mode: e.mode, given: e.given, answer: e.answer, weak: e.name === 'Weak spots', start: e.mode === 'total' ? 'begin' : 'random' });
 }
 function actFavBtn(e) {
   const d = actDraft(e);
@@ -177,13 +178,14 @@ document.addEventListener('click', e => {
    Left: one thumbnail per pathway. Right: how to study it. One pathway at a time; pathways that come as a pair
    (a combined pathway lists them) offer "study together" once you pick one of them. */
 const C = { draft: null, presetId: '' };
-const DRAFT_DEFAULTS = { pathway: 'glycolysis', combine: false, mode: 'single', given: 'mets', start: 'random', answer: null, weak: false, allPathways: false, letterCheck: false, hints: false,
+const DRAFT_DEFAULTS = { pathway: 'glycolysis', combine: false, extra: [], mode: 'single', given: 'mets', start: 'random', answer: null, weak: false, allPathways: false, letterCheck: false, hints: false,
   el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'show', loc: 'show', dir: 'quiz', path: 'quiz' } };
 function normalizeDraft(d) {
   const out = Object.assign(clone(DRAFT_DEFAULTS), clone(d || {}));
   out.el = Object.assign(clone(DRAFT_DEFAULTS.el), (d && d.el) || {});
   if (!out.pathway && d?.pathways?.length) out.pathway = d.pathways[0];
   if (!Library.get(out.pathway) || Library.get(out.pathway).compose) out.pathway = Library.atomic()[0]?.id;
+  out.extra = uniq((Array.isArray(out.extra) ? out.extra : []).filter(id => id !== out.pathway && Library.get(id) && !Library.get(id).compose));
   if (out.mode === 'zones') { out.mode = 'single'; out.el.loc = 'place'; } // the short-lived Compartments mode is now Compartments: Place
   if (!out.aheadChosen) out.ahead = 'hide'; // Building blocks hides later blanks unless "Show them" was picked
   return out;
@@ -195,9 +197,29 @@ function homeDraft() {
 // The combined pathway that contains this one, if any (e.g. glycolysis → glycolysis + gluconeogenesis).
 function pairOf(id) { return Object.values(Library.all()).find(p => p.compose && p.compose.includes(id)); }
 const pairsOf = id => Object.values(Library.all()).filter(p => p.compose && p.compose.includes(id));
+/* Connected pathways: what links to what's picked (its links, or theirs to it), so a quiz can grow one connection at a time:
+   glycolysis → + TCA cycle → + β-oxidation, heme synthesis… A pair partner is offered as "Study together" instead. */
+function linkedTo(id) {
+  const out = new Set((Library.get(id)?.links || []).map(l => l.to));
+  for (const p of Library.atomic()) if ((p.links || []).some(l => l.to === id)) out.add(p.id);
+  out.delete(id);
+  return [...out].filter(x => Library.get(x) && !Library.get(x).compose);
+}
+function draftParts(d) { const pair = d.combine && pairOf(d.pathway); return [...(pair ? pair.compose : [d.pathway]), ...(d.extra || [])]; }
+function connectable(d) {
+  const have = new Set(draftParts(d)), partners = new Set(pairOf(d.pathway)?.compose || []);
+  return uniq([...have].flatMap(linkedTo)).filter(id => !have.has(id) && !partners.has(id))
+    .sort((a, b) => Library.get(a).name.localeCompare(Library.get(b).name));
+}
+// Dropping one can strand others that only connected through it: keep what's still reachable from the first pick.
+function pruneExtra(d) {
+  const reach = new Set(draftParts({ ...d, extra: [] })), left = [...(d.extra || [])];
+  for (let grew = true; grew;) { grew = false; for (const id of left.slice()) if ([...reach].some(r => linkedTo(r).includes(id))) { reach.add(id); left.splice(left.indexOf(id), 1); grew = true; } }
+  d.extra = (d.extra || []).filter(id => reach.has(id));
+}
+const draftPathway = d => { const pair = d.combine && pairOf(d.pathway), base = pair ? pair.id : d.pathway; return (d.extra || []).length ? linkId([base, ...d.extra]) : base; };
 function quizFromDraft(d) {
-  const pair = d.combine && pairOf(d.pathway);
-  const pid = pair ? pair.id : d.pathway;
+  const pid = draftPathway(d);
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
   return { ...clone(d), pathways: [pid], allPathways: allE, name: allE ? 'All pathways' : Library.get(pid)?.name || 'Quiz' };
 }
@@ -400,9 +422,11 @@ function renderCreate() {
   const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place');
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
-  try { const qp = d.combine && pair ? pair : sel; if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
+  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
   const placeNote = () => {
-    const grid = (d.combine && pair ? pair : sel)?.layout === 'grid';
+    const qp = Library.get(draftPathway(d));
+    if (qp?.stitch) return `<span class="el-note muted small">${mi('help', 'sm')} Place works on one pathway at a time; with connected pathways, compartments just show.</span>`;
+    const grid = qp?.layout === 'grid';
     const when = d.mode === 'single' ? 'First, before the blanks' : d.mode === 'total' || d.mode === 'build' ? 'After you’ve rebuilt the pathway' : '';
     return `<span class="el-note muted small">${mi('help', 'sm')} ${grid ? 'This pathway branches out, so there’s no list to place compartments in; they’ll just show.' : `No compartment colors or names. ${when ? when + ', y' : 'Y'}ou mark where the pathway crosses a membrane, then name each part (in list view).`}</span>`;
   };
@@ -411,7 +435,7 @@ function renderCreate() {
     .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', place: 'Place', hide: 'Hide' }[v], elTip(v, d.mode)]), elOf(d, k))}${elNote(k)}</div>`).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
-    const m = modelFor(Library.get(d.combine && pair ? pair.id : d.pathway));
+    const m = modelFor(Library.get(draftPathway(d)));
     modeOpts = `<label class="field">Start<select id="cStart"><option value="random">A random point</option><option value="begin">The beginning, nothing shown</option><optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup></select></label>`;
   }
   const laterBlanks = d.mode === 'build' ? `<div class="field"><span>Later blanks</span>${seg('data-cs', 'ahead', [['hide', 'Hide them'], ['show', 'Show them']], d.ahead === 'show' ? 'show' : 'hide')}<p class="muted small">${d.ahead === 'show' ? 'Blanks you haven’t reached yet show their answers.' : 'Blanks you haven’t reached yet stay empty, so you recall the whole pathway.'}</p></div>` : '';
@@ -427,6 +451,7 @@ function renderCreate() {
         <div class="side-sel">${sel && !allE ? tileArt(sel, 'sm') : ''}<span><span class="glabel">Pathway</span><b>${esc(allE ? 'All pathways' : sel?.name || '')}</b></span></div>
         ${pair && !allE ? `<label class="pairbox${d.combine ? ' on' : ''}"><input type="checkbox" data-cflag="combine" ${d.combine ? 'checked' : ''}>
           <span><b>Study together with ${esc(partner)}</b><span class="muted">${esc(pair.name)}: shared steps once, each one's own steps alongside.</span></span></label>` : ''}
+        ${allE ? '' : connectHTML(d)}
         ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
         <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, how, best]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${how}</span><span class="best"><b>Best for</b> ${best}</span></button>`).join('')}</div></div>
         ${modeOpts}
@@ -456,14 +481,21 @@ function renderCreate() {
   if (on && row) { const o = on.offsetLeft - row.offsetLeft; if (o < row.scrollLeft || o + on.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollLeft = o - 24; }
   updateRows();
 }
+function connectHTML(d) {
+  const more = connectable(d), extra = d.extra || [];
+  if (!more.length && !extra.length) return '';
+  return `<div class="connect"><span class="glabel">${mi('link', 'sm')} Connected pathways</span>
+    ${extra.length ? `<div class="chips">${extra.map(id => `<button type="button" class="fchip" data-cextra="${esc(id)}" data-on="1" aria-label="Take ${esc(Library.get(id).name)} out of this quiz">${esc(Library.get(id).name)}${mi('close', 'sm')}</button>`).join('')}</div>` : ''}
+    ${more.length ? `<p class="muted small">${extra.length ? 'Add more' : 'Add one to quiz them together, on one diagram'}:</p><div class="chips">${more.map(id => `<button type="button" class="addchip" data-cextra="${esc(id)}" aria-label="Add ${esc(Library.get(id).name)}">${mi('add', 'sm')}${esc(Library.get(id).name)}</button>`).join('')}</div>` : ''}
+  </div>`;
+}
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
-const FAV_FIELDS = ['pathway', 'combine', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'nameModes', 'names', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
+const FAV_FIELDS = ['pathway', 'combine', 'extra', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'nameModes', 'names', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
 const favSig = d => JSON.stringify(FAV_FIELDS.map(k => d[k] ?? null));
 const favorites = () => Store.data.favorites || [];
 const findFav = d => d && favorites().find(f => favSig(normalizeDraft(f.d)) === favSig(normalizeDraft(d)));
 function favName(d) {
-  const p = Library.get(d.pathway), pair = d.combine && pairOf(d.pathway);
-  return `${pair ? pair.name : p?.name || 'Quiz'} · ${MODE_NAMES[d.mode] || d.mode}`;
+  return `${Library.get(draftPathway(normalizeDraft(d)))?.name || 'Quiz'} · ${MODE_NAMES[d.mode] || d.mode}`;
 }
 function toggleFav(d, then) {
   const hit = findFav(d);
@@ -487,10 +519,12 @@ document.addEventListener('click', e => {
   const pick = e.target.closest('[data-cpick]');
   if (pick) {
     const id = pick.dataset.cpick;
-    if (d.pathway !== id) { d.combine = false; if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; }
+    if (d.pathway !== id) { d.combine = false; d.extra = []; if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; }
     d.pathway = id; d.allPathways = false;
     return renderCreate();
   }
+  const xb = e.target.closest('[data-cextra]');
+  if (xb) { const id = xb.dataset.cextra; if (xb.dataset.on) { d.extra = d.extra.filter(x => x !== id); pruneExtra(d); } else d.extra = [...(d.extra || []), id]; return renderCreate(); }
   const sb = e.target.closest('[data-cs]');
   if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; if (sb.dataset.cs === 'names') delete d.fullNames; C.presetId = ''; return renderCreate(); }
   const nb = e.target.closest('[data-cname]');
@@ -517,7 +551,7 @@ document.addEventListener('change', e => {
   const d = C.draft, t = e.target;
   if (t.id === 'cStart') d.start = t.value;
   else if (t.id === 'cPreset') { if (t.value) loadPresetInto(t.value); else C.presetId = ''; }
-  else if (t.dataset.cflag) { d[t.dataset.cflag] = t.checked; if (t.dataset.cflag === 'combine') d.start = ['random', 'begin'].includes(d.start) ? d.start : 'random'; }
+  else if (t.dataset.cflag) { d[t.dataset.cflag] = t.checked; if (t.dataset.cflag === 'combine') { pruneExtra(d); d.extra = d.extra.filter(id => !(pairOf(d.pathway)?.compose || []).includes(id)); } if (t.dataset.cflag === 'combine') d.start = ['random', 'begin'].includes(d.start) ? d.start : 'random'; }
   else return;
   renderCreate();
 });

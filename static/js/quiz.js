@@ -345,8 +345,8 @@ function zonePlan(m) {
     gaps.push({ key: 'b:' + first.rxn.id, at: 'wrap', truth: zoneOf(prev.rxn) !== zoneOf(first.rxn), cells: cellsApart(prev.rxn, first.rxn) });
   return { gaps, secs: secs.filter(s => m.items['z:' + s.zone]) };
 }
-const zonesUsable = m => !!m && m.p.layout !== 'grid' && zonePlan(m).secs.length > 0;
-const zonesRefusal = m => (m?.p.layout === 'grid' ? `<b>${esc(m.p.name)}</b> branches out instead of running in one order, so there’s no list to put membranes in. Pick another pathway, or set something else to Quiz.`
+const zonesUsable = m => !!m && !m.p.stitch && m.p.layout !== 'grid' && zonePlan(m).secs.length > 0;
+const zonesRefusal = m => (m?.p.stitch ? 'Place works on one pathway at a time. With connected pathways, compartments just show; set something else to Quiz.' : m?.p.layout === 'grid' ? `<b>${esc(m.p.name)}</b> branches out instead of running in one order, so there’s no list to put membranes in. Pick another pathway, or set something else to Quiz.`
   : `No compartments are recorded for <b>${esc(m?.p.name || 'this pathway')}</b>, so there’s nothing to place. Pick another pathway, or set something else to Quiz.`);
 // after: the round to run once the compartments are placed ('single' = Fill the blanks), or null when this is the whole quiz.
 function startZones(after = null) {
@@ -741,7 +741,7 @@ document.addEventListener('click', e => {
   if (v === 'facts') { Q.drawer = true; Q.focus = null; renderQuiz(); }
   if (v === 'link' && Q.draft) {
     const d = clone(Q.draft);
-    d.pathway = b.dataset.id; d.combine = false; d.allPathways = false;
+    d.pathway = b.dataset.id; d.combine = false; d.extra = []; d.allPathways = false;
     if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; // a start point named in the old pathway doesn't exist here
     local.set(LAST_QUIZ, { cfg: d });
     launchQuiz(quizFromDraft(d), clone(d));
@@ -1039,7 +1039,7 @@ function renderQuiz() {
   V.innerHTML = `<div class="quiz ${occ ? 'occ' : 'steps'}${Q.drawer ? ' with-drawer' : ''}">
     <header class="qbar">
       <a class="tbtn icon" href="#/" title="Dashboard" aria-label="Dashboard">${mi('home')}</a>
-      <div class="qtitle"><div class="qname-row"><span class="qname">${esc(Q.cfg.name)}</span>${Q.draft ? `<button class="tbtn icon mini" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}" aria-label="${findFav(Q.draft) ? 'Remove from favorites' : 'Add to favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}</button>` : ''}<a class="tbtn icon mini" href="#/pathways/${encodeURIComponent(Q.m.p.compose ? Q.m.p.compose[0] : Q.m.p.id)}/edit" title="Edit this pathway" aria-label="Edit this pathway">${mi('edit')}</a></div>${Q.cfg.name !== Q.m.p.name || Q.models.length > 1 ? `<div class="qsub">${sub}</div>` : `<div class="qsub">${esc(quizSummary(Q.cfg))}</div>`}</div>
+      <div class="qtitle"><div class="qname-row"><span class="qname">${esc(Q.cfg.name)}</span>${Q.draft ? `<button class="tbtn icon mini" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}" aria-label="${findFav(Q.draft) ? 'Remove from favorites' : 'Add to favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}</button>` : ''}<a class="tbtn icon mini" href="#/pathways/${encodeURIComponent(Q.m.p.stitch ? (Library.get(Q.m.p.stitch.parts[0])?.compose || Q.m.p.stitch.parts)[0] : Q.m.p.compose ? Q.m.p.compose[0] : Q.m.p.id)}/edit" title="Edit this pathway" aria-label="Edit this pathway">${mi('edit')}</a></div>${Q.cfg.name !== Q.m.p.name || Q.models.length > 1 ? `<div class="qsub">${sub}</div>` : `<div class="qsub">${esc(quizSummary(Q.cfg))}</div>`}</div>
       ${progress}
       <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
       <div class="qtools">${R.type !== 'none' && flow && !occ ? zoomBarHTML() : ''}

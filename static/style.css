@@ -835,6 +835,8 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .flow .t-blue { fill: var(--blue-bg); } .flow .t-orange { fill: var(--orange-bg); } .flow .t-teal { fill: var(--teal-bg); }
 .flow .t-gold { fill: var(--gold-bg); } .flow .t-pink { fill: var(--pink-bg); } .flow .t-slate { fill: var(--slate-bg); }
 .flow .region { stroke: var(--ink-2); stroke-width: 1.6; stroke-dasharray: 7 5; }
+/* Connected pathways: a compartment is one tinted shape made of overlapping pieces; the group carries the transparency. */
+.flow .blob { opacity: .75; }
 .flow .membrane { stroke: var(--ink-2); stroke-width: 1.8; stroke-dasharray: 7 5; }
 .flow .cellwall { stroke: var(--ink-2); stroke-width: 3; }
 .el-row .el-note { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; }
@@ -1087,5 +1089,12 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .fchip .muted { color: inherit; opacity: .8; font-weight: 600; }
 .fchip .mi { width: 16px; height: 16px; fill: currentColor; }
 .fchip:hover { opacity: .85; }
+/* New quiz: pathways that connect to the one picked. Added ones are solid chips (× takes them out); offers are outlined. */
+.connect { display: grid; gap: 8px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); }
+.connect .glabel { display: flex; align-items: center; gap: 6px; }
+.connect p { margin: 0; }
+.addchip { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px 0 8px; border: 1.5px dashed var(--ink-2); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
+.addchip .mi { width: 16px; height: 16px; fill: currentColor; }
+.addchip:hover { border-style: solid; border-color: var(--blue); color: var(--blue); }
 .tile-combo { display: inline-flex; vertical-align: -3px; margin-left: 2px; }
 .tile-combo .mi { width: 16px; height: 16px; fill: var(--muted); }

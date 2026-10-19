@@ -9,6 +9,8 @@ const APP_VERSION = '3.10.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'Quiz connected pathways together on one diagram. In New quiz, under the pathway you picked, Connected pathways offers what links to it: pick Glycolysis, add TCA cycle, and β-oxidation, heme synthesis, the urea cycle and more become available. Each keeps its own layout; a molecule they share is one box; compartments are drawn once for the whole picture; the same molecule in two compartments (cytosolic and mitochondrial pyruvate) is joined by a transport arrow. Answers count toward each pathway on its own.',
+    'Cycle arrows reach their boxes (the folate cycle’s left a gap), and a step’s full label (name, RATE-LIMITING, what it needs) is kept clear of the steps around it (glycolysis + gluconeogenesis: PEP carboxykinase’s GDP + CO₂ no longer sits on pyruvate carboxylase).',
     'Six new pathways: Methionine cycle (with transsulfuration to cysteine), Folate cycle (SHMT, thymidylate synthase, DHFR, MTHFR), Heme degradation (bilirubin, from macrophage to gut and urine), Purine salvage and degradation (HGPRT, APRT, ADA, xanthine oxidase), Sphingolipid degradation (the lysosomal storage diseases), and Eicosanoids (COX and 5-LOX).',
     'TCA cycle starts at pyruvate: pyruvate dehydrogenase (NAD⁺ + CoA → NADH + CO₂; needs TPP, lipoic acid and FAD) makes the acetyl-CoA that enters at citrate synthase.',
     'Vitamins and other helpers a step needs show under its enzyme: “needs B6 (pyridoxal phosphate)” for ALA synthase, “needs Biotin (B7)” for the carboxylases, TPP, lipoic acid and FAD for pyruvate and α-ketoglutarate dehydrogenase (24 steps in 14 pathways).',
