@@ -688,7 +688,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
 
 // Cycles: metabolites on an ellipse (clockwise from the top; wider than tall, like the boxes) joined by curved arrows.
 // Enzymes sit outside with their cofactors beneath; the main compartment is written in the middle, exceptions per step.
-function cycleSVG(m, statusOf, { zones = true } = {}) {
+function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn the ring (a connected drawing lines a box up with another part)
   const { p, items, spine, spineMets, branches } = m;
   const n = spineMets.length, w = 176;
   const RY = Math.max(170, n * 30), RX = Math.round(RY * 1.5);
@@ -696,7 +696,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   const extraIn = spine.some(r => (r.also_from || []).length), cx = RX + w / 2 + 300, cy = RY + 190 + (extraIn ? 150 : 0);
   const pt = (t, d = 0) => [cx + (RX + d) * Math.cos(t), cy + (RY + d) * Math.sin(t)];
   const pos = {};
-  spineMets.forEach((id, i) => { const t = -Math.PI / 2 + 2 * Math.PI * i / n; const [x, y] = pt(t); pos[id] = { cx: x, cy: y, t }; });
+  spineMets.forEach((id, i) => { const t = -Math.PI / 2 + rot + 2 * Math.PI * i / n; const [x, y] = pt(t); pos[id] = { cx: x, cy: y, t }; });
   // A step's extra input sits just outside its arc.
   spine.forEach(r => (r.also_from || []).forEach(id => {
     if (pos[id] || !pos[r.from] || !pos[r.to]) return;
@@ -895,7 +895,7 @@ function tileWhere(p) {
   }
   return where;
 }
-function renderTile(T, statusOf, drop, keep) {
+function renderTile(T, statusOf, drop, keep, rot = 0) {
   const vkey = [...drop].sort().join(',');
   const p = (T.variants = T.variants || {})[vkey] = T.variants[vkey] || (drop.size ? { ...T.p, id: T.p.id + '~' + vkey,
     metabolites: Object.fromEntries(Object.entries(T.p.metabolites).filter(([k]) => !drop.has(k))),
@@ -903,12 +903,14 @@ function renderTile(T, statusOf, drop, keep) {
       ? { ...r, also_to: (r.also_to || []).filter(x => !drop.has(x)), also_from: (r.also_from || []).filter(x => !drop.has(x)) } : r), links: (T.p.links || []).filter(l => !drop.has(l.at)) } : T.p);
   const sm = modelFor(p);
   DRAW_POS = {};
-  let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false });
+  let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false, rot });
   const pos = DRAW_POS, labels = DRAW_LABELS.slice(); DRAW_POS = null;
+  // Its tags to other pathways ("from β-Oxidation") take room too.
+  for (const t of svg.matchAll(/<rect class="xtag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) labels.push({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] });
   if (keep) { const at = svg.indexOf(`data-key="m:${keep}"`), g0 = svg.lastIndexOf('<g', at), g1 = svg.indexOf('</g>', at); if (at > 0) svg = svg.slice(0, g0) + svg.slice(g1 + 4); }
   const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
   const keptAt = keep && pos['m:' + keep]; if (keep) delete pos['m:' + keep];
-  return { T, sm, pos, keptAt, labels, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
+  return { T, sm, pos, keptAt, drop, keep, rot, labels, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
 }
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
@@ -941,21 +943,39 @@ function stitchSVG(m, statusOf) {
     const maxX = Math.max(...occ.map(o => o.x + o.w)); return [maxX + 200 - R.vb[0], 0];
   };
   const touching = (T, id) => T.p.reactions.filter(r => r.from === id || r.to === id);
+  // After a part is re-drawn: everything placed so far, from scratch.
+  const reserved = []; // where the labels of steps moved between parts used to be: kept free for them
+  const rebuild = () => {
+    occ.length = 0; occ.push(...reserved); for (const k of Object.keys(G)) delete G[k];
+    for (const P of placed) { occ.push(...rectsOf(P, P.dx, P.dy)); for (const [k, r] of Object.entries(P.pos)) if (!G[k]) G[k] = { ...shift(r, P.dx, P.dy), R: P, id: k.slice(2) }; }
+  };
   // Right-angled routes between two boxes, simplest first: straight, an L (either corner), then three legs (in the gap
   // between them, or around both). Returns center-to-center points clear of every other box, or null.
   const segHits = (p, q, r) => Math.max(p[0], q[0]) > r.x - 6 && Math.min(p[0], q[0]) < r.x + r.w + 6 && Math.max(p[1], q[1]) > r.y - 6 && Math.min(p[1], q[1]) < r.y + r.h + 6;
   const same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
-  const route = (a, b, boxes) => {
+  const drawn = []; // segments of the arrows already drawn between parts: a new one may cross them, never run along them
+  const alongside = (p, q) => drawn.some(([u, v]) => {
+    const h1 = Math.abs(p[1] - q[1]) < 1, h2 = Math.abs(u[1] - v[1]) < 1;
+    if (h1 !== h2) return false;
+    const [c, d, lo1, hi1, lo2, hi2] = h1 ? [p[1], u[1], Math.min(p[0], q[0]), Math.max(p[0], q[0]), Math.min(u[0], v[0]), Math.max(u[0], v[0])] : [p[0], u[0], Math.min(p[1], q[1]), Math.max(p[1], q[1]), Math.min(u[1], v[1]), Math.max(u[1], v[1])];
+    return Math.abs(c - d) < 10 && Math.min(hi1, hi2) - Math.max(lo1, lo2) > 4;
+  });
+  // An end moved along its box's side (a vertical end leg sideways, a horizontal one up or down), with the leg after it.
+  const nudge = (pts, end, o) => { const P = pts.map(q => [...q]), i = end ? P.length - 1 : 0, j = end ? P.length - 2 : 1, vert = Math.abs(P[i][0] - P[j][0]) < 1;
+    if (P.length === 2) { if (vert) { P[0][0] += o; P[1][0] += o; } else { P[0][1] += o / 4; P[1][1] += o / 4; } return P; }
+    if (vert) { P[i][0] += o; P[j][0] += o; } else { P[i][1] += o / 4; P[j][1] += o / 4; } return P; };
+  const route = (a, b, boxes, spread = false) => {
     const A = ctr(a), B = ctr(b), others = boxes.filter(r => !same(r, a) && !same(r, b)), cands = [];
     if (Math.abs(A.cx - B.cx) < 4 || Math.abs(A.cy - B.cy) < 4) cands.push([[A.cx, A.cy], [B.cx, B.cy]]);
     cands.push([[A.cx, A.cy], [B.cx, A.cy], [B.cx, B.cy]], [[A.cx, A.cy], [A.cx, B.cy], [B.cx, B.cy]]);
     const lo = Math.min(a.x, b.x) - 50, hi = Math.max(a.x + a.w, b.x + b.w) + 50, top = Math.min(a.y, b.y) - 50, bot = Math.max(a.y + a.h, b.y + b.h) + 50;
-    for (const xm of [(A.cx + B.cx) / 2, lo, hi, lo - 120, hi + 120]) cands.push([[A.cx, A.cy], [xm, A.cy], [xm, B.cy], [B.cx, B.cy]]);
-    for (const ym of [(A.cy + B.cy) / 2, top, bot, top - 120, bot + 120]) cands.push([[A.cx, A.cy], [A.cx, ym], [B.cx, ym], [B.cx, B.cy]]);
+    for (const xm of [(A.cx + B.cx) / 2, lo, hi, lo - 120, hi + 120, lo - 300, hi + 300]) cands.push([[A.cx, A.cy], [xm, A.cy], [xm, B.cy], [B.cx, B.cy]]);
+    for (const ym of [(A.cy + B.cy) / 2, top, bot, top - 120, bot + 120, top - 300, bot + 300]) cands.push([[A.cx, A.cy], [A.cx, ym], [B.cx, ym], [B.cx, B.cy]]);
     const len = pts => pts.slice(1).reduce((n, q, i) => n + Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1]), 0) + 80 * (pts.length - 2);
-    const ok = cands.filter(pts => {
-      // the inner legs must miss everything; the end legs only have to miss boxes other than their own
-      for (let i = 1; i < pts.length; i++) if (others.some(r => segHits(pts[i - 1], pts[i], r))) return false;
+    // When drawing (not while placing parts), each route may also enter or leave its boxes off-center.
+    const all = spread ? cands.flatMap(c => [0, 50, -50].flatMap(o1 => [0, 50, -50].map(o2 => nudge(nudge(c, false, o1), true, o2)))) : cands;
+    const ok = all.filter(pts => {
+      for (let i = 1; i < pts.length; i++) if (others.some(r => segHits(pts[i - 1], pts[i], r)) || alongside(pts[i - 1], pts[i])) return false;
       return true;
     }).sort((x, y) => len(x) - len(y));
     return ok[0] || null;
@@ -968,8 +988,9 @@ function stitchSVG(m, statusOf) {
     return P;
   };
   const drawRoute = (r, a, b, cls, labels = true) => {
-    const pts = route(a, b, DRAW_BOXES) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
-    const segs = P.slice(1).map((q, i) => [P[i], q]), longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
+    const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS], true) || route(a, b, DRAW_BOXES, true) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+    const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
+    const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
     // A long vertical run keeps its labels to a short stretch in the middle, as on any other step.
     const v = v0 && Math.abs(v0[1][1] - v0[0][1]) > 130 ? (() => { const mid = (v0[0][1] + v0[1][1]) / 2, d = Math.sign(v0[1][1] - v0[0][1]); return [[v0[0][0], mid - d * 55], [v0[0][0], mid + d * 55]]; })() : v0;
@@ -984,14 +1005,45 @@ function stitchSVG(m, statusOf) {
     const anchor = shared.find(leaf) || shared[0], others = new Set(shared.filter(id => id !== anchor && leaf(id)));
     const bridgeAll = ids => ids.forEach(id => { touching(T, id).forEach(r => bridges.push(r)); sideOf(T, id).forEach(r => sides.push((r.also_to || []).includes(id) ? [r.from, id, r] : [id, r.to, r])); });
     if (anchor) {
-      let R = renderTile(T, statusOf, others, anchor);
-      const a = G['m:' + anchor], b = R.keptAt;
-      const dx = ctr(a).cx - ctr(b).cx, dy = ctr(a).cy - ctr(b).cy;
+      // Snap on a shared box. Try each (ends first); a ring may also turn so that box faces right, left, down or up.
+      // Keep the snap that leaves the fewest molecules drawn twice (gluconeogenesis + TCA: the ring beside the column,
+      // touching it at oxaloacetate, rather than hung from pyruvate with a second oxaloacetate).
       // (This part's labels were laid out around its own copy of the shared box, so that box doesn't count.)
-      if (!clash(rectsOf(R, dx, dy), a)) { place(R, dx, dy); bridgeAll([...others]); return; }
+      let best = null;
+      const ring = T.p.circular ? modelFor(T.p).spineMets : [];
+      for (const sh of shared.slice().sort((x, y) => leaf(y) - leaf(x))) {
+        const oth = new Set(shared.filter(id => id !== sh && leaf(id))), dups = shared.filter(id => id !== sh && !leaf(id)).length, i0 = ring.indexOf(sh);
+        if (best && dups >= best.dups) continue;
+        const rots = i0 < 0 ? [0] : uniq([0, ...[0, Math.PI, Math.PI / 2, -Math.PI / 2].map(t => t + Math.PI / 2 - 2 * Math.PI * i0 / ring.length)]);
+        for (const rot of rots) {
+          const Rc = renderTile(T, statusOf, oth, sh, rot), a = G['m:' + sh], b = Rc.keptAt;
+          if (!b) continue;
+          const dx = ctr(a).cx - ctr(b).cx, dy = ctr(a).cy - ctr(b).cy;
+          if (!clash(rectsOf(Rc, dx, dy), a)) { best = { R: Rc, dx, dy, oth, dups }; break; }
+        }
+        if (best && !best.dups) break;
+      }
+      if (best) { place(best.R, best.dx, best.dy); bridgeAll([...best.oth]); return; }
+      let R;
+      const a = G['m:' + anchor];
       if (leaf(anchor)) {
         const drop = new Set([...others, anchor]), r = touching(T, anchor)[0] || sideOf(T, anchor)[0], e = r.from === anchor ? r.to : r.from;
         R = renderTile(T, statusOf, drop); place(R, ...nearby(R, 'm:' + e, a)); bridgeAll([...drop]); return;
+      }
+      // Neither copy is an end (oxaloacetate: between PC and PEPCK in one part, on the TCA ring in the other). Take it out
+      // of the earlier part, whose steps into it are then drawn to this part's box, and let this part have the freed spot.
+      const O = placed.find(P => P.T === tiles[owner[anchor]]);
+      const O2 = O && renderTile(O.T, statusOf, new Set([...O.drop, anchor]), O.keep, O.rot);
+      if (O2 && Object.entries(O2.pos).every(([k, r]) => O.pos[k] && Math.abs(O.pos[k].x - r.x) < 1 && Math.abs(O.pos[k].y - r.y) < 1)) {
+        const was = new Set(O2.labels.map(l => `${l.x},${l.y}`));
+        reserved.push(...O.labels.filter(l => !was.has(`${l.x},${l.y}`)).map(l => shift(l, O.dx, O.dy)));
+        placed[placed.indexOf(O)] = Object.assign(O2, { dx: O.dx, dy: O.dy }); rebuild();
+        R = renderTile(T, statusOf, others);
+        const at = R.pos['m:' + anchor], sx = ctr(a).cx - ctr(at).cx, sy = ctr(a).cy - ctr(at).cy;
+        place(R, ...(clash(rectsOf(R, sx, sy)) ? nearby(R, 'm:' + anchor, a) : [sx, sy]));
+        touching(O.T, anchor).forEach(r => bridges.push(r));
+        sideOf(O.T, anchor).forEach(r => sides.push((r.also_to || []).includes(anchor) ? [r.from, anchor, r] : [anchor, r.to, r]));
+        bridgeAll([...others]); return;
       }
       R = renderTile(T, statusOf, others); place(R, ...nearby(R, 'm:' + anchor, a)); bridgeAll([...others]);
       dots.push({ a: 'm:' + anchor, R, label: 'same molecule' }); return;
@@ -1011,6 +1063,21 @@ function stitchSVG(m, statusOf) {
     place(R, ...nearby(R, 'm:' + mine, tgt));
     if (mine && theirs) dots.push({ a: 'm:' + theirs, b: 'm:' + mine, R, label: via });
   });
+  // A molecule still drawn by two parts (mid-pathway in both, like oxaloacetate in gluconeogenesis and on the TCA ring):
+  // the earlier part lets go of it if that leaves the rest of its drawing where it was, and its steps go to the later
+  // part's box. Otherwise the two copies are joined by a dotted "same molecule" line.
+  for (let j = 1; j < placed.length; j++) for (const k of Object.keys(placed[j].pos)) {
+    const i0 = placed.findIndex((P, x) => x < j && P.pos[k]); if (i0 < 0) continue;
+    const O = placed[i0], id = k.slice(2), O2 = renderTile(O.T, statusOf, new Set([...O.drop, id]), O.keep, O.rot);
+    if (Object.entries(O2.pos).every(([q, r]) => O.pos[q] && Math.abs(O.pos[q].x - r.x) < 1 && Math.abs(O.pos[q].y - r.y) < 1)) {
+      const was = new Set(O2.labels.map(l => `${l.x},${l.y}`));
+      reserved.push(...O.labels.filter(l => !was.has(`${l.x},${l.y}`)).map(l => shift(l, O.dx, O.dy)));
+      placed[i0] = Object.assign(O2, { dx: O.dx, dy: O.dy });
+      touching(O.T, id).forEach(r => bridges.push(r));
+      sideOf(O.T, id).forEach(r => sides.push((r.also_to || []).includes(id) ? [r.from, id, r] : [id, r.to, r]));
+    } else dots.push({ a: k, R: placed[j], label: 'same molecule' });
+  }
+  rebuild();
   // Steps between parts, drawn like any other step (enzyme, cofactors) now that every box has its place.
   DRAW_BOXES = Object.values(G).map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h })); DRAW_LABELS = occ.filter(o => !DRAW_BOXES.some(b => b.x === o.x && b.y === o.y));
   let between = '';
@@ -1033,14 +1100,18 @@ function stitchSVG(m, statusOf) {
   for (const d of dots) {
     const a = G[d.a], b = d.b ? G[d.b] : (() => { const r = d.R.pos[d.a]; return r && shift(r, d.R.dx, d.R.dy); })();
     if (!a || !b) continue;
-    const A = ctr(a), B = ctr(b), horiz = Math.abs(B.cx - A.cx) > Math.abs(B.cy - A.cy);
-    const p1 = horiz ? [A.cx + Math.sign(B.cx - A.cx) * a.w / 2, A.cy] : [A.cx, A.cy + Math.sign(B.cy - A.cy) * a.h / 2];
-    const p2 = horiz ? [B.cx - Math.sign(B.cx - A.cx) * b.w / 2, B.cy] : [B.cx, B.cy - Math.sign(B.cy - A.cy) * b.h / 2];
-    const mid = horiz ? (p1[0] + p2[0]) / 2 : (p1[1] + p2[1]) / 2;
-    const path = horiz ? `M${p1[0]},${p1[1]}H${mid}V${p2[1]}H${p2[0]}` : `M${p1[0]},${p1[1]}V${mid}H${p2[0]}V${p2[1]}`;
-    between += `<path class="xline" d="${path}"/>`;
-    if (d.label) { const w = d.label.length * 6.4 + 20, tx = horiz ? mid : (p1[0] + p2[0]) / 2, ty = horiz ? (p1[1] + p2[1]) / 2 : mid;
-      between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${esc(d.label)}</text>`; }
+    // Routed like the arrows (clear of boxes and labels, never along another line), its name on the longest leg.
+    const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS], true) || route(a, b, DRAW_BOXES, true) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
+    const P = trim(pts, a, b); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
+    between += `<path class="xline" d="M${P.map(q => q.join(',')).join('L')}"/>`;
+    if (d.label) {
+      // On a stretch of the line where it covers nothing; the middle of the longest leg if there's none.
+      const w = d.label.length * 6.4 + 20, segs = P.slice(1).map((q, i) => [P[i], q]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
+      const spots = segs.flatMap(([u, v]) => [0.5, 0.3, 0.7, 0.15, 0.85].map(f => [u[0] + (v[0] - u[0]) * f, u[1] + (v[1] - u[1]) * f]));
+      const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots[0];
+      DRAW_LABELS.push({ x: tx - w / 2, y: ty - 11, w, h: 22 });
+      between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${esc(d.label)}</text>`;
+    }
   }
   DRAW_BOXES = [];
   // Compartments, once for the whole picture: each one is a tinted shape that follows its own boxes and the steps
