@@ -9,6 +9,7 @@ const APP_VERSION = '3.10.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'The Metabolites, Enzymes and Cofactors tabs work like Pathways: rows by section (enzymes by kind, e.g. kinases, dehydrogenases, synthases; metabolites by pathway group; cofactors by what they do, e.g. vitamins, electron carriers, group carriers), a sort menu (in most pathways, weakest first, recently studied), and Kind, System, Pathway, Status and Tags filters. Tiles show your accuracy and body systems.',
     'Library tabs: Metabolites, Enzymes and Cofactors beside Pathways. Search any of them (other names count), and open one for a page of its own: its names, notes from each pathway, and every step it’s part of, with links to the pathway and to each enzyme, metabolite and cofactor. Metabolites show what makes them and what uses them; cofactors show where they go in, come out, or are needed (vitamins, one page per B-number).',
     'New quiz from the top bar (or the dashboard card) starts with no pathway picked, and says to select one; Clear all empties the picks. How you study stays as you left it. Every picked pathway’s tile is marked in the grid.',
     'New quiz: every pathway in the quiz is an equal pill (× takes it out). Below, Add a connected pathway suggests what links to all of them, most closely related first; gluconeogenesis appears there for glycolysis and turns on the combined view.',
