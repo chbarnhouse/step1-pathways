@@ -1,0 +1,259 @@
+{
+ "id": "methionine",
+ "name": "Methionine cycle",
+ "group": "Nitrogen & amino acids",
+ "systems": [
+  "Fundamentals",
+  "Heme",
+  "Neuro",
+  "Cardio"
+ ],
+ "tags": [
+  "Amino acids",
+  "Vitamins"
+ ],
+ "aliases": [
+  "SAM cycle",
+  "activated methyl cycle",
+  "homocysteine metabolism",
+  "transsulfuration pathway"
+ ],
+ "summary": "Every cell, mostly liver. Methionine is activated to SAM, the universal methyl donor; giving up its methyl leaves SAH, then homocysteine. Homocysteine is either remethylated to methionine (methionine synthase: B12 + 5-methyl-THF from the folate cycle) or leaves by transsulfuration to cysteine (cystathionine β-synthase and γ-lyase: B6). Homocysteine rises in B12, folate or B6 deficiency and in homocystinuria; methylmalonic acid rises only in B12 deficiency.",
+ "circular": true,
+ "metabolites": {
+  "met": {
+   "name": "Methionine",
+   "short": "Met",
+   "aliases": [],
+   "notes": "Essential amino acid. Also a VOMIT source of propionyl-CoA (via α-ketobutyrate)."
+  },
+  "sam": {
+   "name": "S-Adenosylmethionine",
+   "short": "SAM",
+   "aliases": [
+    "AdoMet",
+    "SAMe"
+   ],
+   "notes": "The universal methyl donor: DNA and histone methylation, norepinephrine → epinephrine (PNMT), phosphatidylcholine and creatine synthesis."
+  },
+  "sah": {
+   "name": "S-Adenosylhomocysteine",
+   "short": "SAH",
+   "aliases": [
+    "AdoHcy"
+   ]
+  },
+  "hcy": {
+   "name": "Homocysteine",
+   "short": "Hcy",
+   "aliases": [],
+   "notes": "↑ in deficiency of B12, folate or B6, and in homocystinuria. Damages endothelium: atherosclerosis and thrombosis."
+  },
+  "cysthio": {
+   "name": "Cystathionine",
+   "short": "",
+   "aliases": []
+  },
+  "cys": {
+   "name": "Cysteine",
+   "short": "Cys",
+   "aliases": [],
+   "notes": "Made here, so it's not essential unless transsulfuration fails (then it is). Used for glutathione and taurine."
+  }
+ },
+ "enzymes": {
+  "mat": {
+   "name": "Methionine adenosyltransferase",
+   "short": "MAT",
+   "aliases": [
+    "SAM synthetase",
+    "methionine adenosyltransferase (MAT)"
+   ],
+   "notes": "Uses all three phosphates of ATP."
+  },
+  "mt": {
+   "name": "Methyltransferases",
+   "short": "",
+   "aliases": [
+    "methyltransferase"
+   ],
+   "notes": "Many enzymes that move SAM's methyl onto DNA, histones, catecholamines (PNMT, COMT), phospholipids and creatine precursors."
+  },
+  "sahh": {
+   "name": "SAH hydrolase",
+   "short": "SAHH",
+   "aliases": [
+    "adenosylhomocysteinase",
+    "S-adenosylhomocysteine hydrolase"
+   ]
+  },
+  "ms": {
+   "name": "Methionine synthase",
+   "short": "MTR",
+   "aliases": [
+    "homocysteine methyltransferase",
+    "5-methyltetrahydrofolate-homocysteine methyltransferase"
+   ],
+   "notes": "Needs vitamin B12 (methylcobalamin) to carry the methyl group from 5-methyl-THF to homocysteine. B12 deficiency strands folate as 5-methyl-THF (the methyl-folate trap) → megaloblastic anemia, and homocysteine rises. Nitrous oxide inactivates B12 here."
+  },
+  "cbs": {
+   "name": "Cystathionine β-synthase",
+   "short": "CBS",
+   "aliases": [
+    "cystathionine beta-synthase",
+    "cystathionine synthase"
+   ],
+   "notes": "Needs B6 (PLP). Deficiency → homocystinuria: ↑ homocysteine and methionine, ↓ cysteine; marfanoid habitus with downward lens dislocation, intellectual disability, osteoporosis, thrombosis and early atherosclerosis. Treat: ↓ methionine, ↑ cysteine, B6 (some respond), B12, folate, betaine."
+  },
+  "cgl": {
+   "name": "Cystathionine γ-lyase",
+   "short": "CTH",
+   "aliases": [
+    "cystathionase",
+    "gamma-cystathionase",
+    "cystathionine gamma-lyase"
+   ],
+   "notes": "Needs B6 (PLP). Its α-ketobutyrate goes on to propionyl-CoA."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "mat",
+   "from": "met",
+   "to": "sam",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "ppi",
+     "pi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "mt",
+   "from": "sam",
+   "to": "sah",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "sahh",
+   "from": "sah",
+   "to": "hcy",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "adenosine"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "ms",
+   "from": "hcy",
+   "to": "met",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "methylthf"
+    ],
+    "out": [
+     "thf"
+    ]
+   },
+   "loc": "cytosol",
+   "requires": [
+    "Vitamin B12 (methylcobalamin)"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "cbs",
+   "from": "hcy",
+   "to": "cysthio",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "serine"
+    ],
+    "out": [
+     "h2o"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true,
+   "requires": [
+    "Vitamin B6 (PLP)"
+   ]
+  },
+  {
+   "id": "r6",
+   "enzyme": "cgl",
+   "from": "cysthio",
+   "to": "cys",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "aketobut",
+     "nh3"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true,
+   "requires": [
+    "Vitamin B6 (PLP)"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Taurine",
+   "Glutathione",
+   "Betaine",
+   "Homocystine",
+   "Serine",
+   "Cysteic acid"
+  ],
+  "enzymes": [
+   "Betaine-homocysteine methyltransferase",
+   "Methylmalonyl-CoA mutase",
+   "Glycine N-methyltransferase",
+   "Methylenetetrahydrofolate reductase"
+  ]
+ },
+ "links": [
+  {
+   "at": "met",
+   "to": "folate",
+   "dir": "in",
+   "via": "methyl from 5-methyl-THF"
+  },
+  {
+   "at": "met",
+   "to": "propionyl-coa",
+   "dir": "out",
+   "via": "α-ketobutyrate"
+  }
+ ],
+ "tissue": "every cell (liver most)",
+ "icon": "cycle",
+ "color": "teal"
+}

@@ -1,0 +1,412 @@
+{
+ "id": "purine-salvage",
+ "name": "Purine salvage and degradation",
+ "group": "Nucleotides",
+ "systems": [
+  "Fundamentals",
+  "MSK",
+  "Heme",
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "purine degradation",
+  "purine catabolism",
+  "purine salvage",
+  "uric acid pathway",
+  "purine breakdown"
+ ],
+ "summary": "Purine nucleotides are broken down to free bases and then to uric acid (xanthine oxidase), or the bases are salvaged back to nucleotides with PRPP (HGPRT for hypoxanthine and guanine, APRT for adenine). Clinical: SCID (ADA deficiency), Lesch-Nyhan (no HGPRT), gout and tumor lysis (↑ uric acid; allopurinol, febuxostat inhibit xanthine oxidase).",
+ "metabolites": {
+  "ampm": {
+   "name": "Adenosine monophosphate",
+   "short": "AMP",
+   "aliases": [
+    "adenylate",
+    "adenylic acid"
+   ],
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "adenosine": {
+   "name": "Adenosine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "inosine": {
+   "name": "Inosine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "hypox": {
+   "name": "Hypoxanthine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "xanthine": {
+   "name": "Xanthine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "uric": {
+   "name": "Uric acid",
+   "short": "",
+   "aliases": [
+    "urate",
+    "monosodium urate"
+   ],
+   "notes": "End product in humans (no uricase). Gout: monosodium urate crystals, needle-shaped and negatively birefringent. Also kidney stones (radiolucent).",
+   "pos": [
+    1,
+    5
+   ]
+  },
+  "gmp": {
+   "name": "Guanosine monophosphate",
+   "short": "GMP",
+   "aliases": [
+    "guanylate",
+    "guanylic acid"
+   ],
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "guanosine": {
+   "name": "Guanosine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "guanine": {
+   "name": "Guanine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "imp": {
+   "name": "Inosine monophosphate",
+   "short": "IMP",
+   "aliases": [
+    "inosinate",
+    "inosinic acid"
+   ],
+   "pos": [
+    0,
+    3
+   ]
+  },
+  "adenine": {
+   "name": "Adenine",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    0
+   ]
+  }
+ },
+ "enzymes": {
+  "nt5": {
+   "name": "5′-Nucleotidase",
+   "short": "",
+   "aliases": [
+    "5'-nucleotidase",
+    "nucleotidase"
+   ]
+  },
+  "ada": {
+   "name": "Adenosine deaminase",
+   "short": "ADA",
+   "aliases": [],
+   "notes": "Deficiency → SCID (autosomal recessive): ↑ dATP inhibits ribonucleotide reductase, killing lymphocytes. One of the first conditions treated with gene therapy."
+  },
+  "pnp": {
+   "name": "Purine nucleoside phosphorylase",
+   "short": "PNP",
+   "aliases": [],
+   "notes": "Deficiency → T-cell immunodeficiency."
+  },
+  "xo": {
+   "name": "Xanthine oxidase",
+   "short": "XO",
+   "aliases": [
+    "xanthine oxidoreductase",
+    "xanthine dehydrogenase"
+   ],
+   "notes": "Inhibited by allopurinol and febuxostat (gout, tumor lysis prophylaxis). Also inactivates 6-mercaptopurine and azathioprine: reduce their doses with allopurinol. Rasburicase (recombinant uricase) instead converts uric acid to allantoin."
+  },
+  "gda": {
+   "name": "Guanine deaminase",
+   "short": "",
+   "aliases": [
+    "guanase"
+   ]
+  },
+  "hgprt": {
+   "name": "Hypoxanthine-guanine phosphoribosyltransferase",
+   "short": "HGPRT",
+   "aliases": [
+    "HPRT",
+    "hypoxanthine phosphoribosyltransferase"
+   ],
+   "notes": "Lesch-Nyhan syndrome (X-linked recessive): no HGPRT → purines can't be salvaged, so de novo synthesis ↑ and uric acid ↑. HGPRT: Hyperuricemia, Gout, Pissed off (aggression, self-mutilation), intellectual disability (Retardation), dysTonia. Treat with allopurinol or febuxostat (doesn't fix the neurologic signs)."
+  },
+  "aprt": {
+   "name": "Adenine phosphoribosyltransferase",
+   "short": "APRT",
+   "aliases": [],
+   "notes": "Deficiency → 2,8-dihydroxyadenine kidney stones."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "nt5",
+   "from": "ampm",
+   "to": "adenosine",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "pi"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "ada",
+   "from": "adenosine",
+   "to": "inosine",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "nh3"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "pnp",
+   "from": "inosine",
+   "to": "hypox",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "pi"
+    ],
+    "out": [
+     "r1p"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "xo",
+   "from": "hypox",
+   "to": "xanthine",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2",
+     "h2o"
+    ],
+    "out": [
+     "h2o2"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r5",
+   "enzyme": "xo",
+   "from": "xanthine",
+   "to": "uric",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2",
+     "h2o"
+    ],
+    "out": [
+     "h2o2"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r6",
+   "enzyme": "nt5",
+   "from": "gmp",
+   "to": "guanosine",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "pi"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r7",
+   "enzyme": "pnp",
+   "from": "guanosine",
+   "to": "guanine",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "pi"
+    ],
+    "out": [
+     "r1p"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r8",
+   "enzyme": "gda",
+   "from": "guanine",
+   "to": "xanthine",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "nh3"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r9",
+   "enzyme": "hgprt",
+   "from": "hypox",
+   "to": "imp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "prpp"
+    ],
+    "out": [
+     "ppi"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r10",
+   "enzyme": "hgprt",
+   "from": "guanine",
+   "to": "gmp",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "prpp"
+    ],
+    "out": [
+     "ppi"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r11",
+   "enzyme": "aprt",
+   "from": "adenine",
+   "to": "ampm",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "prpp"
+    ],
+    "out": [
+     "ppi"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Allantoin",
+   "Orotic acid",
+   "Xanthosine",
+   "Deoxyadenosine",
+   "Ribose-5-phosphate"
+  ],
+  "enzymes": [
+   "Uricase",
+   "Ribonucleotide reductase",
+   "IMP dehydrogenase",
+   "Adenylosuccinate lyase"
+  ]
+ },
+ "links": [
+  {
+   "at": "ampm",
+   "to": "purine-synthesis",
+   "dir": "in"
+  },
+  {
+   "at": "gmp",
+   "to": "purine-synthesis",
+   "dir": "in"
+  }
+ ],
+ "tissue": "every cell (uric acid made mostly in liver)",
+ "icon": "genetics",
+ "color": "pink",
+ "layout": "grid",
+ "grid_columns": [
+  "Salvage",
+  "Adenine side",
+  "Guanine side",
+  ""
+ ]
+}

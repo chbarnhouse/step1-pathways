@@ -1,0 +1,233 @@
+{
+ "id": "folate",
+ "name": "Folate cycle",
+ "group": "Nucleotides",
+ "systems": [
+  "Fundamentals",
+  "Heme"
+ ],
+ "tags": [
+  "Vitamins",
+  "Drug targets"
+ ],
+ "aliases": [
+  "one-carbon metabolism",
+  "tetrahydrofolate cycle",
+  "THF cycle",
+  "folate metabolism"
+ ],
+ "summary": "Carries one-carbon units. THF picks one up from serine (→ N⁵,N¹⁰-methylene-THF), which either makes thymidine (thymidylate synthase: dUMP → dTMP, leaving DHF that DHFR must reduce back to THF) or is reduced to 5-methyl-THF to remethylate homocysteine (methionine synthase, B12). Drug targets: methotrexate, trimethoprim and pyrimethamine (DHFR); 5-fluorouracil (thymidylate synthase). Folate or B12 deficiency → megaloblastic anemia and ↑ homocysteine; only B12 deficiency also raises methylmalonic acid and causes neurologic signs.",
+ "circular": true,
+ "metabolites": {
+  "thf": {
+   "name": "Tetrahydrofolate",
+   "short": "THF",
+   "aliases": [
+    "tetrahydrofolic acid"
+   ],
+   "notes": "The active carrier. Dietary folate is reduced to it (via DHF) by DHFR."
+  },
+  "mthf": {
+   "name": "N⁵,N¹⁰-Methylene-THF",
+   "short": "",
+   "aliases": [
+    "N5,N10-methylene-THF",
+    "5,10-methylene-THF",
+    "methylene-THF",
+    "N5,N10-methylenetetrahydrofolate",
+    "methylenetetrahydrofolate"
+   ],
+   "notes": "The branch point: thymidine synthesis or methyl groups for methionine."
+  },
+  "dhf": {
+   "name": "Dihydrofolate",
+   "short": "DHF",
+   "aliases": [
+    "dihydrofolic acid"
+   ]
+  },
+  "methylthf": {
+   "name": "N⁵-Methyl-THF",
+   "short": "",
+   "aliases": [
+    "5-methyl-THF",
+    "N5-methyl-THF",
+    "methyl-THF",
+    "5-methyltetrahydrofolate",
+    "methyltetrahydrofolate"
+   ],
+   "nicknames": [
+    "5-MTHF"
+   ],
+   "notes": "The main form in blood. Its only way back to THF is methionine synthase, which needs B12: without B12, folate is trapped here (methyl-folate trap)."
+  }
+ },
+ "enzymes": {
+  "shmt": {
+   "name": "Serine hydroxymethyltransferase",
+   "short": "SHMT",
+   "aliases": [
+    "serine transhydroxymethylase"
+   ],
+   "notes": "Needs B6 (PLP). Serine's side-chain carbon becomes the one-carbon unit; serine becomes glycine."
+  },
+  "ts": {
+   "name": "Thymidylate synthase",
+   "short": "TS",
+   "aliases": [
+    "thymidylate synthetase"
+   ],
+   "notes": "dUMP → dTMP, the only de novo source of thymidine for DNA. Inhibited by 5-fluorouracil (as FdUMP). Its oxidizing step leaves DHF behind."
+  },
+  "dhfr": {
+   "name": "Dihydrofolate reductase",
+   "short": "DHFR",
+   "aliases": [],
+   "notes": "Regenerates THF. Inhibited by methotrexate (human), trimethoprim (bacterial) and pyrimethamine (protozoal). Leucovorin (folinic acid) bypasses it, rescuing normal cells from methotrexate."
+  },
+  "mthfr": {
+   "name": "Methylenetetrahydrofolate reductase",
+   "short": "MTHFR",
+   "aliases": [
+    "methylene-THF reductase",
+    "5,10-methylenetetrahydrofolate reductase"
+   ],
+   "notes": "Irreversible: 5-methyl-THF can only return to THF through methionine synthase. Common variant (C677T) → mildly ↑ homocysteine."
+  },
+  "ms": {
+   "name": "Methionine synthase",
+   "short": "MTR",
+   "aliases": [
+    "homocysteine methyltransferase",
+    "5-methyltetrahydrofolate-homocysteine methyltransferase"
+   ],
+   "notes": "Needs vitamin B12 (methylcobalamin) to carry the methyl group from 5-methyl-THF to homocysteine. B12 deficiency strands folate as 5-methyl-THF (the methyl-folate trap) → megaloblastic anemia, and homocysteine rises. Nitrous oxide inactivates B12 here."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "shmt",
+   "from": "thf",
+   "to": "mthf",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "serine"
+    ],
+    "out": [
+     "gly",
+     "h2o"
+    ]
+   },
+   "loc": "cytosol",
+   "requires": [
+    "Vitamin B6 (PLP)"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "ts",
+   "from": "mthf",
+   "to": "dhf",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "dump"
+    ],
+    "out": [
+     "dtmp"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "dhfr",
+   "from": "dhf",
+   "to": "thf",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "mthfr",
+   "from": "mthf",
+   "to": "methylthf",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true,
+   "requires": [
+    "Vitamin B2 (FAD)"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "ms",
+   "from": "methylthf",
+   "to": "thf",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "hcy"
+    ],
+    "out": [
+     "met"
+    ]
+   },
+   "loc": "cytosol",
+   "branch": true,
+   "requires": [
+    "Vitamin B12 (methylcobalamin)"
+   ]
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Folinic acid",
+   "N¹⁰-Formyl-THF",
+   "Folic acid",
+   "Pteroylglutamate",
+   "Methenyl-THF"
+  ],
+  "enzymes": [
+   "Ribonucleotide reductase",
+   "Glycine cleavage system",
+   "Formyltetrahydrofolate synthetase",
+   "Thymidine kinase"
+  ]
+ },
+ "links": [
+  {
+   "at": "methylthf",
+   "to": "methionine",
+   "dir": "out",
+   "via": "methyl to homocysteine"
+  },
+  {
+   "at": "mthf",
+   "to": "pyrimidine-synthesis",
+   "dir": "out",
+   "via": "dUMP → dTMP"
+  }
+ ],
+ "tissue": "every cell (fast-dividing ones most)",
+ "icon": "genetics",
+ "color": "gold"
+}

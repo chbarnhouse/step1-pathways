@@ -1,0 +1,300 @@
+{
+ "id": "bilirubin",
+ "name": "Heme degradation (bilirubin)",
+ "group": "Heme",
+ "systems": [
+  "Heme",
+  "GI"
+ ],
+ "tags": [],
+ "aliases": [
+  "bilirubin metabolism",
+  "heme catabolism",
+  "bilirubin pathway",
+  "heme breakdown"
+ ],
+ "summary": "Old red cells are broken down by macrophages (spleen): heme → biliverdin → unconjugated bilirubin, carried on albumin to the liver, conjugated with glucuronic acid (UGT1A1) and pumped into bile (MRP2, rate-limiting). Gut bacteria make urobilinogen: most leaves as stercobilin (brown stool); some is reabsorbed and leaves in urine as urobilin (yellow). Unconjugated ↑: hemolysis, Gilbert, Crigler-Najjar, newborns. Conjugated ↑: Dubin-Johnson, Rotor, biliary obstruction (pale stool, dark urine, no urine urobilinogen).",
+ "metabolites": {
+  "heme": {
+   "name": "Heme",
+   "short": "",
+   "aliases": [
+    "haem"
+   ],
+   "notes": "From hemoglobin of senescent red cells (and myoglobin, cytochromes)."
+  },
+  "biliverdin": {
+   "name": "Biliverdin",
+   "short": "",
+   "aliases": [],
+   "notes": "Green (the green of a healing bruise)."
+  },
+  "ubili": {
+   "name": "Unconjugated bilirubin",
+   "short": "",
+   "aliases": [
+    "indirect bilirubin",
+    "free bilirubin"
+   ],
+   "notes": "Yellow and fat-soluble: travels bound to albumin, isn't filtered by the kidney (no bilirubinuria), and in newborns can cross the blood-brain barrier (kernicterus)."
+  },
+  "ubilil": {
+   "name": "Unconjugated bilirubin (liver)",
+   "short": "",
+   "aliases": [
+    "unconjugated bilirubin in hepatocytes"
+   ],
+   "notes": "Taken up from albumin into the hepatocyte."
+  },
+  "cbili": {
+   "name": "Conjugated bilirubin",
+   "short": "",
+   "aliases": [
+    "direct bilirubin",
+    "bilirubin diglucuronide",
+    "bilirubin glucuronide"
+   ],
+   "notes": "Water-soluble: when it backs up into blood it appears in urine (dark urine)."
+  },
+  "cbilig": {
+   "name": "Conjugated bilirubin (gut)",
+   "short": "",
+   "aliases": [
+    "conjugated bilirubin in bile"
+   ],
+   "notes": "Reaches the intestine in bile."
+  },
+  "urobilinogen": {
+   "name": "Urobilinogen",
+   "short": "",
+   "aliases": [],
+   "notes": "About 20% is reabsorbed (enterohepatic circulation); a little reaches the kidney. Absent from urine in complete biliary obstruction; ↑ in hemolysis."
+  },
+  "stercobilin": {
+   "name": "Stercobilin",
+   "short": "",
+   "aliases": [],
+   "notes": "Brown color of stool. Pale (clay-colored) stool when bile can't reach the gut."
+  },
+  "urobilin": {
+   "name": "Urobilin",
+   "short": "",
+   "aliases": [],
+   "notes": "Yellow color of urine."
+  }
+ },
+ "enzymes": {
+  "ho": {
+   "name": "Heme oxygenase",
+   "short": "HO-1",
+   "aliases": [
+    "heme oxygenase-1"
+   ],
+   "notes": "In macrophages (spleen, liver, bone marrow). Releases iron (recycled via ferritin/transferrin) and carbon monoxide (the body's only source)."
+  },
+  "bvr": {
+   "name": "Biliverdin reductase",
+   "short": "BVR",
+   "aliases": []
+  },
+  "alb": {
+   "name": "Albumin (blood) and hepatic uptake",
+   "short": "",
+   "aliases": [
+    "albumin",
+    "albumin transport",
+    "OATP uptake"
+   ],
+   "notes": "Unconjugated bilirubin rides on albumin; drugs like sulfonamides can displace it (kernicterus risk in newborns)."
+  },
+  "ugt": {
+   "name": "UDP-glucuronosyltransferase",
+   "short": "UGT1A1",
+   "aliases": [
+    "bilirubin UDP-glucuronosyltransferase",
+    "glucuronyl transferase",
+    "UDP-glucuronyltransferase"
+   ],
+   "notes": "Gilbert syndrome: mildly ↓ (unconjugated hyperbilirubinemia with fasting, stress, illness; benign). Crigler-Najjar type I: absent (severe jaundice, kernicterus; liver transplant). Type II: ↓ (milder; responds to phenobarbital, which induces UGT). Newborns: immature UGT → physiologic jaundice (treat with phototherapy)."
+  },
+  "mrp2": {
+   "name": "MRP2 (bile canalicular pump)",
+   "short": "ABCC2",
+   "aliases": [
+    "MRP2",
+    "multidrug resistance-associated protein 2",
+    "canalicular multispecific organic anion transporter"
+   ],
+   "notes": "Rate-limiting step of bilirubin excretion. Dubin-Johnson: defective MRP2 → conjugated hyperbilirubinemia, black liver. Rotor: milder, liver not black."
+  },
+  "gut": {
+   "name": "Gut bacteria (reduction)",
+   "short": "",
+   "aliases": [
+    "intestinal bacteria",
+    "gut bacteria",
+    "bacterial β-glucuronidase"
+   ],
+   "notes": "Bacteria deconjugate and reduce bilirubin. Newborns lack them, and antibiotics reduce them."
+  },
+  "gut2": {
+   "name": "Gut bacteria (oxidation)",
+   "short": "",
+   "aliases": [
+    "intestinal bacteria (oxidation)"
+   ]
+  },
+  "kid": {
+   "name": "Kidney (oxidation in urine)",
+   "short": "",
+   "aliases": [
+    "renal excretion"
+   ]
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "ho",
+   "from": "heme",
+   "to": "biliverdin",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2",
+     "nadph"
+    ],
+    "out": [
+     "fe2",
+     "co",
+     "nadp"
+    ]
+   },
+   "loc": "cytosol",
+   "tissue": "spleen (macrophages)"
+  },
+  {
+   "id": "r2",
+   "enzyme": "bvr",
+   "from": "biliverdin",
+   "to": "ubili",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nadph"
+    ],
+    "out": [
+     "nadp"
+    ]
+   },
+   "loc": "cytosol",
+   "tissue": "spleen (macrophages)"
+  },
+  {
+   "id": "r3",
+   "enzyme": "alb",
+   "from": "ubili",
+   "to": "ubilil",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true
+  },
+  {
+   "id": "r4",
+   "enzyme": "ugt",
+   "from": "ubilil",
+   "to": "cbili",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "udpga"
+    ],
+    "out": [
+     "udp"
+    ]
+   },
+   "loc": "smooth ER",
+   "tissue": "liver"
+  },
+  {
+   "id": "r5",
+   "enzyme": "mrp2",
+   "from": "cbili",
+   "to": "cbilig",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true
+  },
+  {
+   "id": "r6",
+   "enzyme": "gut",
+   "from": "cbilig",
+   "to": "urobilinogen",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "intestinal lumen",
+   "tissue": "gut"
+  },
+  {
+   "id": "r7",
+   "enzyme": "gut2",
+   "from": "urobilinogen",
+   "to": "stercobilin",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "intestinal lumen",
+   "tissue": "gut"
+  },
+  {
+   "id": "r8",
+   "enzyme": "kid",
+   "from": "urobilinogen",
+   "to": "urobilin",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "urine",
+   "branch": true,
+   "tissue": "kidney"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Protoporphyrin IX",
+   "Bilirubin diglucuronide",
+   "Hemosiderin",
+   "Ferritin",
+   "Urobilinogen glucuronide"
+  ],
+  "enzymes": [
+   "Ferrochelatase",
+   "Glucose-6-phosphate dehydrogenase",
+   "β-Glucuronidase",
+   "Hemopexin"
+  ]
+ },
+ "links": [
+  {
+   "at": "heme",
+   "to": "heme",
+   "dir": "in"
+  }
+ ],
+ "tissue": "spleen (macrophages) → liver → gut",
+ "icon": "opacity",
+ "color": "gold"
+}

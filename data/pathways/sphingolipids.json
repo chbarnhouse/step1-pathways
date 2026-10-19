@@ -1,0 +1,388 @@
+{
+ "id": "sphingolipids",
+ "name": "Sphingolipid degradation",
+ "group": "Lipids",
+ "systems": [
+  "Fundamentals",
+  "Neuro"
+ ],
+ "tags": [
+  "Lysosomal storage"
+ ],
+ "aliases": [
+  "lysosomal storage diseases",
+  "sphingolipidoses",
+  "glycosphingolipid degradation",
+  "sphingolipid breakdown"
+ ],
+ "summary": "Lysosomes take glycosphingolipids apart one group at a time, down to ceramide. Each missing enzyme is a lysosomal storage disease, all autosomal recessive except Fabry (X-linked recessive). Cherry-red macula: Tay-Sachs and Niemann-Pick. Hepatosplenomegaly: Gaucher and Niemann-Pick, not Tay-Sachs. Demyelination: Krabbe and metachromatic leukodystrophy.",
+ "metabolites": {
+  "gm1": {
+   "name": "GM1 ganglioside",
+   "short": "GM1",
+   "aliases": [
+    "GM1"
+   ]
+  },
+  "gm2": {
+   "name": "GM2 ganglioside",
+   "short": "GM2",
+   "aliases": [
+    "GM2"
+   ],
+   "notes": "Accumulates in Tay-Sachs (and Sandhoff)."
+  },
+  "gm3": {
+   "name": "GM3 ganglioside",
+   "short": "GM3",
+   "aliases": [
+    "GM3"
+   ]
+  },
+  "lacc": {
+   "name": "Lactosylceramide",
+   "short": "",
+   "aliases": [
+    "lactosyl ceramide"
+   ]
+  },
+  "glccer": {
+   "name": "Glucocerebroside",
+   "short": "",
+   "aliases": [
+    "glucosylceramide",
+    "glucosyl ceramide"
+   ],
+   "notes": "Accumulates in Gaucher disease."
+  },
+  "ceramide": {
+   "name": "Ceramide",
+   "short": "",
+   "aliases": [],
+   "notes": "Sphingosine + fatty acid: the core of every sphingolipid. Ceramidase then splits it (deficient in Farber disease)."
+  },
+  "globoside": {
+   "name": "Globoside",
+   "short": "",
+   "aliases": [],
+   "notes": "Accumulates in Sandhoff disease (with GM2)."
+  },
+  "cth": {
+   "name": "Ceramide trihexoside",
+   "short": "Gb3",
+   "aliases": [
+    "globotriaosylceramide",
+    "Gb3",
+    "GL-3",
+    "trihexosylceramide"
+   ],
+   "notes": "Accumulates in Fabry disease."
+  },
+  "sulfatide": {
+   "name": "Sulfatide",
+   "short": "",
+   "aliases": [
+    "cerebroside sulfate",
+    "sulfatides",
+    "3-O-sulfogalactosylceramide"
+   ],
+   "notes": "Accumulates in metachromatic leukodystrophy."
+  },
+  "galcer": {
+   "name": "Galactocerebroside",
+   "short": "",
+   "aliases": [
+    "galactosylceramide",
+    "galactosyl ceramide"
+   ],
+   "notes": "Accumulates in Krabbe disease (with psychosine)."
+  },
+  "sm": {
+   "name": "Sphingomyelin",
+   "short": "",
+   "aliases": [],
+   "notes": "Accumulates in Niemann-Pick disease."
+  }
+ },
+ "enzymes": {
+  "bgal": {
+   "name": "β-Galactosidase (GM1)",
+   "short": "GLB1",
+   "aliases": [
+    "beta-galactosidase",
+    "GM1 β-galactosidase",
+    "GM1-β-galactosidase"
+   ],
+   "notes": "Deficiency → GM1 gangliosidosis: neurodegeneration, hepatosplenomegaly, coarse facies, cherry-red spot."
+  },
+  "hexa": {
+   "name": "Hexosaminidase A",
+   "short": "Hex A",
+   "aliases": [
+    "β-hexosaminidase A",
+    "beta-hexosaminidase A",
+    "hexosaminidase-A"
+   ],
+   "notes": "Deficiency → Tay-Sachs: progressive neurodegeneration, developmental delay, hyperreflexia, hyperacusis (exaggerated startle), cherry-red macula, lysosomes with onion-skin inclusions; NO hepatosplenomegaly. ↑ in Ashkenazi Jews."
+  },
+  "hexab": {
+   "name": "Hexosaminidase A and B",
+   "short": "Hex A/B",
+   "aliases": [
+    "β-hexosaminidase A and B",
+    "hexosaminidases A and B",
+    "hexosaminidase B"
+   ],
+   "notes": "Deficiency of the shared β subunit → Sandhoff: like Tay-Sachs plus hepatosplenomegaly (GM2 and globoside both build up)."
+  },
+  "agal": {
+   "name": "α-Galactosidase A",
+   "short": "GLA",
+   "aliases": [
+    "alpha-galactosidase A",
+    "α-galactosidase",
+    "alpha-galactosidase"
+   ],
+   "notes": "Deficiency → Fabry (X-linked recessive): early peripheral neuropathy of hands and feet (pain), angiokeratomas, hypohidrosis; later renal failure and cardiovascular disease. Treat with enzyme replacement."
+  },
+  "neur": {
+   "name": "Sialidase",
+   "short": "",
+   "aliases": [
+    "neuraminidase",
+    "GM3 neuraminidase"
+   ]
+  },
+  "lgal": {
+   "name": "β-Galactosidase (lactosylceramide)",
+   "short": "",
+   "aliases": [
+    "lactosylceramidase",
+    "lactosylceramide β-galactosidase",
+    "beta-galactosidase (lactosylceramide)"
+   ]
+  },
+  "gba": {
+   "name": "β-Glucocerebrosidase",
+   "short": "GBA",
+   "aliases": [
+    "glucocerebrosidase",
+    "acid β-glucosidase",
+    "beta-glucocerebrosidase",
+    "glucosylceramidase"
+   ],
+   "notes": "Deficiency → Gaucher (most common): hepatosplenomegaly, pancytopenia, osteoporosis, avascular necrosis of the femur, bone crises; Gaucher cells (lipid-laden macrophages like crumpled tissue paper). Treat with recombinant enzyme (imiglucerase)."
+  },
+  "asa": {
+   "name": "Arylsulfatase A",
+   "short": "ARSA",
+   "aliases": [
+    "arylsulphatase A"
+   ],
+   "notes": "Deficiency → metachromatic leukodystrophy: central and peripheral demyelination with ataxia, dementia."
+  },
+  "galc": {
+   "name": "Galactocerebrosidase",
+   "short": "GALC",
+   "aliases": [
+    "galactosylceramidase",
+    "galactocerebroside β-galactosidase"
+   ],
+   "notes": "Deficiency → Krabbe: peripheral neuropathy, destruction of oligodendrocytes (psychosine), developmental delay, optic atrophy, globoid cells."
+  },
+  "smase": {
+   "name": "Sphingomyelinase",
+   "short": "",
+   "aliases": [
+    "acid sphingomyelinase",
+    "sphingomyelin phosphodiesterase"
+   ],
+   "notes": "Deficiency → Niemann-Pick: progressive neurodegeneration, hepatosplenomegaly, foam cells (lipid-laden macrophages), cherry-red macula. ↑ in Ashkenazi Jews. 'No man picks (Niemann-Pick) his nose with his sphinger (sphingomyelinase).'"
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "bgal",
+   "from": "gm1",
+   "to": "gm2",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "gal"
+    ]
+   },
+   "loc": "lysosome"
+  },
+  {
+   "id": "r2",
+   "enzyme": "hexa",
+   "from": "gm2",
+   "to": "gm3",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "galnac"
+    ]
+   },
+   "loc": "lysosome"
+  },
+  {
+   "id": "r3",
+   "enzyme": "neur",
+   "from": "gm3",
+   "to": "lacc",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "neuac"
+    ]
+   },
+   "loc": "lysosome"
+  },
+  {
+   "id": "r4",
+   "enzyme": "lgal",
+   "from": "lacc",
+   "to": "glccer",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "gal"
+    ]
+   },
+   "loc": "lysosome"
+  },
+  {
+   "id": "r5",
+   "enzyme": "gba",
+   "from": "glccer",
+   "to": "ceramide",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "glc"
+    ]
+   },
+   "loc": "lysosome"
+  },
+  {
+   "id": "r6",
+   "enzyme": "hexab",
+   "from": "globoside",
+   "to": "cth",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "galnac"
+    ]
+   },
+   "loc": "lysosome",
+   "branch": true
+  },
+  {
+   "id": "r7",
+   "enzyme": "agal",
+   "from": "cth",
+   "to": "lacc",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "gal"
+    ]
+   },
+   "loc": "lysosome",
+   "branch": true
+  },
+  {
+   "id": "r8",
+   "enzyme": "asa",
+   "from": "sulfatide",
+   "to": "galcer",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "so4"
+    ]
+   },
+   "loc": "lysosome",
+   "branch": true
+  },
+  {
+   "id": "r9",
+   "enzyme": "galc",
+   "from": "galcer",
+   "to": "ceramide",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "gal"
+    ]
+   },
+   "loc": "lysosome",
+   "branch": true
+  },
+  {
+   "id": "r10",
+   "enzyme": "smase",
+   "from": "sm",
+   "to": "ceramide",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "phoschol"
+    ]
+   },
+   "loc": "lysosome",
+   "branch": true
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Sphingosine",
+   "Psychosine",
+   "Heparan sulfate",
+   "Dermatan sulfate",
+   "Glucose-6-phosphate"
+  ],
+  "enzymes": [
+   "α-L-Iduronidase",
+   "Iduronate-2-sulfatase",
+   "Acid maltase (α-1,4-glucosidase)",
+   "Ceramidase"
+  ]
+ },
+ "tissue": "every cell's lysosomes (brain, liver, spleen, bone matter most)",
+ "icon": "inventory_2",
+ "color": "slate"
+}

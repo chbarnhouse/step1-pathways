@@ -1,0 +1,457 @@
+{
+ "id": "eicosanoids",
+ "name": "Eicosanoid synthesis",
+ "group": "Lipids",
+ "systems": [
+  "Fundamentals",
+  "Cardio",
+  "Respiratory",
+  "Heme"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "arachidonic acid pathway",
+  "arachidonic acid metabolism",
+  "prostaglandin synthesis",
+  "leukotriene synthesis",
+  "COX and LOX pathways",
+  "eicosanoids"
+ ],
+ "summary": "Phospholipase A₂ frees arachidonic acid from membrane phospholipids (blocked indirectly by glucocorticoids). Cyclooxygenase (COX-1/2; NSAIDs, aspirin) makes PGH₂, which becomes thromboxane A₂ (platelets: aggregation, vasoconstriction), prostacyclin (endothelium: anti-aggregation, vasodilation) and prostaglandins (PGE₂: fever, pain, vasodilation, ductus arteriosus). 5-Lipoxygenase (zileuton) makes leukotrienes: LTB₄ draws neutrophils; LTC₄, D₄, E₄ constrict bronchi (montelukast and zafirlukast block their receptor).",
+ "metabolites": {
+  "pl": {
+   "name": "Membrane phospholipids",
+   "short": "",
+   "aliases": [
+    "phospholipids",
+    "membrane phospholipid",
+    "phosphatidylcholine"
+   ],
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "aa": {
+   "name": "Arachidonic acid",
+   "short": "AA",
+   "aliases": [
+    "arachidonate"
+   ],
+   "notes": "20-carbon ω-6 fatty acid: 'eicosa' means twenty.",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "hpete": {
+   "name": "5-HPETE",
+   "short": "",
+   "aliases": [
+    "5-hydroperoxyeicosatetraenoic acid",
+    "5-HPETE"
+   ],
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "lta4": {
+   "name": "Leukotriene A₄",
+   "short": "LTA₄",
+   "aliases": [
+    "LTA4",
+    "leukotriene A4"
+   ],
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "ltc4": {
+   "name": "Leukotriene C₄",
+   "short": "LTC₄",
+   "aliases": [
+    "LTC4",
+    "leukotriene C4"
+   ],
+   "notes": "Cysteinyl leukotriene (with D₄, E₄): bronchoconstriction, vasoconstriction, ↑ vascular permeability, mucus. Aspirin-exacerbated respiratory disease: COX blocked → more arachidonate to LOX.",
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "ltd4": {
+   "name": "Leukotriene D₄",
+   "short": "LTD₄",
+   "aliases": [
+    "LTD4",
+    "leukotriene D4"
+   ],
+   "pos": [
+    1,
+    5
+   ]
+  },
+  "lte4": {
+   "name": "Leukotriene E₄",
+   "short": "LTE₄",
+   "aliases": [
+    "LTE4",
+    "leukotriene E4"
+   ],
+   "pos": [
+    1,
+    6
+   ]
+  },
+  "ltb4": {
+   "name": "Leukotriene B₄",
+   "short": "LTB₄",
+   "aliases": [
+    "LTB4",
+    "leukotriene B4"
+   ],
+   "notes": "Neutrophil chemotaxis ('neutrophils arrive B4 others').",
+   "pos": [
+    0,
+    4
+   ]
+  },
+  "pgh2": {
+   "name": "Prostaglandin H₂",
+   "short": "PGH₂",
+   "aliases": [
+    "PGH2",
+    "prostaglandin H2",
+    "PGG2/PGH2"
+   ],
+   "notes": "Made via PGG₂ by COX's two activities (cyclooxygenase, then peroxidase).",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "txa2": {
+   "name": "Thromboxane A₂",
+   "short": "TXA₂",
+   "aliases": [
+    "TXA2",
+    "thromboxane A2",
+    "thromboxane"
+   ],
+   "notes": "Platelets: ↑ aggregation, vasoconstriction, bronchoconstriction. Low-dose aspirin blocks it for the platelet's life (no nucleus to make new COX).",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "pgi2": {
+   "name": "Prostacyclin",
+   "short": "PGI₂",
+   "aliases": [
+    "PGI2",
+    "prostaglandin I2",
+    "prostaglandin I₂"
+   ],
+   "notes": "Endothelium: ↓ platelet aggregation, vasodilation, bronchodilation ('Platelet-Gathering Inhibitor'). Epoprostenol and iloprost treat pulmonary arterial hypertension.",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "pge2": {
+   "name": "Prostaglandin E₂",
+   "short": "PGE₂",
+   "aliases": [
+    "PGE2",
+    "prostaglandin E2"
+   ],
+   "notes": "Fever, pain, vasodilation (and PGE₁: alprostadil keeps a ductus arteriosus open; indomethacin closes it), ↓ gastric acid and ↑ mucus (misoprostol, a PGE₁ analog), uterine contraction (with PGF₂α; dinoprostone).",
+   "pos": [
+    4,
+    3
+   ]
+  }
+ },
+ "enzymes": {
+  "pla2": {
+   "name": "Phospholipase A₂",
+   "short": "PLA₂",
+   "aliases": [
+    "phospholipase A2",
+    "PLA2",
+    "cytosolic phospholipase A2",
+    "cPLA2"
+   ],
+   "notes": "Glucocorticoids block it indirectly (via lipocortin, annexin A1), shutting down both branches."
+  },
+  "alox5": {
+   "name": "5-Lipoxygenase",
+   "short": "5-LOX",
+   "aliases": [
+    "arachidonate 5-lipoxygenase",
+    "5-lipoxygenase (5-LOX)",
+    "ALOX5",
+    "lipoxygenase"
+   ],
+   "notes": "Inhibited by zileuton. Works with FLAP (5-LOX-activating protein)."
+  },
+  "lta4h": {
+   "name": "LTA₄ hydrolase",
+   "short": "",
+   "aliases": [
+    "leukotriene A4 hydrolase",
+    "LTA4 hydrolase"
+   ]
+  },
+  "ltc4s": {
+   "name": "LTC₄ synthase",
+   "short": "",
+   "aliases": [
+    "leukotriene C4 synthase",
+    "LTC4 synthase"
+   ],
+   "notes": "Adds glutathione."
+  },
+  "ggt": {
+   "name": "γ-Glutamyl transpeptidase",
+   "short": "GGT",
+   "aliases": [
+    "gamma-glutamyl transpeptidase",
+    "γ-glutamyltransferase",
+    "gamma-glutamyltransferase"
+   ]
+  },
+  "dpep": {
+   "name": "Dipeptidase",
+   "short": "",
+   "aliases": [
+    "membrane dipeptidase"
+   ]
+  },
+  "cox": {
+   "name": "Cyclooxygenase",
+   "short": "COX",
+   "aliases": [
+    "COX-1 and COX-2",
+    "prostaglandin H synthase",
+    "PGH synthase",
+    "prostaglandin-endoperoxide synthase",
+    "prostaglandin G/H synthase"
+   ],
+   "notes": "COX-1: constitutive (gastric mucosa, platelets, kidney). COX-2: induced in inflammation. Aspirin acetylates both irreversibly; other NSAIDs (ibuprofen, naproxen, indomethacin) inhibit reversibly; celecoxib is COX-2 selective (spares stomach and platelets, ↑ thrombosis). Acetaminophen inhibits COX centrally, not in the periphery."
+  },
+  "txs": {
+   "name": "Thromboxane synthase",
+   "short": "",
+   "aliases": [
+    "thromboxane A synthase",
+    "TXA synthase"
+   ],
+   "notes": "In platelets."
+  },
+  "pgis": {
+   "name": "Prostacyclin synthase",
+   "short": "",
+   "aliases": [
+    "prostaglandin I synthase",
+    "PGI synthase"
+   ],
+   "notes": "In endothelium."
+  },
+  "pges": {
+   "name": "Prostaglandin E synthase",
+   "short": "",
+   "aliases": [
+    "PGE synthase",
+    "prostaglandin E2 synthase"
+   ]
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "pla2",
+   "from": "pl",
+   "to": "aa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r2",
+   "enzyme": "alox5",
+   "from": "aa",
+   "to": "hpete",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2"
+    ],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r3",
+   "enzyme": "alox5",
+   "from": "hpete",
+   "to": "lta4",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "h2o"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r4",
+   "enzyme": "ltc4s",
+   "from": "lta4",
+   "to": "ltc4",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "gsh"
+    ],
+    "out": []
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r5",
+   "enzyme": "ggt",
+   "from": "ltc4",
+   "to": "ltd4",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "glu"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r6",
+   "enzyme": "dpep",
+   "from": "ltd4",
+   "to": "lte4",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "gly"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
+   "id": "r7",
+   "enzyme": "lta4h",
+   "from": "lta4",
+   "to": "ltb4",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": []
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r8",
+   "enzyme": "cox",
+   "from": "aa",
+   "to": "pgh2",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "o2"
+    ],
+    "out": []
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r9",
+   "enzyme": "txs",
+   "from": "pgh2",
+   "to": "txa2",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r10",
+   "enzyme": "pgis",
+   "from": "pgh2",
+   "to": "pgi2",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol",
+   "branch": true
+  },
+  {
+   "id": "r11",
+   "enzyme": "pges",
+   "from": "pgh2",
+   "to": "pge2",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "cytosol",
+   "branch": true
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Prostaglandin F₂α",
+   "Lipoxin A₄",
+   "Linoleic acid",
+   "Prostaglandin D₂",
+   "12-HETE"
+  ],
+  "enzymes": [
+   "Phospholipase C",
+   "12-Lipoxygenase",
+   "Acetyl-CoA carboxylase",
+   "Prostaglandin D synthase"
+  ]
+ },
+ "tissue": "most cells (platelets: TXA₂; endothelium: PGI₂; leukocytes: leukotrienes)",
+ "icon": "local_fire_department",
+ "color": "orange",
+ "layout": "grid",
+ "grid_columns": [
+  "",
+  "Leukotrienes (5-LOX)",
+  "",
+  "Prostanoids (COX)",
+  ""
+ ]
+}

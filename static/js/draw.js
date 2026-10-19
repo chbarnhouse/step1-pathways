@@ -53,9 +53,12 @@ function elbowLabels(m, statusOf, r, h, v) {
     // The spot along the run with nothing just above it (a blank is a tall pill), the middle if it's free.
     const xAt = f => h[0][0] + (h[1][0] - h[0][0]) * f;
     const f = [0.5, 0.65, 0.75, 0.85, 0.35, 0.25, 0.15].find(f => !DRAW_BOXES.some(bx => overlaps({ x: xAt(f) - 90, y: y - 46, w: 180, h: 40 }, bx))) ?? 0.5, mx = xAt(f);
-    s += enzLabel(mx, y - 8, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(labelRect(mx, y - 8, 'middle', it?.name || '', 22, 'bottom'));
     const half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(h[0][0], h[1][0]) + 14, mx - half), a1 = Math.min(Math.max(h[0][0], h[1][0]) - 14, mx + half);
-    if (cof) s += cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, 1], cofParts(m, statusOf, r));
+    // Cofactors go under the run unless something is already there; then they go above it, with the name above them.
+    const up = cof && hitsBox({ x: a0, y: y + 8, w: a1 - a0, h: 52 }) && !hitsBox({ x: a0, y: y - 60, w: a1 - a0, h: 52 });
+    const ly = up ? y - 62 : y - 8;
+    s += enzLabel(mx, ly, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(labelRect(mx, ly, 'middle', it?.name || '', 22, 'bottom'));
+    if (cof) s += cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], cofParts(m, statusOf, r));
   } else if (v) {
     const x = v[0][0], y0 = Math.min(v[0][1], v[1][1]), y1 = Math.max(v[0][1], v[1][1]);
     s += enzLabel(x - 14, (y0 + y1) / 2, it, es, 'end', 18, 'center'); DRAW_LABELS.push(labelRect(x - 14, (y0 + y1) / 2, 'end', it?.name || '', 18));
@@ -322,7 +325,10 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     // Off-line: an L. Leave a box on the main line from its side (its bottom carries the main arrow), then turn into the
     // other box; otherwise drop straight down (or up) first, then turn into the other box's side.
     s = '';
-    const down = b.cy > a.cy, fromSpine = m.onSpine?.has(r.from) && !m.onSpine?.has(r.to);
+    const down = b.cy > a.cy;
+    // Which corner: leave a main-line box from its side; otherwise drop first, unless that drop would run through a box.
+    const crosses = (x, y0, y1) => DRAW_BOXES.some(bx => x > bx.x && x < bx.x + bx.w && Math.min(y0, y1) < bx.y + bx.h - 2 && Math.max(y0, y1) > bx.y + 2 && ![a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4));
+    const fromSpine = (m.onSpine?.has(r.from) && !m.onSpine?.has(r.to)) || crosses(a.cx, a.cy + (down ? BH / 2 : -BH / 2), b.cy);
     if (fromSpine) {
       const x0 = a.cx + Math.sign(b.cx - a.cx) * (wA / 2 + 4), yb = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
       const pts = [[x0, a.cy], [b.cx, a.cy], [b.cx, yb]];
@@ -670,13 +676,32 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
   const { p, items, spine, spineMets, branches } = m;
   const n = spineMets.length, w = 176;
   const RY = Math.max(170, n * 30), RX = Math.round(RY * 1.5);
-  const cx = RX + w / 2 + 300, cy = RY + 190;
+  // An extra input outside the ring (acetyl-CoA into citrate synthase) and whatever feeds it need room above.
+  const extraIn = spine.some(r => (r.also_from || []).length), cx = RX + w / 2 + 300, cy = RY + 190 + (extraIn ? 150 : 0);
   const pt = (t, d = 0) => [cx + (RX + d) * Math.cos(t), cy + (RY + d) * Math.sin(t)];
   const pos = {};
   spineMets.forEach((id, i) => { const t = -Math.PI / 2 + 2 * Math.PI * i / n; const [x, y] = pt(t); pos[id] = { cx: x, cy: y, t }; });
-  branches.forEach(b => {
+  // A step's extra input sits just outside its arc.
+  spine.forEach(r => (r.also_from || []).forEach(id => {
+    if (pos[id] || !pos[r.from] || !pos[r.to]) return;
+    // Beside the target when it sits on the side of the ring (acetyl-CoA next to citrate); otherwise just outside the arc.
+    const tt = pos[r.to].t, c = Math.cos(tt);
+    if (Math.abs(c) > 0.5) { pos[id] = { cx: pos[r.to].cx + Math.sign(c) * (w + 110), cy: pos[r.to].cy, t: tt, side: true }; return; }
+    let a = pos[r.from].t, b = tt; if (b <= a) b += 2 * Math.PI;
+    const tm = (a + b) / 2, [x, y] = pt(tm, 150); pos[id] = { cx: x, cy: y, t: tm, side: true };
+  }));
+  // Side boxes stand straight out from the ring; a chain beyond them runs down (or up, for what feeds them) in a column.
+  for (let pass = 0; pass < 3; pass++) branches.forEach(b => {
     const [sp, sd] = pos[b.from] ? [b.from, b.to] : [b.to, b.from];
-    if (pos[sp] && !pos[sd]) { const t = pos[sp].t; const [x, y] = pt(t, 170); pos[sd] = { cx: x, cy: y, t }; }
+    if (!pos[sp] || pos[sd]) return;
+    if (!pos[sp].side) {
+      // Off a box at the side of the ring: straight sideways, a full box-width clear. Off the top or bottom: straight out.
+      const t = pos[sp].t, c = Math.cos(t);
+      if (Math.abs(c) > 0.7) { pos[sd] = { cx: pos[sp].cx + Math.sign(c) * (w + 110), cy: pos[sp].cy, t, side: true }; return; }
+      const [x, y] = pt(t, 170); pos[sd] = { cx: x, cy: y, t, side: true }; return;
+    }
+    const up = b.to === sp; // sd feeds sp: it goes above
+    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + 70), t: pos[sp].t, side: true };
   });
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
   const counts = {};
@@ -727,6 +752,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     const loc = zones && here && here !== main && zst !== 'hide' && !inRegion.has(r) ? [hidden(zst) ? '(compartment?)' : here] : [];
     const es = statusOf('e:' + r.id), it = items['e:' + r.id];
     s += enzLabel(lx, ly0, it, es, anchor, 20, 'center', loc);
+    DRAW_LABELS.push(labelRect(lx, ly0, anchor, it?.name || '', 20));
     const cs = cofSt(m, statusOf, r);
     if (cs !== 'none' && cs !== 'hide') {
       const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + loc.length;
@@ -735,14 +761,16 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
       else {
         const ct = cofText(m, r.cofactors);
         s += `<text class="coft" x="${lx}" y="${ly + 4}" text-anchor="${anchor}">${esc(ct)}</text>`;
+        DRAW_LABELS.push(labelRect(lx, ly, anchor, ct, 99));
         s += cofMark(anchor === 'end' ? lx + 12 : anchor === 'start' ? lx - 12 : lx - ct.length * 3.3 - 12, ly, cs);
       }
     }
   });
   branches.forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to], w, w); });
+  spine.forEach(r => (r.also_from || []).forEach(id => { if (pos[id] && pos[r.to]) { const a = edgePt(pos[id], pos[r.to].cx, pos[r.to].cy, w), b = edgePt(pos[r.to], pos[id].cx, pos[id].cy, w); s += arrow(a[0], a[1], b[0], b[1], false); } }));
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id), w);
   const xs = Object.values(pos).map(q => q.cx), ys = Object.values(pos).map(q => q.cy);
-  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH }])), id => (Math.abs(Math.sin(pos[id].t)) > 0.9 ? (Math.sin(pos[id].t) < 0 ? 'up' : 'down') : pos[id].cx < cx ? 'left' : 'right'));
+  const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH }])), id => (!pos[id].side && Math.abs(Math.sin(pos[id].t)) > 0.9 ? (Math.sin(pos[id].t) < 0 ? 'up' : 'down') : pos[id].cx < cx ? 'left' : 'right'));
   s += lk.s; DRAW_BOXES = [];
   const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20, lk.maxX + 12), H = Math.max(...ys) + BH / 2 + 180;
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} cycle diagram">${s}</svg>`;

@@ -17,6 +17,22 @@
  "summary": "Mitochondrial matrix. Per acetyl-CoA: 3 NADH, 1 FADH₂, 1 GTP, 2 CO₂ (≈10 ATP). Irreversible: citrate synthase, isocitrate dehydrogenase (rate-limiting), α-ketoglutarate dehydrogenase. “Citrate Is Krebs' Starting Substrate For Making Oxaloacetate.”",
  "circular": true,
  "metabolites": {
+  "pyruvate": {
+   "name": "Pyruvate",
+   "short": "",
+   "aliases": [
+    "pyruvic acid"
+   ],
+   "notes": "From glycolysis (or alanine, lactate). Enters the mitochondrion on the pyruvate carrier."
+  },
+  "acetylcoa": {
+   "name": "Acetyl-CoA",
+   "short": "",
+   "aliases": [
+    "acetyl coenzyme A"
+   ],
+   "notes": "Also from β-oxidation and ketogenic amino acids. Joins oxaloacetate to make citrate."
+  },
   "oaa": {
    "name": "Oxaloacetate",
    "short": "OAA",
@@ -159,9 +175,46 @@
     "malate DH"
    ],
    "notes": "Thermodynamically uphill; pulled forward by citrate synthase consuming OAA."
+  },
+  "pdh": {
+   "name": "Pyruvate dehydrogenase complex",
+   "short": "PDH",
+   "aliases": [
+    "pyruvate dehydrogenase",
+    "PDC",
+    "PDH complex"
+   ],
+   "notes": "Irreversible link from glycolysis to the TCA cycle. Five cofactors: thiamine pyrophosphate (B1), lipoic acid, CoA (B5), FAD (B2), NAD⁺ (B3) ('Tender Loving Care For Nancy'); same set as α-ketoglutarate dehydrogenase. Activated by insulin, ADP, NAD⁺ and Ca²⁺ (muscle); inhibited by acetyl-CoA, NADH and ATP (via PDH kinase). Arsenic binds lipoic acid. Deficiency (often X-linked E1α) → lactic acidosis, neurologic defects; treat with a ketogenic diet (lysine, leucine). Thiamine deficiency also blocks it (Wernicke, beriberi)."
   }
  },
  "reactions": [
+  {
+   "id": "r0",
+   "enzyme": "pdh",
+   "from": "pyruvate",
+   "to": "acetylcoa",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nad",
+     "coa"
+    ],
+    "out": [
+     "nadh",
+     "co2"
+    ]
+   },
+   "loc": "mitochondria",
+   "branch": true,
+   "requires": [
+    "Thiamine pyrophosphate (B1)",
+    "Lipoic acid",
+    "FAD (B2)"
+   ],
+   "tags": [
+    "irreversible"
+   ]
+  },
   {
    "id": "r1",
    "enzyme": "cs",
@@ -170,7 +223,6 @@
    "reversible": false,
    "cofactors": {
     "in": [
-     "acetylcoa",
      "h2o"
     ],
     "out": [
@@ -180,6 +232,9 @@
    "loc": "mitochondrial matrix",
    "tags": [
     "irreversible"
+   ],
+   "also_from": [
+    "acetylcoa"
    ]
   },
   {
@@ -358,6 +413,16 @@
   {
    "at": "fumarate",
    "to": "urea",
+   "dir": "in"
+  },
+  {
+   "at": "pyruvate",
+   "to": "glycolysis",
+   "dir": "in"
+  },
+  {
+   "at": "acetylcoa",
+   "to": "beta-oxidation",
    "dir": "in"
   }
  ]

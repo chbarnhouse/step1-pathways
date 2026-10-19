@@ -303,5 +303,134 @@
    "ubiquinol",
    "QH2"
   ]
+ },
+ "methylthf": {
+  "name": "N⁵-methyl-THF",
+  "aliases": [
+   "5-methyl-THF",
+   "N5-methyl-THF",
+   "methyl-THF",
+   "5-methyltetrahydrofolate",
+   "5-MTHF",
+   "methyltetrahydrofolate"
+  ]
+ },
+ "hcy": {
+  "name": "Homocysteine",
+  "aliases": [
+   "Hcy"
+  ]
+ },
+ "met": {
+  "name": "Methionine",
+  "aliases": [
+   "Met"
+  ]
+ },
+ "serine": {
+  "name": "Serine",
+  "aliases": [
+   "Ser"
+  ]
+ },
+ "aketobut": {
+  "name": "α-Ketobutyrate",
+  "aliases": [
+   "alpha-ketobutyrate",
+   "2-oxobutanoate",
+   "α-ketobutyric acid"
+  ]
+ },
+ "adenosine": {
+  "name": "Adenosine",
+  "aliases": []
+ },
+ "dump": {
+  "name": "dUMP",
+  "aliases": [
+   "deoxyuridine monophosphate"
+  ]
+ },
+ "dtmp": {
+  "name": "dTMP",
+  "aliases": [
+   "deoxythymidine monophosphate",
+   "thymidylate",
+   "TMP"
+  ]
+ },
+ "co": {
+  "name": "CO",
+  "aliases": [
+   "carbon monoxide"
+  ]
+ },
+ "udpga": {
+  "name": "UDP-glucuronate",
+  "aliases": [
+   "UDP-glucuronic acid",
+   "UDPGA",
+   "UDP-GlcA"
+  ]
+ },
+ "r1p": {
+  "name": "Ribose-1-phosphate",
+  "aliases": [
+   "ribose 1-phosphate",
+   "R1P"
+  ]
+ },
+ "h2o2": {
+  "name": "H₂O₂",
+  "aliases": [
+   "H2O2",
+   "hydrogen peroxide"
+  ]
+ },
+ "gsh": {
+  "name": "Glutathione",
+  "aliases": [
+   "GSH",
+   "reduced glutathione"
+  ]
+ },
+ "gal": {
+  "name": "Galactose",
+  "aliases": [
+   "Gal"
+  ]
+ },
+ "galnac": {
+  "name": "N-acetylgalactosamine",
+  "aliases": [
+   "GalNAc"
+  ]
+ },
+ "neuac": {
+  "name": "Sialic acid",
+  "aliases": [
+   "N-acetylneuraminic acid",
+   "NeuAc",
+   "NANA"
+  ]
+ },
+ "glc": {
+  "name": "Glucose",
+  "aliases": [
+   "Glc"
+  ]
+ },
+ "so4": {
+  "name": "Sulfate",
+  "aliases": [
+   "SO4",
+   "SO₄²⁻"
+  ]
+ },
+ "phoschol": {
+  "name": "Phosphocholine",
+  "aliases": [
+   "phosphorylcholine"
+  ]
  }
 }
