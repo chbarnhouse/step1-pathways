@@ -17,7 +17,7 @@ function elSpecFor(cfg) {
     occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
-  }[modeKeyOf(cfg)];
+  }[modeKeyOf(cfg)].map(([k, l, a]) => (cfg.mode === 'review' ? [k, l, a.filter(v => v === 'show' || v === 'hide')] : [k, l, a])); // Review: nothing is asked
 }
 function elOf(cfg, k) {
   const spec = elSpecFor(cfg).find(x => x[0] === k);
@@ -37,6 +37,7 @@ const viewStyle = () => Q.cfg.view || Store.settings.view;
 function quizSummary(cfg) {
   const by = { quiz: [], show: [], hide: [], place: [] };
   elSpecFor(cfg).forEach(([k, label]) => by[elOf(cfg, k)].push(label.toLowerCase()));
+  if (cfg.mode === 'review') return ['Review, everything shown', by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
   const mode = cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
   return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.place.length && 'place ' + by.place.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
 }
@@ -225,10 +226,14 @@ function startQuiz(cfg) {
     mode: Q.cfg.mode, given: Q.cfg.given, answer: answerStyle(), right: 0, total: 0, done: false };
   Q.m = Q.models[0];
   newRound();
+  // Nothing gets answered in Review, so its Activity entry is written now.
+  if (Q.cfg.mode === 'review') { const log = Store.data.log = Store.data.log || []; log.unshift({ ...Q.log }); if (log.length > 300) log.length = 300; Store.save(); }
 }
 function newRound() {
   Q.score = { right: 0, total: 0 }; Q.misses = []; Q.finishShown = false; Q.t0 = Date.now();
   Q.fact = null; Q.placed = false;
+  // Review: the whole pathway (or connected pathways) with every answer showing; nothing is asked.
+  if (Q.cfg.mode === 'review') { Q.round = { type: 'review' }; Q.placed = true; return; }
   const anyQuiz = elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz'), place = el('loc') === 'place';
   if (place && !zonesUsable(Q.models[0])) Q.placed = true; // nothing to place (grid pathway, no compartments): shown as usual
   if (!anyQuiz && !(place && !Q.placed)) Q.round = { type: 'none', msg: place ? zonesRefusal(Q.models[0]) : '' };
@@ -787,6 +792,7 @@ function resolved(q) {
 /* ---------- diagram status ---------- */
 function statusOf(key) {
   const R = Q.round, mode = el(kindOf(key));
+  if (R.type === 'review') return mode === 'hide' ? 'hide' : 'shown';
   if (mode === 'hide' || (mode === 'place' && !Q.placed)) return 'hide';
   if (R.type === 'single') {
     if (key !== R.target) return 'shown';
@@ -1009,7 +1015,7 @@ function renderQuiz() {
   const V = $('#view');
   if (!Q.cfg) { location.hash = '#/'; return; }
   const R = Q.round;
-  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones';
+  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones' || R.type === 'review';
   const cq = occ && R.q;
   INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
@@ -1030,7 +1036,7 @@ function renderQuiz() {
   } else if (occ) {
     const zones = el('loc') !== 'hide' && !placing();
     stage = flow ? flowSVG(Q.m, statusOf, { zones }) : listHTML(Q.m, statusOf, { horiz, zones });
-    dock = occDock();
+    dock = R.type === 'review' ? reviewDock() : occDock();
   } else {
     stage = R.type === 'step' ? (flow ? stepFlow() : stepList()) : (flow ? stepEFlow() : stepEList());
     below = stepPanel();
@@ -1041,9 +1047,9 @@ function renderQuiz() {
       <a class="tbtn icon" href="#/" title="Dashboard" aria-label="Dashboard">${mi('home')}</a>
       <div class="qtitle"><div class="qname-row"><span class="qname">${esc(Q.cfg.name)}</span>${Q.draft ? `<button class="tbtn icon mini" data-act="fav" aria-pressed="${!!findFav(Q.draft)}" title="${findFav(Q.draft) ? 'Remove from favorites' : 'Add this quiz to your favorites'}" aria-label="${findFav(Q.draft) ? 'Remove from favorites' : 'Add to favorites'}">${mi(findFav(Q.draft) ? 'star_fill1' : 'star')}</button>` : ''}<a class="tbtn icon mini" href="#/pathways/${encodeURIComponent(Q.m.p.stitch ? (Library.get(Q.m.p.stitch.parts[0])?.compose || Q.m.p.stitch.parts)[0] : Q.m.p.compose ? Q.m.p.compose[0] : Q.m.p.id)}/edit" title="Edit this pathway" aria-label="Edit this pathway">${mi('edit')}</a></div>${Q.cfg.name !== Q.m.p.name || Q.models.length > 1 ? `<div class="qsub">${sub}</div>` : `<div class="qsub">${esc(quizSummary(Q.cfg))}</div>`}</div>
       ${progress}
-      <span class="qscore" title="Right on the first try">${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>
+      ${R.type === 'review' ? '' : `<span class="qscore" title="Right on the first try">`}${R.type === 'review' ? '' : `${mi('check', 'sm')} ${Q.score.right}<span class="muted"> / ${Q.score.total}</span></span>`}
       <div class="qtools">${R.type !== 'none' && flow && !occ ? zoomBarHTML() : ''}
-        ${R.type !== 'none' ? `<button class="tbtn icon" data-act="back" ${Q.undo?.length ? '' : 'disabled'} data-tip="Step back: undo the last answer" aria-label="Step back">${mi('undo')}</button>
+        ${R.type !== 'none' && R.type !== 'review' ? `<button class="tbtn icon" data-act="back" ${Q.undo?.length ? '' : 'disabled'} data-tip="Step back: undo the last answer" aria-label="Step back">${mi('undo')}</button>
         <button class="tbtn icon" data-act="restartq" data-tip="Restart this quiz from the beginning" aria-label="Restart quiz">${mi('restart_alt')}</button>` : ''}
         <button class="tbtn icon" data-act="facts" aria-pressed="${!!Q.drawer}" title="Facts for everything answered (or click any shown item)" aria-label="Facts">${mi('lightbulb')}${nFacts ? `<b class="count">${nFacts}</b>` : ''}</button>
         ${optionsHTML()}</div>
@@ -1146,6 +1152,13 @@ function lastFactsHTML() {
   return `<details class="facts"${open ? ' open' : ''}><summary>${mi('lightbulb', 'facts-ic')}<span><span class="muted">Last answer:</span> <b>${esc(factItemOf(Q.fact, Q.factM || Q.m).name)}</b></span>${mi('expand_more', 'chev')}</summary>${factsCard(factItemOf(Q.fact, Q.factM || Q.m), Q.factM || Q.m)}</details>`;
 }
 const placeBtn = () => `<button class="btn primary" data-act="placezones">${mi('arrow_forward', 'sm')} Place the compartments <kbd>↵</kbd></button>`;
+// Review's bar: what this is, and a way to start quizzing the same pathways.
+function reviewDock() {
+  return `<div class="dock"><div class="dock-row">
+    <div class="dock-text"><span class="kind">${mi('visibility', 'sm')} Review</span><span class="muted"> Everything is shown. Click anything for its facts.</span></div>
+    <div class="dock-actions">${Q.draft ? `<button class="btn primary" data-act="quizme">${mi('play_arrow', 'sm')} Quiz me on this</button>` : ''}<a class="btn ghost" href="#/">Done</a></div>
+  </div></div>`;
+}
 function occDock() {
   const R = Q.round, q = R.q;
   if (R.type === 'build') {
@@ -1247,6 +1260,10 @@ document.addEventListener('click', e => {
   const R = Q.round, qs = R.qs || [R.q];
   const q = qs[+b.dataset.q || 0];
   switch (b.dataset.act) {
+    case 'quizme': { // Fill the blanks on the same pathways, with your own show/quiz choices (metabolites and enzymes if none)
+      const d = { ...clone(Q.draft), mode: 'single' };
+      if (!elSpecFor(d).some(([k]) => elOf(d, k) === 'quiz')) Object.assign(d.el, { met: 'quiz', enz: 'quiz' });
+      local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), clone(d)); break; }
     case 'pick': submit(q, b.dataset.v); break;
     case 'hint': hintLetter(q); break;
     case 'fav': toggleFav(Q.draft, renderQuiz); break;

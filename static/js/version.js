@@ -9,6 +9,7 @@ const APP_VERSION = '3.10.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'New way to study: Review. Every answer is shown on the diagram (connected pathways together, on one drawing) and nothing is asked; click anything for its facts. Show/Hide still works per kind. “Quiz me on this” switches to Fill the blanks on the same pathways, and reviews appear in Activity.',
     'Each metabolite, enzyme and cofactor page now shows it in its pathways: every pathway it’s in is drawn zoomed to its steps, with it outlined heavy and its name bold and underlined while the rest fades back (Study and Open pathway beside each). Above: At a glance (other names, where, rate-limiting, what it needs, cofactors, made by / used by, connected pathways, your answers) and notes. The full table of steps is one click away.',
     'Breadcrumbs: the Library pages and pathway pages show the way you came (Library › Enzymes › ALA synthase › …), each a link; going back trims it.',
     'The Metabolites, Enzymes and Cofactors tabs work like Pathways: rows by section (enzymes by kind, e.g. kinases, dehydrogenases, synthases; metabolites by pathway group; cofactors by what they do, e.g. vitamins, electron carriers, group carriers), a sort menu (in most pathways, weakest first, recently studied), and Kind, System, Pathway, Status and Tags filters. Tiles show your accuracy and body systems.',

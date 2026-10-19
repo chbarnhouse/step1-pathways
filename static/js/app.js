@@ -102,7 +102,7 @@ function renderDashboard() {
   </div>`;
 }
 // What you studied, when, how, and how it went — newest first, grouped by day.
-const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step' };
+const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step', review: 'Review' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
 // Every session can be run again (▶) or kept as a favorite (☆) right from your history. Newer sessions remember their
 // exact quiz; older ones (and weak-spot drills) are rebuilt from what the log kept: pathway, mode, how you answered.
@@ -131,10 +131,10 @@ function activityHTML() {
     const p = Library.get(e.pathways?.[0]), pct = e.total ? Math.round(100 * e.right / e.total) : 0;
     const mins = Math.max(1, Math.round((e.last - e.t) / 60000));
     const what = e.pathways?.length > 1 ? `${e.pathways.length} pathways` : p?.name || e.name;
-    const how = MODE_NAMES[e.mode] + (e.mode === 'step' ? (e.given === 'enz' ? ' (enzyme)' : ' (metabolites)') : '') + ' · ' + (ANSWER_NAMES[e.answer] || e.answer);
+    const how = MODE_NAMES[e.mode] + (e.mode === 'step' ? (e.given === 'enz' ? ' (enzyme)' : ' (metabolites)') : '') + (e.mode === 'review' ? '' : ' · ' + (ANSWER_NAMES[e.answer] || e.answer));
     out += `<li class="act">${p ? tileArt(p, 'xs') : `<span class="tile-art xs tone-slate">${mi('route')}</span>`}
       <span class="act-main"><b>${esc(what)}</b><span class="muted small">${esc(how)}${e.done ? ' · finished' : ''}</span></span>
-      <span class="act-score"><b>${e.right}/${e.total}</b><span class="muted small">${pct}% · ${mins} min</span></span>
+      <span class="act-score">${e.mode === 'review' ? `<b>Reviewed</b><span class="muted small">no questions</span>` : `<b>${e.right}/${e.total}</b><span class="muted small">${pct}% · ${mins} min</span>`}</span>
       <span class="act-time muted small">${new Date(e.t).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}</span>${actFavBtn(e)}</li>`;
   }
   return `<ul class="actlist">${out}</ul>`;
@@ -232,6 +232,7 @@ const MODES = [
   ['total', 'Full recall', 'Everything starts hidden (or with one anchor shown) and you fill it in, in order, step by step.', 'Proving you can rebuild a pathway end to end before an exam.'],
   ['build', 'Building blocks', 'Round 1 asks the first blank, round 2 the first two, and so on, always from the top. A slip clears that blank and asks again.', 'Learning a new pathway’s order from scratch.'],
   ['step', 'Single step', 'One reaction at a time: given two metabolites, name the enzyme, cofactors and direction; or given an enzyme, say what it does.', 'Fast drilling of enzymes and cofactors, across pathways too.'],
+  ['review', 'Review', 'Every answer is shown on the diagram, connected pathways together; nothing is asked. Click anything for its facts.', 'Reading a pathway, or several connected ones, before you quiz yourself.'],
 ];
 /* ---------- pathway browser (New quiz + Pathways) ----------
    Icon tiles with search, composable filters (group, your tags, status) and sorting. Filters stack:
@@ -415,7 +416,7 @@ function renderCreate() {
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
   let ans = d.answer || Store.settings.answer;
   if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
-  const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place'), picked = allE || !!d.pathway;
+  const hasQuiz = d.mode === 'review' || elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place'), picked = allE || !!d.pathway;
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   try { const qp = Library.get(draftPathway(d)); if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
@@ -448,9 +449,9 @@ function renderCreate() {
         ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
         <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, how, best]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${how}</span><span class="best"><b>Best for</b> ${best}</span></button>`).join('')}</div></div>
         ${modeOpts}
-        <div class="field"><span>What to show, quiz or hide</span><div class="el-grid">${els}</div>
+        <div class="field"><span>${d.mode === 'review' ? 'What to show or hide' : 'What to show, quiz or hide'}</span><div class="el-grid">${els}</div>
           ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}</div>
-        <details class="adv"${C.advOpen ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: answering, hints and more${mi('expand_more', 'chev')}</summary>
+        ${d.mode === 'review' ? '' : `<details class="adv"${C.advOpen ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: answering, hints and more${mi('expand_more', 'chev')}</summary>
         <div class="field" data-tour="answer"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p>
           ${ans === 'type' ? `<label class="cb"><input type="checkbox" data-cflag="letterCheck" ${d.letterCheck ? 'checked' : ''}> Check each letter as I type</label>` : ''}
@@ -459,7 +460,7 @@ function renderCreate() {
           ${elOf(d, 'cof') === 'quiz' ? `<label class="cb"><input type="checkbox" data-cflag="cofCount" ${d.cofCount !== false ? 'checked' : ''}> Show how many cofactors there are (as “1/2” while you type). Off: each step first asks which arrow its cofactors have (in and out, in only, out only)</label>` : ''}</div>
           ${laterBlanks}
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
-        </details>
+        </details>`}
         <div class="side-foot">
           <button class="btn primary big" data-c="start" ${hasQuiz && picked ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
           <span class="btnrow tight"><button class="btn ghost" data-c="fav" aria-pressed="${!!findFav(d)}" ${picked ? '' : 'disabled'}>${mi(findFav(d) ? 'star_fill1' : 'star', 'sm')} ${findFav(d) ? 'Favorited' : 'Favorite'}</button>
