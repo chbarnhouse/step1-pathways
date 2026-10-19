@@ -38,6 +38,8 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     const cofItem = (key, cofs) => ({ key, kind: 'cof', side: cofs.in ? 'in' : 'out', rxn: r, cofs, name: cofText(m0, cofs), aliases: [], notes: null });
     if (ci.length || co.length) items['c:' + r.id] = cofItem('c:' + r.id, ci.length ? { in: ci } : { out: co });
     if (ci.length && co.length) items['o:' + r.id] = cofItem('o:' + r.id, { out: co });
+    // What the step needs (B6, biotin, TPP…): quizzed with the cofactors, any order, as 'n:<step>'.
+    if ((r.requires || []).length) items['n:' + r.id] = { key: 'n:' + r.id, kind: 'cof', side: 'need', rxn: r, cofs: { in: needIds(cof, r) }, name: r.requires.join(', '), aliases: [], notes: null };
   }
 
   const spineMets = p.circular ? spine.map(r => r.from) : [spine[0].from, ...spine.map(r => r.to)];
@@ -49,7 +51,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { push('e:' + r.id); for (const k of ['c:', 'o:']) if (items[k + r.id]) push(k + r.id); };
+  const pushRx = r => { push('e:' + r.id); for (const k of ['c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.
@@ -106,6 +108,30 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     for (const s of r.also_from || []) pairs.push({ r, a: s, b: r.to });
   }
   return { p, cof, items, spine, spineMets, onSpine, branches, seq, pairs, multiTissue: m0z.multiTissue };
+}
+
+/* ---------- what a step needs (r.requires) ----------
+   Read from its text: "B6 (pyridoxal phosphate)" answers to B6, vitamin B6, pyridoxal phosphate, PLP and pyridoxine.
+   One that is already a cofactor (FAD, NAD⁺, BH₄, ascorbate) is that cofactor, with the vitamin's names added. */
+const VITAMINS = { b1: ['thiamine', 'thiamin', 'TPP', 'thiamine pyrophosphate', 'thiamine diphosphate'], b2: ['riboflavin'], b3: ['niacin', 'nicotinic acid'],
+  b5: ['pantothenic acid', 'pantothenate'], b6: ['pyridoxine', 'PLP', 'pyridoxal phosphate', 'pyridoxal 5-phosphate'], b7: ['biotin'], b9: ['folate', 'folic acid'], b12: ['cobalamin'] };
+function needNames(text) {
+  const t = String(text).trim(), mm = t.match(/^(.*?)\s*\(([^)]*)\)\s*$/), al = new Set([t, ...(mm ? [mm[1], mm[2]] : [])]);
+  for (const a of [...al]) { const v = a.match(/^(?:vitamin\s+)?b\s?(\d{1,2})$/i); if (v) al.add('B' + v[1]); }
+  for (const [b, names] of Object.entries(VITAMINS)) if ([...al].some(a => norm(a) === b || norm(a) === 'vitamin ' + b || names.some(n => norm(n) === norm(a)))) {
+    al.add(b.toUpperCase()); al.add('Vitamin ' + b.toUpperCase()); names.forEach(n => al.add(n));
+  }
+  if (/copper/i.test(t)) al.add('Cu');
+  return [...al].filter(Boolean);
+}
+function needIds(cof, r) {
+  return (r.requires || []).map(text => {
+    const lk = cofLookup(cof).map, names = needNames(text), hit = names.map(n => lk[norm(n)]).find(Boolean);
+    if (hit) { cof[hit] = { ...cof[hit], aliases: uniq([...(cof[hit].aliases || []), ...names.filter(n => !lk[norm(n)])]) }; return hit; }
+    const id = 'need:' + norm(text);
+    cof[id] = { name: text, aliases: names };
+    return id;
+  });
 }
 
 /* ---------- cofactors ---------- */

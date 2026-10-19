@@ -7,7 +7,7 @@
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
 const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment' };
-const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? (q.side === 'in' ? 'cofactors in' : 'cofactors out') : KIND[q.kind]);
+const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'needs' }[q.side]) : KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- elements: show / quiz / hide ---------- */
@@ -30,7 +30,7 @@ const el = k => elOf(Q.cfg, k);
    first in Fill the blanks, after the rest in Full recall and Building blocks. Q.placed = that round is behind you. */
 const placing = () => el('loc') === 'place' && !Q.placed;
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', z: 'loc' }[key[0]]);
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', n: 'cof', z: 'loc' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
@@ -136,9 +136,9 @@ function shortenedLoc(v, item) {
 function cofQ(r, m, item = null) {
   const cofs = item ? item.cofs : {}, t = cofSideText(m, cofs) || 'None', side = item?.side;
   return baseQ({
-    kind: 'cof', side, label: !item ? 'Cofactors' : side === 'in' ? 'Cofactors in' : 'Cofactors out', item, factItem: m.items['e:' + r.id], answerText: t, correct: t,
+    kind: 'cof', side, label: !item ? 'Cofactors' : { in: 'Cofactors in', out: 'Cofactors out', need: 'Needs' }[side], item, factItem: m.items['e:' + r.id], answerText: t, correct: t,
     statKey: item ? item.key : 'c:' + r.id, pid: m.p.id, cofs, model: m,
-    placeholder: !item ? 'e.g. ATP — or "none"' : side === 'in' ? 'what goes in, e.g. ATP' : 'what comes out, e.g. ADP',
+    placeholder: !item ? 'e.g. ATP — or "none"' : { in: 'what goes in, e.g. ATP', out: 'what comes out, e.g. ADP', need: 'what it needs, e.g. B6' }[side],
     options: answerStyle() === 'choice' ? cofOptions(m, t) : null,
     check: v => v === t || gradeCof(m, v, cofs),
   });
@@ -813,7 +813,7 @@ function statusOf(key) {
 const qOf = kind => Q.round.qs.find(q => q.kind === kind);
 const qState = q => (q ? (q.status === 'open' ? 'target' : q.status) : 'shown');
 // The step's cofactor questions as diagram parts (one per side), and their summed-up state.
-const qCofParts = () => Q.round.qs.filter(q => q.kind === 'cof').map(q => ({ key: q.statKey, side: q.side, st: qState(q), text: q.answerText }));
+const qCofParts = () => Q.round.qs.filter(q => q.kind === 'cof' && q.side !== 'need').map(q => ({ key: q.statKey, side: q.side, st: qState(q), text: q.answerText }));
 const qCofState = () => cofCombined(qCofParts());
 function stepFlow() {
   const R = Q.round, m = Q.m, { items } = m, r = R.pair.r;
@@ -893,7 +893,7 @@ function answerHTML(q, idx, ...rest) { return shapePending(q) ? shapeHTML(q, idx
 const cofShapeOf = r => { const c = r.cofactors || {}, i = (c.in || []).length, o = (c.out || []).length; return i && o ? 'both' : i ? 'in' : 'out'; };
 const shapeAsked = () => Q.cfg?.cofCount === false && ['type', 'along'].includes(answerStyle()) && ['single', 'total', 'build'].includes(Q.round?.type);
 cofShapeHidden = r => shapeAsked() && !(Q.round.cofShape && Q.round.cofShape.has(r.id));
-const shapePending = q => q?.kind === 'cof' && !!q.item && q.status === 'open' && cofShapeHidden(q.item.rxn);
+const shapePending = q => q?.kind === 'cof' && !!q.item && q.side !== 'need' && q.status === 'open' && cofShapeHidden(q.item.rxn);
 const SHAPES = [['both', 'In and out', 'cofactors in → out'], ['in', 'In only', 'cofactors in →'], ['out', 'Out only', '→ cofactors out']];
 function shapeHTML(q, idx) {
   const bad = q.shapeWrong || [];
@@ -1121,7 +1121,7 @@ function factsCard(item, m) {
       const c = r.cofactors || {}, ins = cofSideText(m, { in: c.in }), outs = cofSideText(m, { out: c.out });
       const open = k => stillOpen(m, k + r.id), cin = maybeSpoil(open('c:'), esc(ins)), cout = maybeSpoil(ins ? open('o:') : open('c:'), esc(outs));
       const ct = !ins && !outs ? 'None' : cofShapeHidden(r) && (open('c:') || open('o:')) ? spoiler(esc(cofText(m, c))) : !ins ? '→ ' + cout : !outs ? cin + ' →' : cin + ' → ' + cout;
-      extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Requires ${esc(r.requires.join(', '))}` : ''}</p>`;
+      extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Needs ${maybeSpoil(open('n:'), esc(r.requires.join(', ')))}` : ''}</p>`;
     }
     if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${maybeSpoil(stillOpen(m, 'w:' + r.id), esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · ')))}</p>`;
   }

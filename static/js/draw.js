@@ -130,11 +130,21 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   }
   const lines = wrap(item.name, max);
   const tags = (item.rxn.tags || []).filter(t => t !== 'irreversible');
-  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...wrap(needsText(item.rxn), max).map(t => ['req', t]), ...extra.map(t => ['cofl', t])];
+  // What it needs is its own blank (quizzed with the cofactors): hidden, it's a "needs" pill under the rest of the label.
+  const nst = (item.rxn?.requires || []).length && DRAW_STATUS ? DRAW_STATUS('n:' + item.rxn.id) || 'shown' : 'shown';
+  const needs = nst === 'hide' ? [] : hidden(nst) ? [['needblank', '']] : wrap(needsText(item.rxn), max).map(t => ['req', t]);
+  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t]), ...needs];
   const lh = 15, y0 = valign === 'bottom' ? y - (all.length - 1) * lh - 6 : y - (all.length - 1) * lh / 2;
   let s = `<g class="elab ${cls}${item.rxn?.transport ? ' trn' : ''}" data-key="${item.key}">`;
-  all.forEach(([c, l], i) => { s += `<text class="${c}" x="${x}" y="${y0 + i * lh}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; });
-  s += '</g>';
+  let pill = '';
+  all.forEach(([c, l], i) => {
+    const ly = y0 + i * lh + (c === 'needblank' ? 8 : 0);
+    if (c !== 'needblank') { s += `<text class="${c}" x="${x}" y="${ly}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; return; }
+    const live = nst === 'target' && INLINE, w = live ? Math.max(170, INLINE.along ? INLINE.along.length * 8 + 28 : 0) : pillW('needs'), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+    pill = live ? `<g class="elab target"><rect x="${rx}" y="${ly - 15}" width="${w}" height="30" rx="15"/></g>` + inlineField(rx + 4, ly - 12, w - 8, 24)
+      : `<g class="elab ${nst}"><rect x="${rx}" y="${ly - 12}" width="${w}" height="24" rx="12"/>${blankText(rx + w / 2, ly, 'needs')}</g>`;
+  });
+  s += '</g>' + pill;
   const ix = anchor === 'end' ? x + 14 : anchor === 'start' ? x - 14 : x;
   const iy = anchor === 'middle' ? y0 - 18 : y0;
   if (st === 'right') s += svgIcon(ix, iy, 'ok');
@@ -311,7 +321,10 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
   }
   return out;
 }
+// The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
+let DRAW_STATUS = null;
 function flowSVG(m, statusOf, opts = {}) {
+  DRAW_STATUS = statusOf;
   if (m.p.stitch) return stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
   if (m.p.layout === 'grid') return gridSVG(m, statusOf, opts);
@@ -833,6 +846,15 @@ function chip(item, st) {
   if (st === 'target' && INLINE) return `<form class="chip target inl" data-q="0">${inlineInput()}</form>`;
   return `<div class="chip ${cls}">${badge}${hidden(st) ? `<span class="bk">${blankWord(item)}</span>` : esc(item.name)}${ic}</div>`;
 }
+// What a step needs, in the list: the text, a "needs" blank, or the answer field while it's the one being asked.
+function needsPart(r, st, statusOf) {
+  if (!(r.requires || []).length || hidden(st)) return '';
+  const n = statusOf('n:' + r.id) || 'shown';
+  if (n === 'hide') return '';
+  if (n === 'target' && INLINE) return `<form class="inl" data-q="0">${inlineInput()}</form>`;
+  if (hidden(n)) return `<span class="ename ${n}"><span class="bk">needs</span></span>`;
+  return esc(needsText(r));
+}
 function conn(m, item, st, horiz, statusOf) {
   const r = item.rxn;
   const arr = horiz ? (r.reversible ? '⇌' : '→') : (r.reversible ? '⇅' : '↓');
@@ -845,7 +867,7 @@ function conn(m, item, st, horiz, statusOf) {
   const mk = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
   const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + mk(cs)
     : hidden(cs) ? parts.map(p => isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st)).join(' → ') : '';
-  const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, hidden(st) ? '' : needsText(r)].filter(Boolean).join(' · ');
+  const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, needsPart(r, st, statusOf)].filter(Boolean).join(' · ');
   return `<div class="conn"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}">${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
 }
 function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {

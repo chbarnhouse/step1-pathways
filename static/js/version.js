@@ -14,6 +14,7 @@ const CHANGELOG = [
     'Cycle arrows reach their boxes (the folate cycle’s left a gap), and a step’s full label (name, RATE-LIMITING, what it needs) is kept clear of the steps around it (glycolysis + gluconeogenesis: PEP carboxykinase’s GDP + CO₂ no longer sits on pyruvate carboxylase).',
     'Six new pathways: Methionine cycle (with transsulfuration to cysteine), Folate cycle (SHMT, thymidylate synthase, DHFR, MTHFR), Heme degradation (bilirubin, from macrophage to gut and urine), Purine salvage and degradation (HGPRT, APRT, ADA, xanthine oxidase), Sphingolipid degradation (the lysosomal storage diseases), and Eicosanoids (COX and 5-LOX).',
     'TCA cycle starts at pyruvate: pyruvate dehydrogenase (NAD⁺ + CoA → NADH + CO₂; needs TPP, lipoic acid and FAD) makes the acetyl-CoA that enters at citrate synthase.',
+    'What a step needs is quizzed with the cofactors: with Cofactors set to Quiz, a “needs” blank sits under the enzyme. Any usual name counts (B6, vitamin B6, PLP, pyridoxal phosphate, pyridoxine; TPP or thiamine for B1), and several lock in one at a time in any order.',
     'Vitamins and other helpers a step needs show under its enzyme: “needs B6 (pyridoxal phosphate)” for ALA synthase, “needs Biotin (B7)” for the carboxylases, TPP, lipoic acid and FAD for pyruvate and α-ketoglutarate dehydrogenase (24 steps in 14 pathways).',
     'Cleaner cycle diagrams: side branches sit beside the ring instead of on top of it, and connectors route around boxes rather than through them.',
   ] },

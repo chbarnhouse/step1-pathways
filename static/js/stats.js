@@ -44,6 +44,7 @@ const Stats = {
         ({ e: () => { label = en; kind = 'Enzyme'; },
           c: () => { const c = r.cofactors || {}; label = `${en}: ${(c.in || []).length && (c.out || []).length ? 'cofactors in' : 'cofactors'}`; kind = 'Cofactors'; },
           o: () => { label = `${en}: cofactors out`; kind = 'Cofactors'; },
+          n: () => { label = `${en}: what it needs`; kind = 'Cofactors'; },
           d: () => { label = `${pair}: direction`; kind = 'Direction'; },
           r: () => { label = `${en}: reactants`; kind = 'Reactants'; },
           p: () => { label = `${en}: products`; kind = 'Products'; },
