@@ -25,6 +25,29 @@
     "r7"
    ]
   },
+  "bilirubin": {
+   "metabolites": [
+    "biliverdin",
+    "cbili",
+    "cbilig",
+    "heme",
+    "stercobilin",
+    "ubili",
+    "ubilil",
+    "urobilin",
+    "urobilinogen"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8"
+   ]
+  },
   "catecholamines": {
    "metabolites": [
     "dopa",
@@ -77,6 +100,101 @@
     "r9"
    ]
   },
+  "coagulation": {
+   "metabolites": [
+    "f10",
+    "f10a",
+    "f11",
+    "f11a",
+    "f12",
+    "f12a",
+    "f13",
+    "f13a",
+    "f2",
+    "f2a",
+    "f5",
+    "f5a",
+    "f7",
+    "f7a",
+    "f8",
+    "f8a",
+    "f9",
+    "f9a",
+    "fbg",
+    "fbn",
+    "xfbn"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "complement": {
+   "metabolites": [
+    "c3",
+    "c3b",
+    "c3b_fb",
+    "c3bbb",
+    "c3bbb3b",
+    "c42",
+    "c4b2a",
+    "c4b2a3b",
+    "c5",
+    "c5b",
+    "mac"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "eicosanoids": {
+   "metabolites": [
+    "aa",
+    "hpete",
+    "lta4",
+    "ltb4",
+    "ltc4",
+    "ltd4",
+    "lte4",
+    "pge2",
+    "pgh2",
+    "pgi2",
+    "pl",
+    "txa2"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
   "fatty-acid-synthesis": {
    "metabolites": [
     "acetylcoa",
@@ -90,6 +208,21 @@
    ],
    "reactions": [
     "r0",
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+   ]
+  },
+  "folate": {
+   "metabolites": [
+    "dhf",
+    "methylthf",
+    "mthf",
+    "thf"
+   ],
+   "reactions": [
     "r1",
     "r2",
     "r3",
@@ -261,6 +394,24 @@
     "r5"
    ]
   },
+  "methionine": {
+   "metabolites": [
+    "cys",
+    "cysthio",
+    "hcy",
+    "met",
+    "sah",
+    "sam"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6"
+   ]
+  },
   "polyol": {
    "metabolites": [
     "fructose",
@@ -306,6 +457,34 @@
     "r2",
     "r3",
     "r4"
+   ]
+  },
+  "purine-salvage": {
+   "metabolites": [
+    "adenine",
+    "adenosine",
+    "ampm",
+    "gmp",
+    "guanine",
+    "guanosine",
+    "hypox",
+    "imp",
+    "inosine",
+    "uric",
+    "xanthine"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
    ]
   },
   "purine-synthesis": {
@@ -378,6 +557,33 @@
     "r9"
    ]
   },
+  "sphingolipids": {
+   "metabolites": [
+    "ceramide",
+    "cth",
+    "galcer",
+    "glccer",
+    "globoside",
+    "gm1",
+    "gm2",
+    "gm3",
+    "lacc",
+    "sm",
+    "sulfatide"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
   "steroidogenesis": {
    "metabolites": [
     "aldo",
@@ -424,16 +630,19 @@
   },
   "tca": {
    "metabolites": [
+    "acetylcoa",
     "akg",
     "citrate",
     "fumarate",
     "isocitrate",
     "malate",
     "oaa",
+    "pyruvate",
     "succinate",
     "succoa"
    ],
    "reactions": [
+    "r0",
     "r1",
     "r2",
     "r3",
