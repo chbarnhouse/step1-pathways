@@ -207,7 +207,7 @@
    "loc": "mitochondria",
    "branch": true,
    "requires": [
-    "Thiamine pyrophosphate (B1)",
+    "TPP (B1)",
     "Lipoic acid",
     "FAD (B2)"
    ],
@@ -291,11 +291,9 @@
     "irreversible"
    ],
    "requires": [
-    "B1 (thiamine pyrophosphate)",
-    "B2 (FAD)",
-    "B3 (NAD⁺)",
-    "B5 (CoA)",
-    "lipoic acid"
+    "TPP (B1)",
+    "Lipoic acid",
+    "FAD (B2)"
    ]
   },
   {

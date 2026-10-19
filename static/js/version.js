@@ -11,6 +11,7 @@ const CHANGELOG = [
   { v: 'next', items: [
     'Six new pathways: Methionine cycle (with transsulfuration to cysteine), Folate cycle (SHMT, thymidylate synthase, DHFR, MTHFR), Heme degradation (bilirubin, from macrophage to gut and urine), Purine salvage and degradation (HGPRT, APRT, ADA, xanthine oxidase), Sphingolipid degradation (the lysosomal storage diseases), and Eicosanoids (COX and 5-LOX).',
     'TCA cycle starts at pyruvate: pyruvate dehydrogenase (NAD⁺ + CoA → NADH + CO₂; needs TPP, lipoic acid and FAD) makes the acetyl-CoA that enters at citrate synthase.',
+    'Vitamins and other helpers a step needs show under its enzyme: “needs B6 (pyridoxal phosphate)” for ALA synthase, “needs Biotin (B7)” for the carboxylases, TPP, lipoic acid and FAD for pyruvate and α-ketoglutarate dehydrogenase (24 steps in 14 pathways).',
     'Cleaner cycle diagrams: side branches sit beside the ring instead of on top of it, and connectors route around boxes rather than through them.',
   ] },
   { v: '3.10.1', date: '2026-10-19', items: [

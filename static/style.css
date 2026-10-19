@@ -366,6 +366,7 @@ form.inl { margin: 0; display: block; height: 100%; }
 .flow .mbox.start rect { stroke-width: 3; }
 .flow .elab text { fill: var(--ink-2); font-size: var(--fs-sm); font-weight: 500; font-style: italic; }
 .flow .elab .tag { font-style: normal; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; fill: var(--muted); }
+.flow .elab .req { font-style: normal; font-size: var(--fs-xs); font-weight: 600; fill: var(--ink-2); }
 .flow .elab rect { fill: var(--card); stroke: var(--slate); stroke-dasharray: 4 3; }
 .flow .elab.target rect { fill: var(--card); stroke: var(--orange); stroke-width: 3; stroke-dasharray: none; }
 .flow .elab.given text { fill: var(--ink); font-size: var(--fs-md); font-weight: 700; font-style: normal; }

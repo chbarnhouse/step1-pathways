@@ -111,6 +111,8 @@ function metBox(cx, y, item, st, w = BW) {
   return s;
 }
 // anchor: start | middle | end. valign: center (lines centered on y) or bottom (last line sits on y).
+// Vitamins and other helpers a step can't run without (r.requires), shown with the enzyme: "needs B6 (pyridoxal phosphate)".
+const needsText = r => ((r && r.requires) || []).length ? 'needs ' + r.requires.join(', ') : '';
 function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   if (st === 'hide') return '';
   const cls = st === 'peek' ? 'shown' : st;
@@ -125,7 +127,7 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   }
   const lines = wrap(item.name, max);
   const tags = (item.rxn.tags || []).filter(t => t !== 'irreversible');
-  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t])];
+  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...wrap(needsText(item.rxn), max).map(t => ['req', t]), ...extra.map(t => ['cofl', t])];
   const lh = 15, y0 = valign === 'bottom' ? y - (all.length - 1) * lh - 6 : y - (all.length - 1) * lh / 2;
   let s = `<g class="elab ${cls}${item.rxn?.transport ? ' trn' : ''}" data-key="${item.key}">`;
   all.forEach(([c, l], i) => { s += `<text class="${c}" x="${x}" y="${y0 + i * lh}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; });
@@ -701,7 +703,9 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
       const [x, y] = pt(t, 170); pos[sd] = { cx: x, cy: y, t, side: true }; return;
     }
     const up = b.to === sp; // sd feeds sp: it goes above
-    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + 70), t: pos[sp].t, side: true };
+    // Room for the step's label between them: name, tags and what it needs.
+    const lines = wrap(items['e:' + b.id]?.name || '', 18).length + (b.tags || []).filter(t => t !== 'irreversible').length + wrap(needsText(b), 18).length;
+    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24)), t: pos[sp].t, side: true };
   });
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
   const counts = {};
@@ -755,7 +759,7 @@ function cycleSVG(m, statusOf, { zones = true } = {}) {
     DRAW_LABELS.push(labelRect(lx, ly0, anchor, it?.name || '', 20));
     const cs = cofSt(m, statusOf, r);
     if (cs !== 'none' && cs !== 'hide') {
-      const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + loc.length;
+      const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + wrap(needsText(r), 20).filter(Boolean).length + loc.length;
       const ly = ly0 + Math.max(lines * 7.5, 0) + 14;
       if (hidden(cs)) s += cofRow(lx, ly + 6, anchor, cofParts(m, statusOf, r));
       else {
@@ -826,7 +830,7 @@ function conn(m, item, st, horiz, statusOf) {
   const mk = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
   const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + mk(cs)
     : hidden(cs) ? parts.map(p => isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st)).join(' → ') : '';
-  const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags].filter(Boolean).join(' · ');
+  const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, hidden(st) ? '' : needsText(r)].filter(Boolean).join(' · ');
   return `<div class="conn"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}">${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
 }
 function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
