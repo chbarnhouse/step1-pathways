@@ -184,7 +184,8 @@ function normalizeDraft(d) {
   const out = Object.assign(clone(DRAFT_DEFAULTS), clone(d || {}));
   out.el = Object.assign(clone(DRAFT_DEFAULTS.el), (d && d.el) || {});
   if (!out.pathway && d?.pathways?.length) out.pathway = d.pathways[0];
-  if (!Library.get(out.pathway) || Library.get(out.pathway).compose) out.pathway = Library.atomic()[0]?.id;
+  // '' = nothing picked yet (New quiz from the top bar, or Clear all); anything else must be a real, single pathway.
+  if (out.pathway && (!Library.get(out.pathway) || Library.get(out.pathway).compose)) out.pathway = Library.atomic()[0]?.id;
   out.extra = uniq((Array.isArray(out.extra) ? out.extra : []).filter(id => id !== out.pathway && Library.get(id) && !Library.get(id).compose));
   if (out.mode === 'zones') { out.mode = 'single'; out.el.loc = 'place'; } // the short-lived Compartments mode is now Compartments: Place
   if (!out.aheadChosen) out.ahead = 'hide'; // Building blocks hides later blanks unless "Show them" was picked
@@ -205,7 +206,7 @@ function linkedTo(id) {
   out.delete(id);
   return [...out].filter(x => Library.get(x) && !Library.get(x).compose);
 }
-function draftParts(d) { const pair = d.combine && pairOf(d.pathway); return [...(pair ? pair.compose : [d.pathway]), ...(d.extra || [])]; }
+function draftParts(d) { if (!d.pathway) return []; const pair = d.combine && pairOf(d.pathway); return [...(pair ? pair.compose : [d.pathway]), ...(d.extra || [])]; }
 // Dropping one can strand others that only connected through it: keep what's still reachable from the first pick.
 function pruneExtra(d) {
   const reach = new Set(draftParts({ ...d, extra: [] })), left = [...(d.extra || [])];
@@ -327,13 +328,14 @@ function tilesHTML(page, selectedId) {
   const st = browse(page), base = Library.atomic(); // pairs (compose) are studied from their parts, never listed
   const list = filterPathways(base, st);
   if (!list.length) return `<p class="muted">No pathways match. <button class="linkbtn" data-bclear>Clear filters</button></p>`;
-  if (st.sort !== 'group') return `<div class="tiles-grid">${list.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div>`;
+  const isSel = id => (Array.isArray(selectedId) ? selectedId.includes(id) : id === selectedId); // New quiz: every pathway in the quiz
+  if (st.sort !== 'group') return `<div class="tiles-grid">${list.map(p => tileHTML(p, page, isSel(p.id))).join('')}</div>`;
   const groups = {};
   for (const p of list) (groups[p.group || 'Other'] = groups[p.group || 'Other'] || []).push(p);
   // Each group is one row that scrolls sideways: the next tile peeks in, the edge fades, and arrows appear where there's more.
   return Object.entries(groups).map(([g, ps]) => `<div class="tgroup"><h2 class="glabel">${esc(g)} <span class="muted small">${ps.length}</span></h2>
     <div class="rowwrap"><button class="rowbtn prev" data-rowscroll="-1" aria-label="Scroll ${esc(g)} left" tabindex="-1">${mi('chevron_left')}</button>
-      <div class="tiles-row">${ps.map(p => tileHTML(p, page, p.id === selectedId)).join('')}</div>
+      <div class="tiles-row">${ps.map(p => tileHTML(p, page, isSel(p.id))).join('')}</div>
       <button class="rowbtn next" data-rowscroll="1" aria-label="Scroll ${esc(g)} right" tabindex="-1">${mi('chevron_right')}</button></div></div>`).join('');
 }
 // Which ends of each row have more to see (drives the fade and the arrow buttons).
@@ -413,7 +415,7 @@ function renderCreate() {
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
   let ans = d.answer || Store.settings.answer;
   if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
-  const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place');
+  const hasQuiz = elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place'), picked = allE || !!d.pathway;
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   try { const qp = Library.get(draftPathway(d)); if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
@@ -429,8 +431,8 @@ function renderCreate() {
     .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', place: 'Place', hide: 'Hide' }[v], elTip(v, d.mode)]), elOf(d, k))}${elNote(k)}</div>`).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
-    const m = modelFor(Library.get(draftPathway(d)));
-    modeOpts = `<label class="field">Start<select id="cStart"><option value="random">A random point</option><option value="begin">The beginning, nothing shown</option><optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup></select></label>`;
+    const m = d.pathway && modelFor(Library.get(draftPathway(d)));
+    modeOpts = `<label class="field">Start<select id="cStart"><option value="random">A random point</option><option value="begin">The beginning, nothing shown</option>${m ? `<optgroup label="Start at">${visibleFor(m, d).map(k => `<option value="${esc(k)}">${esc(m.items[k].name)}${kindOf(k, m) !== 'met' ? ` (${KIND[kindOf(k, m)]})` : ''}</option>`).join('')}</optgroup>` : ''}</select></label>`;
   }
   const laterBlanks = d.mode === 'build' ? `<div class="field"><span>Later blanks</span>${seg('data-cs', 'ahead', [['hide', 'Hide them'], ['show', 'Show them']], d.ahead === 'show' ? 'show' : 'hide')}<p class="muted small">${d.ahead === 'show' ? 'Blanks you haven’t reached yet show their answers.' : 'Blanks you haven’t reached yet stay empty, so you recall the whole pathway.'}</p></div>` : '';
   if (d.mode === 'step') modeOpts = `<div class="field"><span>You're given</span>${seg('data-cs', 'given', [['mets', 'Two metabolites'], ['enz', 'An enzyme']], d.given)}</div>
@@ -439,7 +441,7 @@ function renderCreate() {
     <div class="create-grid">
       <section class="picker">
         <div class="page-h"><div><h1>New quiz</h1><p class="muted">Choose a pathway${allE ? ' (enzymes will come from every pathway)' : ''}.</p></div></div>
-        ${browserHTML('new', d.pathway)}
+        ${browserHTML('new', draftParts(d))}
       </section>
       <aside class="sidebar card">
         ${allE ? `<div class="side-sel"><span><span class="glabel">Pathway</span><b>All pathways</b></span></div>` : pickedHTML(d)}
@@ -459,8 +461,8 @@ function renderCreate() {
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
         </details>
         <div class="side-foot">
-          <button class="btn primary big" data-c="start" ${hasQuiz ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
-          <span class="btnrow tight"><button class="btn ghost" data-c="fav" aria-pressed="${!!findFav(d)}">${mi(findFav(d) ? 'star_fill1' : 'star', 'sm')} ${findFav(d) ? 'Favorited' : 'Favorite'}</button>
+          <button class="btn primary big" data-c="start" ${hasQuiz && picked ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
+          <span class="btnrow tight"><button class="btn ghost" data-c="fav" aria-pressed="${!!findFav(d)}" ${picked ? '' : 'disabled'}>${mi(findFav(d) ? 'star_fill1' : 'star', 'sm')} ${findFav(d) ? 'Favorited' : 'Favorite'}</button>
           <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button></span>
         </div>
       </aside>
@@ -484,15 +486,20 @@ function suggestions(d) {
   }).filter(x => x.ok).sort((a, b) => b.score - a.score || Library.get(a.id).name.localeCompare(Library.get(b.id).name)).map(x => x.id);
 }
 function pickedHTML(d) {
-  const have = draftParts(d), more = suggestions(d), shown = C.allSugg ? more : more.slice(0, 8);
-  const pill = id => `<button type="button" class="fchip" data-cpill="${esc(id)}"${have.length > 1 ? '' : ' disabled'} aria-label="${have.length > 1 ? `Take ${esc(Library.get(id).name)} out of this quiz` : esc(Library.get(id).name)}">${esc(Library.get(id).name)}${have.length > 1 ? mi('close', 'sm') : ''}</button>`;
-  return `<div class="picked"><span class="glabel">${have.length > 1 ? `Pathways · ${have.length}, on one diagram` : 'Pathway'}</span>
+  const have = draftParts(d);
+  if (!have.length) return `<div class="picked"><span class="glabel">Pathway</span>
+    <p class="pick-prompt">${mi('arrow_back', 'sm')}<span><b>Select a pathway to study</b><span class="muted small">Click a pathway's tile. Pathways that connect to it are suggested here, to quiz together.</span></span></p></div>`;
+  const more = suggestions(d), shown = C.allSugg ? more : more.slice(0, 8);
+  const pill = id => `<button type="button" class="fchip" data-cpill="${esc(id)}" aria-label="Take ${esc(Library.get(id).name)} out of this quiz">${esc(Library.get(id).name)}${mi('close', 'sm')}</button>`;
+  return `<div class="picked"><div class="picked-h"><span class="glabel">${have.length > 1 ? `Pathways · ${have.length}, on one diagram` : 'Pathway'}</span><button type="button" class="btn ghost small" data-cclear>${mi('close', 'sm')} Clear all</button></div>
     <div class="chips">${have.map(pill).join('')}</div>
-    ${more.length ? `<span class="glabel">${mi('link', 'sm')} Add a connected pathway</span><p class="muted small">Most closely related first. Pick a tile on the left to start over.</p>
+    ${more.length ? `<span class="glabel">${mi('link', 'sm')} Add a connected pathway</span><p class="muted small">Most closely related first.</p>
       <div class="chips">${shown.map(id => `<button type="button" class="addchip" data-cadd="${esc(id)}" aria-label="Add ${esc(Library.get(id).name)}">${mi('add', 'sm')}${esc(Library.get(id).name)}</button>`).join('')}
       ${more.length > 8 ? `<button type="button" class="btn ghost small" data-cmore>${C.allSugg ? 'Fewer' : `${more.length - 8} more`}</button>` : ''}</div>` : ''}
   </div>`;
 }
+// Nothing picked: what New quiz in the top bar opens with, and what Clear all leaves. How to study stays as it was.
+function clearPathways(d) { d.pathway = ''; d.combine = false; d.extra = []; d.allPathways = false; C.allSugg = false; if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; }
 // Adding: a pair partner turns that pair on (glycolysis + gluconeogenesis are one combined pathway); anything else joins.
 function addPathway(d, id) {
   const holder = draftParts(d).find(h => pairsOf(h).some(p => p.compose.includes(id)));
@@ -502,7 +509,7 @@ function addPathway(d, id) {
 function removePathway(d, id) {
   const pair = d.combine && pairOf(d.pathway);
   if (pair && pair.compose.includes(id)) { d.combine = false; if (id === d.pathway) d.pathway = pair.compose.find(x => x !== id); }
-  else if (id === d.pathway) { d.pathway = d.extra[0]; d.extra = d.extra.slice(1); }
+  else if (id === d.pathway) { if (!(d.extra || []).length) return clearPathways(d); d.pathway = d.extra[0]; d.extra = d.extra.slice(1); }
   else d.extra = (d.extra || []).filter(x => x !== id);
   pruneExtra(d);
 }
@@ -530,6 +537,12 @@ function launchQuiz(cfg, draft = null) {
   if (draft && Q.log) Q.log.d = clone(draft); // so Activity can run it again or star it
   if (location.hash === '#/quiz') renderQuiz(); else location.hash = '#/quiz';
 }
+// New quiz from the top bar or the dashboard card: a fresh pick (how to study is kept). Already there: clear in place.
+document.addEventListener('click', e => {
+  if (!e.target.closest('[data-nav="new"], a.hero-new')) return;
+  clearPathways(homeDraft()); C.presetId = '';
+  if (location.hash === '#/new') renderCreate();
+});
 document.addEventListener('click', e => {
   if (!$('#view .create')) return;
   const d = C.draft;
@@ -542,7 +555,8 @@ document.addEventListener('click', e => {
   }
   const add = e.target.closest('[data-cadd]'), pill = e.target.closest('[data-cpill]');
   if (add) { addPathway(d, add.dataset.cadd); return renderCreate(); }
-  if (pill && draftParts(d).length > 1) { removePathway(d, pill.dataset.cpill); return renderCreate(); }
+  if (pill) { removePathway(d, pill.dataset.cpill); return renderCreate(); }
+  if (e.target.closest('[data-cclear]')) { clearPathways(d); return renderCreate(); }
   if (e.target.closest('[data-cmore]')) { C.allSugg = !C.allSugg; return renderCreate(); }
   const sb = e.target.closest('[data-cs]');
   if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; if (sb.dataset.cs === 'names') delete d.fullNames; C.presetId = ''; return renderCreate(); }
@@ -553,10 +567,11 @@ document.addEventListener('click', e => {
   const a = e.target.closest('[data-c]');
   if (!a) return;
   if (a.dataset.c === 'start') {
+    if (!d.pathway && !(d.mode === 'step' && d.given === 'enz' && d.allPathways)) return;
     local.set(LAST_QUIZ, { cfg: d });
     launchQuiz(quizFromDraft(d), clone(d));
   }
-  if (a.dataset.c === 'fav') toggleFav(d, renderCreate);
+  if (a.dataset.c === 'fav' && d.pathway) toggleFav(d, renderCreate);
   if (a.dataset.c === 'savepreset') ask({ title: 'Save as preset', text: 'A preset keeps how you study (mode, answers, what to show or quiz) and works with any pathway.', input: true, ok: 'Save' }).then(name => {
     if (!name) return;
     const { pathway, combine, ...style } = clone(d);
