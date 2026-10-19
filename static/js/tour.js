@@ -17,7 +17,7 @@ const TOUR_STEPS = [
     ? 'This copy saves to your Step 1 Pathways server, so every device sees the same progress.'
     : 'Everything is saved in this browser only. Back up now and then; restore the file in any browser to carry on.' },
   { route: '#/new', sel: '.browsebar', title: 'Find a pathway', text: 'Search by pathway, enzyme, metabolite or tag. Filters stack: pick groups, your tags and a status together. Sort by group, A–Z, weakest first or recently studied.' },
-  { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. A pathway that “combines with” another (glycolysis and gluconeogenesis) can be studied on its own or together with it.' },
+  { route: '#/new', sel: '#tiles', title: 'Pick one', text: 'Click a tile to choose it. The sidebar then suggests pathways that connect to it, most related first: add any of them to quiz them together on one diagram.' },
   { route: '#/new', sel: '.modes', title: 'How to study', text: 'Fill the blanks hides one item at a time. Full recall rebuilds the pathway in order. Building blocks adds one blank per round, from the top, until you can type the whole thing. Single step drills one reaction from either side.' },
   { route: '#/new', sel: '.el-grid', title: 'What to show, quiz or hide', text: 'Set metabolites, enzymes, transporters, cofactors and compartments to Show, Quiz or Hide.' },
   { route: '#/new', sel: '.adv', title: 'Advanced', text: 'How you answer (type, type along with a faint answer, pick from choices, or self-check), letter-by-letter checking, “Give me a letter” hints (or → at the end of your answer), and more.' },

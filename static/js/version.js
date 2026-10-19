@@ -9,6 +9,8 @@ const APP_VERSION = '3.10.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'New quiz: every pathway in the quiz is an equal pill (× takes it out). Below, Add a connected pathway suggests what links to all of them, most closely related first; gluconeogenesis appears there for glycolysis and turns on the combined view.',
+    'The first-visit notice adds one more box to tick: the pathways were largely written with an AI model, so occasional errors are possible. If you already accepted the notice, you’ll see just this part once.',
     'Quiz connected pathways together on one diagram. In New quiz, under the pathway you picked, Connected pathways offers what links to it: pick Glycolysis, add TCA cycle, and β-oxidation, heme synthesis, the urea cycle and more become available. Each keeps its own layout; a molecule they share is one box; compartments are drawn once for the whole picture; the same molecule in two compartments (cytosolic and mitochondrial pyruvate) is joined by a transport arrow. Answers count toward each pathway on its own.',
     'Connected quizzes draw a molecule once even when it sits mid-pathway in both: in Glycolysis + gluconeogenesis with the TCA cycle, oxaloacetate is one box, with pyruvate carboxylase and PEP carboxykinase pointing into the TCA ring’s. Arrows between pathways no longer run along each other.',
     'Cycle arrows reach their boxes (the folate cycle’s left a gap), and a step’s full label (name, RATE-LIMITING, what it needs) is kept clear of the steps around it (glycolysis + gluconeogenesis: PEP carboxykinase’s GDP + CO₂ no longer sits on pyruvate carboxylase).',

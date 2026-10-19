@@ -198,7 +198,7 @@ function homeDraft() {
 function pairOf(id) { return Object.values(Library.all()).find(p => p.compose && p.compose.includes(id)); }
 const pairsOf = id => Object.values(Library.all()).filter(p => p.compose && p.compose.includes(id));
 /* Connected pathways: what links to what's picked (its links, or theirs to it), so a quiz can grow one connection at a time:
-   glycolysis → + TCA cycle → + β-oxidation, heme synthesis… A pair partner is offered as "Study together" instead. */
+   glycolysis → + TCA cycle → + β-oxidation, heme synthesis… (a pair partner turns its combined pathway on; see addPathway). */
 function linkedTo(id) {
   const out = new Set((Library.get(id)?.links || []).map(l => l.to));
   for (const p of Library.atomic()) if ((p.links || []).some(l => l.to === id)) out.add(p.id);
@@ -206,11 +206,6 @@ function linkedTo(id) {
   return [...out].filter(x => Library.get(x) && !Library.get(x).compose);
 }
 function draftParts(d) { const pair = d.combine && pairOf(d.pathway); return [...(pair ? pair.compose : [d.pathway]), ...(d.extra || [])]; }
-function connectable(d) {
-  const have = new Set(draftParts(d)), partners = new Set(pairOf(d.pathway)?.compose || []);
-  return uniq([...have].flatMap(linkedTo)).filter(id => !have.has(id) && !partners.has(id))
-    .sort((a, b) => Library.get(a).name.localeCompare(Library.get(b).name));
-}
 // Dropping one can strand others that only connected through it: keep what's still reachable from the first pick.
 function pruneExtra(d) {
   const reach = new Set(draftParts({ ...d, extra: [] })), left = [...(d.extra || [])];
@@ -415,7 +410,6 @@ const elTip = (v, mode) => ({
 }[v]);
 function renderCreate() {
   const d = homeDraft(), sel = Library.get(d.pathway), pair = pairOf(d.pathway);
-  const partner = pair && pair.compose.filter(x => x !== d.pathway).map(x => Library.get(x)?.name).filter(Boolean).join(' and ');
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
   let ans = d.answer || Store.settings.answer;
   if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
@@ -448,10 +442,7 @@ function renderCreate() {
         ${browserHTML('new', d.pathway)}
       </section>
       <aside class="sidebar card">
-        <div class="side-sel">${sel && !allE ? tileArt(sel, 'sm') : ''}<span><span class="glabel">Pathway</span><b>${esc(allE ? 'All pathways' : sel?.name || '')}</b></span></div>
-        ${pair && !allE ? `<label class="pairbox${d.combine ? ' on' : ''}"><input type="checkbox" data-cflag="combine" ${d.combine ? 'checked' : ''}>
-          <span><b>Study together with ${esc(partner)}</b><span class="muted">${esc(pair.name)}: shared steps once, each one's own steps alongside.</span></span></label>` : ''}
-        ${allE ? '' : connectHTML(d)}
+        ${allE ? `<div class="side-sel"><span><span class="glabel">Pathway</span><b>All pathways</b></span></div>` : pickedHTML(d)}
         ${Store.data.presets.length ? `<label class="field">Preset<select id="cPreset"><option value="">Current settings</option>${Store.data.presets.map(p => `<option value="${esc(p.id)}"${C.presetId === p.id ? ' selected' : ''}>${esc(p.name)}</option>`).join('')}</select></label>` : ''}
         <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, how, best]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${how}</span><span class="best"><b>Best for</b> ${best}</span></button>`).join('')}</div></div>
         ${modeOpts}
@@ -481,13 +472,39 @@ function renderCreate() {
   if (on && row) { const o = on.offsetLeft - row.offsetLeft; if (o < row.scrollLeft || o + on.offsetWidth > row.scrollLeft + row.clientWidth) row.scrollLeft = o - 24; }
   updateRows();
 }
-function connectHTML(d) {
-  const more = connectable(d), extra = d.extra || [];
-  if (!more.length && !extra.length) return '';
-  return `<div class="connect"><span class="glabel">${mi('link', 'sm')} Connected pathways</span>
-    ${extra.length ? `<div class="chips">${extra.map(id => `<button type="button" class="fchip" data-cextra="${esc(id)}" data-on="1" aria-label="Take ${esc(Library.get(id).name)} out of this quiz">${esc(Library.get(id).name)}${mi('close', 'sm')}</button>`).join('')}</div>` : ''}
-    ${more.length ? `<p class="muted small">${extra.length ? 'Add more' : 'Add one to quiz them together, on one diagram'}:</p><div class="chips">${more.map(id => `<button type="button" class="addchip" data-cextra="${esc(id)}" aria-label="Add ${esc(Library.get(id).name)}">${mi('add', 'sm')}${esc(Library.get(id).name)}</button>`).join('')}</div>` : ''}
+/* The pathways in this quiz, all alike as pills (× takes one out; the last one stays), then what to add, most related
+   first: a pair partner (gluconeogenesis for glycolysis), then by links to everything picked, then by shared molecules. */
+const metNamesOf = id => new Set(Object.values(Library.get(id)?.metabolites || {}).map(m => baseMetName(m.name)));
+function suggestions(d) {
+  const have = draftParts(d), set = new Set(have), names = new Set(have.flatMap(id => [...metNamesOf(id)]));
+  const partners = new Set(have.flatMap(id => pairsOf(id).flatMap(p => p.compose)));
+  return Library.atomic().map(p => p.id).filter(id => !set.has(id)).map(id => {
+    const links = have.filter(h => linkedTo(h).includes(id)).length, shared = [...metNamesOf(id)].filter(n => names.has(n)).length;
+    return { id, score: (partners.has(id) ? 1000 : 0) + links * 10 + shared, ok: partners.has(id) || links > 0 };
+  }).filter(x => x.ok).sort((a, b) => b.score - a.score || Library.get(a.id).name.localeCompare(Library.get(b.id).name)).map(x => x.id);
+}
+function pickedHTML(d) {
+  const have = draftParts(d), more = suggestions(d), shown = C.allSugg ? more : more.slice(0, 8);
+  const pill = id => `<button type="button" class="fchip" data-cpill="${esc(id)}"${have.length > 1 ? '' : ' disabled'} aria-label="${have.length > 1 ? `Take ${esc(Library.get(id).name)} out of this quiz` : esc(Library.get(id).name)}">${esc(Library.get(id).name)}${have.length > 1 ? mi('close', 'sm') : ''}</button>`;
+  return `<div class="picked"><span class="glabel">${have.length > 1 ? `Pathways · ${have.length}, on one diagram` : 'Pathway'}</span>
+    <div class="chips">${have.map(pill).join('')}</div>
+    ${more.length ? `<span class="glabel">${mi('link', 'sm')} Add a connected pathway</span><p class="muted small">Most closely related first. Pick a tile on the left to start over.</p>
+      <div class="chips">${shown.map(id => `<button type="button" class="addchip" data-cadd="${esc(id)}" aria-label="Add ${esc(Library.get(id).name)}">${mi('add', 'sm')}${esc(Library.get(id).name)}</button>`).join('')}
+      ${more.length > 8 ? `<button type="button" class="btn ghost small" data-cmore>${C.allSugg ? 'Fewer' : `${more.length - 8} more`}</button>` : ''}</div>` : ''}
   </div>`;
+}
+// Adding: a pair partner turns that pair on (glycolysis + gluconeogenesis are one combined pathway); anything else joins.
+function addPathway(d, id) {
+  const holder = draftParts(d).find(h => pairsOf(h).some(p => p.compose.includes(id)));
+  if (holder) { const others = draftParts(d).filter(x => x !== holder && !(pairOf(holder)?.compose || []).includes(x)); d.pathway = holder; d.combine = true; d.extra = others.filter(x => x !== id); }
+  else d.extra = [...(d.extra || []), id];
+}
+function removePathway(d, id) {
+  const pair = d.combine && pairOf(d.pathway);
+  if (pair && pair.compose.includes(id)) { d.combine = false; if (id === d.pathway) d.pathway = pair.compose.find(x => x !== id); }
+  else if (id === d.pathway) { d.pathway = d.extra[0]; d.extra = d.extra.slice(1); }
+  else d.extra = (d.extra || []).filter(x => x !== id);
+  pruneExtra(d);
 }
 /* ---------- favorites: a whole quiz (pathway + every setting), launched from the dashboard in one click ---------- */
 const FAV_FIELDS = ['pathway', 'combine', 'extra', 'mode', 'given', 'start', 'ahead', 'aheadChosen', 'autoSubmit', 'cofCount', 'nameModes', 'names', 'fullNames', 'answer', 'weak', 'allPathways', 'letterCheck', 'hints', 'el'];
@@ -523,8 +540,10 @@ document.addEventListener('click', e => {
     d.pathway = id; d.allPathways = false;
     return renderCreate();
   }
-  const xb = e.target.closest('[data-cextra]');
-  if (xb) { const id = xb.dataset.cextra; if (xb.dataset.on) { d.extra = d.extra.filter(x => x !== id); pruneExtra(d); } else d.extra = [...(d.extra || []), id]; return renderCreate(); }
+  const add = e.target.closest('[data-cadd]'), pill = e.target.closest('[data-cpill]');
+  if (add) { addPathway(d, add.dataset.cadd); return renderCreate(); }
+  if (pill && draftParts(d).length > 1) { removePathway(d, pill.dataset.cpill); return renderCreate(); }
+  if (e.target.closest('[data-cmore]')) { C.allSugg = !C.allSugg; return renderCreate(); }
   const sb = e.target.closest('[data-cs]');
   if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; if (sb.dataset.cs === 'names') delete d.fullNames; C.presetId = ''; return renderCreate(); }
   const nb = e.target.closest('[data-cname]');
@@ -701,12 +720,28 @@ function dataGate() {
   return new Promise(res => {
     let d = $('#gateDialog');
     if (!d) { d = document.createElement('dialog'); d.id = 'gateDialog'; document.body.append(d); }
+    const needData = !local.get('pathways.dataAck');
+    const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}
+      <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckAI"> ${AI_ACK_LABEL}</label></section>`;
+    if (!needData) {
+      // Accepted the storage notice before this one existed: just the new part.
+      d.innerHTML = `<div class="dlg gate"><div class="dlg-h"><h2>${mi('science', 'h-ic')} ${AI_NOTICE_TITLE}</h2></div>
+        <div class="ask-text">${AI_NOTICE_HTML}</div>
+        <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckAI"> ${AI_ACK_LABEL}</label>
+        <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
+      d.oncancel = e => e.preventDefault();
+      const req = d.querySelector('#gateAckAI');
+      req.onchange = () => { d.querySelector('#gateGo').disabled = !req.checked; };
+      d.querySelector('#gateGo').onclick = () => { if (!req.checked) return; local.set('pathways.aiAck', Date.now()); d.close(); res(); };
+      return d.showModal();
+    }
     d.innerHTML = `<div class="dlg gate">
       <div class="dlg-h"><h2>${mi('download', 'h-ic')} ${DATA_NOTICE_TITLE}</h2></div>
       <div class="ask-text">${DATA_NOTICE_HTML}</div>
       <section class="gate-backup" aria-labelledby="gbH"><h3 id="gbH">${mi('download', 'sm')} Set up your backup file now <span class="muted small">(recommended)</span></h3><div id="gateBackup"></div></section>
       <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAck"> ${DATA_ACK_LABEL}</label>
       ${AutoBackup.supported ? '' : `<label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckBrowser"> I understand that this browser can’t keep a backup file up to date for me, so I need to download backups myself (Chrome and Edge can do it automatically).</label>`}
+      ${aboutAI}
       <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
     // The backup step, written out click by click; it redraws itself after linking.
     const drawBackup = () => {
@@ -734,7 +769,7 @@ function dataGate() {
     d.querySelectorAll('.gate-req').forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !allTicked(); }; });
     d.querySelector('#gateGo').onclick = () => {
       if (!allTicked()) return;
-      local.set('pathways.dataAck', Date.now());
+      local.set('pathways.dataAck', Date.now()); local.set('pathways.aiAck', Date.now());
       d.close(); res();
     };
     d.showModal();

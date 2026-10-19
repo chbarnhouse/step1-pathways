@@ -1090,11 +1090,17 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .fchip .mi { width: 16px; height: 16px; fill: currentColor; }
 .fchip:hover { opacity: .85; }
 /* New quiz: pathways that connect to the one picked. Added ones are solid chips (× takes them out); offers are outlined. */
-.connect { display: grid; gap: 8px; padding: 12px; border-radius: 10px; border: 1px solid var(--line); }
-.connect .glabel { display: flex; align-items: center; gap: 6px; }
-.connect p { margin: 0; }
+.picked { display: grid; gap: 8px; }
+.picked .glabel { display: flex; align-items: center; gap: 6px; }
+.picked .glabel + .chips { margin-bottom: 6px; }
+.picked p { margin: -4px 0 0; }
+.fchip:disabled { cursor: default; opacity: 1; }
 .addchip { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px 0 8px; border: 1.5px dashed var(--ink-2); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
 .addchip .mi { width: 16px; height: 16px; fill: currentColor; }
 .addchip:hover { border-style: solid; border-color: var(--blue); color: var(--blue); }
 .tile-combo { display: inline-flex; vertical-align: -3px; margin-left: 2px; }
 .tile-combo .mi { width: 16px; height: 16px; fill: var(--muted); }
+/* Data notice: the content note, set apart from the storage notice above it. */
+.gate-ai { display: grid; gap: 8px; padding-top: 12px; border-top: 1px solid var(--line); }
+.gate-ai h3 { display: flex; align-items: center; gap: 6px; margin: 0; font-size: var(--fs-md); }
+.gate-ai p { margin: 0; }
