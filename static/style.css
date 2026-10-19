@@ -1121,3 +1121,34 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .catlist a:hover { border-color: var(--blue); }
 .catitem .card { margin-top: 14px; }
 .catitem td a, .catitem .page-h a { color: var(--blue); }
+/* Breadcrumbs: the way you came, each step a link. */
+.crumbs { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; margin-bottom: 8px; font-weight: 600; font-size: var(--fs-sm); }
+.crumbs a { display: inline-flex; align-items: center; gap: 4px; color: var(--ink); text-decoration: underline; text-underline-offset: 3px; }
+.crumbs .sep { color: var(--muted); }
+.crumbs .mi { width: 16px; height: 16px; fill: currentColor; }
+/* A thing's page: at a glance, then each of its pathways drawn with it picked out. */
+.cat-top { display: grid; gap: 14px; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); align-items: start; }
+@media (max-width: 900px) { .cat-top { grid-template-columns: minmax(0, 1fr); } }
+.cat-top .card { margin-top: 0 !important; }
+.glance dl { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 8px 16px; margin: 0; }
+.glance dt { font-size: var(--fs-xs); font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); padding-top: 3px; }
+.glance dd { margin: 0; min-width: 0; }
+.ctx-label { margin: 22px 0 0; }
+.ctx-h { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; }
+.ctx-name { display: flex; gap: 10px; align-items: center; color: var(--ink); text-decoration: none; }
+.ctx-name > span { display: grid; }
+.ctx-name:hover b { text-decoration: underline; }
+.ctx-diagram { display: block; margin: 12px 0 6px; border: 1px solid var(--line); border-radius: 10px; overflow: hidden; background: var(--card); }
+.ctx-diagram svg { display: block; width: 100%; height: auto; max-height: 60vh; }
+.ctx-note { margin: 0; }
+.ctx-steps { margin: 8px 0 0; padding-left: 20px; display: grid; gap: 4px; }
+.alltable summary { cursor: pointer; }
+.alltable[open] summary { margin-bottom: 10px; }
+/* In a thing's pathway diagram: it is outlined heavy with its name bold and underlined; the rest of the pathway fades back. */
+.flow .mbox.focus rect { stroke-width: 4; }
+.flow .mbox.focus text, .flow .elab.focus text { font-weight: 800; text-decoration: underline; }
+.flow .elab.focus text { fill: var(--ink); font-style: normal; }
+.flow .mbox.dim, .flow .elab.dim { opacity: .32; }
+.morectx { margin-top: 14px; }
+.morectx > summary { list-style: none; display: inline-flex; }
+.morectx > summary::-webkit-details-marker { display: none; }

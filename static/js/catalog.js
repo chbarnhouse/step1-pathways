@@ -220,34 +220,117 @@ document.addEventListener('click', e => {
   if (t.hasAttribute('data-kclear')) { const q = document.querySelector('[data-kq]'); if (q) q.value = ''; }
 });
 
-/* ---------- one thing's page ---------- */
+/* ---------- one thing's page ----------
+   At a glance (names, where, what it needs, your answers), its notes, then each pathway it's in drawn with it picked out:
+   heavy outline and bold underlined name for it, its steps at full strength, the rest faded back. The full table of
+   steps stays one click away. */
+// The diagram's status for each item: 'focus' for this thing, 'shown' for its steps and partners, 'dim' for the rest.
+function focusStatus(e, p) {
+  const mine = e.steps.filter(s => s.p === p), focus = new Set(), near = new Set();
+  const touch = r => [r.from, r.to, ...(r.also_to || []), ...(r.also_from || [])].forEach(id => near.add('m:' + id));
+  if (e.kind === 'enz') mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
+  else if (e.kind === 'met') { e.keys.filter(([pid]) => pid === p.id).forEach(([, k]) => focus.add(k)); mine.forEach(({ r }) => { near.add('e:' + r.id); touch(r); }); }
+  else mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
+  return k => (focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
+}
+function stepLine(e, s) {
+  const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name, needs = cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []);
+  const role = e.kind === 'met' ? (s.role === 'made' ? 'made by ' : s.role === 'used' ? 'used by ' : '') : e.kind === 'cof' ? ({ in: 'goes in at ', out: 'comes out of ', need: 'needed by ' }[s.role] || '') : '';
+  const bits = [e.kind === 'enz' ? '' : `${role}${catLink('enz', catKey(en), en)}`, reactionCell(p, r), `cofactors ${cofCell(m, r)}`, needs ? `needs ${needs}` : '', whereCell(r),
+    (r.tags || []).includes('rate-limiting') ? '<b>rate-limiting</b>' : '', r.reversible ? 'reversible' : ''].filter(Boolean);
+  return `<li>${bits.join(' · ')}</li>`;
+}
+function glanceHTML(e, ps) {
+  const rows = [], linkList = (kind, keys) => uniq(keys).map(k => catLink(kind, k)).join(', ');
+  if (e.short.size) rows.push(['Abbreviation', esc([...e.short].join(', '))]);
+  if (e.others.length) rows.push(['Also called', esc(e.others.join(' · '))]);
+  rows.push([e.kind === 'met' ? 'Group' : 'Kind', esc(facets(e).section)]);
+  rows.push(['In', ps.map(p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join(', ')]);
+  const where = uniq(e.steps.map(({ r }) => [r.tissue, r.loc].filter(Boolean).join(' · ')).filter(Boolean));
+  if (where.length) rows.push(['Where', esc(where.join('; '))]);
+  if (e.kind === 'enz') {
+    const rl = uniq(e.steps.filter(s => (s.r.tags || []).includes('rate-limiting')).map(s => s.p.name));
+    if (rl.length) rows.push(['Rate-limiting in', esc(rl.join(', '))]);
+    const needs = e.steps.flatMap(({ m, r }) => (m.items['n:' + r.id]?.cofs.in || []).map(id => cofPage(m, id)));
+    if (needs.length) rows.push(['Needs', linkList('cof', needs)]);
+    const cofs = e.steps.flatMap(({ m, r }) => [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])].map(id => cofPage(m, id)));
+    if (cofs.length) rows.push(['Cofactors', linkList('cof', cofs)]);
+    const dir = uniq(e.steps.map(s => (s.r.reversible ? 'reversible' : 'one-way')));
+    rows.push(['Direction', esc(dir.join(' or '))]);
+  } else if (e.kind === 'met') {
+    const en = s => catKey(s.p.enzymes[s.r.enzyme]?.name);
+    const made = e.steps.filter(s => s.role !== 'used').map(en), used = e.steps.filter(s => s.role !== 'made').map(en);
+    if (made.length) rows.push(['Made by', linkList('enz', made)]);
+    if (used.length) rows.push(['Used by', linkList('enz', used)]);
+    const out = ps.flatMap(p => (p.links || []).filter(l => e.keys.some(([pid, k]) => pid === p.id && k === 'm:' + l.at)).map(l => Library.get(l.to)).filter(Boolean));
+    if (out.length) rows.push(['Connects to', uniq(out).map(q => `<a href="#/pathways/${encodeURIComponent(q.id)}">${esc(q.name)}</a>`).join(', ')]);
+  } else {
+    const n = k => e.steps.filter(s => s.role === k).length;
+    rows.push(['Steps', esc([n('need') ? `needed by ${n('need')}` : '', n('in') ? `goes in at ${n('in')}` : '', n('out') ? `comes out of ${n('out')}` : ''].filter(Boolean).join(' · '))]);
+    rows.push(['Enzymes', linkList('enz', e.steps.map(s => catKey(s.p.enzymes[s.r.enzyme]?.name)))]);
+  }
+  const st = itemStat(e);
+  rows.push(['Your answers', st.n ? `${st.n} answered · ${st.pct}% right first time${st.last ? ` · last ${esc(new Date(st.last).toLocaleDateString())}` : ''}` : '<span class="muted">Not studied yet</span>']);
+  return `<section class="card pad glance"><h2>At a glance</h2><dl>${rows.map(([k, v]) => `<dt>${k}</dt><dd>${v}</dd>`).join('')}</dl></section>`;
+}
+function contextHTML(e, p) {
+  // Zoomed to its steps (with room around them for labels and a little context); the whole pathway is on its page.
+  let svg = '', zoomed = false;
+  try {
+    const st = focusStatus(e, p);
+    DRAW_POS = {}; svg = flowSVG(modelFor(p), st); const pos = DRAW_POS; DRAW_POS = null;
+    const rs = Object.entries(pos).filter(([k]) => st(k) !== 'dim').map(([, r]) => r), vb = svg.match(/viewBox="([^"]+)"/)?.[1].split(/\s+/).map(Number);
+    if (rs.length && vb) {
+      let x0 = Math.min(...rs.map(r => r.x)) - 300, x1 = Math.max(...rs.map(r => r.x + r.w)) + 300, y0 = Math.min(...rs.map(r => r.y)) - 170, y1 = Math.max(...rs.map(r => r.y + r.h)) + 170;
+      if (x1 - x0 < 1200) { const c = (x0 + x1) / 2; x0 = c - 600; x1 = c + 600; } // about the pathway page's own scale
+      if (y1 - y0 < 440) { const c = (y0 + y1) / 2; y0 = c - 220; y1 = c + 220; }
+      x0 = Math.max(vb[0], x0); y0 = Math.max(vb[1], y0); x1 = Math.min(vb[0] + vb[2], x1); y1 = Math.min(vb[1] + vb[3], y1);
+      zoomed = (x1 - x0) * (y1 - y0) < vb[2] * vb[3] * 0.8;
+      if (zoomed) svg = svg.replace(/viewBox="[^"]+"/, `viewBox="${x0} ${y0} ${x1 - x0} ${y1 - y0}"`);
+    }
+  } catch { DRAW_POS = null; }
+  const mine = e.steps.filter(s => s.p === p);
+  return `<section class="card pad ctx">
+    <div class="ctx-h"><a class="ctx-name" href="#/pathways/${encodeURIComponent(p.id)}">${tileArt(p, 'sm')}<span><b>${esc(p.name)}</b><span class="muted small">${esc(p.group || 'Other')} · ${plural(mine.length, 'step')} here</span></span></a>
+      <span class="btnrow"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${encodeURIComponent(p.id)}">${mi('arrow_forward', 'sm')} Open pathway</a></span></div>
+    ${svg ? `<a class="ctx-diagram" href="#/pathways/${encodeURIComponent(p.id)}" aria-label="Open ${esc(p.name)}">${svg}</a>${zoomed ? `<p class="muted small ctx-note">Zoomed to its ${mine.length > 1 ? 'steps' : 'step'}. The whole pathway is on its page.</p>` : ''}` : ''}
+    <ul class="ctx-steps">${mine.map(s => stepLine(e, s)).join('')}</ul>
+  </section>`;
+}
 function renderCatItem(tab, key) {
   const [, label, kind] = CAT_TABS.find(t => t[0] === tab) || [];
   const e = kind && catalog()[kind][key];
   if (!e) { $('#view').innerHTML = `<div class="page">${pageHead('Not found', 'Nothing by that name in any pathway.')}<a class="btn" href="#/library/${esc(tab || 'enzymes')}">Back to the library</a></div>`; return; }
-  const ps = [...e.pathways].map(id => Library.get(id)).filter(Boolean);
-  const names = e.others.length ? `<p class="muted"><b>Also called:</b> ${esc(e.others.join(' · '))}</p>` : '';
+  delete e.f;
+  const ps = [...e.pathways].map(id => Library.get(id)).filter(Boolean).sort((a, b) => groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
   const short = e.short.size ? ` <span class="muted">(${esc([...e.short].join(', '))})</span>` : '';
   // Notes as written in each pathway; where pathways say different things, each says which pathway it's from.
   const notes = e.notes.length ? `<section class="card pad"><h2>Notes</h2>${e.notes.map(n => `<p>${esc(n.text)}${e.notes.length > 1 ? ` <span class="muted small">(${esc(Library.get(n.pid)?.name || n.pid)})</span>` : ''}</p>`).join('')}</section>` : '';
-  let body = '';
-  if (kind === 'enz') {
-    body = `<section class="card pad"><h2>Steps</h2><div class="tablewrap"><table class="steps"><thead><tr><th>Pathway</th><th>Reaction</th><th>Cofactors</th><th>Needs</th><th>Where</th><th>Notes</th></tr></thead><tbody>
-      ${e.steps.map(({ p, m, r }) => `<tr><td>${pathwayCell(p)}</td><td>${reactionCell(p, r)}</td><td>${cofCell(m, r)}</td><td>${cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []) || '<span class="muted">—</span>'}</td><td>${whereCell(r)}</td><td class="muted">${esc([r.transport ? 'transport' : '', r.reversible ? 'reversible' : 'irreversible', ...(r.tags || []).filter(t => t !== 'irreversible')].filter(Boolean).join(' · '))}</td></tr>`).join('')}
-    </tbody></table></div></section>`;
-  } else if (kind === 'met') {
-    const row = ({ p, m, r }) => `<tr><td>${pathwayCell(p)}</td><td>${catLink('enz', catKey(p.enzymes[r.enzyme]?.name), p.enzymes[r.enzyme]?.name)}</td><td>${reactionCell(p, r)}</td><td>${cofCell(m, r)}</td><td>${whereCell(r)}</td></tr>`;
-    const table = (title, rows) => rows.length ? `<section class="card pad"><h2>${title}</h2><div class="tablewrap"><table class="steps"><thead><tr><th>Pathway</th><th>Enzyme</th><th>Reaction</th><th>Cofactors</th><th>Where</th></tr></thead><tbody>${rows.map(row).join('')}</tbody></table></div></section>` : '';
-    body = table('Made by', e.steps.filter(s => s.role !== 'used')) + table('Used by', e.steps.filter(s => s.role !== 'made'));
-  } else {
-    const groups = ['need', 'in', 'out'].map(k => [k, e.steps.filter(s => s.role === k)]).filter(([, rows]) => rows.length);
-    body = groups.map(([k, rows]) => `<section class="card pad"><h2>${{ in: 'Goes in at', out: 'Comes out of', need: 'Needed by' }[k]} ${plural(rows.length, 'step')}</h2><div class="tablewrap"><table class="steps"><thead><tr><th>Pathway</th><th>Enzyme</th><th>Reaction</th><th>${k === 'need' ? 'Needs' : 'All cofactors'}</th><th>Where</th></tr></thead><tbody>
-      ${rows.map(({ p, m, r }) => `<tr><td>${pathwayCell(p)}</td><td>${catLink('enz', catKey(p.enzymes[r.enzyme]?.name), p.enzymes[r.enzyme]?.name)}</td><td>${reactionCell(p, r)}</td><td>${k === 'need' ? cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []) : cofCell(m, r)}</td><td>${whereCell(r)}</td></tr>`).join('')}
-    </tbody></table></div></section>`).join('');
-  }
   $('#view').innerHTML = `<div class="page catitem">
-    <a class="back" href="#/library/${tab}">${mi('arrow_back', 'sm')} ${label}</a>
-    ${pageHead(`${esc(e.name)}${short}`, `${label.replace(/s$/, '')} · in ${plural(ps.length, 'pathway')}: ${ps.map(p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join(', ')}`)}
-    ${names}${notes}${body}
+    ${crumbsHTML([{ h: '#/pathways', t: 'Library' }, { h: `#/library/${tab}`, t: label }])}
+    ${pageHead(`${facets(e).art} ${esc(e.name)}${short}`, `${label.replace(/s$/, '')} · ${esc(facets(e).section)} · in ${plural(ps.length, 'pathway')}`)}
+    <div class="cat-top">${glanceHTML(e, ps)}${notes}</div>
+    <h2 class="glabel ctx-label">In ${ps.length > 1 ? 'its pathways' : 'its pathway'}</h2>
+    ${ps.slice(0, 4).map(p => contextHTML(e, p)).join('')}
+    ${ps.length > 4 ? `<details class="morectx" data-key="${esc(key)}" data-tab="${esc(tab)}"><summary class="btn">${plural(ps.length - 4, 'more pathway')}</summary><div></div></details>` : ''}
+    <details class="card pad alltable"><summary><b>All steps as a table</b></summary>${stepsTable(e, kind)}</details>
   </div>`;
 }
+// Every step in one table (the page's old layout), for scanning across pathways.
+function stepsTable(e, kind) {
+  const head = kind === 'enz' ? '<th>Pathway</th><th>Reaction</th><th>Cofactors</th><th>Needs</th><th>Where</th>' : '<th>Pathway</th><th>Role</th><th>Enzyme</th><th>Reaction</th><th>Cofactors</th><th>Where</th>';
+  const role = s => ({ made: 'made', used: 'used', both: 'made and used', in: 'goes in', out: 'comes out', need: 'needed' }[s.role] || '');
+  const row = s => { const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name;
+    return kind === 'enz' ? `<tr><td>${pathwayCell(p)}</td><td>${reactionCell(p, r)}</td><td>${cofCell(m, r)}</td><td>${cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []) || '<span class="muted">—</span>'}</td><td>${whereCell(r)}</td></tr>`
+      : `<tr><td>${pathwayCell(p)}</td><td>${role(s)}</td><td>${catLink('enz', catKey(en), en)}</td><td>${reactionCell(p, r)}</td><td>${cofCell(m, r)}</td><td>${whereCell(r)}</td></tr>`; };
+  return `<div class="tablewrap"><table class="steps"><thead><tr>${head}</tr></thead><tbody>${e.steps.map(row).join('')}</tbody></table></div>`;
+}
+// The pathways past the first four are drawn when you open them (water is in nearly every pathway).
+document.addEventListener('toggle', ev => {
+  const d = ev.target;
+  if (!d.matches?.('details.morectx') || !d.open || d.dataset.done) return;
+  const kind = CAT_TABS.find(t => t[0] === d.dataset.tab)?.[2], e = kind && catalog()[kind][d.dataset.key];
+  if (!e) return;
+  const ps = [...e.pathways].map(id => Library.get(id)).filter(Boolean).sort((a, b) => groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
+  d.querySelector('div').innerHTML = ps.slice(4).map(p => contextHTML(e, p)).join(''); d.dataset.done = '1';
+}, true);

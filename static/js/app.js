@@ -635,7 +635,7 @@ function renderPathway(id) {
     return `<tr><td class="num muted">${i + 1}</td><td>${esc(metNames(m, reactantsOf(r)))} ${r.reversible ? '⇌' : '→'} ${esc(metNames(m, productsOf(r)))}</td><td><b>${esc(p.enzymes[r.enzyme].name)}</b>${r.transport ? ' <span class="pill">transport</span>' : ''}</td><td>${esc(cofText(m, r.cofactors || {}))}</td><td>${esc([r.tissue, r.loc].filter(Boolean).join(' · '))}</td><td class="muted">${esc(tags.join(' · '))}</td></tr>`;
   }).join('');
   $('#view').innerHTML = `<div class="page pathway">
-    <a class="back" href="#/pathways">${mi('arrow_back', 'sm')} Library</a>
+    ${crumbsHTML([])}
     ${pageHead(`${tileArt(p)} ${esc(p.name)}`, `${esc(p.group || 'Other')} · ${plural(p.reactions.length, 'step')}${p.shared?.by ? ` · shared by ${esc(p.shared.by)}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
       `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button><a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>${sharingEnabled() && st !== 'builtin' ? `<button class="btn ghost" data-pw="share">${mi('public', 'sm')} Share with classmates</button>` : ''}`)}
     <div class="tagrow">${mi('sell', 'sm')} ${sysChips(id)}${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : systemsOf(id).length ? '' : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
@@ -905,8 +905,35 @@ async function endOfSessionPrompt() {
   if (v === true) { downloadBackup(); route(); }
   if (v === 'alt') { local.set('pathways.remind', 'off'); say('Reminders off', 'You can still back up from the dashboard or Settings, and turn reminders back on in Settings.'); }
 }
+/* Breadcrumbs: the way you came through the Library (a tab, then things and pathways you clicked into). Opening a tab
+   starts a new trail; going back to a page on it cuts the trail there. Kept for this browser tab. */
+const TRAIL_KEY = 'pathways.trail';
+const trail = () => { try { return JSON.parse(sessionStorage.getItem(TRAIL_KEY)) || []; } catch { return []; } };
+const saveTrail = t => { try { sessionStorage.setItem(TRAIL_KEY, JSON.stringify(t)); } catch {} };
+function trailVisit(h) {
+  const tab = h === '#/pathways' || /^#\/library\/[a-z]+$/.test(h), page = /^#\/library\/[a-z]+\/.+/.test(h) || /^#\/pathways\/[^/]+$/.test(h);
+  if (!tab && !page) return;
+  if (tab) return saveTrail([{ h }]);
+  const t = trail(), i = t.findIndex(x => x.h === h);
+  saveTrail(i >= 0 ? t.slice(0, i + 1) : [...t, { h }].slice(-8));
+}
+function trailLabel(h) {
+  const t = trail(), last = t[t.length - 1];
+  if (!last || last.h !== h) return;
+  const tab = CAT_TABS.find(x => h === '#/library/' + x[0]);
+  last.t = h === '#/pathways' ? 'Library' : tab ? tab[1] : ($('#view h1')?.textContent || '').trim();
+  saveTrail(t);
+}
+// Where you came from, ending just before this page; with no trail (a link from elsewhere), the usual way in.
+function crumbsHTML(fallback) {
+  const t = trail(), prev = t.slice(0, -1);
+  let items = prev.length && t[t.length - 1]?.h === location.hash ? prev : fallback;
+  if (items[0]?.h !== '#/pathways') items = [{ h: '#/pathways', t: 'Library' }, ...items];
+  return `<nav class="crumbs" aria-label="Breadcrumbs">${items.map((x, i) => `${i ? '<span class="sep" aria-hidden="true">›</span>' : ''}<a href="${esc(x.h)}">${i ? '' : mi('arrow_back', 'sm')}${esc(x.t || '…')}</a>`).join('')}</nav>`;
+}
 function router() {
   const h = location.hash || '#/';
+  trailVisit(h);
   let page = 'home', m;
   closeOpenDialogs();
   if (h === '#/' || h === '#' || h === '') renderDashboard();
@@ -928,6 +955,7 @@ function router() {
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
   else { location.replace('#/'); return; }
   document.body.dataset.page = page;
+  trailLabel(h);
   if (lastPage === 'quiz' && page !== 'quiz' && !Tour.active) setTimeout(endOfSessionPrompt, 150);
   lastPage = page;
   $$('[data-nav]').forEach(a => a.setAttribute('aria-current', a.dataset.nav === page ? 'page' : 'false'));
