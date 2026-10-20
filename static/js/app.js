@@ -738,18 +738,20 @@ function dataGate() {
     let d = $('#gateDialog');
     if (!d) { d = document.createElement('dialog'); d.id = 'gateDialog'; document.body.append(d); }
     const needData = !local.get('pathways.dataAck');
-    const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}
-      <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckAI"> ${AI_ACK_LABEL}</label></section>`;
+    const acks = [['gateAckAI', AI_ACK_LABEL, 'pathways.aiAck'], ['gateAckRisk', RISK_ACK_LABEL, 'pathways.riskAck']];
+    const boxes = list => list.map(([id, label]) => `<label class="cb ack"><input type="checkbox" class="gate-req" id="${id}"> ${label}</label>`).join('');
+    const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}${boxes(acks)}</section>`;
     if (!needData) {
-      // Accepted the storage notice before this one existed: just the new part.
+      // Accepted the storage notice before the content notices existed: just the boxes not ticked yet.
+      const left = acks.filter(([, , key]) => !local.get(key));
       d.innerHTML = `<div class="dlg gate"><div class="dlg-h"><h2>${mi('science', 'h-ic')} ${AI_NOTICE_TITLE}</h2></div>
         <div class="ask-text">${AI_NOTICE_HTML}</div>
-        <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckAI"> ${AI_ACK_LABEL}</label>
+        ${boxes(left)}
         <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
       d.oncancel = e => e.preventDefault();
-      const req = d.querySelector('#gateAckAI');
-      req.onchange = () => { d.querySelector('#gateGo').disabled = !req.checked; };
-      d.querySelector('#gateGo').onclick = () => { if (!req.checked) return; local.set('pathways.aiAck', Date.now()); d.close(); res(); };
+      const reqs = [...d.querySelectorAll('.gate-req')], all = () => reqs.every(x => x.checked);
+      reqs.forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !all(); }; });
+      d.querySelector('#gateGo').onclick = () => { if (!all()) return; left.forEach(([, , key]) => local.set(key, Date.now())); d.close(); res(); };
       return d.showModal();
     }
     d.innerHTML = `<div class="dlg gate">
@@ -786,7 +788,7 @@ function dataGate() {
     d.querySelectorAll('.gate-req').forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !allTicked(); }; });
     d.querySelector('#gateGo').onclick = () => {
       if (!allTicked()) return;
-      local.set('pathways.dataAck', Date.now()); local.set('pathways.aiAck', Date.now());
+      local.set('pathways.dataAck', Date.now()); local.set('pathways.aiAck', Date.now()); local.set('pathways.riskAck', Date.now());
       d.close(); res();
     };
     d.showModal();

@@ -303,9 +303,9 @@ const Presets = {
 };
 
 /* ---------- data notice text (used by the tour and the standalone gate in app.js) ---------- */
-// Two things to accept once per browser: where progress is kept, and where the content comes from (added later, so
-// someone who accepted the first is asked only the second).
-const needsDataAck = () => Store.mode === 'local' && (!local.get('pathways.dataAck') || !local.get('pathways.aiAck'));
+// Things to accept once per browser: where progress is kept, where the content comes from, and that it's provided as is.
+// The later ones were added after release, so someone who accepted the first is asked only what's new to them.
+const needsDataAck = () => Store.mode === 'local' && (!local.get('pathways.dataAck') || !local.get('pathways.aiAck') || !local.get('pathways.riskAck'));
 const DATA_NOTICE_TITLE = 'Your progress is saved only in this browser';
 const DATA_NOTICE_HTML = `<p>Step 1 Pathways has no accounts and no server, so nothing you do here is saved online. Your history, presets, favorites, tags and settings live in this browser’s storage.</p>
   <p>Browsers can erase that storage without warning: clearing history or site data, private windows, running low on space, or switching browsers or devices. If that happens, everything is lost and can’t be recovered.</p>
@@ -315,3 +315,4 @@ const AI_NOTICE_TITLE = 'About the pathway content';
 const AI_NOTICE_HTML = `<p>The pathways (steps, enzymes, cofactors and notes) were largely written with an AI model (an LLM). Errors are uncommon, but they can happen.</p>
   <p>If something looks wrong, check it against your usual resources, and report it from <b>Settings → Help and feedback → Report a problem</b>.</p>`;
 const AI_ACK_LABEL = 'I understand the pathways were largely written by an AI model, and that they may contain occasional errors.';
+const RISK_ACK_LABEL = 'I understand Step 1 Pathways is provided as is, with no guarantee that it’s accurate or free of bugs, and that I use it at my own risk.';
