@@ -18,6 +18,9 @@ const CHANGELOG = [
     'Library and New quiz: each pathway tile shows its other names (“Also: Leloir pathway”).',
     'New quiz: Show / Quiz / Hide for each part. For compartments, Quiz then asks how: Fill in the blank, or Draw yourself.',
     'Long names in boxes wrap onto two lines instead of shrinking to tiny text.',
+    'Groupings: a dashed frame with a name around related boxes. Hematopoiesis: myeloid line (granulocytes inside it) and lymphoid line. Eicosanoids: lipoxygenase branch (cysteinyl leukotrienes inside it) and cyclooxygenase branch. Complement: classical and lectin, alternative, terminal pathways. Coagulation: intrinsic, extrinsic, common pathways, and the factors thrombin activates.',
+    'New quiz has a Groupings row: Show, Quiz (name each frame), or Hide. Under Quiz, Draw yourself starts with no frames: drag a frame around the boxes of each group, then name it.',
+    'Editor: a Groups section. In Visual mode, the Group tool makes a group from a frame you drag around boxes; click a frame to rename it or change its boxes.',
   ] },
   { v: '3.11.1', date: '2026-10-20', items: [
     'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',

@@ -6,7 +6,7 @@
 'use strict';
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
-const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment', eff: 'effect' };
+const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment', eff: 'effect', grp: 'group' };
 const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'needs' }[q.side]) : q.item?.term || KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
@@ -14,7 +14,7 @@ const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine�
 function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
 function elSpecFor(cfg) {
   return {
-    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']]],
+    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']], ['grp', 'Groupings', ['show', 'quiz', 'place', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)].map(([k, l, a]) => (cfg.mode === 'review' ? [k, l, a.filter(v => v === 'show' || v === 'hide')] : [k, l, a])); // Review: nothing is asked
@@ -29,8 +29,10 @@ const el = k => elOf(Q.cfg, k);
    (mark the membranes, then name each part; see Compartments below). It runs while the whole pathway is showing:
    first in Fill the blanks, after the rest in Full recall and Building blocks. Q.placed = that round is behind you. */
 const placing = () => el('loc') === 'place' && !Q.placed;
+// Groupings set to Draw yourself: no frames until you've drawn them (a round of their own, first). Q.gplaced = done.
+const groupsOf = m => Object.values(m?.items || {}).filter(it => it.kind === 'grp');
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff' }[key[0]]);
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff', g: 'grp' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
@@ -55,6 +57,7 @@ function mcOptions(item, m) {
   for (const n of [...inside, ...outside]) if (picks.length < 3 && !picks.includes(n)) picks.push(n);
   return shuffle([item.name, ...picks]);
 }
+const GROUP_DISTRACTORS = ['Lymphoid line', 'Myeloid line', 'Granulocytes', 'Agranulocytes', 'Innate immunity', 'Adaptive immunity', 'Cyclooxygenase branch', 'Lipoxygenase branch', 'Oxidative phase', 'Nonoxidative phase'];
 function pickOthers(right, pool, n = 3) { return shuffle([right, ...shuffle(uniq(pool).filter(x => x && x !== right)).slice(0, n)]); }
 function cofOptions(m, right) {
   const pool = m.p.reactions.flatMap(x => [cofSideText(m, { in: x.cofactors?.in }), cofSideText(m, { out: x.cofactors?.out })]).filter(Boolean);
@@ -110,6 +113,11 @@ function alongTextFor(q, m, r) {
 }
 function itemQ(item, m) {
   if (item.kind === 'cof') return cofQ(item.rxn, m, item);
+  if (item.kind === 'grp') {
+    const others = [...groupsOf(m).map(g => g.name), ...GROUP_DISTRACTORS];
+    return baseQ({ kind: 'grp', label: 'Group', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name, placeholder: 'e.g. myeloid line',
+      options: answerStyle() === 'choice' ? pickOthers(item.name, others) : null, tierOf: v => answerTier(item, m, v) });
+  }
   // Activates or inhibits: always the two buttons, whatever the answer style.
   if (item.kind === 'eff') return baseQ({ kind: 'eff', label: 'Effect', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name,
     options: ['Activates', 'Inhibits'], check: v => v === item.name || item.aliases.includes(norm(v)) });
@@ -236,7 +244,12 @@ function newRound() {
   Q.score = { right: 0, total: 0 }; Q.misses = []; Q.finishShown = false; Q.t0 = Date.now();
   Q.fact = null; Q.placed = false;
   // Review: the whole pathway (or connected pathways) with every answer showing; nothing is asked.
-  if (Q.cfg.mode === 'review') { Q.round = { type: 'review' }; Q.placed = true; return; }
+  if (Q.cfg.mode === 'review') { Q.round = { type: 'review' }; Q.placed = true; Q.gplaced = true; return; }
+  Q.gplaced = !(el('grp') === 'place' && groupsOf(Q.models[0]).length && Q.models.length === 1 && !Q.models[0].p.stitch);
+  if (!Q.gplaced) return startGroups();
+  restOfRound();
+}
+function restOfRound() {
   const anyQuiz = elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz'), place = el('loc') === 'place';
   if (place && !zonesUsable(Q.models[0])) Q.placed = true; // nothing to place (grid pathway, no compartments): shown as usual
   if (!anyQuiz && !(place && !Q.placed)) Q.round = { type: 'none', msg: place ? zonesRefusal(Q.models[0]) : '' };
@@ -459,6 +472,111 @@ function zonesDock() {
     <div class="dock-answer">${answerHTML(q, 0, true)}</div>
     <div class="dock-actions">${factsToggle()}${open && answerStyle() !== 'self' ? `<button class="btn ghost" data-act="reveal" title="Reveal (Esc)">${mi('visibility', 'sm')} Reveal</button>` : ''}${next}</div>
   </div>${lastFactsHTML()}</div>`;
+}
+
+/* ---------- Groupings: draw yourself ----------
+   The diagram shows with no frames. Drag a frame around the boxes of a group; when it holds exactly one group's
+   boxes (a box counts when its middle is inside), that frame appears and you name it. Order is up to you.
+   History: 'g:<id>' is the name (as in the other modes); 'gb:<id>' whether you found the group's boxes. */
+function startGroups() {
+  const m = Q.m = Q.models[0];
+  Q.round = { type: 'groups', ids: groupsOf(m).map(g => g.id), found: {}, framed: {}, cur: null, q: null, misses: 0, note: '', done: false };
+}
+function groupStatus(key) {
+  const R = Q.round, id = key.slice(2);
+  if (R.cur === id) return R.q.status === 'open' || R.q.status === 'peek' ? 'target' : R.q.status;
+  return R.found[id] || 'hide';
+}
+function frameDrawn(box) {
+  const R = Q.round, m = Q.m;
+  if (R.type !== 'groups' || R.cur || R.done) return;
+  const pos = {}; DRAW_POS = pos; flowSVG(m, () => 'shown'); DRAW_POS = null;
+  const inside = Object.entries(pos).filter(([k, r]) => k[0] === 'm' && r.x + r.w / 2 >= box.x && r.x + r.w / 2 <= box.x + box.w && r.y + r.h / 2 >= box.y && r.y + r.h / 2 <= box.y + box.h).map(([k]) => k.slice(2));
+  const rect = $('#stage')?.getBoundingClientRect();
+  if (!inside.length) return renderQuiz();
+  const g = groupsOf(m).find(g => !R.found[g.id] && sameSet(g.members, inside));
+  if (!g) {
+    // Closest group still to find: how far off the frame was.
+    const near = groupsOf(m).filter(g => !R.found[g.id]).map(g => ({ g, miss: g.members.filter(id => !inside.includes(id)).length, extra: inside.filter(id => !g.members.includes(id)).length })).sort((a, b) => a.miss + a.extra - b.miss - b.extra)[0];
+    R.misses++;
+    R.note = near && near.miss + near.extra < near.g.members.length ? `Close: ${[near.miss ? `${near.miss} of its boxes left out` : '', near.extra ? `${near.extra} box${near.extra > 1 ? 'es' : ''} too many` : ''].filter(Boolean).join(', ')}.` : 'Those boxes aren’t one group.';
+    flash(false, rect, 'Not a group');
+    return renderQuiz();
+  }
+  snapshot(null, [[m.p.id, 'gb:' + g.id]]);
+  Stats.record(m.p.id, 'gb:' + g.id, R.misses === 0); Q.score.total++; if (R.misses === 0) Q.score.right++; logAnswer();
+  R.framed[g.id] = R.misses === 0 ? 'right' : 'missed'; R.misses = 0; R.note = '';
+  flash(true, rect, 'That’s a group: now name it');
+  R.cur = g.id; R.q = withAlong(itemQ(m.items['g:' + g.id], m), m);
+  renderQuiz();
+}
+function advanceGroups() {
+  const R = Q.round;
+  R.cur = null; R.q = null;
+  if (R.ids.every(id => R.found[id])) { R.done = true; logAnswer(!groupsAfter()); }
+  renderQuiz();
+}
+// Show me: every group not found yet appears (counted as missed), named.
+function showGroups() {
+  const R = Q.round, m = Q.m, left = R.ids.filter(id => !R.found[id] && id !== R.cur);
+  snapshot(null, left.flatMap(id => [[m.p.id, 'gb:' + id], [m.p.id, 'g:' + id]]));
+  for (const id of left) { Stats.record(m.p.id, 'gb:' + id, false); Stats.record(m.p.id, 'g:' + id, false); R.found[id] = 'shown'; Q.score.total += 2; }
+  logAnswer(); advanceGroups();
+}
+const groupsAfter = () => elSpecFor(Q.cfg).some(([k]) => el(k) === 'quiz') || (el('loc') === 'place' && zonesUsable(Q.models[0]));
+function afterGroups() { Q.gplaced = true; Q.fact = null; restOfRound(); renderQuiz(); }
+function groupsDock() {
+  const R = Q.round, q = R.q, n = R.ids.length, got = Object.keys(R.found).length;
+  if (R.done) {
+    const more = groupsAfter();
+    return `<div class="dock done-dock"><div class="dock-row">
+      <div class="dock-text"><div class="big">${mi('check')} Groups drawn</div><div class="muted">${Q.score.right} / ${Q.score.total} right on the first try.${more ? ' Now the rest, with the groups showing.' : ''}</div></div>
+      <div class="dock-actions">${factsToggle()}${more ? `<button class="btn primary" data-act="aftergroups">Continue <kbd>↵</kbd></button>` : `<button class="btn primary" data-act="restartq">${mi('restart_alt')} Go again</button><a class="btn ghost" href="#/">Done</a>`}</div>
+    </div>${lastFactsHTML()}</div>`;
+  }
+  if (!q) return `<div class="dock"><div class="dock-row">
+      <div class="dock-text"><span class="kind kind-grp">groups</span><span class="muted"> ${got} of ${n} found</span>${R.note ? `<div class="round-note">${esc(R.note)}</div>` : ''}</div>
+      <div class="dock-answer"><div class="hint-line">Drag a frame around the boxes of one group. Then you’ll name it.</div></div>
+      <div class="dock-actions"><button class="btn ghost" data-act="showgroups" title="Show the groups you haven’t found (they count as missed)">${mi('visibility', 'sm')} Show me</button></div>
+    </div></div>`;
+  const open = q.status === 'open' || q.status === 'peek';
+  const next = q.status === 'missed' || (q.status === 'right' && !Store.settings.autoAdvance) ? `<button class="btn primary" data-act="continue">Continue <kbd>↵</kbd></button>` : '';
+  return `<div class="dock"><div class="dock-row">
+    <div class="dock-text"><span class="kind kind-grp">group</span><span class="muted"> name it · ${got + 1} of ${n}</span></div>
+    <div class="dock-answer">${answerHTML(q, 0, true)}</div>
+    <div class="dock-actions">${factsToggle()}${open && answerStyle() !== 'self' ? `<button class="btn ghost" data-act="reveal" title="Reveal (Esc)">${mi('visibility', 'sm')} Reveal</button>` : ''}${next}</div>
+  </div>${lastFactsHTML()}</div>`;
+}
+// Dragging on the diagram draws a frame (instead of moving the diagram) while a group is being looked for.
+function wireGroupDraw() {
+  const st = canvasStage(), svg = svgOf(st), R = Q.round;
+  if (!st || !svg) return;
+  const on = !R.cur && !R.done;
+  st.classList.toggle('drawing', on);
+  if (!on) return;
+  // Through the drawing's box on screen (Safari's getScreenCTM leaves out the canvas's CSS zoom).
+  const toSvg = e => { const r = svg.getBoundingClientRect(), vb = svg.viewBox.baseVal; return { x: vb.x + (e.clientX - r.left) * vb.width / r.width, y: vb.y + (e.clientY - r.top) * vb.height / r.height }; };
+  let a = null, el = null;
+  svg.addEventListener('pointerdown', e => {
+    if (e.button !== 0) return;
+    e.stopPropagation(); e.preventDefault();
+    a = toSvg(e); svg.setPointerCapture(e.pointerId);
+    el = document.createElementNS('http://www.w3.org/2000/svg', 'rect'); el.setAttribute('class', 'gdraft'); el.setAttribute('rx', '14'); svg.append(el);
+  });
+  svg.addEventListener('pointermove', e => {
+    if (!a) return;
+    e.stopPropagation();
+    const b = toSvg(e);
+    el.setAttribute('x', Math.min(a.x, b.x)); el.setAttribute('y', Math.min(a.y, b.y)); el.setAttribute('width', Math.abs(b.x - a.x)); el.setAttribute('height', Math.abs(b.y - a.y));
+  });
+  const end = e => {
+    if (!a) return;
+    e.stopPropagation();
+    const b = toSvg(e), box = { x: Math.min(a.x, b.x), y: Math.min(a.y, b.y), w: Math.abs(b.x - a.x), h: Math.abs(b.y - a.y) };
+    a = null; el?.remove();
+    if (box.w > 12 && box.h > 12) frameDrawn(box);
+  };
+  svg.addEventListener('pointerup', end); svg.addEventListener('pointercancel', end);
 }
 
 function advanceTotal() { Q.round.pos++; loadTotalQ(); renderQuiz(); }
@@ -771,6 +889,14 @@ function resolved(q) {
   Q.factM = Q.m;
   Q.history = (Q.history || []).filter(h => !(h.item === Q.fact && h.m === Q.m));
   Q.history.unshift({ item: Q.fact, m: Q.m, status: q.status });
+  if (R.type === 'groups') {
+    R.found[q.item.id] = q.status;
+    if ((q.status === 'right' && Store.settings.autoAdvance) || q.self) {
+      renderQuiz();
+      setTimeout(() => { if (Q.round === R && R.q === q && location.hash.startsWith('#/quiz')) advanceGroups(); }, q.self ? 0 : 450);
+      return;
+    }
+  }
   if (R.type === 'zones') {
     R.secSt[R.pos] = q.status;
     if ((q.status === 'right' && Store.settings.autoAdvance) || q.self) {
@@ -797,7 +923,8 @@ function statusOf(key) {
   const R = Q.round, mode = el(kindOf(key));
   if (key[0] === 'f' && !elSpecFor(Q.cfg).some(([k]) => k === 'eff')) return 'shown'; // the step modes don't ask effects
   if (R.type === 'review') return mode === 'hide' ? 'hide' : 'shown';
-  if (mode === 'hide' || (mode === 'place' && !Q.placed)) return 'hide';
+  if (R.type === 'groups') return key[0] === 'g' ? groupStatus(key) : mode === 'hide' || mode === 'place' ? 'hide' : 'shown';
+  if (mode === 'hide' || (mode === 'place' && !(key[0] === 'g' ? Q.gplaced : Q.placed))) return 'hide';
   if (R.type === 'single') {
     if (key !== R.target) return 'shown';
     return R.q.status === 'open' ? 'target' : R.q.status;
@@ -951,6 +1078,7 @@ function progressFrac() {
   const R = Q.round;
   if (R.type === 'total') return R.done ? 1 : R.pos / Math.max(1, R.order.length);
   if (R.type === 'zones') return R.done ? 1 : R.phase === 'mark' ? 0 : (1 + R.pos) / (1 + R.secs.length);
+  if (R.type === 'groups') return Object.keys(R.found).length / Math.max(1, R.ids.length);
   if (R.type === 'build') { const k0 = R.k0 || 1; return R.done ? 1 : ((R.k - k0) + R.pos / R.k) / Math.max(1, R.order.length - k0 + 1); }
   return null;
 }
@@ -970,7 +1098,7 @@ function focusStep(dir) {
   centerOn($('#stage .focused'));
 }
 // Items the editor can open directly (metabolites, enzymes/transporters, cofactor sets).
-const editHref = (item, m) => (/^[mec]:/.test(item?.key || '') ? `#/pathways/${encodeURIComponent(m.p.id)}/edit/${encodeURIComponent(item.key)}` : '');
+const editHref = (item, m) => (/^[mecg]:/.test(item?.key || '') ? `#/pathways/${encodeURIComponent(m.p.id)}/edit/${encodeURIComponent(item.key)}` : '');
 // The optional "1/2" in a cofactor field: how many of the step's cofactors you've typed so far, out of how many.
 function updateCofCounts() {
   if (Q.cfg.cofCount === false) return;
@@ -1019,7 +1147,7 @@ function renderQuiz() {
   const V = $('#view');
   if (!Q.cfg) { location.hash = '#/'; return; }
   const R = Q.round;
-  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones' || R.type === 'review';
+  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones' || R.type === 'review' || R.type === 'groups';
   const cq = occ && R.q;
   INLINE = cq && cq.kind !== 'eff' && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
@@ -1037,6 +1165,9 @@ function renderQuiz() {
   } else if (R.type === 'zones') {
     stage = zonesStage();
     dock = zonesDock();
+  } else if (R.type === 'groups') {
+    stage = flow ? flowSVG(Q.m, statusOf, { zones: el('loc') !== 'hide' && !placing() }) : `<div class="empty">${mi('tune')}<p>Drawing groups works in the diagram view. Switch View to Diagram in the options.</p></div>`;
+    dock = groupsDock();
   } else if (occ) {
     const zones = el('loc') !== 'hide' && !placing();
     stage = flow ? flowSVG(Q.m, statusOf, { zones }) : listHTML(Q.m, statusOf, { horiz, zones });
@@ -1070,6 +1201,7 @@ function renderQuiz() {
   const fk = Q.fact?.key;
   if (fk && fk !== Q.pulsed) { Q.pulsed = fk; $(`#stage [data-key="${CSS.escape(fk)}"]`)?.classList.add('just'); }
   updateCofCounts();
+  if (R.type === 'groups') wireGroupDraw();
   fitToolbar();
   applyZoom();
   followTarget();
@@ -1135,6 +1267,7 @@ function factsCard(item, m) {
     }
     if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${maybeSpoil(stillOpen(m, 'w:' + r.id), esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · ')))}</p>`;
   }
+  if (item.kind === 'grp') extra = `<p>${item.members.map(id => maybeSpoil(stillOpen(m, 'm:' + id), esc(m.items['m:' + id]?.name || id))).join(' · ')}</p>`;
   // Every name it answers to, whatever the Names setting is.
   let names = '';
   if (item.kind !== 'loc') {
@@ -1288,7 +1421,9 @@ document.addEventListener('click', e => {
     case 'enableabbr': { const modes = nameModesCfg(Q.cfg); TIER_KEYS.forEach((k, i) => { if (i <= q.offTier && modes[k] === 'off') modes[k] = 'enter'; });
       Q.cfg.nameModes = modes; delete Q.cfg.names; delete Q.cfg.fullNames; const v = q.draft; q.offTier = null; submit(q, v); break; }
     case 'restartq': restartQuiz(); break;
-    case 'continue': if (R.type === 'zones') advanceZones(); else advanceTotal(); break;
+    case 'continue': if (R.type === 'zones') advanceZones(); else if (R.type === 'groups') advanceGroups(); else advanceTotal(); break;
+    case 'showgroups': showGroups(); break;
+    case 'aftergroups': afterGroups(); break;
     case 'mgap': if (R.type === 'zones' && R.phase === 'mark') { const g = R.plan.gaps[+b.dataset.g]; R.marks[g.key] = !R.marks[g.key]; renderQuiz(); $(`#stage [data-g="${b.dataset.g}"]`)?.focus({ preventScroll: true }); } break;
     case 'checkmem': checkMembranes(false); break;
     case 'showmem': checkMembranes(true); break;
@@ -1355,7 +1490,7 @@ document.addEventListener('keydown', e => {
   if (Q.round.type === 'build') return;
   if (e.key === 'Enter' && !inInput) {
     if (e.target.closest?.('.mgap')) return; // Enter on a gap marks it
-    const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="checkmem"],[data-act="afterzones"],[data-act="placezones"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
+    const btn = V.querySelector('[data-act="next"].primary,[data-act="continue"],[data-act="checkmem"],[data-act="afterzones"],[data-act="aftergroups"],[data-act="placezones"],[data-act="nextpath"],[data-act="peek"],[data-act="got"]');
     if (btn) { e.preventDefault(); btn.click(); }
     return;
   }

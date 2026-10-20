@@ -20,14 +20,7 @@
  "icon": "bloodtype",
  "color": "pink",
  "layout": "grid",
- "grid_columns": [
-  "Intrinsic",
-  "",
-  "Common",
-  "",
-  "Extrinsic and feedback",
-  ""
- ],
+ "grid_columns": [],
  "cofactors": {
   "fibrinopeptides": {
    "name": "Fibrinopeptides A and B",
@@ -634,6 +627,78 @@
     "Ca²⁺"
    ],
    "branch": true
+  }
+ ],
+ "groups": [
+  {
+   "id": "intrinsic",
+   "name": "Intrinsic pathway",
+   "aliases": [
+    "intrinsic",
+    "contact activation pathway",
+    "intrinsic coagulation pathway"
+   ],
+   "members": [
+    "f12",
+    "f12a",
+    "f11",
+    "f11a",
+    "f9",
+    "f9a"
+   ],
+   "notes": "Started by contact with negatively charged surfaces (factor XII). Measured by the PTT; heparin is monitored with it. Hemophilia A (VIII) and B (IX)."
+  },
+  {
+   "id": "extrinsic",
+   "name": "Extrinsic pathway",
+   "aliases": [
+    "extrinsic",
+    "tissue factor pathway",
+    "extrinsic coagulation pathway"
+   ],
+   "members": [
+    "f7",
+    "f7a"
+   ],
+   "notes": "Tissue factor with factor VII: the main start of coagulation in the body. Measured by the PT/INR; warfarin is monitored with it (VII has the shortest half-life)."
+  },
+  {
+   "id": "common",
+   "name": "Common pathway",
+   "aliases": [
+    "common",
+    "final common pathway",
+    "common coagulation pathway"
+   ],
+   "members": [
+    "f10",
+    "f10a",
+    "f2",
+    "f2a",
+    "fbg",
+    "fbn",
+    "xfbn"
+   ],
+   "notes": "X → Xa (with Va) turns prothrombin into thrombin, which turns fibrinogen into fibrin. Direct Xa inhibitors (rivaroxaban, apixaban) and direct thrombin inhibitors (dabigatran, argatroban) act here."
+  },
+  {
+   "id": "feedback",
+   "name": "Activated by thrombin",
+   "aliases": [
+    "thrombin feedback",
+    "thrombin-activated factors",
+    "positive feedback",
+    "thrombin activates"
+   ],
+   "members": [
+    "f8",
+    "f8a",
+    "f5",
+    "f5a",
+    "f13",
+    "f13a"
+   ],
+   "notes": "Thrombin activates V and VIII (positive feedback that amplifies the cascade) and XIII (cross-links fibrin)."
   }
  ]
 }

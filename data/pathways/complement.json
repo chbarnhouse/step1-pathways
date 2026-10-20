@@ -22,11 +22,7 @@
  "icon": "shield",
  "color": "teal",
  "layout": "grid",
- "grid_columns": [
-  "Classical and lectin",
-  "Common",
-  "Alternative"
- ],
+ "grid_columns": [],
  "cofactors": {
   "c4a": {
    "name": "C4a",
@@ -514,6 +510,57 @@
     "out": []
    },
    "loc": "microbial membrane"
+  }
+ ],
+ "groups": [
+  {
+   "id": "classical",
+   "name": "Classical and lectin pathways",
+   "aliases": [
+    "classical pathway",
+    "lectin pathway",
+    "classical and lectin",
+    "classical/lectin",
+    "classical and MBL pathways"
+   ],
+   "members": [
+    "c42",
+    "c4b2a",
+    "c4b2a3b"
+   ],
+   "notes": "Classical: C1 bound to IgG or IgM on antigen (“GM makes classic cars”). Lectin: mannose-binding lectin on microbial sugars. Both cleave C4 and C2."
+  },
+  {
+   "id": "alternative",
+   "name": "Alternative pathway",
+   "aliases": [
+    "alternative",
+    "alternate pathway",
+    "alternative complement pathway"
+   ],
+   "members": [
+    "c3b_fb",
+    "c3bbb",
+    "c3bbb3b"
+   ],
+   "notes": "Spontaneous C3 hydrolysis on microbial surfaces; factor B and factor D; properdin stabilizes C3bBb."
+  },
+  {
+   "id": "terminal",
+   "name": "Terminal pathway",
+   "aliases": [
+    "membrane attack pathway",
+    "terminal complement pathway",
+    "lytic pathway",
+    "MAC pathway",
+    "C5–C9"
+   ],
+   "members": [
+    "c5",
+    "c5b",
+    "mac"
+   ],
+   "notes": "C5b joins C6–C9 to form the membrane attack complex. C5–C9 deficiency: recurrent Neisseria infections. Eculizumab blocks C5."
   }
  ]
 }

@@ -381,6 +381,18 @@ form.inl { margin: 0; display: block; height: 100%; }
 .flow .effq-dot { fill: var(--card, #fff); stroke: var(--ink-2); stroke-width: 2; }
 .flow .ln.eff-target { stroke: var(--orange); stroke-width: 3.5; }
 .flow .ln.eff-target + .effq-dot { stroke: var(--orange); stroke-width: 3; }
+/* Groupings: a dashed frame and its name (option C). The name is the label; the color only tells frames apart. */
+.flow .gframe { fill: none; stroke-width: 2; stroke-dasharray: 9 6; }
+.flow .gframe.target { stroke: var(--orange); stroke-width: 3.5; }
+.flow .gname { font-size: 14px; font-weight: 700; }
+.flow .gframe.tone-pink { stroke: var(--pink); } .flow .gname.tone-pink { fill: var(--pink); }
+.flow .gframe.tone-teal { stroke: var(--teal); } .flow .gname.tone-teal { fill: var(--teal); }
+.flow .gframe.tone-gold { stroke: var(--gold); } .flow .gname.tone-gold { fill: var(--gold); }
+.flow .gframe.tone-blue { stroke: var(--blue); } .flow .gname.tone-blue { fill: var(--blue); }
+.flow .gframe.tone-orange { stroke: var(--orange); } .flow .gname.tone-orange { fill: var(--orange); }
+.flow .gframe.tone-slate { stroke: var(--slate); } .flow .gname.tone-slate { fill: var(--slate); }
+.flow .gdraft { fill: var(--blue-bg); fill-opacity: .5; stroke: var(--blue); stroke-width: 2; stroke-dasharray: 6 4; }
+.stage.canvas.drawing { cursor: crosshair; }
 .flow .ln.trn { stroke-dasharray: 6 4; }
 .flow .ah { fill: var(--ink-2); }
 .flow .unk { stroke: var(--slate); stroke-dasharray: 4 4; }
@@ -1166,3 +1178,10 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .morectx > summary::-webkit-details-marker { display: none; }
 /* New quiz: under Quiz, how it's asked (compartments: fill in the blank or draw yourself). */
 .el-sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-left: 14px; border-left: 2px solid var(--line); }
+/* Groups in the editor: the frame's line and name are clickable; members as wrapping checkboxes. */
+.vx-svg .vx-grp-hit { fill: none; stroke: transparent; stroke-width: 16; pointer-events: stroke; cursor: pointer; }
+.vx-svg .vx-grp .gname { cursor: pointer; }
+.vx-svg .vx-grp.sel .gframe { stroke-width: 3.5; stroke-dasharray: none; }
+.vx-main:has([data-vx="frame"][aria-pressed="true"]) .vx-svg { cursor: crosshair; }
+.ed-members { display: flex; flex-wrap: wrap; gap: 4px 14px; border: 0; padding: 0; margin: 4px 0 8px; }
+.ed-members legend { font-weight: 600; margin-bottom: 4px; }

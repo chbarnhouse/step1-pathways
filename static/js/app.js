@@ -411,10 +411,10 @@ function editTags(id) {
 }
 
 // What each Show / Quiz / Place / Hide choice does (tooltips on New quiz).
-const elTip = (v, mode) => ({
+const elTip = (v, mode, k) => ({
   show: 'Shown with names the whole time',
   quiz: mode === 'step' ? 'Asked as a question for each step' : 'Hidden as blanks for you to fill in',
-  place: 'Drawn without them: you mark where the pathway crosses a membrane, then name each part',
+  place: k === 'grp' ? 'Drawn without them: you drag a frame around each group, then name it' : 'Drawn without them: you mark where the pathway crosses a membrane, then name each part',
   hide: 'Left out: not shown and not asked',
 }[v]);
 function renderCreate() {
@@ -426,8 +426,8 @@ function renderCreate() {
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   // Effects (activates / inhibits): a row only when a chosen pathway marks them.
-  let effectsHere = false;
-  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); } } catch {}
+  let effectsHere = false, groupsHere = [], stitched = false;
+  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
   const placeNote = () => {
     const qp = Library.get(draftPathway(d));
     if (qp?.stitch) return `<span class="el-note muted small">${mi('help', 'sm')} Place works on one pathway at a time; with connected pathways, compartments just show.</span>`;
@@ -435,12 +435,13 @@ function renderCreate() {
     const when = d.mode === 'single' ? 'First, before the blanks' : d.mode === 'total' || d.mode === 'build' ? 'After you’ve rebuilt the pathway' : '';
     return `<span class="el-note muted small">${mi('help', 'sm')} ${grid ? 'This pathway branches out, so there’s no list to place compartments in; they’ll just show.' : `No compartment colors or names. ${when ? when + ', y' : 'Y'}ou mark where the pathway crosses a membrane, then name each part (in list view).`}</span>`;
   };
-  const elNote = k => (k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
-  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere))
+  const groupNote = () => `<span class="el-note muted small">${mi('help', 'sm')} ${stitched ? 'Draw yourself works on one pathway at a time; with connected pathways, groups just show.' : `No frames at first: you drag a frame around the boxes of each group (${groupsHere.length}), then name it. ${d.mode === 'review' ? '' : 'Before the rest of the quiz.'}`}</span>`;
+  const elNote = k => (k === 'grp' && elOf(d, 'grp') === 'place' ? groupNote() : k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
+  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'grp' || groupsHere.length))
     .map(([k, label, allowed]) => {
       // Show / Quiz / Hide; where it can also be drawn (compartments), Quiz then asks how: fill in the blanks, or draw it yourself.
       const v = elOf(d, k), draw = allowed.includes('place'), top = v === 'place' ? 'quiz' : v;
-      const how = draw && top === 'quiz' ? `<div class="el-sub"><span class="muted small">How</span>${seg('data-celhow', k, [['quiz', 'Fill in the blank', elTip('quiz', d.mode)], ['place', 'Draw yourself', elTip('place', d.mode)]], v)}</div>` : '';
+      const how = draw && top === 'quiz' ? `<div class="el-sub"><span class="muted small">How</span>${seg('data-celhow', k, [['quiz', 'Fill in the blank', elTip('quiz', d.mode)], ['place', 'Draw yourself', elTip('place', d.mode, k)]], v)}</div>` : '';
       return `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.filter(x => x !== 'place').map(x => [x, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[x], elTip(x, d.mode)]), top)}${how}${elNote(k)}</div>`;
     }).join('');
   let modeOpts = '';

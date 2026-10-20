@@ -62,6 +62,7 @@ function vxHTML() {
     <div class="vx-main card">
       <div class="vx-tools" role="toolbar" aria-label="Canvas">
         ${tb('add-met', 'add', 'Metabolite')}
+        ${tb('frame', 'category', 'Group', `aria-pressed="${!!E.frameMode}" title="Drag a frame around boxes to make a group"`)}
         ${tb('delete', 'delete', 'Delete', E.sel ? '' : 'disabled')}
         <span class="vx-sep"></span>
         ${tb('undo', 'undo', 'Undo', E.undo.length ? '' : 'disabled')}
@@ -74,7 +75,7 @@ function vxHTML() {
       </div>
       ${isGrid() ? '' : `<div class="vx-note">${mi('route', 'sm')}<span>${layoutOf(E.draft) === 'cycle' ? 'Cycle' : 'Line'} layout: the boxes are placed automatically, as quizzes draw them.</span><button type="button" class="btn small" data-vx="to-grid">Place them myself</button></div>`}
       <div class="vx-stage"><svg id="vxSvg" class="flow vx-svg" role="application" aria-label="Pathway canvas. Drag boxes to move them; drag a selected box’s arrow handle to another box to add a step."></svg></div>
-      <p class="vx-help muted">Drag a box to move it, or empty space to pan. Select a box, then drag its ${mi('arrow_forward', 'sm')} handle onto another box to add a step (drop on empty space for a new metabolite). Double-click empty space to add a metabolite. ⌘Z undoes.</p>
+      <p class="vx-help muted">${E.frameMode ? '<b>Group:</b> drag a frame around the boxes to group, or press Esc. ' : ''}Drag a box to move it, or empty space to pan. Select a box, then drag its ${mi('arrow_forward', 'sm')} handle onto another box to add a step (drop on empty space for a new metabolite). Double-click empty space to add a metabolite. ⌘Z undoes.</p>
     </div>
     <aside class="vx-insp card" id="vxInsp" aria-label="Selected item"></aside>
   </div>`;
@@ -150,6 +151,16 @@ function renderCanvas() {
     for (let r = 0; r <= maxR; r++) { const y = gridPx([0, r]).cy; s += `<line class="vx-guide" x1="${VX.X0 - BW / 2 - 40}" x2="${gridPx([maxC, 0]).cx}" y1="${y}" y2="${y}"/>`; }
     (d.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${gridPx([c, 0]).cx}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
   }
+  // Groups: dashed frames behind everything, as quizzes draw them; click a frame or its name to edit the group.
+  const selG = E.sel?.kind === 'grp' ? E.sel.id : null, rects = Object.fromEntries(Object.entries(P).map(([id, q]) => ['m:' + id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }]));
+  const gs = edGroups().map(g => ({ ...g, members: (g.members || []).filter(id => P[id]) }));
+  gs.forEach((g, i) => {
+    const r = g.members.length && groupRect(g, rects, gs.filter(x => x.members.length));
+    if (!r) return;
+    const tone = g.tone || GROUP_TONES[i % GROUP_TONES.length];
+    s += `<g class="vx-grp${g.id === selG ? ' sel' : ''}" data-grp="${esc(g.id)}"><rect class="vx-grp-hit" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14"/><rect class="gframe tone-${tone}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14"/><text class="gname tone-${tone}" x="${r.x + 2}" y="${r.y - 8}">${esc(g.name || 'Group')}</text></g>`;
+  });
+  if (E.drag?.type === 'frame' && E.drag.b) { const a = E.drag.a, b = E.drag.b; s += `<rect class="gdraft" x="${Math.min(a.x, b.x)}" y="${Math.min(a.y, b.y)}" width="${Math.abs(b.x - a.x)}" height="${Math.abs(b.y - a.y)}" rx="14"/>`; }
   // Steps joining the same two boxes bow apart so each stays clickable.
   const pairN = {}, pairI = {};
   for (const r of d.reactions) { const k = [r.from, r.to].sort().join('|'); pairN[k] = (pairN[k] || 0) + 1; }
@@ -264,7 +275,10 @@ function vxDelete() {
   const s = E.sel, d = E.draft;
   if (!s) return;
   pushUndo();
-  if (s.kind === 'rxn') {
+  if (s.kind === 'grp') {
+    d.groups = d.groups.filter(g => g.id !== s.id); if (!d.groups.length) delete d.groups;
+    toast('Group deleted. Undo brings it back.');
+  } else if (s.kind === 'rxn') {
     d.reactions = d.reactions.filter(r => r.id !== s.id);
     toast('Step deleted. Undo brings it back.');
   } else {
@@ -272,6 +286,7 @@ function vxDelete() {
     d.reactions = d.reactions.filter(r => r.from !== s.id && r.to !== s.id);
     for (const r of d.reactions) for (const k of ['also_to', 'also_from']) if (r[k]) { r[k] = r[k].filter(x => x !== s.id); if (!r[k].length) delete r[k]; }
     delete d.metabolites[s.id];
+    pruneGroups(d);
     const gone = n0 - d.reactions.length;
     toast(`${name} deleted${gone ? ` with ${gone} step${gone > 1 ? 's' : ''}` : ''}. Undo brings it back.`);
   }
@@ -302,8 +317,18 @@ function metPanel(id) {
     </div>
     <h4>Steps</h4>
     ${uses.length ? `<ul class="vx-list">${uses.map(r => `<li><button type="button" class="linkish" data-vx="pick" data-kind="rxn" data-id="${esc(r.id)}">${esc(itemName('rxn', r.id))}</button></li>`).join('')}</ul>` : '<p class="muted">Not in any step yet.</p>'}
+    ${edGroups().length ? `<h4>Groups</h4><div class="ed-members">${edGroups().map((g, i) => `<label class="cb small"><input type="checkbox" data-gmem="${i}" value="${esc(id)}" ${g.members.includes(id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}</div>` : ''}
     <label class="vx-connect">Add a step from here to<select data-vx-connect="${esc(id)}">${metOpts('', '— choose —').replace(`<option value="${esc(id)}">${esc(m.name || id)}</option>`, '')}</select></label>
     <div class="actions"><button type="button" class="btn small ghost" data-vx="delete">${mi('delete', 'sm')} Delete metabolite</button></div>`;
+}
+function grpPanel(id) {
+  const i = edGroups().findIndex(g => g.id === id), g = edGroups()[i];
+  return `<div id="vxHead"><div class="vx-ph"><h3>Group</h3><button type="button" class="btn small ghost iconbtn" data-vx="deselect" aria-label="Close" title="Back to the pathway">${mi('close', 'sm')}</button></div></div>
+    <div class="vx-fields">${groupFields(g, i)}</div>
+    <h4>In this group (${g.members.length})</h4>
+    <div class="ed-members">${memberBoxes(i)}</div>
+    <p class="muted small">Its frame goes around these boxes. On a grid, keep other boxes out of that space, or the frame will look like it holds them too.</p>
+    <div class="actions"><button type="button" class="btn small ghost" data-vx="delete">${mi('delete', 'sm')} Delete group</button></div>`;
 }
 function rxnPanel(id) {
   const i = ri(id), r = E.draft.reactions[i], e = E.draft.enzymes[r.enzyme], eb = `enzymes.${esc(r.enzyme)}`;
@@ -348,6 +373,8 @@ function pathwayPanel() {
     ${edBase() ? `<h4>Changes from the built-in</h4>${changesHTML()}` : ''}
     <h4>Basics</h4>${basicsHTML(d)}
     <h4>Extra wrong answers for multiple choice</h4>${distractorsHTML(d)}
+    <h4>Groups</h4>${edGroups().length ? `<ul class="vx-list">${edGroups().map(g => `<li><button type="button" class="linkish" data-vx="pick" data-kind="grp" data-id="${esc(g.id)}">${esc(g.name)}</button> <span class="muted small">${g.members.length} boxes</span></li>`).join('')}</ul>` : ''}
+    <p class="muted small">Use the ${mi('category', 'sm')} Group tool and drag a frame around boxes to make a group.</p>
     <h4>Everything</h4>
     <details class="vx-all"><summary>${Object.keys(d.metabolites).length} metabolites · ${d.reactions.length} steps</summary>
       <ul class="vx-list">${Object.keys(d.metabolites).map(id => `<li><button type="button" class="linkish" data-vx="pick" data-kind="met" data-id="${esc(id)}">${esc(itemName('met', id))}</button></li>`).join('')}</ul>
@@ -357,7 +384,7 @@ function pathwayPanel() {
 // After a field is committed: toolbar state, and the panel's Edited / Revert all line.
 function vxTools() {
   const head = $('#vxHead'), s = E.sel;
-  if (head && s) head.outerHTML = panelHead(s.kind, s.id, $('h3', head).textContent);
+  if (head && s && s.kind !== 'grp') head.outerHTML = panelHead(s.kind, s.id, $('h3', head).textContent);
   const tools = $('.vx-tools');
   if (!tools) return;
   $('[data-vx="delete"]', tools).disabled = !E.sel;
@@ -369,9 +396,9 @@ function vxRefreshPanel(fresh) {
   const box = $('#vxInsp');
   if (!box || !E.draft) return;
   const s = E.sel, keep = fresh ? 0 : box.scrollTop;
-  const has = s && (s.kind === 'met' ? E.draft.metabolites[s.id] : ri(s.id) >= 0);
+  const has = s && (s.kind === 'met' ? E.draft.metabolites[s.id] : s.kind === 'grp' ? edGroups().some(g => g.id === s.id) : ri(s.id) >= 0);
   if (!has) E.sel = null;
-  box.innerHTML = !E.sel ? pathwayPanel() : E.sel.kind === 'met' ? metPanel(E.sel.id) : rxnPanel(E.sel.id);
+  box.innerHTML = !E.sel ? pathwayPanel() : E.sel.kind === 'met' ? metPanel(E.sel.id) : E.sel.kind === 'grp' ? grpPanel(E.sel.id) : rxnPanel(E.sel.id);
   decorateEdits(box);
   box.scrollTop = keep;
   vxTools();
@@ -420,7 +447,9 @@ function vxDown(e) {
   }
   if (PTR.size > 2) return;
   const t = e.target, w = vxWorld(e);
-  const h = t.closest('[data-handle]'), n = t.closest('[data-node]'), r = t.closest('[data-rxn]');
+  const h = t.closest('[data-handle]'), n = t.closest('[data-node]'), r = t.closest('[data-rxn]'), gr = t.closest('[data-grp]');
+  if (E.frameMode && !h) { E.drag = { type: 'frame', a: w, b: null }; return; }
+  if (gr && !n && !r) { vxSelect('grp', gr.dataset.grp); E.drag = { type: 'none' }; return; }
   if (h) E.drag = { type: 'connect', from: h.dataset.handle, to: null };
   else if (n) {
     const id = n.dataset.node, q = E.vxPos[id];
@@ -447,6 +476,7 @@ function vxMove(e) {
     vxApplyView();
   }
   if (g.type === 'connect') { g.to = vxWorld(e); renderCanvas(); }
+  if (g.type === 'frame') { g.b = vxWorld(e); renderCanvas(); }
   if (g.type === 'move') {
     if (!g.moved && Math.hypot(e.clientX - g.sx, e.clientY - g.sy) < 5) return;
     if (!isGrid()) { E.drag = null; askToGrid(); return; }
@@ -463,6 +493,16 @@ function vxUp(e) {
   E.drag = null;
   if (!g) return;
   if (g.type === 'move' && g.moved) { renderPreview(); vxRefreshPanel(); return; }
+  if (g.type === 'frame') {
+    // Every box whose middle is inside the frame joins a new group.
+    const b = g.b || g.a, x0 = Math.min(g.a.x, b.x), x1 = Math.max(g.a.x, b.x), y0 = Math.min(g.a.y, b.y), y1 = Math.max(g.a.y, b.y);
+    const inside = Object.entries(E.vxPos).filter(([, q]) => q.cx >= x0 && q.cx <= x1 && q.cy >= y0 && q.cy <= y1).map(([id]) => id);
+    if (!inside.length) { renderCanvas(); return toast('No boxes inside that frame. Drag around the boxes to group.'); }
+    pushUndo();
+    const id = newGroup(inside);
+    E.frameMode = false; E.sel = { kind: 'grp', id, focus: true };
+    return renderEditor();
+  }
   if (g.type === 'connect') {
     const hit = document.elementFromPoint(e.clientX, e.clientY)?.closest?.('[data-node]');
     if (hit && hit.dataset.node !== g.from) return vxAddStep(g.from, hit.dataset.node);
@@ -492,6 +532,7 @@ document.addEventListener('click', e => {
   if (!b || b.disabled) return;
   switch (b.dataset.vx) {
     case 'add-met': return vxAddMet();
+    case 'frame': E.frameMode = !E.frameMode; return renderEditor();
     case 'delete': return vxDelete();
     case 'undo': return stepHistory(true);
     case 'redo': return stepHistory(false);
@@ -533,6 +574,7 @@ document.addEventListener('keydown', e => {
   const mod = e.metaKey || e.ctrlKey;
   if (mod && !typing && (e.key === 'z' || e.key === 'Z' || e.key === 'y')) { e.preventDefault(); return stepHistory(e.key === 'z' && !e.shiftKey); }
   if (typing || E.mode !== 'visual' || !$('#vxSvg')) return;
+  if (e.key === 'Escape' && E.frameMode) { E.frameMode = false; return renderEditor(); }
   if (e.key === 'Escape' && E.sel) return vxSelect(null);
   if ((e.key === 'Delete' || e.key === 'Backspace') && E.sel) { e.preventDefault(); return vxDelete(); }
   const dir = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, -1], ArrowDown: [0, 1] }[e.key];

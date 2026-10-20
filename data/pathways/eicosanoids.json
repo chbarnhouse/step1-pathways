@@ -447,11 +447,64 @@
  "icon": "local_fire_department",
  "color": "orange",
  "layout": "grid",
- "grid_columns": [
-  "",
-  "Leukotrienes (5-LOX)",
-  "",
-  "Prostanoids (COX)",
-  ""
+ "grid_columns": [],
+ "groups": [
+  {
+   "id": "lox",
+   "name": "Lipoxygenase branch",
+   "aliases": [
+    "lipoxygenase pathway",
+    "LOX branch",
+    "LOX pathway",
+    "5-lipoxygenase pathway",
+    "leukotrienes",
+    "leukotriene branch"
+   ],
+   "members": [
+    "hpete",
+    "lta4",
+    "ltc4",
+    "ltd4",
+    "lte4",
+    "ltb4"
+   ],
+   "notes": "5-Lipoxygenase makes the leukotrienes. Zileuton blocks it; montelukast and zafirlukast block the CysLT receptor."
+  },
+  {
+   "id": "cyslt",
+   "name": "Cysteinyl leukotrienes",
+   "aliases": [
+    "cysteinyl leukotriene",
+    "CysLTs",
+    "slow-reacting substance of anaphylaxis",
+    "SRS-A",
+    "LTC4, LTD4, LTE4"
+   ],
+   "members": [
+    "ltc4",
+    "ltd4",
+    "lte4"
+   ],
+   "notes": "LTC₄, D₄, E₄: bronchoconstriction, vasoconstriction, vascular permeability (asthma). LTB₄ is the neutrophil chemoattractant, not one of these."
+  },
+  {
+   "id": "cox",
+   "name": "Cyclooxygenase branch",
+   "aliases": [
+    "cyclooxygenase pathway",
+    "COX branch",
+    "COX pathway",
+    "prostanoids",
+    "prostaglandins",
+    "prostaglandin branch"
+   ],
+   "members": [
+    "pgh2",
+    "txa2",
+    "pgi2",
+    "pge2"
+   ],
+   "notes": "COX-1 and COX-2 make prostaglandin H₂, then the prostanoids. NSAIDs block both (reversibly; aspirin irreversibly); celecoxib blocks COX-2."
+  }
  ]
 }

@@ -1,7 +1,8 @@
 /* Per-item answer history, keyed per pathway:
    m:<met>  e:<reaction> (enzyme)  c:<reaction> (cofactors)  d:<reaction> (direction)
    r:/p:<reaction> (reactants / products, enzyme-given)  w:<reaction> (which pathway)
-   b:<reaction> (a membrane just before that step, Compartments mode)  z:<zone> (a compartment) */
+   b:<reaction> (a membrane just before that step, Compartments mode)  z:<zone> (a compartment)
+   f:<reaction> (activates or inhibits)  g:<group> (a grouping's name)  gb:<group> (finding its boxes, Draw yourself) */
 'use strict';
 
 const Stats = {
@@ -38,6 +39,7 @@ const Stats = {
       let label, kind;
       if (t === 'm') { if (!p.metabolites[id]) continue; label = p.metabolites[id].name; kind = 'Metabolite'; }
       else if (t === 'z') { label = id.split('|').reverse().join(' · '); kind = 'Compartment'; }
+      else if (t === 'g' || t === 'gb') { const g = (p.groups || []).find(x => x.id === id); if (!g) continue; label = t === 'g' ? g.name : `${g.name}: its boxes`; kind = 'Group'; }
       else {
         const r = p.reactions.find(x => x.id === id); if (!r) continue;
         const en = p.enzymes[r.enzyme]?.name || r.enzyme, pair = `${mn(r.from)} → ${mn(r.to)}`;
@@ -50,6 +52,7 @@ const Stats = {
           p: () => { label = `${en}: products`; kind = 'Products'; },
           w: () => { label = `${en}: pathway`; kind = 'Pathway'; },
           l: () => { label = `${en}: location`; kind = 'Location'; },
+          f: () => { label = `${en}: ${mn(r.from)} → ${mn(r.to)}, activates or inhibits`; kind = 'Effect'; },
           b: () => { label = `Membrane before ${en}`; kind = 'Membrane'; } })[t]?.();
         if (!label) continue;
       }

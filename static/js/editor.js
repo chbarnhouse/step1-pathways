@@ -33,11 +33,12 @@ function openEditor(id, draft, focusKey) {
   E.origId = draft ? null : id;
   E.mode = (typeof local !== 'undefined' && local.get('pathways.edMode')) || 'visual';
   E.pending = null;
-  E.undo = []; E.redo = []; E.view = null; E.viewSet = false; E.sel = null; E.pre = null;
+  E.undo = []; E.redo = []; E.view = null; E.viewSet = false; E.sel = null; E.pre = null; E.frameMode = false;
   if (focusKey) {
     const [k, ref] = [focusKey[0], focusKey.slice(2)];
     if (k === 'm' && E.draft.metabolites[ref]) E.sel = { kind: 'met', id: ref, focus: true };
     if ((k === 'e' || k === 'c') && E.draft.reactions.some(r => r.id === ref)) E.sel = { kind: 'rxn', id: ref, focus: k === 'c' ? 'cof' : 'enz' };
+    if (k === 'g' && (E.draft.groups || []).some(g => g.id === ref)) E.sel = { kind: 'grp', id: ref, focus: true };
     if (E.sel) E.mode = 'visual';
   }
   $('#view').innerHTML = '<section id="editor" class="editor page"></section>';
@@ -103,6 +104,32 @@ function itemRows(kind) {
       <button class="btn ghost small" data-ed="del-${kind}" data-id="${esc(id)}">Remove</button>
     </div>`).join('');
   return rows || `<p class="muted">None yet — add one here or from a step's menus.</p>`;
+}
+/* ---------- groupings: named sets of boxes, drawn as one dashed frame ---------- */
+const edGroups = () => E.draft.groups || [];
+function newGroup(members = []) {
+  const d = E.draft;
+  d.groups = d.groups || [];
+  const id = uniqueId('g' + (d.groups.length + 1), new Set(d.groups.map(g => g.id)));
+  d.groups.push({ id, name: 'New group', aliases: [], members });
+  return id;
+}
+// A metabolite that's gone leaves its groups too.
+function pruneGroups(d) { for (const g of d.groups || []) g.members = (g.members || []).filter(id => d.metabolites[id]); }
+const memberBoxes = (i, only = null) => Object.entries(E.draft.metabolites).filter(([id]) => !only || only(id)).map(([id, m]) =>
+  `<label class="cb small"><input type="checkbox" data-gmem="${i}" value="${esc(id)}" ${edGroups()[i].members.includes(id) ? 'checked' : ''}> ${esc(m.name || id)}</label>`).join('');
+function groupFields(g, i) {
+  return `<label>Name<input data-path="groups.${i}.name" value="${esc(g.name)}"></label>
+      <label title="Other names accepted as the answer">Also called (comma-separated)<input data-path="groups.${i}.aliases" data-list value="${esc(listStr(g.aliases))}" placeholder="e.g. COX pathway, prostanoids"></label>
+      <label>Facts shown after answering<textarea rows="2" data-path="groups.${i}.notes">${esc(g.notes)}</textarea></label>`;
+}
+function groupRows() {
+  const rows = edGroups().map((g, i) => `
+    <div class="ed-item ed-grp">${groupFields(g, i)}
+      <fieldset class="ed-members"><legend>In this group (${g.members.length})</legend>${memberBoxes(i)}</fieldset>
+      <button class="btn ghost small" data-ed="del-grp" data-i="${i}">Remove group</button>
+    </div>`).join('');
+  return rows || `<p class="muted">None yet. A group is a dashed frame around some boxes, with a name you can be quizzed on (the myeloid line; the COX branch). In Visual mode, use the Group tool and drag around boxes.</p>`;
 }
 function sideChips(r, i, key) {
   const chips = (r[key] || []).map(s => `<span class="pillx">${esc(E.draft.metabolites[s]?.name || s)}<button data-ed="unside" data-i="${i}" data-key="${key}" data-id="${esc(s)}" aria-label="Remove">×</button></span>`).join('');
@@ -203,6 +230,7 @@ function renderEditor() {
         ${E.draft.reactions.length ? '<div class="actions"><button class="btn small" data-ed="add-step">+ Add step</button></div>' : ''}</section>
       <section class="card ed-sec"><div class="ed-sec-h"><h3>Metabolites</h3><button class="btn small" data-ed="add-met">+ Add</button></div>${itemRows('met')}</section>
       <section class="card ed-sec"><div class="ed-sec-h"><h3>Enzymes</h3><button class="btn small" data-ed="add-enz">+ Add</button></div>${itemRows('enz')}</section>
+      <section class="card ed-sec"><div class="ed-sec-h"><h3>Groups</h3><button class="btn small" data-ed="add-grp">+ Add</button></div>${groupRows()}</section>
       <section class="card ed-sec"><h3>Extra wrong answers for multiple choice</h3>
         ${distractorsHTML(p)}</section>`}
     </div>
@@ -455,6 +483,12 @@ function onEdit(e, structural) {
     if (el.value === 'grid') { E.draft.layout = 'grid'; Object.entries(E.draft.metabolites).forEach(([id, mt], k) => { mt.pos = mt.pos || at[id] || [0, k]; }); }
     return renderEditor();
   }
+  if (el.dataset.gmem != null) {
+    if (!structural) return;
+    const g = edGroups()[+el.dataset.gmem];
+    g.members = el.checked ? uniq([...g.members, el.value]) : g.members.filter(x => x !== el.value);
+    return renderEditor();
+  }
   if (el.dataset.compose && structural) {
     const id = el.dataset.compose, c = E.draft.compose;
     E.draft.compose = el.checked ? uniq([...c, id]) : c.filter(x => x !== id);
@@ -574,8 +608,11 @@ document.addEventListener('click', e => {
       if (users.length) return say('Still in use', `Step ${users.join(', ')} uses it. Change those steps first.`);
       pushUndo();
       delete (isMet ? p.metabolites : p.enzymes)[id];
+      pruneGroups(p);
       return renderEditor();
     }
+    case 'add-grp': pushUndo(); { const id = newGroup(E.sel?.kind === 'met' ? [E.sel.id] : []); if (E.mode === 'visual') E.sel = { kind: 'grp', id, focus: true }; } return renderEditor();
+    case 'del-grp': pushUndo(); p.groups.splice(i, 1); if (!p.groups.length) delete p.groups; return renderEditor();
     case 'up': pushUndo(); if (i > 0) [R[i - 1], R[i]] = [R[i], R[i - 1]]; return renderEditor();
     case 'down': pushUndo(); if (i < R.length - 1) [R[i + 1], R[i]] = [R[i], R[i + 1]]; return renderEditor();
     case 'del-step': ask({ title: `Remove step ${i + 1}?`, ok: 'Remove' }).then(y => { if (y) { pushUndo(); R.splice(i, 1); pruneCof(p); renderEditor(); } }); return;

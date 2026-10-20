@@ -343,8 +343,56 @@ function flowSVG(m, statusOf, opts = {}) {
   DRAW_STATUS = statusOf; DRAW_MODEL = m;
   if (m.p.stitch) return stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
-  if (m.p.layout === 'grid') return gridSVG(m, statusOf, opts);
-  return m.p.circular ? cycleSVG(m, statusOf, opts) : linearSVG(m, statusOf, opts);
+  const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
+  if (grps.length && !outer) DRAW_POS = {};
+  const svg = m.p.layout === 'grid' ? gridSVG(m, statusOf, opts) : m.p.circular ? cycleSVG(m, statusOf, opts) : linearSVG(m, statusOf, opts);
+  if (!grps.length) return svg;
+  const pos = DRAW_POS; if (!outer) DRAW_POS = null;
+  return withGroups(svg, m, statusOf, grps, pos);
+}
+/* Groupings: a dashed frame around a group's boxes with its name above the top-left corner. A group inside another
+   (granulocytes inside myeloid cells) gets the tighter frame, so the two never share a line. Frames sit behind the
+   drawing; names on top. While the name is a blank it's a "group" pill (or the answer field). */
+const GROUP_TONES = ['pink', 'teal', 'gold', 'blue', 'orange', 'slate'];
+let GROUP_RECTS = {}; // where each group's frame went (for drawing groups yourself)
+function groupRect(g, pos, all) {
+  const rs = g.members.map(id => pos['m:' + id]).filter(Boolean);
+  if (!rs.length) return null;
+  const inside = all.filter(o => o !== g && o.members.length < g.members.length && o.members.every(id => g.members.includes(id))).length;
+  const pad = 16 + 22 * inside, x0 = Math.min(...rs.map(r => r.x)) - pad, y0 = Math.min(...rs.map(r => r.y)) - pad;
+  return { x: x0, y: y0, w: Math.max(...rs.map(r => r.x + r.w)) + pad - x0, h: Math.max(...rs.map(r => r.y + r.h)) + pad - y0 };
+}
+let GROUP_INLINE_DONE = false;
+function withGroups(svg, m, statusOf, grps, pos) {
+  let back = '', front = '', minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+  GROUP_RECTS = {}; GROUP_INLINE_DONE = false;
+  grps.forEach((g, i) => {
+    const st = statusOf(g.key), r = groupRect(g, pos, grps);
+    if (!r) return;
+    GROUP_RECTS[g.id] = r;
+    if (st === 'hide') return;
+    const tone = g.tone || GROUP_TONES[i % GROUP_TONES.length], lx = r.x + 2, ly = r.y - 8;
+    back += `<rect class="gframe tone-${tone}${st === 'target' ? ' target' : ''}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14"/>`;
+    let label;
+    if (st === 'target' && INLINE && !GROUP_INLINE_DONE) {
+      GROUP_INLINE_DONE = true;
+      const w = Math.max(220, INLINE.along ? INLINE.along.length * 8 + 28 : 0);
+      label = `<g class="elab target"><rect x="${lx}" y="${ly - 22}" width="${w}" height="30" rx="15"/></g>` + inlineField(lx + 4, ly - 19, w - 8, 24);
+    } else if (hidden(st)) {
+      const w = pillW('group');
+      label = `<g class="elab gblank ${st}" data-key="${g.key}"><rect x="${lx}" y="${ly - 18}" width="${w}" height="24" rx="12"/>${blankText(lx + w / 2, ly - 6, 'group')}</g>`;
+    } else {
+      const mark = st === 'right' ? svgIcon(lx + g.name.length * 8.2 + 16, ly - 5, 'ok') : st === 'missed' ? svgIcon(lx + g.name.length * 8.2 + 16, ly - 5, 'no') : '';
+      label = `<text class="gname tone-${tone}" data-key="${g.key}" x="${lx}" y="${ly}">${esc(g.name)}</text>${mark}`;
+    }
+    front += label;
+    minX = Math.min(minX, r.x - 4); minY = Math.min(minY, ly - 26); maxX = Math.max(maxX, r.x + r.w + 4, lx + g.name.length * 8.2 + 30); maxY = Math.max(maxY, r.y + r.h + 4);
+  });
+  // Grow the drawing to hold frames that reach past its edges.
+  const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
+  const X0 = Math.min(vb[0], minX), Y0 = Math.min(vb[1], minY), X1 = Math.max(vb[0] + vb[2], maxX), Y1 = Math.max(vb[1] + vb[3], maxY);
+  const at = svg.lastIndexOf('</svg>');
+  return (svg.slice(0, at) + front + svg.slice(at)).replace(/viewBox="[^"]+"/, `viewBox="${X0} ${Y0} ${X1 - X0} ${Y1 - Y0}"`).replace(/^(<svg[^>]*>)/, `$1${back}`);
 }
 // Transport steps (a metabolite crossing a membrane) are dashed so they read differently from reactions.
 /* Effects, in pathways that mark them: green with an arrowhead activates, red with a flat bar inhibits (and the label

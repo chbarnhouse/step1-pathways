@@ -42,6 +42,69 @@
   }
  ],
  "cofactors": {},
+ "groups": [
+  {
+   "id": "myeloid",
+   "name": "Myeloid line",
+   "aliases": [
+    "myeloid",
+    "myeloid cells",
+    "myeloid lineage",
+    "myeloid series"
+   ],
+   "members": [
+    "cmp",
+    "mast",
+    "mep",
+    "gmp",
+    "rbc",
+    "mk",
+    "plt",
+    "mb",
+    "neut",
+    "eos",
+    "baso",
+    "mono",
+    "mac"
+   ],
+   "notes": "Everything from the common myeloid progenitor: red cells, platelets, granulocytes, monocytes and macrophages, mast cells. Myeloid neoplasms: CML, polycythemia vera, essential thrombocythemia, myelofibrosis, AML."
+  },
+  {
+   "id": "granulocytes",
+   "name": "Granulocytes",
+   "aliases": [
+    "granulocyte",
+    "polymorphonuclear cells",
+    "PMNs"
+   ],
+   "members": [
+    "neut",
+    "eos",
+    "baso"
+   ],
+   "notes": "Neutrophils, eosinophils and basophils: granules seen on the smear, lobed nuclei. Mast cells have granules too but mature in tissue."
+  },
+  {
+   "id": "lymphoid",
+   "name": "Lymphoid line",
+   "aliases": [
+    "lymphoid",
+    "lymphocytes",
+    "lymphoid cells",
+    "lymphoid lineage"
+   ],
+   "members": [
+    "clp",
+    "bcell",
+    "plasma",
+    "tcell",
+    "cd4",
+    "cd8",
+    "nk"
+   ],
+   "notes": "Everything from the common lymphoid progenitor: B cells (and plasma cells), T cells, NK cells. Lymphoid neoplasms: ALL, CLL, lymphomas, multiple myeloma."
+  }
+ ],
  "distractors": {
   "metabolites": [
    "Lymphoblast",

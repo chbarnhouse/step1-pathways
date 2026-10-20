@@ -8,7 +8,9 @@
        reversible, multiplier, requires[], tags[]
      loc        compartment (cytosol, mitochondrial matrix, ER lumen…); tissue: organ/cell type when it differs within a pathway
      transport  the step moves a metabolite between compartments; its "enzyme" is the transporter
-   circular:true → the last spine reaction returns to the first metabolite. pathway.tissue = where the pathway runs. */
+   circular:true → the last spine reaction returns to the first metabolite. pathway.tissue = where the pathway runs.
+   groups[] {id, name, aliases, members[], notes}: named sets of metabolites (cells) drawn inside one dashed frame.
+   effects:true → every step activates, or inhibits (tag "inhibits"); quizzable. */
 'use strict';
 
 function buildModel(p, sharedCof = Library.sharedCof()) {
@@ -106,6 +108,13 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     seq.length = 0; seen.clear();
     for (const r of rx) { pushMet(r.from); pushRx(r); pushMet(r.to); }
     for (const k of Object.keys(items)) push(k);
+  }
+  // Groupings ('g:<id>'): named sets of boxes drawn as a dashed frame (myeloid cells; the COX branch). Read last.
+  for (const g of p.groups || []) {
+    const members = (g.members || []).filter(id => mets[id]);
+    if (!g.id || !g.name || !members.length) continue;
+    items['g:' + g.id] = { key: 'g:' + g.id, kind: 'grp', id: g.id, name: g.name, short: g.short || '', aliases: g.aliases || [], notes: g.notes, members, term: 'group' };
+    push('g:' + g.id);
   }
   const pairs = [];
   for (const r of rx) {
