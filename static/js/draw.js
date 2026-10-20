@@ -5,7 +5,8 @@
 
 const hidden = st => st === 'blank' || st === 'target';
 // A blank says what goes there (on top of its shape: box = metabolite, pill = enzyme/transporter or cofactors, tag = compartment).
-const blankWord = item => (item?.kind === 'trn' || item?.rxn?.transport ? 'transporter' : { met: 'metabolite', enz: 'enzyme', cof: 'cofactors', loc: 'compartment' }[item?.kind] || '?');
+// p.terms (immunology: cells and cytokines) rename what a blank asks for.
+const blankWord = item => item?.term || (item?.kind === 'trn' || item?.rxn?.transport ? 'transporter' : { met: 'metabolite', enz: 'enzyme', cof: 'cofactors', loc: 'compartment' }[item?.kind] || '?');
 const blankText = (x, y, word) => `<text class="bk" x="${x}" y="${y}" text-anchor="middle" dominant-baseline="central">${esc(word)}</text>`;
 const pillW = word => Math.max(48, word.length * 7.2 + 26);
 // When set ({draft, bad}), the current blank becomes a text field right on the diagram (Type answers, occlusion modes).
@@ -104,7 +105,7 @@ function metBox(cx, y, item, st, w = BW) {
   if (DRAW_POS && item?.key) DRAW_POS[item.key] = { x: cx - w / 2, y, w, h: BH };
   const cls = st === 'peek' ? 'shown' : st;
   if (st === 'target' && INLINE) return `<g class="mbox target"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/></g>` + inlineField(cx - w / 2 + 4, y + 4, w - 8, BH - 8);
-  if (hidden(st)) return `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/>${blankText(cx, y + BH / 2, 'metabolite')}</g>`;
+  if (hidden(st)) return `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/>${blankText(cx, y + BH / 2, item.term || 'metabolite')}</g>`;
   const label = item.name;
   const fs = label.length * 7.6 > w - 14 ? ` style="font-size:${Math.max(10.5, (w - 14) / label.length / 0.56).toFixed(1)}px"` : '';
   let s = `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/><text x="${cx}" y="${y + BH / 2}"${fs}>${esc(label)}</text></g>`;
@@ -975,9 +976,13 @@ function stitchSVG(m, statusOf) {
       cands.push([d + (vx && vy ? 160 : 0), t.cx + vx - c.cx, t.cy + vy - c.cy]);
     }
     cands.sort((a, b) => a[0] - b[0]);
+    // The other parts' own steps take room too: nothing of this part may sit on one of their arrows.
+    const steps = placed.flatMap(P => P.sm.p.reactions.map(r => [P.pos['m:' + r.from], P.pos['m:' + r.to], P]).filter(([f, t]) => f && t)
+      .map(([f, t, P]) => { const x = Math.min(f.x, t.x) + P.dx, y = Math.min(f.y, t.y) + P.dy; return { x: x - 8, y: y - 8, w: Math.max(f.x + f.w, t.x + t.w) + P.dx - x + 16, h: Math.max(f.y + f.h, t.y + t.h) + P.dy - y + 16 }; }));
+    const onSteps = rs => rs.some(r => steps.some(o => r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h));
     // The arrow that will join them needs a clear right-angled path (either way round) past every other box.
     for (const [, dx, dy] of cands) {
-      const rs = rectsOf(R, dx, dy); if (clash(rs)) continue;
+      const rs = rectsOf(R, dx, dy); if (clash(rs) || onSteps(rs)) continue;
       if (route(shift(b, dx, dy), target, [...occ, ...rs].filter(r => r.box))) return [dx, dy];
     }
     for (const [, dx, dy] of cands) if (!clash(rectsOf(R, dx, dy))) return [dx, dy];

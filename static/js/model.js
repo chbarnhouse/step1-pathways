@@ -27,11 +27,11 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
 
   const items = {};
   for (const [id, m] of Object.entries(mets))
-    items['m:' + id] = { key: 'm:' + id, kind: 'met', id, name: m.name, short: m.short, aliases: m.aliases || [], nicknames: m.nicknames, notes: m.notes };
+    items['m:' + id] = { key: 'm:' + id, kind: 'met', id, name: m.name, short: m.short, aliases: m.aliases || [], nicknames: m.nicknames, notes: m.notes, term: m.term || p.terms?.met };
   const m0 = { cof };
   for (const r of rx) {
     const e = enzs[r.enzyme];
-    items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes };
+    items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes, term: r.transport ? undefined : e.term || p.terms?.enz };
     // A step's cofactors are quizzable, one blank per side: 'c:<step>' is what goes in (or the only side there is),
     // 'o:<step>' what comes out when both sides exist. (Before 3.9 'c:' was the whole set; its history stays with the inputs.)
     const c = r.cofactors || {}, ci = c.in || [], co = c.out || [];

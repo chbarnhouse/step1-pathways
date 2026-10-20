@@ -15,7 +15,7 @@ function cofPage(m, id) {
 }
 
 function catalog() {
-  const ps = Library.atomic().filter(p => (p.reactions || []).length);
+  const ps = Library.atomic().filter(p => (p.reactions || []).length && !p.terms); // cells and cytokines aren't metabolites and enzymes
   if (CAT.built && CAT.sig.length === ps.length && CAT.sig.every((p, i) => p === ps[i])) return CAT.built;
   const out = { met: {}, enz: {}, cof: {} };
   const entry = (kind, key, name) => (out[kind][key] = out[kind][key] || { kind, key, names: [], short: new Set(), aliases: new Set(), notes: [], steps: [], pathways: new Set(), keys: [] }); // keys: [pathway, answer-history key]

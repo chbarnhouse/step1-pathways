@@ -1,0 +1,236 @@
+{
+ "id": "class-switching",
+ "name": "B cell class switching",
+ "group": "Blood & immunity",
+ "systems": [
+  "Heme"
+ ],
+ "tags": [
+  "Immunology"
+ ],
+ "terms": {
+  "met": "B cell or antibody",
+  "enz": "signal"
+ },
+ "aliases": [
+  "isotype switching",
+  "class switch recombination",
+  "antibody class switching",
+  "immunoglobulin class switching"
+ ],
+ "summary": "A naive B cell (IgM, IgD) needs T cell help, CD40L binding its CD40, to switch class; the cytokines around it pick the class: IFN-γ (Th1) → IgG, IL-4 and IL-13 (Th2) → IgE, TGF-β and IL-5 → IgA. Every switch needs AID (activation-induced cytidine deaminase), which also drives affinity maturation. Hyper-IgM syndromes: CD40L (X-linked, most common), CD40, or AID defects.",
+ "tissue": "germinal centers of lymph nodes, spleen and Peyer patches (IgA)",
+ "icon": "genetics",
+ "color": "blue",
+ "layout": "grid",
+ "grid_columns": [
+  "",
+  "",
+  ""
+ ],
+ "cofactors": {},
+ "links": [
+  {
+   "at": "naive",
+   "to": "th-differentiation",
+   "dir": "in",
+   "via": "help from Tfh cells"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "IgM",
+   "IgD",
+   "Plasma cell",
+   "Memory B cell"
+  ],
+  "enzymes": [
+   "IL-2",
+   "IL-6",
+   "IL-10",
+   "CD28"
+  ]
+ },
+ "metabolites": {
+  "naive": {
+   "name": "Naive B cell (IgM, IgD)",
+   "short": "",
+   "aliases": [
+    "naive B cell",
+    "mature naive B cell",
+    "IgM and IgD B cell",
+    "B cell"
+   ],
+   "notes": "Makes IgM and IgD (the same antigen-binding part, by alternative splicing). Its receptor binds antigen; it then needs T cell help to switch.",
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "act": {
+   "name": "Activated B cell",
+   "short": "",
+   "aliases": [
+    "activated B cell",
+    "germinal center B cell",
+    "B cell with T cell help"
+   ],
+   "notes": "In the germinal center: somatic hypermutation (affinity maturation) and class switching, both by AID; then plasma cells and memory B cells.",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "igg": {
+   "name": "IgG",
+   "short": "",
+   "aliases": [
+    "IgG antibody",
+    "IgG-secreting plasma cell",
+    "immunoglobulin G"
+   ],
+   "notes": "The most abundant antibody and the main secondary response: crosses the placenta (FcRn), opsonizes, fixes complement, neutralizes toxins and viruses.",
+   "pos": [
+    0,
+    2
+   ]
+  },
+  "ige": {
+   "name": "IgE",
+   "short": "",
+   "aliases": [
+    "IgE antibody",
+    "IgE-secreting plasma cell",
+    "immunoglobulin E"
+   ],
+   "notes": "Lowest in serum; binds mast cells and basophils (FcεRI): type I hypersensitivity, and with eosinophils against helminths. Omalizumab binds it.",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "iga": {
+   "name": "IgA",
+   "short": "",
+   "aliases": [
+    "IgA antibody",
+    "IgA-secreting plasma cell",
+    "immunoglobulin A",
+    "secretory IgA"
+   ],
+   "notes": "Mucosal antibody: crosses epithelium as a dimer (J chain) with secretory component; in breast milk. Made more than any other antibody. Selective IgA deficiency (most common immunodeficiency): sinopulmonary and GI infections, anaphylaxis to IgA in blood products.",
+   "pos": [
+    2,
+    2
+   ]
+  }
+ },
+ "enzymes": {
+  "cd40l": {
+   "name": "CD40L (from helper T cells)",
+   "short": "CD40L",
+   "aliases": [
+    "CD40L",
+    "CD40 ligand",
+    "CD154",
+    "CD40-CD40L",
+    "CD40–CD40L",
+    "T cell help",
+    "Tfh help"
+   ],
+   "notes": "CD40L on an activated helper T cell binds CD40 on the B cell. X-linked hyper-IgM syndrome: CD40L defect, so no class switching: high IgM, low IgG, IgA, IgE; Pneumocystis and other opportunistic infections."
+  },
+  "sw_g": {
+   "name": "IFN-γ (Th1)",
+   "short": "",
+   "aliases": [
+    "IFN-γ",
+    "interferon gamma",
+    "IFN-gamma",
+    "Th1"
+   ],
+   "notes": "IFN-γ from Th1 cells favors opsonizing, complement-fixing IgG (IL-4 and IL-21 also drive IgG subclasses)."
+  },
+  "sw_e": {
+   "name": "IL-4 + IL-13 (Th2)",
+   "short": "",
+   "aliases": [
+    "IL-4",
+    "IL-13",
+    "IL-4 and IL-13",
+    "IL-4 + IL-13",
+    "Th2"
+   ]
+  },
+  "sw_a": {
+   "name": "TGF-β (+ IL-5)",
+   "short": "",
+   "aliases": [
+    "TGF-β",
+    "TGF-beta",
+    "IL-5",
+    "TGF-β and IL-5",
+    "TGF-β + IL-5"
+   ]
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "cd40l",
+   "from": "naive",
+   "to": "act",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "lymph node germinal center"
+  },
+  {
+   "id": "r2",
+   "enzyme": "sw_g",
+   "from": "act",
+   "to": "igg",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "lymph node germinal center",
+   "requires": [
+    "AID"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "sw_e",
+   "from": "act",
+   "to": "ige",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "lymph node germinal center",
+   "requires": [
+    "AID"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "sw_a",
+   "from": "act",
+   "to": "iga",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "lymph node germinal center",
+   "requires": [
+    "AID"
+   ]
+  }
+ ]
+}

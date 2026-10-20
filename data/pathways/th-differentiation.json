@@ -1,0 +1,409 @@
+{
+ "id": "th-differentiation",
+ "name": "Helper T cell differentiation",
+ "group": "Blood & immunity",
+ "systems": [
+  "Heme"
+ ],
+ "tags": [
+  "Immunology"
+ ],
+ "terms": {
+  "met": "cell",
+  "enz": "cytokines"
+ },
+ "aliases": [
+  "T helper differentiation",
+  "Th1 Th2 Th17",
+  "CD4 T cell subsets",
+  "helper T cell subsets",
+  "T cell polarization"
+ ],
+ "summary": "A naive CD4⁺ T cell, activated by an antigen-presenting cell, becomes a subset set by the cytokines around it; each subset has a master transcription factor (shown as what the step needs) and its own cytokines (shown coming out). Th1 (IL-12 → T-bet → IFN-γ): macrophages, intracellular microbes. Th2 (IL-4 → GATA-3 → IL-4, IL-5, IL-13): IgE, eosinophils, helminths, allergy. Th17 (TGF-β + IL-6 → RORγt → IL-17, IL-22): neutrophils, mucosal defense. Treg (TGF-β + IL-2 → FOXP3 → TGF-β, IL-10): tolerance. Tfh (IL-6, IL-21 → BCL-6): germinal centers, B cell help.",
+ "tissue": "secondary lymphoid organs (lymph nodes, spleen)",
+ "icon": "call_split",
+ "color": "teal",
+ "layout": "grid",
+ "grid_columns": [
+  "",
+  "",
+  "What it becomes"
+ ],
+ "cofactors": {
+  "il1": {
+   "name": "IL-1",
+   "aliases": [
+    "interleukin-1",
+    "IL1",
+    "IL-1β",
+    "IL-1 beta"
+   ]
+  },
+  "il2": {
+   "name": "IL-2",
+   "aliases": [
+    "interleukin-2",
+    "IL2"
+   ]
+  },
+  "il3": {
+   "name": "IL-3",
+   "aliases": [
+    "interleukin-3",
+    "IL3"
+   ]
+  },
+  "il4": {
+   "name": "IL-4",
+   "aliases": [
+    "interleukin-4",
+    "IL4"
+   ]
+  },
+  "il5": {
+   "name": "IL-5",
+   "aliases": [
+    "interleukin-5",
+    "IL5"
+   ]
+  },
+  "il6": {
+   "name": "IL-6",
+   "aliases": [
+    "interleukin-6",
+    "IL6"
+   ]
+  },
+  "il10": {
+   "name": "IL-10",
+   "aliases": [
+    "interleukin-10",
+    "IL10"
+   ]
+  },
+  "il13": {
+   "name": "IL-13",
+   "aliases": [
+    "interleukin-13",
+    "IL13"
+   ]
+  },
+  "il17": {
+   "name": "IL-17",
+   "aliases": [
+    "interleukin-17",
+    "IL17",
+    "IL-17A"
+   ]
+  },
+  "il21": {
+   "name": "IL-21",
+   "aliases": [
+    "interleukin-21",
+    "IL21"
+   ]
+  },
+  "il22": {
+   "name": "IL-22",
+   "aliases": [
+    "interleukin-22",
+    "IL22"
+   ]
+  },
+  "il35": {
+   "name": "IL-35",
+   "aliases": [
+    "interleukin-35",
+    "IL35"
+   ]
+  },
+  "ifng": {
+   "name": "IFN-γ",
+   "aliases": [
+    "interferon gamma",
+    "interferon-γ",
+    "IFN-gamma",
+    "IFNg",
+    "IFN gamma"
+   ]
+  },
+  "tgfb": {
+   "name": "TGF-β",
+   "aliases": [
+    "transforming growth factor beta",
+    "TGF-beta",
+    "TGFb",
+    "TGF beta"
+   ]
+  }
+ },
+ "links": [
+  {
+   "at": "tfh",
+   "to": "class-switching",
+   "dir": "out",
+   "via": "helps B cells switch"
+  }
+ ],
+ "distractors": {
+  "metabolites": [
+   "Th9 cell",
+   "Cytotoxic T cell",
+   "NK cell",
+   "γδ T cell"
+  ],
+  "enzymes": [
+   "IL-1",
+   "IL-5",
+   "TNF-α",
+   "IL-10"
+  ]
+ },
+ "metabolites": {
+  "th0": {
+   "name": "Naive CD4⁺ T cell",
+   "short": "Th0",
+   "aliases": [
+    "Th0",
+    "naive CD4 T cell",
+    "naive helper T cell",
+    "CD4+ T cell",
+    "naive T helper cell"
+   ],
+   "notes": "Activated in a lymph node by an antigen-presenting cell: MHC II with peptide on the TCR (signal 1) plus B7 (CD80/86) on CD28 (signal 2). The cytokines around it then decide what it becomes.",
+   "pos": [
+    0,
+    2
+   ]
+  },
+  "th1": {
+   "name": "Th1 cell",
+   "short": "Th1",
+   "aliases": [
+    "Th1",
+    "T helper 1",
+    "type 1 helper T cell"
+   ],
+   "notes": "Cell-mediated immunity against intracellular microbes (mycobacteria, fungi): IFN-γ activates macrophages and drives IgG class switching. Type IV hypersensitivity and granulomas. Its IFN-γ inhibits Th2; IL-4 and IL-10 inhibit it. IL-12 receptor or IFN-γ receptor defects: disseminated mycobacterial infection.",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "th2": {
+   "name": "Th2 cell",
+   "short": "Th2",
+   "aliases": [
+    "Th2",
+    "T helper 2",
+    "type 2 helper T cell"
+   ],
+   "notes": "Humoral and anti-helminth immunity, allergy and asthma: IL-4 and IL-13 switch B cells to IgE, IL-5 recruits and activates eosinophils (and IgA). Its IL-4 and IL-10 inhibit Th1; IFN-γ inhibits it.",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "th17": {
+   "name": "Th17 cell",
+   "short": "Th17",
+   "aliases": [
+    "Th17",
+    "T helper 17"
+   ],
+   "notes": "Mucosal and skin defense against extracellular bacteria and fungi (Candida): IL-17 recruits neutrophils, IL-22 keeps barriers up. Drives autoimmune inflammation (psoriasis, IBD, MS). Inhibited by IFN-γ and IL-4. Hyper-IgE (Job) syndrome: STAT3 defect, no Th17, so cold staph abscesses and candidiasis.",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "treg": {
+   "name": "Regulatory T cell",
+   "short": "Treg",
+   "aliases": [
+    "Treg",
+    "T reg",
+    "regulatory T cell",
+    "CD4+ CD25+ T cell",
+    "suppressor T cell"
+   ],
+   "notes": "CD4⁺ CD25⁺ (CD25 = IL-2 receptor α) FOXP3⁺: keep self-reactive T cells quiet (peripheral tolerance) with TGF-β, IL-10 and IL-35. FOXP3 mutation: IPEX syndrome (immune dysregulation, polyendocrinopathy, enteropathy, X-linked).",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "tfh": {
+   "name": "Follicular helper T cell",
+   "short": "Tfh",
+   "aliases": [
+    "Tfh",
+    "T follicular helper",
+    "follicular helper T cell"
+   ],
+   "notes": "Helps B cells in germinal centers: CD40L on its surface binds CD40 on the B cell, and IL-21 and IL-4 drive class switching and affinity maturation.",
+   "pos": [
+    2,
+    4
+   ]
+  }
+ },
+ "enzymes": {
+  "e_th1": {
+   "name": "IL-12 (+ IFN-γ)",
+   "short": "",
+   "aliases": [
+    "IL-12",
+    "IL12",
+    "interleukin-12",
+    "IFN-γ",
+    "IL-12 and IFN-γ",
+    "IL-12 + IFN-γ"
+   ],
+   "notes": "IL-12 comes from macrophages and dendritic cells; IFN-γ reinforces it."
+  },
+  "e_th2": {
+   "name": "IL-4 (+ IL-2)",
+   "short": "",
+   "aliases": [
+    "IL-4",
+    "IL4",
+    "interleukin-4",
+    "IL-4 and IL-2",
+    "IL-4 + IL-2"
+   ],
+   "notes": "IL-4 (from Th2 cells, mast cells, basophils) is the decisive one."
+  },
+  "e_th17": {
+   "name": "TGF-β + IL-6 (+ IL-23)",
+   "short": "",
+   "aliases": [
+    "TGF-β and IL-6",
+    "TGF-beta + IL-6",
+    "IL-6 + TGF-β",
+    "IL-6 and TGF-β",
+    "TGF-β, IL-6, IL-23",
+    "IL-23",
+    "IL-6"
+   ],
+   "notes": "TGF-β with IL-6 makes Th17 cells (TGF-β alone makes Tregs); IL-23 keeps them going."
+  },
+  "e_treg": {
+   "name": "TGF-β + IL-2",
+   "short": "",
+   "aliases": [
+    "TGF-β and IL-2",
+    "TGF-beta + IL-2",
+    "IL-2 + TGF-β",
+    "TGF-β",
+    "IL-2 and TGF-β"
+   ]
+  },
+  "e_tfh": {
+   "name": "IL-6 + IL-21",
+   "short": "",
+   "aliases": [
+    "IL-6 and IL-21",
+    "IL-21",
+    "IL-21 + IL-6",
+    "IL-6"
+   ]
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "e_th1",
+   "from": "th0",
+   "to": "th1",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "ifng",
+     "il2"
+    ]
+   },
+   "loc": "lymph node",
+   "requires": [
+    "T-bet"
+   ]
+  },
+  {
+   "id": "r2",
+   "enzyme": "e_th2",
+   "from": "th0",
+   "to": "th2",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "il4",
+     "il5",
+     "il10",
+     "il13"
+    ]
+   },
+   "loc": "lymph node",
+   "requires": [
+    "GATA-3"
+   ]
+  },
+  {
+   "id": "r3",
+   "enzyme": "e_th17",
+   "from": "th0",
+   "to": "th17",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "il17",
+     "il21",
+     "il22"
+    ]
+   },
+   "loc": "lymph node",
+   "requires": [
+    "RORγt"
+   ]
+  },
+  {
+   "id": "r4",
+   "enzyme": "e_treg",
+   "from": "th0",
+   "to": "treg",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "tgfb",
+     "il10",
+     "il35"
+    ]
+   },
+   "loc": "lymph node",
+   "requires": [
+    "FOXP3"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "e_tfh",
+   "from": "th0",
+   "to": "tfh",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "il21",
+     "il4"
+    ]
+   },
+   "loc": "lymph node",
+   "requires": [
+    "BCL-6"
+   ]
+  }
+ ]
+}

@@ -1,0 +1,608 @@
+{
+ "id": "cytokines",
+ "name": "Cytokines",
+ "group": "Blood & immunity",
+ "systems": [
+  "Heme"
+ ],
+ "tags": [
+  "Immunology",
+  "Drug targets"
+ ],
+ "terms": {
+  "met": "cell",
+  "enz": "cytokine"
+ },
+ "aliases": [
+  "interleukins",
+  "cytokine sources and actions",
+  "chemokines",
+  "Hot T-bone stEAK",
+  "cytokine table"
+ ],
+ "summary": "Who makes each cytokine and what it does, one row each. “Hot T-bone stEAK”: IL-1 fever (hot), IL-2 T cells, IL-3 bone marrow, IL-4 IgE, IL-5 IgA (and eosinophils), IL-6 aKute-phase proteins. Macrophages make the inflammatory ones (IL-1, IL-6, IL-8, IL-12, TNF-α); Th1 cells IFN-γ; Th2 cells IL-4, IL-5, IL-10, IL-13; Tregs IL-10 and TGF-β.",
+ "tissue": "everywhere: made locally, many act at a distance",
+ "icon": "monitor_heart",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [
+  "Made by",
+  "Acts on",
+  "Made by",
+  "Acts on"
+ ],
+ "distractors": {
+  "metabolites": [
+   "Basophils",
+   "Mast cells",
+   "Platelets",
+   "Kidney"
+  ],
+  "enzymes": [
+   "IL-7",
+   "IL-17",
+   "IL-23",
+   "GM-CSF",
+   "IFN-α",
+   "TGF-β"
+  ]
+ },
+ "metabolites": {
+  "s0": {
+   "name": "Macrophages",
+   "short": "",
+   "aliases": [
+    "macrophage",
+    "monocytes"
+   ],
+   "pos": [
+    0,
+    0
+   ]
+  },
+  "t0": {
+   "name": "Hypothalamus: fever",
+   "short": "",
+   "aliases": [
+    "hypothalamus",
+    "fever",
+    "endothelium"
+   ],
+   "notes": "Hypothalamus: fever. Also endothelium (adhesion molecules) and osteoclasts.",
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "s1": {
+   "name": "T cells",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    1
+   ]
+  },
+  "t1": {
+   "name": "T cells and NK cells",
+   "short": "",
+   "aliases": [
+    "T cells",
+    "NK cells",
+    "T and NK cells"
+   ],
+   "notes": "Helper, cytotoxic and regulatory T cells and NK cells grow and activate.",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "s2": {
+   "name": "T cells",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    2
+   ]
+  },
+  "t2": {
+   "name": "Bone marrow",
+   "short": "",
+   "aliases": [
+    "bone marrow stem cells",
+    "stem cells",
+    "hematopoietic stem cells"
+   ],
+   "notes": "Bone marrow stem cells grow and differentiate.",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "s3": {
+   "name": "Th2 cells",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    3
+   ]
+  },
+  "t3": {
+   "name": "B cells: IgE, IgG",
+   "short": "",
+   "aliases": [
+    "B cells",
+    "IgE",
+    "naive T cells",
+    "Th2"
+   ],
+   "notes": "B cells switch to IgE and IgG; naive T cells become Th2.",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "s4": {
+   "name": "Th2 cells",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    0,
+    4
+   ]
+  },
+  "t4": {
+   "name": "Eosinophils; IgA",
+   "short": "",
+   "aliases": [
+    "eosinophils",
+    "B cells",
+    "IgA"
+   ],
+   "notes": "Eosinophils grow and activate; B cells switch to IgA.",
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "s5": {
+   "name": "Macrophages",
+   "short": "",
+   "aliases": [
+    "macrophage",
+    "monocytes"
+   ],
+   "pos": [
+    0,
+    5
+   ]
+  },
+  "t5": {
+   "name": "Liver: acute phase",
+   "short": "",
+   "aliases": [
+    "liver",
+    "hepatocytes",
+    "acute phase",
+    "acute-phase proteins"
+   ],
+   "notes": "Liver makes acute-phase proteins (CRP, fibrinogen, hepcidin); also fever.",
+   "pos": [
+    1,
+    5
+   ]
+  },
+  "s6": {
+   "name": "Macrophages",
+   "short": "",
+   "aliases": [
+    "macrophage",
+    "monocytes"
+   ],
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "t6": {
+   "name": "Neutrophils",
+   "short": "",
+   "aliases": [
+    "neutrophils",
+    "neutrophil chemotaxis"
+   ],
+   "notes": "Neutrophils are drawn in (chemotaxis).",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "s7": {
+   "name": "Tregs and Th2 cells",
+   "short": "",
+   "aliases": [
+    "regulatory T cells",
+    "Tregs",
+    "Th2 cells"
+   ],
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "t7": {
+   "name": "Th1 cells, macrophages",
+   "short": "",
+   "aliases": [
+    "Th1 cells",
+    "macrophages",
+    "dendritic cells",
+    "Th1 and macrophages"
+   ],
+   "notes": "Th1 cells and activated macrophages are switched off.",
+   "pos": [
+    3,
+    1
+   ]
+  },
+  "s8": {
+   "name": "Macrophages, DCs",
+   "short": "",
+   "aliases": [
+    "macrophages",
+    "dendritic cells",
+    "macrophages and dendritic cells"
+   ],
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "t8": {
+   "name": "Th0 → Th1; NK cells",
+   "short": "",
+   "aliases": [
+    "naive T cells",
+    "Th1",
+    "NK cells",
+    "naive T cells and NK cells"
+   ],
+   "notes": "Naive T cells become Th1; NK cells activate.",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "s9": {
+   "name": "Th2 cells",
+   "short": "",
+   "aliases": [],
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "t9": {
+   "name": "B cells: IgE",
+   "short": "",
+   "aliases": [
+    "B cells",
+    "IgE",
+    "airways"
+   ],
+   "notes": "B cells switch to IgE; airways make mucus.",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "s10": {
+   "name": "Th1 cells and NK cells",
+   "short": "",
+   "aliases": [
+    "Th1 cells",
+    "NK cells"
+   ],
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "t10": {
+   "name": "Macrophages: activated",
+   "short": "",
+   "aliases": [
+    "macrophages",
+    "activated macrophages"
+   ],
+   "notes": "Macrophages activate: kill intracellular microbes, more MHC, granulomas.",
+   "pos": [
+    3,
+    4
+   ]
+  },
+  "s11": {
+   "name": "Macrophages",
+   "short": "",
+   "aliases": [
+    "macrophage",
+    "monocytes"
+   ],
+   "pos": [
+    2,
+    5
+   ]
+  },
+  "t11": {
+   "name": "Endothelium: shock",
+   "short": "",
+   "aliases": [
+    "endothelium",
+    "blood vessels",
+    "shock",
+    "cachexia"
+   ],
+   "notes": "Endothelium leaks (septic shock); also cachexia and fever.",
+   "pos": [
+    3,
+    5
+   ]
+  }
+ },
+ "enzymes": {
+  "il1": {
+   "name": "IL-1",
+   "short": "",
+   "aliases": [
+    "interleukin-1",
+    "IL1",
+    "osteoclast-activating factor",
+    "endogenous pyrogen"
+   ],
+   "notes": "Fever (endogenous pyrogen) and acute inflammation; turns on endothelial adhesion molecules; activates osteoclasts. Anakinra blocks its receptor. “Hot”: IL-1, fever."
+  },
+  "il2": {
+   "name": "IL-2",
+   "short": "",
+   "aliases": [
+    "interleukin-2",
+    "IL2",
+    "T cell growth factor"
+   ],
+   "notes": "Growth of helper, cytotoxic and regulatory T cells and NK cells. Aldesleukin (recombinant IL-2) treats melanoma and renal cell carcinoma; tacrolimus and cyclosporine block its production (calcineurin); basiliximab blocks its receptor (CD25)."
+  },
+  "il3": {
+   "name": "IL-3",
+   "short": "",
+   "aliases": [
+    "interleukin-3",
+    "IL3",
+    "multi-CSF"
+   ],
+   "notes": "Like GM-CSF: growth and differentiation of bone marrow stem cells. “Bone”: IL-3, bone marrow."
+  },
+  "il4": {
+   "name": "IL-4",
+   "short": "",
+   "aliases": [
+    "interleukin-4",
+    "IL4"
+   ],
+   "notes": "Class switching to IgE and IgG; makes naive T cells Th2; ↑ MHC II on B cells. Dupilumab blocks its receptor (atopic dermatitis, asthma). “stEak”: IL-4, IgE."
+  },
+  "il5": {
+   "name": "IL-5",
+   "short": "",
+   "aliases": [
+    "interleukin-5",
+    "IL5"
+   ],
+   "notes": "Eosinophil growth, differentiation and activation; class switching to IgA. Mepolizumab and reslizumab block it (eosinophilic asthma). “steAk”: IL-5, IgA."
+  },
+  "il6": {
+   "name": "IL-6",
+   "short": "",
+   "aliases": [
+    "interleukin-6",
+    "IL6"
+   ],
+   "notes": "Acute-phase proteins from the liver (CRP, fibrinogen, hepcidin, ferritin, serum amyloid A) and fever. Tocilizumab blocks its receptor. “steaK”: IL-6, aKute phase."
+  },
+  "il8": {
+   "name": "IL-8",
+   "short": "",
+   "aliases": [
+    "interleukin-8",
+    "IL8",
+    "CXCL8"
+   ],
+   "notes": "The major neutrophil chemokine (CXCL8). “Clean up on aisle 8”: neutrophils clear the area."
+  },
+  "il10": {
+   "name": "IL-10",
+   "short": "",
+   "aliases": [
+    "interleukin-10",
+    "IL10"
+   ],
+   "notes": "Anti-inflammatory: lowers MHC II and Th1 cytokines, inhibits activated macrophages and dendritic cells. Made by Tregs, Th2 cells and macrophages. (TGF-β also tones things down.)"
+  },
+  "il12": {
+   "name": "IL-12",
+   "short": "",
+   "aliases": [
+    "interleukin-12",
+    "IL12"
+   ],
+   "notes": "Makes naive T cells Th1 and activates NK cells. IL-12 receptor deficiency: disseminated mycobacterial and Salmonella infections. Ustekinumab blocks IL-12 and IL-23 (psoriasis, Crohn disease)."
+  },
+  "il13": {
+   "name": "IL-13",
+   "short": "",
+   "aliases": [
+    "interleukin-13",
+    "IL13"
+   ],
+   "notes": "Like IL-4: IgE class switching; also mucus and airway hyperreactivity in asthma."
+  },
+  "ifng": {
+   "name": "IFN-γ",
+   "short": "",
+   "aliases": [
+    "interferon gamma",
+    "interferon-γ",
+    "IFN-gamma",
+    "IFNg",
+    "macrophage-activating factor"
+   ],
+   "notes": "Activates macrophages (killing of intracellular microbes, granuloma formation), ↑ MHC I and II and antigen presentation in all cells, IgG switching; inhibits Th2. The IFN-γ release assay (QuantiFERON) tests for latent TB."
+  },
+  "tnfa": {
+   "name": "TNF-α",
+   "short": "",
+   "aliases": [
+    "tumor necrosis factor alpha",
+    "TNF-alpha",
+    "TNF",
+    "cachectin"
+   ],
+   "notes": "Endothelial activation and vascular leak (septic shock), cachexia, fever; keeps granulomas intact. Infliximab, adalimumab and etanercept block it (rheumatoid arthritis, IBD, psoriasis); screen for latent TB first, since granulomas can fall apart."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "il1",
+   "from": "s0",
+   "to": "t0",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r2",
+   "enzyme": "il2",
+   "from": "s1",
+   "to": "t1",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r3",
+   "enzyme": "il3",
+   "from": "s2",
+   "to": "t2",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r4",
+   "enzyme": "il4",
+   "from": "s3",
+   "to": "t3",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r5",
+   "enzyme": "il5",
+   "from": "s4",
+   "to": "t4",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r6",
+   "enzyme": "il6",
+   "from": "s5",
+   "to": "t5",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r7",
+   "enzyme": "il8",
+   "from": "s6",
+   "to": "t6",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r8",
+   "enzyme": "il10",
+   "from": "s7",
+   "to": "t7",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r9",
+   "enzyme": "il12",
+   "from": "s8",
+   "to": "t8",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r10",
+   "enzyme": "il13",
+   "from": "s9",
+   "to": "t9",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r11",
+   "enzyme": "ifng",
+   "from": "s10",
+   "to": "t10",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  },
+  {
+   "id": "r12",
+   "enzyme": "tnfa",
+   "from": "s11",
+   "to": "t11",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   }
+  }
+ ]
+}

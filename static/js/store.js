@@ -250,9 +250,9 @@ function stitchPathway(ids) {
       const handoff = c => (t.links || []).some(l => l.to === c.tile && l.at === k) || (Library.get(c.tile)?.links || []).some(l => l.to === t.id && l.at === c.raw);
       const other = cands.find(c => c.tile !== t.id && handoff(c)); if (other) out.stitch.joins.push([other.id, mid[k]]); // same molecule, other side of a membrane
       byBase.set(base, [...cands, { id: mid[k], zone, tile: t.id, raw: k }]);
-      const { pos, ...rest } = clone(m); out.metabolites[mid[k]] = rest;
+      const { pos, ...rest } = clone(m); if (t.terms?.met && !rest.term) rest.term = t.terms.met; out.metabolites[mid[k]] = rest;
     }
-    for (const [k, e] of Object.entries(t.enzymes)) { eid[k] = pre(k); out.enzymes[eid[k]] = clone(e); }
+    for (const [k, e] of Object.entries(t.enzymes)) { eid[k] = pre(k); out.enzymes[eid[k]] = clone(e); if (t.terms?.enz && !e.term) out.enzymes[eid[k]].term = t.terms.enz; }
     const rx = t.reactions.map(r => {
       const nr = { ...clone(r), id: pre(r.id), enzyme: eid[r.enzyme], from: mid[r.from], to: mid[r.to] };
       if (r.also_to) nr.also_to = r.also_to.map(x => mid[x]);
