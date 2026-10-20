@@ -5,10 +5,10 @@
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.11.0';
+const APP_VERSION = '3.11.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
-  { v: 'next', items: [
+  { v: '3.11.1', date: '2026-10-20', items: [
     'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',
   ] },
   { v: '3.11.0', date: '2026-10-19', items: [

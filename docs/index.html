@@ -1298,9 +1298,12 @@ function toast(msg) {
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.11.0';
+const APP_VERSION = '3.11.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: '3.11.1', date: '2026-10-20', items: [
+    'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',
+  ] },
   { v: '3.11.0', date: '2026-10-19', items: [
     'Two new pathways in a new group, Blood & immunity. Coagulation cascade: intrinsic (XII → XI → IX), extrinsic (tissue factor + VII) and common (X → thrombin → fibrin → cross-linked fibrin) pathways, with thrombin’s feedback on V, VIII and XIII; what needs Ca²⁺ and phospholipid; notes on PT/PTT, hemophilias, factor V Leiden, vitamin K and the anticoagulants. Complement cascade: classical, lectin and alternative pathways to the C3 and C5 convertases and the membrane attack complex, with C3a/C5a and the deficiencies (C1 inhibitor, C3, C5–C9, DAF/CD59).',
     'New way to study: Review. Every answer is shown on the diagram (connected pathways together, on one drawing) and nothing is asked; click anything for its facts. Show/Hide still works per kind. “Quiz me on this” switches to Fill the blanks on the same pathways, and reviews appear in Activity.',
@@ -1846,9 +1849,9 @@ const Presets = {
 };
 
 /* ---------- data notice text (used by the tour and the standalone gate in app.js) ---------- */
-// Two things to accept once per browser: where progress is kept, and where the content comes from (added later, so
-// someone who accepted the first is asked only the second).
-const needsDataAck = () => Store.mode === 'local' && (!local.get('pathways.dataAck') || !local.get('pathways.aiAck'));
+// Things to accept once per browser: where progress is kept, where the content comes from, and that it's provided as is.
+// The later ones were added after release, so someone who accepted the first is asked only what's new to them.
+const needsDataAck = () => Store.mode === 'local' && (!local.get('pathways.dataAck') || !local.get('pathways.aiAck') || !local.get('pathways.riskAck'));
 const DATA_NOTICE_TITLE = 'Your progress is saved only in this browser';
 const DATA_NOTICE_HTML = `<p>Step 1 Pathways has no accounts and no server, so nothing you do here is saved online. Your history, presets, favorites, tags and settings live in this browser’s storage.</p>
   <p>Browsers can erase that storage without warning: clearing history or site data, private windows, running low on space, or switching browsers or devices. If that happens, everything is lost and can’t be recovered.</p>
@@ -1858,6 +1861,7 @@ const AI_NOTICE_TITLE = 'About the pathway content';
 const AI_NOTICE_HTML = `<p>The pathways (steps, enzymes, cofactors and notes) were largely written with an AI model (an LLM). Errors are uncommon, but they can happen.</p>
   <p>If something looks wrong, check it against your usual resources, and report it from <b>Settings → Help and feedback → Report a problem</b>.</p>`;
 const AI_ACK_LABEL = 'I understand the pathways were largely written by an AI model, and that they may contain occasional errors.';
+const RISK_ACK_LABEL = 'I understand Step 1 Pathways is provided as is, with no guarantee that it’s accurate or free of bugs, and that I use it at my own risk.';
 </script>
 <script>
 /* Automatic backups for the static copy (the server copy saves on the server and needs none).
@@ -7640,18 +7644,20 @@ function dataGate() {
     let d = $('#gateDialog');
     if (!d) { d = document.createElement('dialog'); d.id = 'gateDialog'; document.body.append(d); }
     const needData = !local.get('pathways.dataAck');
-    const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}
-      <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckAI"> ${AI_ACK_LABEL}</label></section>`;
+    const acks = [['gateAckAI', AI_ACK_LABEL, 'pathways.aiAck'], ['gateAckRisk', RISK_ACK_LABEL, 'pathways.riskAck']];
+    const boxes = list => list.map(([id, label]) => `<label class="cb ack"><input type="checkbox" class="gate-req" id="${id}"> ${label}</label>`).join('');
+    const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}${boxes(acks)}</section>`;
     if (!needData) {
-      // Accepted the storage notice before this one existed: just the new part.
+      // Accepted the storage notice before the content notices existed: just the boxes not ticked yet.
+      const left = acks.filter(([, , key]) => !local.get(key));
       d.innerHTML = `<div class="dlg gate"><div class="dlg-h"><h2>${mi('science', 'h-ic')} ${AI_NOTICE_TITLE}</h2></div>
         <div class="ask-text">${AI_NOTICE_HTML}</div>
-        <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckAI"> ${AI_ACK_LABEL}</label>
+        ${boxes(left)}
         <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
       d.oncancel = e => e.preventDefault();
-      const req = d.querySelector('#gateAckAI');
-      req.onchange = () => { d.querySelector('#gateGo').disabled = !req.checked; };
-      d.querySelector('#gateGo').onclick = () => { if (!req.checked) return; local.set('pathways.aiAck', Date.now()); d.close(); res(); };
+      const reqs = [...d.querySelectorAll('.gate-req')], all = () => reqs.every(x => x.checked);
+      reqs.forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !all(); }; });
+      d.querySelector('#gateGo').onclick = () => { if (!all()) return; left.forEach(([, , key]) => local.set(key, Date.now())); d.close(); res(); };
       return d.showModal();
     }
     d.innerHTML = `<div class="dlg gate">
@@ -7688,7 +7694,7 @@ function dataGate() {
     d.querySelectorAll('.gate-req').forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !allTicked(); }; });
     d.querySelector('#gateGo').onclick = () => {
       if (!allTicked()) return;
-      local.set('pathways.dataAck', Date.now()); local.set('pathways.aiAck', Date.now());
+      local.set('pathways.dataAck', Date.now()); local.set('pathways.aiAck', Date.now()); local.set('pathways.riskAck', Date.now());
       d.close(); res();
     };
     d.showModal();
