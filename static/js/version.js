@@ -8,6 +8,9 @@
 const APP_VERSION = '3.11.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+    'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',
+  ] },
   { v: '3.11.0', date: '2026-10-19', items: [
     'Two new pathways in a new group, Blood & immunity. Coagulation cascade: intrinsic (XII → XI → IX), extrinsic (tissue factor + VII) and common (X → thrombin → fibrin → cross-linked fibrin) pathways, with thrombin’s feedback on V, VIII and XIII; what needs Ca²⁺ and phospholipid; notes on PT/PTT, hemophilias, factor V Leiden, vitamin K and the anticoagulants. Complement cascade: classical, lectin and alternative pathways to the C3 and C5 convertases and the membrane attack complex, with C3a/C5a and the deficiencies (C1 inhibitor, C3, C5–C9, DAF/CD59).',
     'New way to study: Review. Every answer is shown on the diagram (connected pathways together, on one drawing) and nothing is asked; click anything for its facts. Show/Hide still works per kind. “Quiz me on this” switches to Fill the blanks on the same pathways, and reviews appear in Activity.',
