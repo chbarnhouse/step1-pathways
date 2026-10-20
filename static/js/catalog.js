@@ -1,10 +1,12 @@
-/* Library tabs beyond Pathways: everything in every pathway by kind (metabolites, enzymes, cofactors), each with a
-   page of its own: its names, notes, and every step it's part of, linked back to the pathways.
+/* Library tabs beyond Pathways: everything in every pathway by kind (metabolites, enzymes, cofactors; and from the
+   immunology pathways, cells and cytokines), each with a page of its own: its names, notes, and every step it's part
+   of, linked back to the pathways.
    Built from the pathways themselves (built-in, edited and your own), merged by name, and rebuilt when any changes.
    Routes: #/library/<tab> and #/library/<tab>/<key>; the Pathways tab is #/pathways. */
 'use strict';
 
-const CAT_TABS = [['metabolites', 'Metabolites', 'met'], ['enzymes', 'Enzymes', 'enz'], ['cofactors', 'Cofactors', 'cof']];
+const CAT_TABS = [['metabolites', 'Metabolites', 'met'], ['enzymes', 'Enzymes', 'enz'], ['cofactors', 'Cofactors', 'cof'], ['cells', 'Cells', 'cell'], ['cytokines', 'Cytokines', 'sig']];
+const CAT_KINDS = CAT_TABS.map(t => t[2]);
 const CAT = { built: null, sig: null, q: {} };
 const catKey = name => norm(String(name)) || String(name);
 // A cofactor's page. Vitamins are written differently from pathway to pathway ("B6 (pyridoxal phosphate)", "Vitamin B6 (PLP)"):
@@ -14,14 +16,33 @@ function cofPage(m, id) {
   return b ? 'vitamin-' + b.toLowerCase() : id;
 }
 
+/* Cells and cytokines: the immunology pathways (those with their own `terms`) name the same cell or cytokine in
+   different ways ("Th2 cells", "Th2 cell"; "IL-4 + IL-13 (Th2)"; "Th1 and NK cells"), so each name is split into the
+   things it names and merged by a singular form. Steps that aren't a signal molecule ("Thymus", "Enters tissue") have no page. */
+const cellKey = name => catKey(String(name).replace(/\s*\([^)]*\)/g, '').replace(/(cell|phil|phage|cyte|let)s\b/gi, '$1').trim());
+function cellParts(name) {
+  const m = String(name).match(/^(.+?) and (.+?) (cells?)$/i);
+  return m ? [`${m[1]} ${m[3]}`, `${m[2]} ${m[3]}`] : [name];
+}
+const SIGNAL = /^(IL-\d+|IFN-|TNF|TGF-|G-CSF|GM-CSF|M-CSF|SCF$|CD40L|Erythropoietin|Thrombopoietin)/;
+function sigParts(name) {
+  const extra = [...String(name).matchAll(/\(\+\s*([^)]+)\)/g)].map(m => m[1]);
+  const main = String(name).replace(/\s*\([^)]*\)/g, '');
+  return uniq([...main.split(/\s+\+\s+/), ...extra.flatMap(x => x.split(/\s+\+\s+/))].map(x => x.trim()).filter(x => SIGNAL.test(x)));
+}
+// The cytokine network's arrows go from the cell that makes a cytokine to what it acts on; the other immunology
+// pathways' arrows are a cell developing into another.
+const signaling = p => p.terms?.enz === 'cytokine';
+
 function catalog() {
-  const ps = Library.atomic().filter(p => (p.reactions || []).length && !p.terms); // cells and cytokines aren't metabolites and enzymes
+  const ps = Library.atomic().filter(p => (p.reactions || []).length);
   if (CAT.built && CAT.sig.length === ps.length && CAT.sig.every((p, i) => p === ps[i])) return CAT.built;
-  const out = { met: {}, enz: {}, cof: {} };
+  const out = Object.fromEntries(CAT_KINDS.map(k => [k, {}]));
   const entry = (kind, key, name) => (out[kind][key] = out[kind][key] || { kind, key, names: [], short: new Set(), aliases: new Set(), notes: [], steps: [], pathways: new Set(), keys: [] }); // keys: [pathway, answer-history key]
   const note = (e, text, p) => { if (text && !e.notes.some(n => n.text === text)) e.notes.push({ text, pid: p.id }); };
   for (const p of ps) {
     let m; try { m = modelFor(p); } catch { continue; }
+    if (p.terms) { immunoEntries(p, m, entry, note); continue; }
     for (const [id, x] of Object.entries(p.metabolites)) {
       const e = entry('met', catKey(baseMetName(x.name)), x.name);
       e.names.push(x.name); if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p);
@@ -53,6 +74,29 @@ function catalog() {
   CAT.built = out; CAT.sig = ps;
   return out;
 }
+function immunoEntries(p, m, entry, note) {
+  for (const [id, x] of Object.entries(p.metabolites)) {
+    const parts = cellParts(x.name);
+    for (const name of parts) {
+      const e = entry('cell', cellKey(name), name);
+      e.names.push(name); if (parts.length === 1) { if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p); }
+      e.pathways.add(p.id); e.keys.push([p.id, 'm:' + id]);
+      for (const r of p.reactions) {
+        const made = r.to === id || (r.also_to || []).includes(id), used = r.from === id || (r.also_from || []).includes(id);
+        if (made || used) e.steps.push({ p, m, r, role: made && used ? 'both' : made ? 'made' : 'used' });
+      }
+    }
+  }
+  for (const r of p.reactions) {
+    const x = p.enzymes[r.enzyme]; if (!x) continue;
+    const parts = sigParts(x.name);
+    for (const name of parts) {
+      const e = entry('sig', catKey(name), name);
+      e.names.push(name); if (parts.length === 1 && x.name === name) { if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p); }
+      e.pathways.add(p.id); e.steps.push({ p, m, r }); e.keys.push([p.id, 'e:' + r.id]);
+    }
+  }
+}
 const catList = kind => Object.values(catalog()[kind]).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 const catHref = (tab, key) => `#/library/${tab}/${encodeURIComponent(key)}`;
 const tabOf = kind => CAT_TABS.find(t => t[2] === kind)[0];
@@ -61,7 +105,20 @@ function catLink(kind, key, label) {
   const e = catalog()[kind][key];
   return e ? `<a href="${catHref(tabOf(kind), key)}">${esc(label || e.name)}</a>` : esc(label || key);
 }
-const metLink = (p, id) => catLink('met', catKey(baseMetName(p.metabolites[id]?.name || id)), p.metabolites[id]?.name || id);
+const metLink = (p, id) => {
+  const name = p.metabolites[id]?.name || id;
+  if (!p.terms) return catLink('met', catKey(baseMetName(name)), name);
+  const parts = cellParts(name);
+  return parts.map(c => catLink('cell', cellKey(c), c)).join(' and ');
+};
+// A step's enzyme, or in an immunology pathway its signal, each cytokine in it linked.
+function enzLink(p, r) {
+  const name = p.enzymes[r.enzyme]?.name || r.enzyme;
+  if (!p.terms) return catLink('enz', catKey(name), name);
+  const parts = sigParts(name);
+  // Each cytokine in the name becomes a link where it stands: "TGF-β + IL-6 (+ IL-23)".
+  return esc(name).split(/(\s*[+()]\s*)/).map(t => (parts.includes(t) ? catLink('sig', catKey(t), t) : t)).join('');
+}
 const metsLinked = (p, ids) => ids.map(id => metLink(p, id)).join(' + ');
 const cofsLinked = (m, ids) => ids.map(id => catLink('cof', cofPage(m, id), cofName(m, id))).join(' + ');
 function cofCell(m, r) {
@@ -74,7 +131,7 @@ const pathwayCell = p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc
 
 /* ---------- the tabs ---------- */
 function libTabs(active) {
-  const c = catalog(), n = { pathways: Library.atomic().length, metabolites: Object.keys(c.met).length, enzymes: Object.keys(c.enz).length, cofactors: Object.keys(c.cof).length };
+  const c = catalog(), n = { pathways: Library.atomic().length, ...Object.fromEntries(CAT_TABS.map(([t, , k]) => [t, Object.keys(c[k]).length])) };
   return `<nav class="libtabs" aria-label="Library">${[['pathways', 'Pathways'], ...CAT_TABS].map(([t, l]) =>
     `<a href="${t === 'pathways' ? '#/pathways' : `#/library/${t}`}"${t === active ? ' aria-current="page"' : ''}>${l} <span class="n">${n[t]}</span></a>`).join('')}</nav>`;
 }
@@ -93,6 +150,12 @@ const SECTIONS = {
     ['Amino acids & nitrogen', 'genetics', 'teal', e => /glutam|aspart|glycine|serine|methionine|homocysteine|carbamoyl|urea|ketobutyrate|fumarate/i.test(e.name)],
     ['Sugars & activated sugars', 'nutrition', 'gold', e => /glucose|galactose|udp-|prpp|ribose|sialic|galactosamine|phosphocholine/i.test(e.name)],
     ['Water, gases & ions', 'opacity', 'slate', e => /^(h2o|co2|o2|nh3|nh4|hco3|h|co|h2o2|fe2|so4)$/i.test(e.key)], ['Other', 'science', 'slate', () => true]],
+  cell: [['Stem cells & progenitors', 'source_environment', 'gold', e => /stem|progenitor|blast/i.test(e.name)],
+    ['Myeloid cells', 'bloodtype', 'pink', e => /erythro|megakaryo|platelet|neutro|eosino|baso|monocyte|macrophage|mast|dendritic/i.test(e.name)],
+    ['Lymphocytes', 'shield', 'blue', e => /\bT cell|B cell|NK|plasma|Th\d|helper|regulatory|cytotoxic|lymph/i.test(e.name)],
+    ['Antibodies', 'category', 'teal', e => /^Ig[A-Z]/.test(e.name)], ['Organs & tissues', 'monitor_heart', 'slate', () => true]],
+  sig: [['Interleukins', 'conversion_path', 'blue', e => /^IL-/.test(e.name)], ['Interferons & TNF', 'local_fire_department', 'orange', e => /^(IFN|TNF)/.test(e.name)],
+    ['Growth factors', 'trending_up', 'gold', e => /CSF|SCF|poietin|TGF/.test(e.name)], ['Other signals', 'cell_tower', 'slate', () => true]],
 };
 const groupOfPathways = ids => { const g = {}; ids.forEach(id => { const k = Library.get(id)?.group || 'Other'; g[k] = (g[k] || 0) + 1; }); return Object.keys(g).sort((a, b) => g[b] - g[a] || groupRank(a) - groupRank(b))[0] || 'Other'; };
 function facets(e) {
@@ -176,9 +239,10 @@ function catTilesHTML(tab, kind, st) {
 }
 function renderCatalog(tab) {
   const [, , kind] = CAT_TABS.find(t => t[0] === tab) || CAT_TABS[0];
-  const blurb = { met: 'Every metabolite in every pathway. Open one to see what makes it and what uses it.', enz: 'Every enzyme and transporter. Open one to see its steps, cofactors, what it needs, and where it works.', cof: 'Everything that goes in or comes out beside a step, and the vitamins steps need. Open one to see every step that uses it.' }[kind];
+  const blurb = { met: 'Every metabolite in every pathway. Open one to see what makes it and what uses it.', enz: 'Every enzyme and transporter. Open one to see its steps, cofactors, what it needs, and where it works.', cof: 'Everything that goes in or comes out beside a step, and the vitamins steps need. Open one to see every step that uses it.',
+    cell: 'Every cell (and target organ) in the immunology pathways. Open one to see what it comes from, what it becomes, the cytokines it makes and the ones that act on it.', sig: 'Every cytokine and growth factor in the immunology pathways. Open one to see which cells make it, what it acts on, and what it drives.' }[kind];
   const st = catState(tab);
-  for (const k of ['met', 'enz', 'cof']) catList(k).forEach(e => delete e.f); // tags may have changed since
+  for (const k of CAT_KINDS) catList(k).forEach(e => delete e.f); // tags may have changed since
   $('#view').innerHTML = `<div class="page library catalog">
     ${pageHead('Library', blurb)}
     ${libTabs(tab)}
@@ -228,25 +292,55 @@ document.addEventListener('click', e => {
 function focusStatus(e, p) {
   const mine = e.steps.filter(s => s.p === p), focus = new Set(), near = new Set();
   const touch = r => [r.from, r.to, ...(r.also_to || []), ...(r.also_from || [])].forEach(id => near.add('m:' + id));
-  if (e.kind === 'enz') mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
-  else if (e.kind === 'met') { e.keys.filter(([pid]) => pid === p.id).forEach(([, k]) => focus.add(k)); mine.forEach(({ r }) => { near.add('e:' + r.id); touch(r); }); }
+  if (e.kind === 'enz' || e.kind === 'sig') mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
+  else if (e.kind === 'met' || e.kind === 'cell') { e.keys.filter(([pid]) => pid === p.id).forEach(([, k]) => focus.add(k)); mine.forEach(({ r }) => { near.add('e:' + r.id); touch(r); }); }
   else mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
   return k => (focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
 }
 function stepLine(e, s) {
+  if (s.p.terms) return immunoLine(e, s);
   const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name, needs = cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []);
   const role = e.kind === 'met' ? (s.role === 'made' ? 'made by ' : s.role === 'used' ? 'used by ' : '') : e.kind === 'cof' ? ({ in: 'goes in at ', out: 'comes out of ', need: 'needed by ' }[s.role] || '') : '';
   const bits = [e.kind === 'enz' ? '' : `${role}${catLink('enz', catKey(en), en)}`, reactionCell(p, r), `cofactors ${cofCell(m, r)}`, needs ? `needs ${needs}` : '', whereCell(r),
     (r.tags || []).includes('rate-limiting') ? '<b>rate-limiting</b>' : '', r.reversible ? 'reversible' : ''].filter(Boolean);
   return `<li>${bits.join(' · ')}</li>`;
 }
+// An immunology step: "Macrophage → Th1 and NK cells · IL-12", or "Th1 cell ⊣ Th2 cell · IFN-γ (inhibits)".
+function immunoLine(e, { p, r }) {
+  const inh = (r.tags || []).includes('inhibits');
+  return `<li>${metLink(p, r.from)} ${inh ? '⊣' : '→'} ${metLink(p, r.to)} · ${signaling(p) ? '' : 'via '}${enzLink(p, r)}${inh ? ' · inhibits' : ''}${r.loc && !signaling(p) ? ` · ${esc(r.loc)}` : ''}</li>`;
+}
+// The rows a cell or a cytokine adds to its glance: where it comes from and goes to, what it makes or what makes it.
+function immunoRows(e) {
+  const rows = [], dev = e.steps.filter(s => !signaling(s.p)), net = e.steps.filter(s => signaling(s.p));
+  const list = xs => uniq(xs).join(', ');
+  const cellsOf = (s, side) => metLink(s.p, side === 'from' ? s.r.from : s.r.to), sigOf = s => enzLink(s.p, s.r), inh = s => (s.r.tags || []).includes('inhibits');
+  if (e.kind === 'cell') {
+    const from = dev.filter(s => s.role !== 'used'), into = dev.filter(s => s.role !== 'made');
+    if (from.length) rows.push(['Comes from', list(from.map(s => `${cellsOf(s, 'from')} <span class="muted">(${sigOf(s)})</span>`))]);
+    if (into.length) rows.push(['Becomes', list(into.map(s => `${cellsOf(s, 'to')} <span class="muted">(${sigOf(s)})</span>`))]);
+    const makes = net.filter(s => s.role !== 'made'), on = net.filter(s => s.role !== 'used');
+    if (makes.length) rows.push(['Makes', list(makes.map(s => `${sigOf(s)} <span class="muted">${inh(s) ? '⊣' : '→'} ${cellsOf(s, 'to')}</span>`))]);
+    if (on.length) rows.push(['Acted on by', list(on.map(s => `${sigOf(s)} <span class="muted">from ${cellsOf(s, 'from')}${inh(s) ? ', inhibits' : ''}</span>`))]);
+  } else {
+    if (net.length) {
+      rows.push(['Made by', list(net.map(s => cellsOf(s, 'from')))]);
+      const on = net.filter(s => !inh(s)), off = net.filter(inh);
+      if (on.length) rows.push(['Acts on', list(on.map(s => cellsOf(s, 'to')))]);
+      if (off.length) rows.push(['Holds back', list(off.map(s => cellsOf(s, 'to')))]);
+    }
+    if (dev.length) rows.push(['Drives', list(dev.map(s => `${cellsOf(s, 'from')} → ${cellsOf(s, 'to')}`))]);
+  }
+  return rows;
+}
 function glanceHTML(e, ps) {
   const rows = [], linkList = (kind, keys) => uniq(keys).map(k => catLink(kind, k)).join(', ');
   if (e.short.size) rows.push(['Abbreviation', esc([...e.short].join(', '))]);
   if (e.others.length) rows.push(['Also called', esc(e.others.join(' · '))]);
   rows.push([e.kind === 'met' ? 'Group' : 'Kind', esc(facets(e).section)]);
+  if (e.kind === 'cell' || e.kind === 'sig') rows.push(...immunoRows(e));
   rows.push(['In', ps.map(p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join(', ')]);
-  const where = uniq(e.steps.map(({ r }) => [r.tissue, r.loc].filter(Boolean).join(' · ')).filter(Boolean));
+  const where = uniq(e.steps.filter(s => !signaling(s.p)).map(({ r }) => [r.tissue, r.loc].filter(Boolean).join(' · ')).filter(Boolean));
   if (where.length) rows.push(['Where', esc(where.join('; '))]);
   if (e.kind === 'enz') {
     const rl = uniq(e.steps.filter(s => (s.r.tags || []).includes('rate-limiting')).map(s => s.p.name));
@@ -264,7 +358,7 @@ function glanceHTML(e, ps) {
     if (used.length) rows.push(['Used by', linkList('enz', used)]);
     const out = ps.flatMap(p => (p.links || []).filter(l => e.keys.some(([pid, k]) => pid === p.id && k === 'm:' + l.at)).map(l => Library.get(l.to)).filter(Boolean));
     if (out.length) rows.push(['Connects to', uniq(out).map(q => `<a href="#/pathways/${encodeURIComponent(q.id)}">${esc(q.name)}</a>`).join(', ')]);
-  } else {
+  } else if (e.kind === 'cof') {
     const n = k => e.steps.filter(s => s.role === k).length;
     rows.push(['Steps', esc([n('need') ? `needed by ${n('need')}` : '', n('in') ? `goes in at ${n('in')}` : '', n('out') ? `comes out of ${n('out')}` : ''].filter(Boolean).join(' · '))]);
     rows.push(['Enzymes', linkList('enz', e.steps.map(s => catKey(s.p.enzymes[s.r.enzyme]?.name)))]);
@@ -318,6 +412,8 @@ function renderCatItem(tab, key) {
 }
 // Every step in one table (the page's old layout), for scanning across pathways.
 function stepsTable(e, kind) {
+  if (kind === 'cell' || kind === 'sig') return `<div class="tablewrap"><table class="steps"><thead><tr><th>Pathway</th><th>From</th><th>Signal</th><th>To</th><th>Where</th></tr></thead><tbody>${e.steps.map(({ p, r }) =>
+    `<tr><td>${pathwayCell(p)}</td><td>${metLink(p, r.from)}</td><td>${enzLink(p, r)}${(r.tags || []).includes('inhibits') ? ' <span class="muted">(inhibits)</span>' : ''}</td><td>${metLink(p, r.to)}</td><td>${signaling(p) ? '' : whereCell(r)}</td></tr>`).join('')}</tbody></table></div>`;
   const head = kind === 'enz' ? '<th>Pathway</th><th>Reaction</th><th>Cofactors</th><th>Needs</th><th>Where</th>' : '<th>Pathway</th><th>Role</th><th>Enzyme</th><th>Reaction</th><th>Cofactors</th><th>Where</th>';
   const role = s => ({ made: 'made', used: 'used', both: 'made and used', in: 'goes in', out: 'comes out', need: 'needed' }[s.role] || '');
   const row = s => { const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name;

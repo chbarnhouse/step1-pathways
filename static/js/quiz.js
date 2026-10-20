@@ -6,7 +6,7 @@
 'use strict';
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
-const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment' };
+const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment', eff: 'effect' };
 const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'needs' }[q.side]) : q.item?.term || KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
@@ -14,7 +14,7 @@ const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine�
 function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
 function elSpecFor(cfg) {
   return {
-    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']]],
+    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)].map(([k, l, a]) => (cfg.mode === 'review' ? [k, l, a.filter(v => v === 'show' || v === 'hide')] : [k, l, a])); // Review: nothing is asked
@@ -30,7 +30,7 @@ const el = k => elOf(Q.cfg, k);
    first in Fill the blanks, after the rest in Full recall and Building blocks. Q.placed = that round is behind you. */
 const placing = () => el('loc') === 'place' && !Q.placed;
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', n: 'cof', z: 'loc' }[key[0]]);
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
@@ -39,7 +39,7 @@ function quizSummary(cfg) {
   elSpecFor(cfg).forEach(([k, label]) => by[elOf(cfg, k)].push(label.toLowerCase()));
   if (cfg.mode === 'review') return ['Review, everything shown', by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
   const mode = cfg.mode === 'build' ? 'Building blocks' : cfg.mode === 'single' ? 'Fill the blanks' : cfg.mode === 'total' ? (cfg.start === 'begin' ? 'Full recall from the top' : 'Full recall') : cfg.given === 'enz' ? 'Single step, given the enzyme' : 'Single step, given two metabolites';
-  return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.place.length && 'place ' + by.place.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
+  return [mode, by.quiz.length && 'quiz ' + by.quiz.join(', '), by.place.length && 'draw ' + by.place.join(', '), by.hide.length && 'hide ' + by.hide.join(', ')].filter(Boolean).join(' · ');
 }
 
 /* ---------- questions ---------- */
@@ -110,6 +110,9 @@ function alongTextFor(q, m, r) {
 }
 function itemQ(item, m) {
   if (item.kind === 'cof') return cofQ(item.rxn, m, item);
+  // Activates or inhibits: always the two buttons, whatever the answer style.
+  if (item.kind === 'eff') return baseQ({ kind: 'eff', label: 'Effect', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name,
+    options: ['Activates', 'Inhibits'], check: v => v === item.name || item.aliases.includes(norm(v)) });
   if (item.kind === 'loc') {
     const all = uniq(Library.atomic().flatMap(p => p.reactions.map(r => r.loc)).filter(Boolean)).filter(l => canonLoc(l) !== item.canon);
     return baseQ({ kind: 'loc', label: 'Compartment', item, statKey: item.key, pid: m.p.id, answerText: item.name, correct: item.name, placeholder: 'e.g. mitochondria',
@@ -494,9 +497,9 @@ function nextStepE() {
   R.qs.forEach(x => withAlong(x, m, r));
 }
 function withAlong(q, m, r = q.item?.rxn) {
-  if (answerStyle() === 'along' && q.kind !== 'dir') q.along = alongTextFor(q, m, r);
+  if (answerStyle() === 'along' && !['dir', 'eff'].includes(q.kind)) q.along = alongTextFor(q, m, r);
   // Every accepted spelling, for letter-by-letter checking and hints (whichever one you're typing wins).
-  if (q.kind !== 'dir') q.targets = uniq(q.kind === 'cof' ? cofTargets(m, q.cofs || {})
+  if (!['dir', 'eff'].includes(q.kind)) q.targets = uniq(q.kind === 'cof' ? cofTargets(m, q.cofs || {})
     : q.item ? [...spellingsFor(q.item, m, 'any'), ...(q.kind === 'loc' ? [q.item.canon, ...(LOC_ALSO[q.item.canon] || [])] : [])].filter(Boolean)
     : q.kind === 'path' ? [m.p.name, ...(m.p.aliases || [])] : [alongTextFor(q, m, r)]);
   if (q.targets) q.targetTier = Object.fromEntries(q.targets.map(t => [t, q.tierOf(t) ?? 0]));
@@ -792,6 +795,7 @@ function resolved(q) {
 /* ---------- diagram status ---------- */
 function statusOf(key) {
   const R = Q.round, mode = el(kindOf(key));
+  if (key[0] === 'f' && !elSpecFor(Q.cfg).some(([k]) => k === 'eff')) return 'shown'; // the step modes don't ask effects
   if (R.type === 'review') return mode === 'hide' ? 'hide' : 'shown';
   if (mode === 'hide' || (mode === 'place' && !Q.placed)) return 'hide';
   if (R.type === 'single') {
@@ -1017,7 +1021,7 @@ function renderQuiz() {
   const R = Q.round;
   const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones' || R.type === 'review';
   const cq = occ && R.q;
-  INLINE = cq && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
+  INLINE = cq && cq.kind !== 'eff' && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
   if (cq) cq.inline = !!INLINE;
   const flow = viewStyle() === 'flow' && R.type !== 'zones', horiz = Store.settings.dir === 'h';

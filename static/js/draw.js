@@ -24,6 +24,10 @@ function inlineField(x, y, w, h) {
 const BW = 212, BH = 40, GAP = 72, CX = 222, SIDEX = 556, TOP = 18;
 
 function head(x, y, ang, size = 9, cls = 'ah') {
+  // An inhibiting step (tag "inhibits") ends in a flat bar, ⊣, so inhibition reads by shape, not just its color or label.
+  // An effect still to answer ends in an open circle: no arrowhead or bar to give it away.
+  if (cls.includes('effq')) return `<circle class="effq-dot" cx="${x - Math.cos(ang) * 5}" cy="${y - Math.sin(ang) * 5}" r="5"/>`;
+  if (cls.includes('inh')) { const px = -Math.sin(ang) * 7, py = Math.cos(ang) * 7, bx = x - Math.cos(ang) * 4, by = y - Math.sin(ang) * 4; return `<path class="ln inh-bar${cls.includes('fx-inh') ? ' fx-inh' : ''}" d="M${bx + px},${by + py}L${bx - px},${by - py}"/>`; }
   const a1 = ang + Math.PI * 0.84, a2 = ang - Math.PI * 0.84;
   return `<path class="${cls}" d="M${x},${y}L${x + size * Math.cos(a1)},${y + size * Math.sin(a1)}L${x + size * Math.cos(a2)},${y + size * Math.sin(a2)}Z"/>`;
 }
@@ -42,7 +46,7 @@ function elbow(pts, rev, cls = 'ln') {
     d += ` L${x - Math.sign(x - px) * r},${y - Math.sign(y - py) * r} Q${x},${y} ${x + Math.sign(nx - x) * r},${y + Math.sign(ny - y) * r}`;
   }
   d += ` L${P[n - 1][0]},${P[n - 1][1]}`;
-  return `<path class="${cls}" d="${d}"/>` + head(pts[n - 1][0], pts[n - 1][1], endAng) + (rev ? head(pts[0][0], pts[0][1], startAng) : '');
+  return `<path class="${cls}" d="${d}"/>` + head(pts[n - 1][0], pts[n - 1][1], endAng, 9, headCls(cls)) + (rev ? head(pts[0][0], pts[0][1], startAng) : '');
 }
 // A step's enzyme and cofactors along a right-angle connector: on its horizontal run if that's long enough (name above,
 // cofactors below), else beside its vertical run (name left, cofactors right).
@@ -72,7 +76,7 @@ function arrow(x1, y1, x2, y2, rev, cls = 'ln') {
   const back = (x, y, d) => [x - Math.cos(ang) * d, y - Math.sin(ang) * d];
   if (!rev) {
     const [ex, ey] = back(x2, y2, 6);
-    return `<line class="${cls}" x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}"/>` + head(x2, y2, ang);
+    return `<line class="${cls}" x1="${x1}" y1="${y1}" x2="${ex}" y2="${ey}"/>` + head(x2, y2, ang, 9, headCls(cls));
   }
   const ox = -Math.sin(ang) * 4, oy = Math.cos(ang) * 4;
   const [ex, ey] = back(x2 + ox, y2 + oy, 5);
@@ -101,14 +105,25 @@ function edgePt(c, tx, ty, w = BW) {
 
 // Where each box went, while a connected drawing is lining its parts up (see stitchSVG).
 let DRAW_POS = null;
+// "Megakaryocyte–erythroid progenitor" → ["Megakaryocyte–erythroid", "progenitor"]: the space nearest the middle.
+function splitTwo(label) {
+  const sp = [...label.matchAll(/ /g)].map(m => m.index);
+  if (!sp.length) return null;
+  const i = sp.reduce((a, b) => (Math.abs(b - label.length / 2) < Math.abs(a - label.length / 2) ? b : a));
+  return [label.slice(0, i), label.slice(i + 1)];
+}
 function metBox(cx, y, item, st, w = BW) {
   if (DRAW_POS && item?.key) DRAW_POS[item.key] = { x: cx - w / 2, y, w, h: BH };
   const cls = st === 'peek' ? 'shown' : st;
   if (st === 'target' && INLINE) return `<g class="mbox target"><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/></g>` + inlineField(cx - w / 2 + 4, y + 4, w - 8, BH - 8);
   if (hidden(st)) return `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/>${blankText(cx, y + BH / 2, item.term || 'metabolite')}</g>`;
   const label = item.name;
-  const fs = label.length * 7.6 > w - 14 ? ` style="font-size:${Math.max(10.5, (w - 14) / label.length / 0.56).toFixed(1)}px"` : '';
-  let s = `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/><text x="${cx}" y="${y + BH / 2}"${fs}>${esc(label)}</text></g>`;
+  // Too long for one line: a slightly smaller font; if that would go below 11.2px, two lines split at the space
+  // nearest the middle (when they fit), else as small as 10.5px.
+  const small = (w - 14) / label.length / 0.56, two = label.length * 7.6 > w - 14 && small < 11.2 && splitTwo(label), fits2 = two && Math.max(...two.map(l => l.length)) * 6.7 <= w - 14;
+  const fs = fits2 ? ' style="font-size:12px"' : label.length * 7.6 > w - 14 ? ` style="font-size:${Math.max(10.5, small).toFixed(1)}px"` : '';
+  const txt = fits2 ? `<tspan x="${cx}" dy="-0.6em">${esc(two[0])}</tspan><tspan x="${cx}" dy="1.2em">${esc(two[1])}</tspan>` : esc(label);
+  let s = `<g class="mbox ${cls}"${item.key ? ` data-key="${item.key}"` : ''}><rect x="${cx - w / 2}" y="${y}" width="${w}" height="${BH}" rx="9"/><text x="${cx}" y="${y + BH / 2}"${fs}>${txt}</text></g>`;
   if (st === 'right') s += svgIcon(cx - w / 2 - 16, y + BH / 2, 'ok');
   if (st === 'missed') s += svgIcon(cx - w / 2 - 16, y + BH / 2, 'no');
   if (st === 'start') s += `<text class="startt" x="${cx}" y="${y - 6}" text-anchor="middle">START</text>`;
@@ -130,7 +145,7 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
     return `<g class="elab ${cls}"><rect x="${rx}" y="${ry}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, ry + 13, word)}</g>`;
   }
   const lines = wrap(item.name, max);
-  const tags = (item.rxn.tags || []).filter(t => t !== 'irreversible');
+  const tags = shownTags(item.rxn);
   // What it needs is its own blank (quizzed with the cofactors): hidden, it's a "needs" pill under the rest of the label.
   const nst = (item.rxn?.requires || []).length && DRAW_STATUS ? DRAW_STATUS('n:' + item.rxn.id) || 'shown' : 'shown';
   const needs = nst === 'hide' ? [] : hidden(nst) ? [['needblank', '']] : wrap(needsText(item.rxn), max).map(t => ['req', t]);
@@ -188,7 +203,7 @@ const overlaps = (r, b) => r.x < b.x + b.w + 4 && r.x + r.w > b.x - 4 && r.y < b
 const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b => overlaps(r, b));
 // An enzyme's whole label: its name, tags (RATE-LIMITING) and what it needs, as enzLabel stacks them.
 const enzRect = (x, y, anchor, item, max = 18, valign = 'center') => {
-  const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...((r?.tags || []).filter(t => t !== 'irreversible')), ...wrap(needsText(r), max)];
+  const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? shownTags(r) : []), ...wrap(needsText(r), max)];
   const w = Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15;
   return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h };
 };
@@ -323,16 +338,29 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
   return out;
 }
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
-let DRAW_STATUS = null;
+let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf;
+  DRAW_STATUS = statusOf; DRAW_MODEL = m;
   if (m.p.stitch) return stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
   if (m.p.layout === 'grid') return gridSVG(m, statusOf, opts);
   return m.p.circular ? cycleSVG(m, statusOf, opts) : linearSVG(m, statusOf, opts);
 }
 // Transport steps (a metabolite crossing a membrane) are dashed so they read differently from reactions.
-const rxCls = r => (r.transport ? 'ln trn' : 'ln');
+/* Effects, in pathways that mark them: green with an arrowhead activates, red with a flat bar inhibits (and the label
+   says so). While the effect is a blank the line is plain with an open circle at its end; hidden, a plain arrow. */
+const effSt = r => (DRAW_MODEL?.items['f:' + r.id] ? (DRAW_STATUS ? DRAW_STATUS('f:' + r.id) || 'shown' : 'shown') : null);
+const effShown = r => { const st = effSt(r); return st === null || !(hidden(st) || st === 'hide'); };
+function rxCls(r) {
+  const base = r.transport ? 'ln trn' : 'ln', inh = (r.tags || []).includes('inhibits'), st = effSt(r);
+  if (st === null) return base + (inh ? ' inh' : '');
+  if (st === 'hide') return base;
+  if (hidden(st)) return base + ' effq' + (st === 'target' ? ' eff-target' : '');
+  return base + (inh ? ' inh fx-inh' : ' fx-act');
+}
+const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ? 'ah inh' + (cls.includes('fx-inh') ? ' fx-inh' : '') : cls.includes('fx-act') ? 'ah fx-act' : 'ah');
+// A step's tags as its label shows them: never "irreversible" (the arrow says it), and "inhibits" only while its effect shows.
+const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)));
 
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {

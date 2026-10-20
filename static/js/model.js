@@ -40,6 +40,12 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     if (ci.length && co.length) items['o:' + r.id] = cofItem('o:' + r.id, { out: co });
     // What the step needs (B6, biotin, TPP…): quizzed with the cofactors, any order, as 'n:<step>'.
     if ((r.requires || []).length) items['n:' + r.id] = { key: 'n:' + r.id, kind: 'cof', side: 'need', rxn: r, cofs: { in: needIds(cof, r) }, name: r.requires.join(', '), aliases: [], notes: null };
+    // Its effect, in a pathway that marks them ("effects": true): it activates, or it inhibits (tag "inhibits"), as 'f:<step>'.
+    if (p.effects || r.fx) {
+      const inh = (r.tags || []).includes('inhibits');
+      items['f:' + r.id] = { key: 'f:' + r.id, kind: 'eff', id: r.id, rxn: r, name: inh ? 'Inhibits' : 'Activates', short: '', notes: null,
+        aliases: inh ? ['inhibits', 'inhibit', 'inhibition', 'blocks', 'downregulates', 'suppresses', 'inactivates'] : ['activates', 'activate', 'activation', 'induces', 'stimulates', 'upregulates', 'promotes'] };
+    }
   }
 
   const spineMets = p.circular ? spine.map(r => r.from) : [spine[0].from, ...spine.map(r => r.to)];
@@ -51,7 +57,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { push('e:' + r.id); for (const k of ['c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); };
+  const pushRx = r => { push('e:' + r.id); for (const k of ['f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.

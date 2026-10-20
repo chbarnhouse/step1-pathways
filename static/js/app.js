@@ -311,16 +311,22 @@ const TONES = ['blue', 'orange', 'pink', 'teal', 'gold', 'slate'];
 const toneOf = p => (TONES.includes(p.color) ? p.color : TONES[[...p.id].reduce((a, c) => a + c.charCodeAt(0), 0) % TONES.length]);
 const iconOf = p => (MI[p.icon] ? p.icon : p.compose ? 'sync_alt' : 'route');
 function tileArt(p, size = '') { return `<span class="tile-art tone-${toneOf(p)} ${size}">${mi(iconOf(p))}</span>`; }
+// A pathway's other names worth showing on its tile: ones that say something new (not "beta oxidation" for β-Oxidation).
+function otherNames(p, max = 3) {
+  const n = norm(p.name), seen = [n];
+  return (p.aliases || []).filter(a => { const k = norm(a); if (!k || seen.some(x => x.includes(k) || k.includes(x))) return false; seen.push(k); return true; }).slice(0, max);
+}
 function tileHTML(p, page, selected) {
   const a = Stats.accuracy(p.id), pr = !p.compose && pairOf(p.id), tags = tagsOf(p.id), st = Library.status(p.id);
   const partner = pr && pr.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(', ');
   const meta = `${plural((p.reactions || []).length, 'step')}${p.shared?.by ? ` · by ${esc(p.shared.by)}` : ''}${pr ? ` <span class="tile-combo" data-tip="Combines with ${esc(partner)}" aria-label="Combines with ${esc(partner)}">${mi('link', 'sm')}</span>` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited' : 'yours'}` : ''}`;
   const acc = a ? `<span class="tile-acc"><span class="meter" role="img" aria-label="${a.pct} percent"><span style="width:${a.pct}%"></span></span>${a.pct}%</span>` : '<span class="tile-acc muted">not studied</span>';
   const tagHTML = tags.length || systemsOf(p.id).length ? `<span class="tile-tags">${sysChips(p.id)}${tags.map(t => `<span class="tagchip">${esc(t)}</span>`).join('')}</span>` : '';
+  const aka = otherNames(p), akaHTML = aka.length ? `<span class="tile-aka">Also: ${esc(aka.join(' · '))}</span>` : '';
   if (page === 'new') return `<button class="ptile${selected ? ' on' : ''}" data-cpick="${esc(p.id)}" aria-pressed="${selected}">
-      ${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span>${selected ? `<span class="tile-check">${mi('check')}</span>` : ''}</button>`;
+      ${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span>${akaHTML}<span class="tile-meta">${meta}</span>${acc}${tagHTML}</span>${selected ? `<span class="tile-check">${mi('check')}</span>` : ''}</button>`;
   return `<article class="ptile lib">
-      <a class="tile-link" href="#/pathways/${esc(p.id)}">${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span><span class="tile-meta">${meta}</span>${acc}${tagHTML}</span></a>
+      <a class="tile-link" href="#/pathways/${esc(p.id)}">${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span>${akaHTML}<span class="tile-meta">${meta}</span>${acc}${tagHTML}</span></a>
       <div class="tile-actions"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${esc(p.id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn small ghost" data-lib="tags" data-id="${esc(p.id)}">${mi('sell', 'sm')} Tags</button>
         ${pairsOf(p.id).map(pp => `<button class="btn small ghost" data-lib="study" data-id="${esc(pp.id)}" title="${esc(pp.name)}: both on one diagram">${mi('sync_alt', 'sm')} Study with ${esc(pp.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(' + '))}</button>`).join('')}</div>
     </article>`;
@@ -408,7 +414,7 @@ function editTags(id) {
 const elTip = (v, mode) => ({
   show: 'Shown with names the whole time',
   quiz: mode === 'step' ? 'Asked as a question for each step' : 'Hidden as blanks for you to fill in',
-  place: 'No compartment colors or names: you mark where the pathway crosses a membrane, then name each part',
+  place: 'Drawn without them: you mark where the pathway crosses a membrane, then name each part',
   hide: 'Left out: not shown and not asked',
 }[v]);
 function renderCreate() {
@@ -419,7 +425,9 @@ function renderCreate() {
   const hasQuiz = d.mode === 'review' || elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place'), picked = allE || !!d.pathway;
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
-  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) zonesHere = Object.values(modelFor(qp).items).filter(it => it.kind === 'loc'); } catch {}
+  // Effects (activates / inhibits): a row only when a chosen pathway marks them.
+  let effectsHere = false;
+  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); } } catch {}
   const placeNote = () => {
     const qp = Library.get(draftPathway(d));
     if (qp?.stitch) return `<span class="el-note muted small">${mi('help', 'sm')} Place works on one pathway at a time; with connected pathways, compartments just show.</span>`;
@@ -428,8 +436,13 @@ function renderCreate() {
     return `<span class="el-note muted small">${mi('help', 'sm')} ${grid ? 'This pathway branches out, so there’s no list to place compartments in; they’ll just show.' : `No compartment colors or names. ${when ? when + ', y' : 'Y'}ou mark where the pathway crosses a membrane, then name each part (in list view).`}</span>`;
   };
   const elNote = k => (k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
-  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length))
-    .map(([k, label, allowed]) => `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(v => [v, { show: 'Show', quiz: 'Quiz', place: 'Place', hide: 'Hide' }[v], elTip(v, d.mode)]), elOf(d, k))}${elNote(k)}</div>`).join('');
+  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere))
+    .map(([k, label, allowed]) => {
+      // Show / Quiz / Hide; where it can also be drawn (compartments), Quiz then asks how: fill in the blanks, or draw it yourself.
+      const v = elOf(d, k), draw = allowed.includes('place'), top = v === 'place' ? 'quiz' : v;
+      const how = draw && top === 'quiz' ? `<div class="el-sub"><span class="muted small">How</span>${seg('data-celhow', k, [['quiz', 'Fill in the blank', elTip('quiz', d.mode)], ['place', 'Draw yourself', elTip('place', d.mode)]], v)}</div>` : '';
+      return `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.filter(x => x !== 'place').map(x => [x, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[x], elTip(x, d.mode)]), top)}${how}${elNote(k)}</div>`;
+    }).join('');
   let modeOpts = '';
   if (d.mode === 'total') {
     const m = d.pathway && modelFor(Library.get(draftPathway(d)));
@@ -564,7 +577,9 @@ document.addEventListener('click', e => {
   const nb = e.target.closest('[data-cname]');
   if (nb) { d.nameModes = { ...nameModesCfg(d), [nb.dataset.cname]: nb.dataset.v }; delete d.names; delete d.fullNames; delete d.autoSubmit; C.presetId = ''; return renderCreate(); }
   const eb = e.target.closest('[data-cel]');
-  if (eb) { d.el[eb.dataset.cel] = eb.dataset.v; C.presetId = ''; return renderCreate(); }
+  if (eb) { const k = eb.dataset.cel; if (!(eb.dataset.v === 'quiz' && d.el[k] === 'place')) d.el[k] = eb.dataset.v; C.presetId = ''; return renderCreate(); }
+  const hb = e.target.closest('[data-celhow]');
+  if (hb) { d.el[hb.dataset.celhow] = hb.dataset.v; C.presetId = ''; return renderCreate(); }
   const a = e.target.closest('[data-c]');
   if (!a) return;
   if (a.dataset.c === 'start') {

@@ -255,6 +255,7 @@ function stitchPathway(ids) {
     for (const [k, e] of Object.entries(t.enzymes)) { eid[k] = pre(k); out.enzymes[eid[k]] = clone(e); if (t.terms?.enz && !e.term) out.enzymes[eid[k]].term = t.terms.enz; }
     const rx = t.reactions.map(r => {
       const nr = { ...clone(r), id: pre(r.id), enzyme: eid[r.enzyme], from: mid[r.from], to: mid[r.to] };
+      if (t.effects) nr.fx = true; // its pathway marks each step as activating or inhibiting
       if (r.also_to) nr.also_to = r.also_to.map(x => mid[x]);
       if (r.also_from) nr.also_from = r.also_from.map(x => mid[x]);
       out.stitch.origin.r[nr.id] = [t.id, r.id];

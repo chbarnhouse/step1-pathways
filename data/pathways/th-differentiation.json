@@ -275,10 +275,15 @@
    "notes": "IL-4 (from Th2 cells, mast cells, basophils) is the decisive one."
   },
   "e_th17": {
-   "name": "TGF-β + IL-6 (+ IL-23)",
+   "name": "TGF-β + IL-1 + IL-6 (+ IL-23)",
    "short": "",
    "aliases": [
+    "TGF-β + IL-6",
     "TGF-β and IL-6",
+    "TGF-β, IL-1, IL-6",
+    "TGF-β + IL-6 + IL-1",
+    "IL-1 + IL-6 + TGF-β",
+    "IL-1",
     "TGF-beta + IL-6",
     "IL-6 + TGF-β",
     "IL-6 and TGF-β",
@@ -286,7 +291,7 @@
     "IL-23",
     "IL-6"
    ],
-   "notes": "TGF-β with IL-6 makes Th17 cells (TGF-β alone makes Tregs); IL-23 keeps them going."
+   "notes": "TGF-β with IL-6 (and IL-1) makes Th17 cells (TGF-β alone makes Tregs); IL-23 keeps them going."
   },
   "e_treg": {
    "name": "TGF-β + IL-2",
@@ -340,6 +345,7 @@
     "out": [
      "il4",
      "il5",
+     "il6",
      "il10",
      "il13"
     ]

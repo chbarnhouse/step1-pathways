@@ -372,6 +372,15 @@ form.inl { margin: 0; display: block; height: 100%; }
 .flow .elab.given text { fill: var(--ink); font-size: var(--fs-md); font-weight: 700; font-style: normal; }
 .flow .cofl { font-style: normal; font-size: var(--fs-xs); fill: var(--muted); }
 .flow .ln { stroke: var(--ink-2); stroke-width: 2; fill: none; }
+.flow .ln.inh-bar { stroke-width: 3; stroke-linecap: round; }
+/* Effects: activates green (arrowhead), inhibits red (flat bar); the shape and the label carry it too. */
+:root { --fx-act: var(--good); --fx-inh: var(--bad); }
+.flow .ln.fx-act { stroke: var(--fx-act); }
+.flow .ah.fx-act { fill: var(--fx-act); }
+.flow .ln.fx-inh { stroke: var(--fx-inh); }
+.flow .effq-dot { fill: var(--card, #fff); stroke: var(--ink-2); stroke-width: 2; }
+.flow .ln.eff-target { stroke: var(--orange); stroke-width: 3.5; }
+.flow .ln.eff-target + .effq-dot { stroke: var(--orange); stroke-width: 3; }
 .flow .ln.trn { stroke-dasharray: 6 4; }
 .flow .ah { fill: var(--ink-2); }
 .flow .unk { stroke: var(--slate); stroke-dasharray: 4 4; }
@@ -610,6 +619,7 @@ h1 .tile-art { vertical-align: middle; margin-right: 6px; }
 .ptile.lib .tile-name { padding-right: 0; } /* the room on the right is for New quiz's check mark */
 .ptile.on .tile-name { color: var(--blue); }
 .tile-meta { font-size: var(--fs-sm); color: var(--muted); overflow-wrap: anywhere; }
+.tile-aka { font-size: var(--fs-xs); color: var(--ink-2); font-style: italic; line-height: 1.3; overflow-wrap: anywhere; }
 .tile-acc { display: flex; align-items: center; gap: 8px; font-size: var(--fs-sm); font-variant-numeric: tabular-nums; }
 .tile-acc .meter { width: 70px; min-width: 70px; }
 .tile-tags, .tagrow { display: flex; flex-wrap: wrap; gap: 4px; align-items: center; }
@@ -1154,3 +1164,5 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .morectx { margin-top: 14px; }
 .morectx > summary { list-style: none; display: inline-flex; }
 .morectx > summary::-webkit-details-marker { display: none; }
+/* New quiz: under Quiz, how it's asked (compartments: fill in the blank or draw yourself). */
+.el-sub { grid-column: 1 / -1; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; padding-left: 14px; border-left: 2px solid var(--line); }

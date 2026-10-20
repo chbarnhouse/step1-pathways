@@ -10,6 +10,14 @@ const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy
 const CHANGELOG = [
   { v: 'next', items: [
     'Immunology: three new pathways in Blood & immunity. Helper T cell differentiation (naive CD4⁺ → Th1, Th2, Th17, Treg, Tfh: the cytokines that drive each, its master transcription factor as what it needs, and the cytokines it then makes). Cytokines (who makes each one and what it acts on, IL-1 to IL-13, IFN-γ, TNF-α, with the drugs that block them). B cell class switching (CD40L, then IFN-γ → IgG, IL-4/IL-13 → IgE, TGF-β → IgA, all needing AID). Blanks there ask for a cell or a cytokine rather than a metabolite or an enzyme.',
+    'Cytokines redrawn as one network: each cell appears once, and each cytokine is an arrow from the cell that makes it to what it acts on, so the loops show (macrophage IL-12 → Th1 and NK cells, their IFN-γ → back to macrophages; Th1 and Th2 holding each other back). Th17 cells added: IL-17 draws neutrophils; IFN-γ and IL-4 hold them back; IL-6 holds back Tregs.',
+    'Activates or inhibits: in Cytokines, a step that activates is a green line ending in an arrow, one that inhibits a red line ending in a flat bar (and labeled). New quiz has an Effects row (Show / Quiz / Hide) when a chosen pathway has them; Quiz asks Activates or Inhibits for each step.',
+    'Helper T cell differentiation: IL-1 joins TGF-β and IL-6 in making Th17 cells; Th2 cells also make IL-6.',
+    'New pathway: Hematopoiesis. One stem cell to every blood cell: the myeloid line (red cells, platelets, granulocytes, monocytes and macrophages, mast cells) and the lymphoid line (B and plasma cells, T cells and their CD4/CD8 split, NK cells), with the signal that drives each step (EPO, TPO, G-CSF, M-CSF, IL-7…) and the drugs that copy them.',
+    'Library: two new tabs, Cells and Cytokines. Each cell’s page shows what it comes from and becomes, the cytokines it makes and the ones that act on it; each cytokine’s page shows which cells make it, what it acts on or holds back, and what it drives.',
+    'Library and New quiz: each pathway tile shows its other names (“Also: Leloir pathway”).',
+    'New quiz: Show / Quiz / Hide for each part. For compartments, Quiz then asks how: Fill in the blank, or Draw yourself.',
+    'Long names in boxes wrap onto two lines instead of shrinking to tiny text.',
   ] },
   { v: '3.11.1', date: '2026-10-20', items: [
     'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',

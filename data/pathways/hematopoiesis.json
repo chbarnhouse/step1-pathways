@@ -1,0 +1,767 @@
+{
+ "id": "hematopoiesis",
+ "name": "Hematopoiesis",
+ "group": "Blood & immunity",
+ "systems": [
+  "Heme"
+ ],
+ "tags": [
+  "Immunology",
+  "Drug targets"
+ ],
+ "terms": {
+  "met": "cell",
+  "enz": "signal"
+ },
+ "aliases": [
+  "hematopoietic stem cell differentiation",
+  "blood cell development",
+  "hematopoietic lineage",
+  "myeloid and lymphoid lineages",
+  "HSC differentiation",
+  "haematopoiesis"
+ ],
+ "summary": "One hematopoietic stem cell (CD34⁺) makes every blood cell. The common myeloid progenitor gives red cells (EPO), platelets (TPO, via megakaryocytes), granulocytes (G-CSF; IL-5 for eosinophils), monocytes and macrophages (M-CSF) and mast cells; the common lymphoid progenitor (IL-7) gives B cells, T cells (matured in the thymus) and NK cells (IL-15). Drugs that mimic the signals: epoetin, filgrastim (G-CSF), sargramostim (GM-CSF), romiplostim and eltrombopag (TPO).",
+ "tissue": "bone marrow (adults: axial skeleton; fetus: yolk sac, then liver and spleen, then marrow — “Young Liver Synthesizes Blood”)",
+ "icon": "bloodtype",
+ "color": "pink",
+ "layout": "grid",
+ "grid_columns": [],
+ "links": [
+  {
+   "at": "cd4",
+   "to": "th-differentiation",
+   "dir": "out",
+   "via": "Th subsets"
+  },
+  {
+   "at": "bcell",
+   "to": "class-switching",
+   "dir": "out",
+   "via": "class switching"
+  }
+ ],
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Lymphoblast",
+   "Promyelocyte",
+   "Osteoblast",
+   "Dendritic cell"
+  ],
+  "enzymes": [
+   "IL-6",
+   "IL-2",
+   "TGF-β",
+   "IFN-γ"
+  ]
+ },
+ "metabolites": {
+  "hsc": {
+   "name": "Hematopoietic stem cell",
+   "short": "HSC",
+   "aliases": [
+    "HSC",
+    "hematopoietic stem cell",
+    "pluripotent stem cell",
+    "CD34+ cell",
+    "multipotent stem cell"
+   ],
+   "notes": "CD34⁺. Self-renews and makes every blood cell. Lives in the bone marrow niche; mobilized into blood by G-CSF (and plerixafor) for stem cell transplant collection.",
+   "pos": [
+    5,
+    0
+   ]
+  },
+  "cmp": {
+   "name": "Common myeloid progenitor",
+   "short": "CMP",
+   "aliases": [
+    "CMP",
+    "myeloid stem cell",
+    "myeloid progenitor",
+    "CFU-GEMM"
+   ],
+   "notes": "Gives red cells, platelets, granulocytes, monocytes (and mast cells). Its malignant clones: myeloproliferative neoplasms (CML, polycythemia vera, essential thrombocythemia, myelofibrosis) and AML.",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "clp": {
+   "name": "Common lymphoid progenitor",
+   "short": "CLP",
+   "aliases": [
+    "CLP",
+    "lymphoid stem cell",
+    "lymphoid progenitor"
+   ],
+   "notes": "Gives B cells, T cells and NK cells. Its malignant clones: ALL and lymphomas.",
+   "pos": [
+    8,
+    1
+   ]
+  },
+  "mep": {
+   "name": "Megakaryocyte–erythroid progenitor",
+   "short": "MEP",
+   "aliases": [
+    "MEP",
+    "megakaryocyte-erythroid progenitor",
+    "megakaryocyte erythroid progenitor"
+   ],
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "gmp": {
+   "name": "Granulocyte–monocyte progenitor",
+   "short": "GMP",
+   "aliases": [
+    "GMP",
+    "granulocyte-monocyte progenitor",
+    "CFU-GM",
+    "granulocyte macrophage progenitor"
+   ],
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "rbc": {
+   "name": "Erythrocyte",
+   "short": "RBC",
+   "aliases": [
+    "RBC",
+    "red blood cell",
+    "red cell",
+    "erythrocyte",
+    "reticulocyte"
+   ],
+   "notes": "Via proerythroblasts, normoblasts (nucleus expelled) and reticulocytes (a day in blood, RNA still in them). Lives about 120 days; no mitochondria, so glycolysis only (2,3-BPG). Reticulocyte count shows marrow response.",
+   "pos": [
+    0,
+    3
+   ]
+  },
+  "mk": {
+   "name": "Megakaryocyte",
+   "short": "",
+   "aliases": [
+    "megakaryocyte",
+    "MK"
+   ],
+   "notes": "Huge, polyploid marrow cell that sheds platelets from its cytoplasm.",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "plt": {
+   "name": "Platelets",
+   "short": "PLT",
+   "aliases": [
+    "platelet",
+    "platelets",
+    "thrombocytes",
+    "thrombocyte"
+   ],
+   "notes": "Anucleate fragments; live 8–10 days, a third held in the spleen. Granules: dense (ADP, Ca²⁺, serotonin) and α (vWF, fibrinogen, fibronectin, PF4). GPIb binds vWF (Bernard-Soulier when missing); GPIIb/IIIa binds fibrinogen (Glanzmann).",
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "mb": {
+   "name": "Myeloblast",
+   "short": "",
+   "aliases": [
+    "myeloblast"
+   ],
+   "notes": "First of the granulocyte line; Auer rods in AML.",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "neut": {
+   "name": "Neutrophil",
+   "short": "",
+   "aliases": [
+    "neutrophil",
+    "PMN",
+    "polymorphonuclear leukocyte",
+    "segmented neutrophil"
+   ],
+   "notes": "Most numerous leukocyte; acute inflammation and bacteria. Multilobed nucleus (hypersegmented in B12/folate deficiency); band forms in infection. Granules: myeloperoxidase, lysozyme, alkaline phosphatase. Drawn by IL-8, C5a, LTB₄, kallikrein.",
+   "pos": [
+    3,
+    4
+   ]
+  },
+  "eos": {
+   "name": "Eosinophil",
+   "short": "",
+   "aliases": [
+    "eosinophil",
+    "eosinophils"
+   ],
+   "notes": "Bilobed, red-orange granules (major basic protein): helminths and allergy. Raised by “PACCMAN”: parasites, asthma, chronic adrenal insufficiency, Churg-Strauss, myeloproliferative disorders, allergy, neoplasia.",
+   "pos": [
+    4,
+    4
+   ]
+  },
+  "baso": {
+   "name": "Basophil",
+   "short": "",
+   "aliases": [
+    "basophil",
+    "basophils"
+   ],
+   "notes": "Rarest leukocyte; dark granules with heparin and histamine, makes leukotrienes. Basophilia suggests a myeloproliferative neoplasm (CML).",
+   "pos": [
+    5,
+    4
+   ]
+  },
+  "mono": {
+   "name": "Monocyte",
+   "short": "",
+   "aliases": [
+    "monocyte",
+    "monocytes"
+   ],
+   "notes": "Kidney-bean nucleus; in blood 1–3 days, then into tissue as a macrophage or dendritic cell.",
+   "pos": [
+    6,
+    3
+   ]
+  },
+  "mac": {
+   "name": "Macrophage",
+   "short": "",
+   "aliases": [
+    "macrophage",
+    "macrophages",
+    "histiocyte",
+    "tissue macrophage"
+   ],
+   "notes": "Phagocytes and antigen presenters (MHC II), named by tissue: Kupffer cells (liver), microglia (brain), alveolar macrophages, osteoclasts (bone), Langerhans cells are dendritic. Activated by IFN-γ; make IL-1, IL-6, IL-8, IL-12, TNF-α.",
+   "pos": [
+    6,
+    4
+   ]
+  },
+  "mast": {
+   "name": "Mast cell",
+   "short": "",
+   "aliases": [
+    "mast cell",
+    "mast cells"
+   ],
+   "notes": "Tissue cell (from a myeloid precursor); IgE on FcεRI cross-linked by antigen releases histamine, heparin, tryptase: type I hypersensitivity. Cromolyn stabilizes it.",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "bcell": {
+   "name": "B cell",
+   "short": "",
+   "aliases": [
+    "B cell",
+    "B lymphocyte",
+    "B cells"
+   ],
+   "notes": "Matures in the bone marrow (central tolerance there); humoral immunity. CD19, CD20, CD21 (EBV receptor). Becomes a plasma cell or memory B cell.",
+   "pos": [
+    7,
+    2
+   ]
+  },
+  "plasma": {
+   "name": "Plasma cell",
+   "short": "",
+   "aliases": [
+    "plasma cell",
+    "plasma cells",
+    "plasmacyte"
+   ],
+   "notes": "Makes large amounts of one antibody; clock-face chromatin, perinuclear halo (Golgi). Multiple myeloma is its cancer.",
+   "pos": [
+    7,
+    3
+   ]
+  },
+  "tcell": {
+   "name": "T cell",
+   "short": "",
+   "aliases": [
+    "T cell",
+    "T lymphocyte",
+    "T cells",
+    "thymocyte"
+   ],
+   "notes": "Leaves the marrow as a progenitor and matures in the thymus: positive selection (cortex, MHC binding) then negative selection (medulla, AIRE, self). CD3. DiGeorge syndrome: no thymus, no T cells.",
+   "pos": [
+    8,
+    2
+   ]
+  },
+  "cd4": {
+   "name": "CD4⁺ helper T cell",
+   "short": "Th",
+   "aliases": [
+    "CD4 T cell",
+    "helper T cell",
+    "CD4+ T cell",
+    "T helper cell"
+   ],
+   "notes": "Sees MHC II; becomes Th1, Th2, Th17, Treg or Tfh (see Helper T cell differentiation). HIV infects it.",
+   "pos": [
+    8,
+    3
+   ]
+  },
+  "cd8": {
+   "name": "CD8⁺ cytotoxic T cell",
+   "short": "CTL",
+   "aliases": [
+    "CD8 T cell",
+    "cytotoxic T cell",
+    "CD8+ T cell",
+    "CTL",
+    "killer T cell"
+   ],
+   "notes": "Sees MHC I; kills infected and tumor cells with perforin and granzymes, or Fas ligand.",
+   "pos": [
+    9,
+    3
+   ]
+  },
+  "nk": {
+   "name": "NK cell",
+   "short": "NK",
+   "aliases": [
+    "NK cell",
+    "natural killer cell",
+    "NK cells"
+   ],
+   "notes": "Innate lymphocyte (CD16, CD56); kills cells that lack MHC I (missing self) and antibody-coated cells (ADCC). Activated by IL-2, IL-12, IL-15, IFN-α/β.",
+   "pos": [
+    9,
+    1
+   ]
+  }
+ },
+ "enzymes": {
+  "scf": {
+   "name": "SCF + IL-3",
+   "short": "",
+   "aliases": [
+    "SCF",
+    "stem cell factor",
+    "IL-3",
+    "SCF and IL-3",
+    "kit ligand"
+   ],
+   "notes": "Stem cell factor (c-kit ligand) and IL-3 keep progenitors growing."
+  },
+  "il7": {
+   "name": "IL-7",
+   "short": "",
+   "aliases": [
+    "IL-7",
+    "interleukin-7"
+   ],
+   "notes": "Lymphoid development, from the marrow stroma and thymus. IL-7 receptor α (and the common γ chain) defects: SCID."
+  },
+  "il3": {
+   "name": "IL-3",
+   "short": "",
+   "aliases": [
+    "IL-3",
+    "interleukin-3",
+    "multi-CSF"
+   ]
+  },
+  "gmcsf": {
+   "name": "GM-CSF",
+   "short": "",
+   "aliases": [
+    "GM-CSF",
+    "granulocyte-macrophage colony-stimulating factor",
+    "sargramostim"
+   ],
+   "notes": "Sargramostim (recombinant GM-CSF) speeds marrow recovery."
+  },
+  "epo": {
+   "name": "Erythropoietin",
+   "short": "EPO",
+   "aliases": [
+    "EPO",
+    "erythropoietin",
+    "epoetin"
+   ],
+   "notes": "Made by peritubular interstitial cells of the kidney in response to hypoxia (HIF). Low in chronic kidney disease (anemia); high in hypoxia and from some tumors (renal cell carcinoma, hepatocellular carcinoma). Epoetin alfa replaces it; athletes abuse it."
+  },
+  "tpo": {
+   "name": "Thrombopoietin",
+   "short": "TPO",
+   "aliases": [
+    "TPO",
+    "thrombopoietin",
+    "romiplostim",
+    "eltrombopag"
+   ],
+   "notes": "Made by the liver. Romiplostim and eltrombopag (TPO receptor agonists) treat immune thrombocytopenia."
+  },
+  "gcsf": {
+   "name": "G-CSF",
+   "short": "",
+   "aliases": [
+    "G-CSF",
+    "granulocyte colony-stimulating factor",
+    "filgrastim"
+   ],
+   "notes": "Filgrastim (recombinant G-CSF) treats neutropenia after chemotherapy and mobilizes stem cells."
+  },
+  "il5": {
+   "name": "IL-5",
+   "short": "",
+   "aliases": [
+    "IL-5",
+    "interleukin-5"
+   ],
+   "notes": "From Th2 cells; mepolizumab blocks it."
+  },
+  "mcsf": {
+   "name": "M-CSF",
+   "short": "",
+   "aliases": [
+    "M-CSF",
+    "macrophage colony-stimulating factor",
+    "CSF-1"
+   ],
+   "notes": "Also drives osteoclast formation (with RANKL)."
+  },
+  "tissue": {
+   "name": "Enters tissue",
+   "short": "",
+   "aliases": [
+    "migration into tissue",
+    "tissue entry",
+    "diapedesis",
+    "extravasation"
+   ],
+   "notes": "Monocytes leave the blood and mature into macrophages and dendritic cells in tissues."
+  },
+  "shed": {
+   "name": "Platelet shedding",
+   "short": "",
+   "aliases": [
+    "fragmentation",
+    "proplatelets",
+    "shedding"
+   ],
+   "notes": "Megakaryocytes push out proplatelets that break into platelets in marrow sinusoids."
+  },
+  "thymus": {
+   "name": "Thymus",
+   "short": "",
+   "aliases": [
+    "thymus",
+    "thymic selection",
+    "positive and negative selection",
+    "IL-7"
+   ],
+   "notes": "Maturation and selection in the thymus."
+  },
+  "cd4sel": {
+   "name": "MHC II selection",
+   "short": "",
+   "aliases": [
+    "MHC II",
+    "positive selection",
+    "thymic selection",
+    "thymic selection (MHC II)"
+   ],
+   "notes": "T cells whose TCR binds MHC II keep CD4."
+  },
+  "cd8sel": {
+   "name": "MHC I selection",
+   "short": "",
+   "aliases": [
+    "MHC I",
+    "positive selection",
+    "thymic selection",
+    "thymic selection (MHC I)"
+   ],
+   "notes": "T cells whose TCR binds MHC I keep CD8."
+  },
+  "il15": {
+   "name": "IL-15",
+   "short": "",
+   "aliases": [
+    "IL-15",
+    "interleukin-15"
+   ],
+   "notes": "NK cell development and survival."
+  },
+  "act": {
+   "name": "Antigen + T cell help",
+   "short": "",
+   "aliases": [
+    "antigen",
+    "CD40L",
+    "T cell help",
+    "activation"
+   ],
+   "notes": "Antigen on the B cell receptor plus help from a helper T cell (CD40L, cytokines)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "scf",
+   "from": "hsc",
+   "to": "cmp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r2",
+   "enzyme": "il7",
+   "from": "hsc",
+   "to": "clp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r3",
+   "enzyme": "il3",
+   "from": "cmp",
+   "to": "mep",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r4",
+   "enzyme": "gmcsf",
+   "from": "cmp",
+   "to": "gmp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r5",
+   "enzyme": "epo",
+   "from": "mep",
+   "to": "rbc",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r6",
+   "enzyme": "tpo",
+   "from": "mep",
+   "to": "mk",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r7",
+   "enzyme": "shed",
+   "from": "mk",
+   "to": "plt",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r8",
+   "enzyme": "gcsf",
+   "from": "gmp",
+   "to": "mb",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r9",
+   "enzyme": "gcsf",
+   "from": "mb",
+   "to": "neut",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r10",
+   "enzyme": "il5",
+   "from": "mb",
+   "to": "eos",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r11",
+   "enzyme": "il3",
+   "from": "mb",
+   "to": "baso",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r12",
+   "enzyme": "mcsf",
+   "from": "gmp",
+   "to": "mono",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r13",
+   "enzyme": "tissue",
+   "from": "mono",
+   "to": "mac",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "tissue"
+  },
+  {
+   "id": "r14",
+   "enzyme": "scf",
+   "from": "cmp",
+   "to": "mast",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "tissue"
+  },
+  {
+   "id": "r15",
+   "enzyme": "il7",
+   "from": "clp",
+   "to": "bcell",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  },
+  {
+   "id": "r16",
+   "enzyme": "act",
+   "from": "bcell",
+   "to": "plasma",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "lymph node"
+  },
+  {
+   "id": "r17",
+   "enzyme": "thymus",
+   "from": "clp",
+   "to": "tcell",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "thymus"
+  },
+  {
+   "id": "r18",
+   "enzyme": "cd4sel",
+   "from": "tcell",
+   "to": "cd4",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "thymus"
+  },
+  {
+   "id": "r19",
+   "enzyme": "cd8sel",
+   "from": "tcell",
+   "to": "cd8",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "thymus"
+  },
+  {
+   "id": "r20",
+   "enzyme": "il15",
+   "from": "clp",
+   "to": "nk",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "bone marrow"
+  }
+ ]
+}
