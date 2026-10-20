@@ -8,6 +8,9 @@
 const APP_VERSION = '3.11.1';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+    'Immunology: three new pathways in Blood & immunity. Helper T cell differentiation (naive CD4⁺ → Th1, Th2, Th17, Treg, Tfh: the cytokines that drive each, its master transcription factor as what it needs, and the cytokines it then makes). Cytokines (who makes each one and what it acts on, IL-1 to IL-13, IFN-γ, TNF-α, with the drugs that block them). B cell class switching (CD40L, then IFN-γ → IgG, IL-4/IL-13 → IgE, TGF-β → IgA, all needing AID). Blanks there ask for a cell or a cytokine rather than a metabolite or an enzyme.',
+  ] },
   { v: '3.11.1', date: '2026-10-20', items: [
     'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',
   ] },
