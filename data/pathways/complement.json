@@ -17,7 +17,7 @@
   "lectin pathway",
   "membrane attack complex"
  ],
- "summary": "Three ways in, one way out. Classical (C1 on IgG/IgM–antigen complexes) and lectin (MBL on microbial mannose) cut C4 and C2 into C4b2a; the alternative pathway (spontaneous C3 on microbial surfaces, factor B, factor D) makes C3bBb. Both C3 convertases cut C3: C3b opsonizes and joins them to make C5 convertases; C3a and C5a are anaphylatoxins (C5a also draws neutrophils). C5b with C6–C9 forms the membrane attack complex, which lyses Neisseria. Regulators: C1 inhibitor (HAE), DAF/CD55 and CD59 (PNH), factor H.",
+ "summary": "Three ways in, one way out. Classical: C1 binds IgG or IgM on antigen. Lectin: mannose-binding lectin with its MASPs binds microbial sugars. Both cut C4 and C2 (C4a, C2a released) and C4b + C2b make the C3 convertase C4b2b. Alternative: C3 breaks down on its own; C3b on a microbe binds factor B, factor D cuts it, and C3bBb (stabilized by properdin) is the C3 convertase. Both convertases cut C3: C3a is an anaphylatoxin, C3b an opsonin that also joins each convertase to make the C5 convertases (and feeds the alternative pathway: amplification). C5 → C5a (anaphylatoxin, draws neutrophils) + C5b, which with C6–C9 forms the membrane attack complex (lyses Neisseria). Regulators: C1 esterase inhibitor (hereditary angioedema), DAF/CD55 and CD59 (PNH), factor H and factor I.",
  "tissue": "blood plasma and tissue fluid (made mostly in the liver)",
  "icon": "shield",
  "color": "teal",
@@ -27,14 +27,8 @@
   "c4a": {
    "name": "C4a",
    "aliases": [
-    "complement C4a"
-   ]
-  },
-  "c2b": {
-   "name": "C2b",
-   "aliases": [
-    "complement C2b",
-    "C2a (older naming)"
+    "complement C4a",
+    "anaphylatoxin C4a"
    ]
   },
   "ba": {
@@ -48,14 +42,16 @@
    "name": "C3a",
    "aliases": [
     "complement C3a",
-    "anaphylatoxin C3a"
+    "anaphylatoxin C3a",
+    "anaphylatoxin"
    ]
   },
   "c5a": {
    "name": "C5a",
    "aliases": [
     "complement C5a",
-    "anaphylatoxin C5a"
+    "anaphylatoxin C5a",
+    "anaphylatoxin"
    ]
   },
   "c6": {
@@ -82,6 +78,14 @@
     "complement C9",
     "poly-C9"
    ]
+  },
+  "c2a": {
+   "name": "C2a",
+   "aliases": [
+    "complement C2a",
+    "C2b (older naming)",
+    "small C2 fragment"
+   ]
   }
  },
  "distractors": {
@@ -90,7 +94,9 @@
    "iC3b",
    "C3d",
    "Properdin",
-   "C4b"
+   "C3(H₂O)",
+   "Factor H",
+   "C4a"
   ],
   "enzymes": [
    "Factor H",
@@ -98,55 +104,119 @@
    "C1 esterase inhibitor",
    "Decay-accelerating factor",
    "CD59",
-   "Properdin"
+   "Properdin",
+   "Plasmin",
+   "Thrombin"
   ]
  },
  "metabolites": {
-  "c42": {
-   "name": "C4 + C2",
+  "c4": {
+   "name": "C4",
    "short": "",
    "aliases": [
-    "C4 and C2",
-    "C2 + C4",
-    "C4, C2",
-    "C4 C2"
+    "complement C4",
+    "complement component 4"
    ],
-   "notes": "Cleaved into C4b and C2a, which join on the microbe’s surface. C2 or C4 deficiency raises the risk of SLE.",
+   "notes": "Cut by C1s (classical) or MASP-2 (lectin). Low C4 with normal C3: C1 inhibitor deficiency (hereditary angioedema) between attacks is low C4 too.",
    "pos": [
     0,
     0
    ]
   },
-  "c3b_fb": {
-   "name": "C3(H₂O) + factor B",
+  "c2": {
+   "name": "C2",
    "short": "",
    "aliases": [
-    "C3 + factor B",
-    "C3(H2O) + factor B",
-    "C3H2O and factor B",
-    "C3 and factor B",
-    "C3b + factor B"
+    "complement C2",
+    "complement component 2"
    ],
-   "notes": "C3 hydrolyzes on its own all the time (tickover); on a microbe’s surface, with no host regulators to stop it, the product binds factor B.",
+   "notes": "Cut by C1s or MASP-2. C2 deficiency is the most common inherited complement deficiency (SLE-like disease).",
    "pos": [
-    2,
+    1,
     0
+   ]
+  },
+  "c4b": {
+   "name": "C4b",
+   "short": "",
+   "aliases": [
+    "complement C4b"
+   ],
+   "notes": "The larger piece; binds the microbial surface next to the antibody or lectin, then takes up C2b.",
+   "pos": [
+    0,
+    1
+   ]
+  },
+  "c2b": {
+   "name": "C2b",
+   "short": "",
+   "aliases": [
+    "complement C2b",
+    "C2a (older naming)"
+   ],
+   "notes": "The larger piece of C2 (it used to be called C2a, so older books write the convertase C4b2a).",
+   "pos": [
+    1,
+    1
    ]
   },
   "c4b2a": {
-   "name": "C4b2a",
+   "name": "C4b2b",
    "short": "",
    "aliases": [
+    "C4b2a",
+    "C4bC2b",
+    "C4b-2b",
     "C4bC2a",
-    "C4b-2a",
-    "C4b2b",
     "classical C3 convertase",
     "lectin C3 convertase",
-    "C3 convertase (classical)"
+    "C3 convertase (classical)",
+    "classical and lectin C3 convertase"
    ],
-   "notes": "The C3 convertase of the classical and lectin pathways (newer naming: C4b2b). Decay-accelerating factor (DAF, CD55) takes it apart on host cells.",
+   "notes": "The C3 convertase of the classical and lectin pathways. Decay-accelerating factor (DAF, CD55) takes it apart; C4-binding protein too.",
    "pos": [
     0,
+    2
+   ]
+  },
+  "c3alt": {
+   "name": "C3",
+   "short": "",
+   "aliases": [
+    "complement C3",
+    "complement component 3"
+   ],
+   "notes": "In plasma, C3 breaks down slowly on its own (“tickover”). The C3b it gives sticks to whatever surface is nearest: on our cells regulators (factor H, factor I, DAF) remove it; on microbes it stays and starts the alternative pathway.",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "c3balt": {
+   "name": "C3b",
+   "short": "",
+   "aliases": [
+    "complement C3b",
+    "surface-bound C3b"
+   ],
+   "notes": "C3b from tickover, stuck to a microbial surface. C3b made by any pathway does the same thing here: the amplification loop.",
+   "pos": [
+    3,
+    1
+   ]
+  },
+  "fb": {
+   "name": "Factor B",
+   "short": "",
+   "aliases": [
+    "factor B",
+    "complement factor B",
+    "B"
+   ],
+   "notes": "Binds C3b, then factor D cuts it into Bb (stays: the convertase) and Ba (released).",
+   "pos": [
+    4,
     1
    ]
   },
@@ -159,10 +229,10 @@
     "alternative C3 convertase",
     "C3 convertase (alternative)"
    ],
-   "notes": "The C3 convertase of the alternative pathway; properdin stabilizes it, factor H and DAF take it apart. Every C3b it makes can make another: an amplification loop.",
+   "notes": "The alternative pathway’s C3 convertase; properdin stabilizes it. DAF and factor H take it apart. Every C3b it makes can form another one: the amplification loop.",
    "pos": [
-    2,
-    1
+    3,
+    2
    ]
   },
   "c3": {
@@ -172,9 +242,9 @@
     "complement C3",
     "complement component 3"
    ],
-   "notes": "The hub of all three pathways. C3 deficiency: severe, recurrent pyogenic infections (sinus, respiratory) and immune complex disease.",
+   "notes": "The most abundant complement protein; where all three pathways meet. Low C3: post-streptococcal glomerulonephritis, membranoproliferative GN, SLE (with low C4). C3 deficiency: severe recurrent pyogenic infections (sinus, lung) and immune-complex disease.",
    "pos": [
-    1,
+    2,
     2
    ]
   },
@@ -182,25 +252,27 @@
    "name": "C3b",
    "short": "",
    "aliases": [
-    "complement C3b"
+    "complement C3b",
+    "opsonin C3b"
    ],
-   "notes": "The main opsonin (with IgG): coats microbes for phagocytosis. Also joins the C3 convertases to make the C5 convertases, and clears immune complexes.",
+   "notes": "The opsonin (with IgG): phagocytes bind it through CR1. It also clears immune complexes and joins each C3 convertase to make a C5 convertase. Factor I (with factor H) cuts it to iC3b.",
    "pos": [
-    1,
+    2,
     3
    ]
   },
   "c4b2a3b": {
-   "name": "C4b2a3b",
+   "name": "C4b2b3b",
    "short": "",
    "aliases": [
+    "C4b2a3b",
+    "C4bC2bC3b",
+    "C4b-2b-3b",
     "C4bC2aC3b",
-    "C4b-2a-3b",
-    "C4b2b3b",
     "classical C5 convertase",
     "C5 convertase (classical)"
    ],
-   "notes": "The C5 convertase of the classical and lectin pathways.",
+   "notes": "The classical and lectin C5 convertase.",
    "pos": [
     0,
     4
@@ -212,12 +284,13 @@
    "aliases": [
     "C3bBbC3b",
     "C3b-Bb-3b",
+    "C3bBb3bP",
     "alternative C5 convertase",
     "C5 convertase (alternative)"
    ],
-   "notes": "The C5 convertase of the alternative pathway.",
+   "notes": "The alternative C5 convertase.",
    "pos": [
-    2,
+    3,
     4
    ]
   },
@@ -228,9 +301,9 @@
     "complement C5",
     "complement component 5"
    ],
-   "notes": "Eculizumab binds C5 and blocks its cleavage (PNH, atypical HUS); it raises the risk of Neisseria infection, so patients are vaccinated.",
+   "notes": "Cut by either C5 convertase. Eculizumab and ravulizumab block it (PNH, atypical HUS, myasthenia gravis), so vaccinate against meningococcus first.",
    "pos": [
-    1,
+    2,
     5
    ]
   },
@@ -240,14 +313,15 @@
    "aliases": [
     "complement C5b"
    ],
+   "notes": "Starts the membrane attack complex on the surface.",
    "pos": [
-    1,
+    2,
     6
    ]
   },
   "mac": {
    "name": "Membrane attack complex (C5b–9)",
-   "short": "MAC",
+   "short": "",
    "aliases": [
     "MAC",
     "C5b-9",
@@ -256,9 +330,9 @@
     "membrane attack complex",
     "terminal complement complex"
    ],
-   "notes": "A pore that lyses cells, most importantly Neisseria. Deficiency of C5–C9: recurrent Neisseria (meningococcal, gonococcal) infection. CD59 (protectin) keeps it off host cells; without CD59 and DAF (PNH), red cells lyse.",
+   "notes": "A pore of C5b, C6, C7, C8 and many C9s that lyses the cell; matters most against Neisseria (thin cell wall). CD59 (and DAF) protect our own cells: both missing in PNH (no GPI anchor, PIGA mutation).",
    "pos": [
-    1,
+    2,
     7
    ]
   }
@@ -266,7 +340,7 @@
  "enzymes": {
   "c1": {
    "name": "C1 (C1q, C1r, C1s)",
-   "short": "C1",
+   "short": "",
    "aliases": [
     "C1",
     "C1qrs",
@@ -274,43 +348,72 @@
     "C1 complex",
     "C1s",
     "C1 esterase",
+    "activated C1",
     "classical pathway"
    ],
-   "notes": "Classical pathway: C1q binds antibody on an antigen (IgM best, or two IgG; GM makes classic: IgG and IgM). C1 esterase inhibitor keeps it in check; its deficiency causes hereditary angioedema (with high bradykinin; avoid ACE inhibitors)."
+   "notes": "Classical pathway. C1q binds the Fc of IgM or IgG bound to antigen (“GM makes classic cars”: IgG and IgM fix complement); C1r activates C1s, which cuts C4 and C2. C1 esterase inhibitor shuts it off: deficiency (or ACE inhibitors, which add bradykinin) causes hereditary angioedema."
   },
   "masp": {
    "name": "MBL–MASP",
-   "short": "MBL",
+   "short": "",
    "aliases": [
     "mannose-binding lectin",
     "MBL",
     "MASP",
     "MASP-2",
+    "MASP-1",
     "MBL-MASP",
     "lectin pathway",
+    "C1-like complex",
     "mannose-binding lectin–associated serine protease"
    ],
-   "notes": "Lectin pathway: mannose-binding lectin binds mannose on microbe surfaces, and its MASP proteases cleave C4 and C2 like C1s."
+   "notes": "Lectin pathway. Mannose-binding lectin binds mannose and other sugars on microbial surfaces (no antibody needed); its MASPs (like C1r and C1s) cut C4 and C2."
+  },
+  "tick": {
+   "name": "Spontaneous hydrolysis",
+   "short": "",
+   "aliases": [
+    "spontaneous",
+    "tickover",
+    "C3 tickover",
+    "spontaneous cleavage",
+    "spontaneous hydrolysis of C3",
+    "alternative pathway"
+   ],
+   "notes": "The alternative pathway needs no antibody or lectin: C3 breaks down slowly all the time, and C3b that lands on a microbe (no regulators there) is not removed."
+  },
+  "join_c2b": {
+   "name": "C4b binds C2b",
+   "short": "",
+   "aliases": [
+    "binding",
+    "C2b binds C4b",
+    "C4b + C2b",
+    "assembly"
+   ],
+   "notes": "C4b on the surface takes up C2b to make the classical and lectin C3 convertase."
   },
   "fd": {
    "name": "Factor D",
-   "short": "D",
+   "short": "",
    "aliases": [
     "complement factor D",
     "adipsin",
-    "alternative pathway"
+    "D"
    ],
-   "notes": "Cuts factor B (to Bb) once it has bound C3b."
+   "notes": "Cuts factor B once it is bound to C3b: Bb stays (C3bBb), Ba is released. Properdin then stabilizes C3bBb."
   },
   "c3conv_cl": {
-   "name": "C3 convertase (C4b2a)",
+   "name": "C3 convertase (C4b2b)",
    "short": "",
    "aliases": [
+    "C4b2b",
     "C4b2a",
     "classical C3 convertase",
-    "C4bC2a",
-    "C4b2b"
-   ]
+    "lectin C3 convertase",
+    "C4bC2b"
+   ],
+   "notes": "The classical and lectin C3 convertase."
   },
   "c3conv_alt": {
    "name": "C3 convertase (C3bBb)",
@@ -318,17 +421,19 @@
    "aliases": [
     "C3bBb",
     "alternative C3 convertase"
-   ]
+   ],
+   "notes": "The alternative C3 convertase."
   },
   "addc3b_cl": {
-   "name": "C3b joins C4b2a",
+   "name": "C3b joins C4b2b",
    "short": "",
    "aliases": [
     "C3b",
     "C3b binding",
-    "binding of C3b"
+    "binding of C3b",
+    "C3b joins C4b2a"
    ],
-   "notes": "A C3b sitting next to the C3 convertase turns it into a C5 convertase."
+   "notes": "A C3b next to the C3 convertase turns it into a C5 convertase."
   },
   "addc3b_alt": {
    "name": "C3b joins C3bBb",
@@ -337,16 +442,19 @@
     "C3b",
     "C3b binding",
     "binding of C3b"
-   ]
+   ],
+   "notes": "A second C3b turns C3bBb into a C5 convertase."
   },
   "c5conv_cl": {
-   "name": "C5 convertase (C4b2a3b)",
+   "name": "C5 convertase (C4b2b3b)",
    "short": "",
    "aliases": [
+    "C4b2b3b",
     "C4b2a3b",
     "classical C5 convertase",
-    "C4bC2aC3b"
-   ]
+    "C4bC2bC3b"
+   ],
+   "notes": "The classical and lectin C5 convertase."
   },
   "c5conv_alt": {
    "name": "C5 convertase (C3bBb3b)",
@@ -354,7 +462,8 @@
    "aliases": [
     "C3bBb3b",
     "alternative C5 convertase"
-   ]
+   ],
+   "notes": "The alternative C5 convertase."
   },
   "mac_asm": {
    "name": "MAC assembly (C6–C9)",
@@ -366,44 +475,99 @@
     "MAC assembly",
     "terminal pathway"
    ],
-   "notes": "C5b gathers C6, C7, C8 and then many C9s into a pore."
+   "notes": "C6, C7, C8, then many C9s add to C5b and insert into the membrane. C5–C9 deficiency: recurrent Neisseria (meningococcal, gonococcal) infections."
   }
  },
  "reactions": [
   {
    "id": "r1",
    "enzyme": "c1",
-   "from": "c42",
-   "to": "c4b2a",
+   "from": "c4",
+   "to": "c4b",
    "reversible": false,
    "cofactors": {
     "in": [],
     "out": [
-     "c4a",
-     "c2b"
+     "c4a"
     ]
    },
-   "loc": "blood plasma"
+   "requires": [
+    "antigen–antibody complexes (IgG, IgM)"
+   ]
   },
   {
    "id": "r2",
    "enzyme": "masp",
-   "from": "c42",
-   "to": "c4b2a",
+   "from": "c4",
+   "to": "c4b",
    "reversible": false,
    "cofactors": {
     "in": [],
     "out": [
-     "c4a",
-     "c2b"
+     "c4a"
     ]
    },
-   "loc": "blood plasma"
+   "requires": [
+    "microbial sugars (mannose)"
+   ]
+  },
+  {
+   "id": "r11",
+   "enzyme": "c1",
+   "from": "c2",
+   "to": "c2b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c2a"
+    ]
+   }
+  },
+  {
+   "id": "r12",
+   "enzyme": "masp",
+   "from": "c2",
+   "to": "c2b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c2a"
+    ]
+   }
+  },
+  {
+   "id": "r13",
+   "enzyme": "join_c2b",
+   "from": "c4b",
+   "to": "c4b2a",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "also_from": [
+    "c2b"
+   ]
+  },
+  {
+   "id": "r14",
+   "enzyme": "tick",
+   "from": "c3alt",
+   "to": "c3balt",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "c3a"
+    ]
+   }
   },
   {
    "id": "r3",
    "enzyme": "fd",
-   "from": "c3b_fb",
+   "from": "c3balt",
    "to": "c3bbb",
    "reversible": false,
    "cofactors": {
@@ -412,7 +576,9 @@
      "ba"
     ]
    },
-   "loc": "blood plasma"
+   "also_from": [
+    "fb"
+   ]
   },
   {
    "id": "r4",
@@ -425,8 +591,7 @@
     "out": [
      "c3a"
     ]
-   },
-   "loc": "blood plasma"
+   }
   },
   {
    "id": "r5",
@@ -439,8 +604,7 @@
     "out": [
      "c3a"
     ]
-   },
-   "loc": "blood plasma"
+   }
   },
   {
    "id": "r6",
@@ -452,7 +616,9 @@
     "in": [],
     "out": []
    },
-   "loc": "blood plasma"
+   "also_from": [
+    "c3b"
+   ]
   },
   {
    "id": "r7",
@@ -464,7 +630,9 @@
     "in": [],
     "out": []
    },
-   "loc": "blood plasma"
+   "also_from": [
+    "c3b"
+   ]
   },
   {
    "id": "r8",
@@ -477,8 +645,7 @@
     "out": [
      "c5a"
     ]
-   },
-   "loc": "blood plasma"
+   }
   },
   {
    "id": "r9",
@@ -491,8 +658,7 @@
     "out": [
      "c5a"
     ]
-   },
-   "loc": "blood plasma"
+   }
   },
   {
    "id": "r10",
@@ -508,8 +674,7 @@
      "c9"
     ],
     "out": []
-   },
-   "loc": "microbial membrane"
+   }
   }
  ],
  "groups": [
@@ -524,11 +689,14 @@
     "classical and MBL pathways"
    ],
    "members": [
-    "c42",
+    "c4",
+    "c2",
+    "c4b",
+    "c2b",
     "c4b2a",
     "c4b2a3b"
    ],
-   "notes": "Classical: C1 bound to IgG or IgM on antigen (“GM makes classic cars”). Lectin: mannose-binding lectin on microbial sugars. Both cleave C4 and C2."
+   "notes": "Classical: C1 bound to IgG or IgM on antigen (“GM makes classic cars”). Lectin: mannose-binding lectin on microbial sugars. Both cut C4 and C2 to make C4b2b."
   },
   {
    "id": "alternative",
@@ -539,11 +707,27 @@
     "alternative complement pathway"
    ],
    "members": [
-    "c3b_fb",
+    "c3alt",
+    "c3balt",
+    "fb",
     "c3bbb",
     "c3bbb3b"
    ],
-   "notes": "Spontaneous C3 hydrolysis on microbial surfaces; factor B and factor D; properdin stabilizes C3bBb."
+   "notes": "Spontaneous C3 breakdown on microbial surfaces; factor B and factor D; properdin stabilizes C3bBb. Also amplifies the other two: C3b from any pathway feeds it."
+  },
+  {
+   "id": "common",
+   "name": "Common pathway",
+   "aliases": [
+    "common",
+    "C3 cleavage",
+    "common complement pathway"
+   ],
+   "members": [
+    "c3",
+    "c3b"
+   ],
+   "notes": "All three pathways meet at C3: C3a (anaphylatoxin) and C3b (opsonin, and the third piece of each C5 convertase)."
   },
   {
    "id": "terminal",

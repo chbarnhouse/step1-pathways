@@ -1,7 +1,19 @@
 {
  "_how": "Renaming or removing a built-in id that has been released? Record it here, or tools/test-data.js blocks the release. Saved history, tags and favorites under an old id are moved to the new one when the app loads. retired: ids removed on purpose (their history is simply no longer shown).",
  "pathways": {},
- "metabolites": {},
+ "metabolites": {
+  "complement": {
+   "c42": "c4"
+  }
+ },
  "reactions": {},
- "retired": { "pathways": [], "metabolites": {}, "reactions": {} }
+ "retired": {
+  "pathways": [],
+  "metabolites": {
+   "complement": [
+    "c3b_fb"
+   ]
+  },
+  "reactions": {}
+ }
 }

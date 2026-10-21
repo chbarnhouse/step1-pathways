@@ -205,7 +205,7 @@ const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b 
 const enzRect = (x, y, anchor, item, max = 18, valign = 'center') => {
   const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? shownTags(r) : []), ...wrap(needsText(r), max)];
   const w = Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15;
-  return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h };
+  return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h, rid: r?.id };
 };
 const labelRect = (x, y, anchor, text, max = 18, valign = 'center') => {
   const lines = Math.max(1, Math.ceil(text.length / max)), w = Math.min(text.length, max) * 6.6, h = lines * 15;
@@ -355,8 +355,10 @@ function flowSVG(m, statusOf, opts = {}) {
    drawing; names on top. While the name is a blank it's a "group" pill (or the answer field). */
 const GROUP_TONES = ['pink', 'teal', 'gold', 'blue', 'orange', 'slate'];
 let GROUP_RECTS = {}; // where each group's frame went (for drawing groups yourself)
-function groupRect(g, pos, all) {
-  const rs = g.members.map(id => pos['m:' + id]).filter(Boolean);
+function groupRect(g, pos, all, labels = []) {
+  // Its boxes, and the labels of steps that run between two of them (so the frame never cuts through a name).
+  const inner = new Set((DRAW_MODEL?.p.reactions || []).filter(r => g.members.includes(r.from) && g.members.includes(r.to)).map(r => r.id));
+  const rs = [...g.members.map(id => pos['m:' + id]).filter(Boolean), ...labels.filter(l => inner.has(l.rid)).map(l => ({ x: l.x - 14, y: l.y, w: l.w + 28, h: l.h }))];
   if (!rs.length) return null;
   const inside = all.filter(o => o !== g && o.members.length < g.members.length && o.members.every(id => g.members.includes(id))).length;
   const pad = 16 + 22 * inside, x0 = Math.min(...rs.map(r => r.x)) - pad, y0 = Math.min(...rs.map(r => r.y)) - pad;
@@ -367,7 +369,7 @@ function withGroups(svg, m, statusOf, grps, pos) {
   let back = '', front = '', minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
   GROUP_RECTS = {}; GROUP_INLINE_DONE = false;
   grps.forEach((g, i) => {
-    const st = statusOf(g.key), r = groupRect(g, pos, grps);
+    const st = statusOf(g.key), r = groupRect(g, pos, grps, DRAW_LABELS);
     if (!r) return;
     GROUP_RECTS[g.id] = r;
     if (st === 'hide') return;
@@ -421,7 +423,7 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(enzRect(mx, my - 8, 'middle', it, 16, 'bottom'));
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
-    s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center');
+    s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(mx - 14, my, 'end', it, 18));
     if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
   } else {
     // Off-line: an L. Leave a box on the main line from its side (its bottom carries the main arrow), then turn into the
@@ -446,6 +448,19 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     }
   }
   return s;
+}
+// A side input's arrow on a grid: straight when the boxes line up, else down (or up) first, then into the product's side;
+// across first instead when the first way would run through a box.
+function joinEdge(a, b, r) {
+  const cls = rxCls(r) + ' join', dx = Math.sign(b.cx - a.cx), down = b.cy > a.cy;
+  if (Math.abs(a.cx - b.cx) < 4) return arrow(a.cx, a.cy + (down ? 1 : -1) * (BH / 2 + 4), b.cx, b.cy - (down ? 1 : -1) * (BH / 2 + 4), false, cls);
+  if (Math.abs(a.cy - b.cy) < 4) return arrow(a.cx + dx * (BW / 2 + 4), a.cy, b.cx - dx * (BW / 2 + 4), b.cy, false, cls);
+  const through = (x0, y0, x1, y1) => DRAW_BOXES.some(bx => Math.max(x0, x1) > bx.x + 2 && Math.min(x0, x1) < bx.x + bx.w - 2 && Math.max(y0, y1) > bx.y + 2 && Math.min(y0, y1) < bx.y + bx.h - 2
+    && ![a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4));
+  const ya = a.cy + (down ? 1 : -1) * (BH / 2 + 4), xb = b.cx - dx * (BW / 2 + 4);
+  if (!through(a.cx, ya, a.cx, b.cy) && !through(a.cx, b.cy, xb, b.cy)) return elbow([[a.cx, ya], [a.cx, b.cy], [xb, b.cy]], false, cls);
+  const xa = a.cx + dx * (BW / 2 + 4), yb = b.cy - (down ? 1 : -1) * (BH / 2 + 4);
+  return elbow([[xa, a.cy], [b.cx, a.cy], [b.cx, yb]], false, cls);
 }
 // One of a vertical pair of opposite steps: the downward one runs on the left with its labels further left, the upward
 // one on the right with its labels further right, so neither crosses the other.
@@ -915,10 +930,13 @@ function gridSVG(m, statusOf, opts = {}) {
     else if (i >= 0 && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, i);
     else s += twin(r) && Math.abs(a.cx - b.cx) < 4 ? twinEdge(m, statusOf, r, a, b) : drawEdge(m, statusOf, r, a, b);
   });
+  // A second input that joins a step (C2b joining C4b): a plain arrow from its box into the product.
+  p.reactions.forEach(r => (r.also_from || []).forEach(id => { if (pos[id] && pos[r.to]) s += joinEdge(pos[id], pos[r.to], r); }));
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id));
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }])));
   s += lk.s; DRAW_BOXES = [];
-  let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24;
+  // Room under the boxes for group frames (up to two deep) before the compartment list.
+  let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24 + ((p.groups || []).length ? 48 : 0);
   const W = Math.max(Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24, lk.maxX + 12);
   if (opts.zones !== false) {
     // Grids don't split into lanes, so the compartments are listed underneath (and quizzable there).
