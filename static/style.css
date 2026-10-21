@@ -1185,3 +1185,5 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .vx-main:has([data-vx="frame"][aria-pressed="true"]) .vx-svg { cursor: crosshair; }
 .ed-members { display: flex; flex-wrap: wrap; gap: 4px 14px; border: 0; padding: 0; margin: 4px 0 8px; }
 .ed-members legend { font-weight: 600; margin-bottom: 4px; }
+/* Connectors: a box that carries out a step (green, arrowhead) or inhibits another box (red, flat bar); dashed. */
+.flow .ln.conn { stroke-width: 1.6; stroke-dasharray: 6 4; }

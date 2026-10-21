@@ -13,9 +13,11 @@
   "coagulation",
   "secondary hemostasis",
   "blood clotting",
-  "intrinsic and extrinsic pathways"
+  "intrinsic and extrinsic pathways",
+  "fibrinolysis",
+  "anticoagulant pathways"
  ],
- "summary": "Secondary hemostasis: a cascade of zymogens, each activated by the one before, ending in thrombin and a cross-linked fibrin clot. Extrinsic (tissue factor + VII, measured by the PT/INR) and intrinsic (XII → XI → IX with VIII, measured by the PTT) pathways meet at factor X; the common pathway is X → prothrombin (II) → thrombin → fibrin. Vitamin K–dependent factors: II, VII, IX, X (and proteins C and S). Drugs: heparin (antithrombin, IIa and Xa), warfarin (vitamin K), direct Xa inhibitors (-xabans), direct thrombin inhibitors (dabigatran, argatroban, bivalirudin).",
+ "summary": "Secondary hemostasis: a cascade of zymogens, each activated by the one before, ending in thrombin and a cross-linked fibrin clot. Intrinsic: XII (contact) → XIIa activates XI → XIa activates IX → IXa with VIIIa (intrinsic tenase) activates X; measured by the PTT. Extrinsic: tissue factor with VIIa activates X; measured by the PT/INR. Common: Xa with Va (prothrombinase) turns prothrombin into thrombin, which turns fibrinogen into fibrin, activates V, VIII and XIII (XIIIa cross-links fibrin) and, on thrombomodulin, activates protein C. Off switches: antithrombin (thrombin, Xa; heparin), activated protein C with protein S (Va, VIIIa). Fibrinolysis: tPA turns plasminogen into plasmin, which breaks fibrin into degradation products (D-dimer). Vitamin K–dependent: II, VII, IX, X, proteins C and S (warfarin). Ca²⁺ and phospholipid for the tenases and prothrombinase.",
  "tissue": "blood plasma, on activated platelets (factors made in the liver; VIII also by endothelium)",
  "icon": "bloodtype",
  "color": "pink",
@@ -36,20 +38,22 @@
  },
  "distractors": {
   "metabolites": [
-   "Plasminogen",
-   "Plasmin",
    "von Willebrand factor",
-   "Protein C",
-   "Antithrombin",
-   "Factor IV"
+   "Factor IV",
+   "Protein S",
+   "Prekallikrein",
+   "Kallikrein",
+   "Bradykinin",
+   "Thromboxane A₂"
   ],
   "enzymes": [
-   "Plasmin",
-   "Antithrombin",
-   "Activated protein C",
-   "Tissue plasminogen activator",
    "Kallikrein",
-   "Factor Xa"
+   "Factor Xa",
+   "Protein S",
+   "Plasminogen activator inhibitor-1",
+   "Tissue factor pathway inhibitor",
+   "Streptokinase",
+   "Factor IXa"
   ]
  },
  "metabolites": {
@@ -76,8 +80,8 @@
     "factor 12a"
    ],
    "pos": [
-    1,
-    0
+    0,
+    1
    ]
   },
   "f11": {
@@ -90,7 +94,7 @@
    ],
    "notes": "Deficiency is hemophilia C (Ashkenazi Jewish ancestry): mild bleeding, prolonged PTT.",
    "pos": [
-    0,
+    1,
     1
    ]
   },
@@ -104,7 +108,7 @@
    ],
    "pos": [
     1,
-    1
+    2
    ]
   },
   "f9": {
@@ -117,7 +121,7 @@
    ],
    "notes": "Deficiency is hemophilia B (X-linked recessive): hemarthroses, prolonged PTT, normal PT. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    0,
+    2,
     2
    ]
   },
@@ -130,8 +134,8 @@
     "factor 9a"
    ],
    "pos": [
-    1,
-    2
+    2,
+    3
    ]
   },
   "f7": {
@@ -172,8 +176,8 @@
    ],
    "notes": "Carried in plasma by von Willebrand factor, which protects it; vWF disease can lower VIII. Deficiency is hemophilia A (X-linked recessive), the most common hemophilia; treat with factor VIII concentrate, desmopressin in mild cases.",
    "pos": [
-    5,
-    3
+    1,
+    4
    ]
   },
   "f8a": {
@@ -186,8 +190,8 @@
    ],
    "notes": "Cofactor of IXa in the intrinsic tenase. Inactivated by activated protein C (with protein S).",
    "pos": [
-    4,
-    3
+    2,
+    4
    ]
   },
   "f10": {
@@ -201,7 +205,7 @@
    ],
    "notes": "Where the intrinsic and extrinsic pathways meet: the start of the common pathway. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    2,
+    3,
     3
    ]
   },
@@ -216,7 +220,7 @@
    "notes": "Inhibited by antithrombin (much faster with heparin; LMWH and fondaparinux mostly act here) and directly by rivaroxaban, apixaban and edoxaban.",
    "pos": [
     3,
-    3
+    4
    ]
   },
   "f5": {
@@ -230,8 +234,8 @@
    ],
    "notes": "Factor V Leiden (Arg506Gln) resists cleavage by activated protein C: the most common inherited thrombophilia.",
    "pos": [
-    5,
-    5
+    6,
+    4
    ]
   },
   "f5a": {
@@ -244,8 +248,8 @@
    ],
    "notes": "Cofactor of Xa in the prothrombinase. Inactivated by activated protein C (with protein S).",
    "pos": [
-    4,
-    5
+    5,
+    4
    ]
   },
   "f2": {
@@ -258,8 +262,8 @@
    ],
    "notes": "Prothrombin G20210A (3′ untranslated region) raises prothrombin levels: an inherited thrombophilia. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    2,
-    5
+    4,
+    4
    ]
   },
   "f2a": {
@@ -273,7 +277,7 @@
    ],
    "notes": "The cascade’s amplifier: cuts fibrinogen and activates V, VIII, XI and XIII, and activates platelets (PAR-1). Inhibited by antithrombin (with heparin) and directly by dabigatran, argatroban and bivalirudin. With thrombomodulin it turns on protein C instead.",
    "pos": [
-    3,
+    4,
     5
    ]
   },
@@ -287,7 +291,7 @@
    ],
    "notes": "Also bridges platelets through GPIIb/IIIa. An acute-phase reactant; low in DIC.",
    "pos": [
-    2,
+    4,
     6
    ]
   },
@@ -300,7 +304,7 @@
     "fibrin polymer"
    ],
    "pos": [
-    3,
+    5,
     6
    ]
   },
@@ -314,7 +318,7 @@
    ],
    "notes": "Deficiency: delayed bleeding (e.g. from the umbilical stump) with normal PT and PTT.",
    "pos": [
-    5,
+    7,
     7
    ]
   },
@@ -327,7 +331,7 @@
     "factor 13a"
    ],
    "pos": [
-    4,
+    6,
     7
    ]
   },
@@ -342,8 +346,92 @@
    ],
    "notes": "Plasmin (from plasminogen, via tPA) breaks it down, releasing D-dimers.",
    "pos": [
-    3,
+    5,
     7
+   ]
+  },
+  "pc": {
+   "name": "Protein C",
+   "short": "",
+   "aliases": [
+    "protein C",
+    "PC"
+   ],
+   "notes": "Vitamin K–dependent anticoagulant made in the liver. Short half-life like VII, so warfarin lowers it first: transient hypercoagulability (warfarin skin necrosis, worst in protein C deficiency); bridge with heparin.",
+   "pos": [
+    1,
+    6
+   ]
+  },
+  "apc": {
+   "name": "Activated protein C",
+   "short": "APC",
+   "aliases": [
+    "APC",
+    "activated protein C",
+    "aPC",
+    "protein Ca"
+   ],
+   "notes": "With its cofactor protein S, cuts and inactivates Va and VIIIa. Factor V Leiden resists it (activated protein C resistance). Protein S deficiency does the same.",
+   "pos": [
+    2,
+    6
+   ]
+  },
+  "at": {
+   "name": "Antithrombin",
+   "short": "AT",
+   "aliases": [
+    "antithrombin III",
+    "AT III",
+    "ATIII",
+    "AT"
+   ],
+   "notes": "Inhibits thrombin and Xa (also IXa, XIa, XIIa). Heparin makes it about a thousand times faster: unfractionated heparin acts on thrombin and Xa, LMWH and fondaparinux mostly on Xa. Deficiency (inherited, or lost in nephrotic syndrome): venous clots and little response to heparin.",
+   "pos": [
+    2,
+    7
+   ]
+  },
+  "plg": {
+   "name": "Plasminogen",
+   "short": "",
+   "aliases": [
+    "plasminogen"
+   ],
+   "notes": "Binds fibrin, so it is activated right where the clot is.",
+   "pos": [
+    7,
+    8
+   ]
+  },
+  "plasmin": {
+   "name": "Plasmin",
+   "short": "",
+   "aliases": [
+    "plasmin",
+    "fibrinolysin"
+   ],
+   "notes": "Breaks down fibrin and fibrinogen (and cleaves factors V and VIII, activates complement). Aminocaproic acid and tranexamic acid block its activation; α2-antiplasmin inhibits it.",
+   "pos": [
+    6,
+    8
+   ]
+  },
+  "fdp": {
+   "name": "Fibrin degradation products",
+   "short": "FDPs",
+   "aliases": [
+    "FDPs",
+    "fibrin split products",
+    "D-dimer",
+    "D-dimers",
+    "fibrin degradation products (D-dimer)"
+   ],
+   "notes": "D-dimer comes only from cross-linked fibrin: high in DVT/PE and DIC; a normal D-dimer helps rule out a clot when pretest probability is low.",
+   "pos": [
+    5,
+    8
    ]
   }
  },
@@ -452,6 +540,40 @@
     "fibrin-stabilizing factor"
    ],
    "notes": "A transglutaminase: cross-links fibrin (glutamine to lysine), which needs Ca²⁺."
+  },
+  "tm": {
+   "name": "Thrombin–thrombomodulin",
+   "short": "",
+   "aliases": [
+    "thrombomodulin",
+    "thrombin-thrombomodulin",
+    "thrombin and thrombomodulin",
+    "thrombin"
+   ],
+   "notes": "Thrombin bound to thrombomodulin on intact endothelium stops cutting fibrinogen and activates protein C instead: clotting switches itself off away from the injury."
+  },
+  "tpa": {
+   "name": "Tissue plasminogen activator",
+   "short": "tPA",
+   "aliases": [
+    "tPA",
+    "t-PA",
+    "alteplase",
+    "urokinase",
+    "plasminogen activator",
+    "tenecteplase",
+    "reteplase"
+   ],
+   "notes": "Released by endothelium; works best on plasminogen bound to fibrin. Recombinant tPA (alteplase, tenecteplase) dissolves clots in stroke, MI and massive PE. Plasminogen activator inhibitor-1 opposes it."
+  },
+  "plasmin_e": {
+   "name": "Plasmin",
+   "short": "",
+   "aliases": [
+    "plasmin",
+    "fibrinolysis"
+   ],
+   "notes": "Cuts cross-linked fibrin into fibrin degradation products, including D-dimer."
   }
  },
  "reactions": [
@@ -477,7 +599,10 @@
     "in": [],
     "out": []
    },
-   "loc": "blood plasma"
+   "loc": "blood plasma",
+   "by": [
+    "f12a"
+   ]
   },
   {
    "id": "r3",
@@ -492,6 +617,9 @@
    "loc": "blood plasma",
    "requires": [
     "Ca²⁺"
+   ],
+   "by": [
+    "f11a"
    ]
   },
   {
@@ -523,6 +651,10 @@
    "requires": [
     "Ca²⁺",
     "Phospholipid"
+   ],
+   "by": [
+    "f9a",
+    "f8a"
    ]
   },
   {
@@ -539,6 +671,9 @@
    "requires": [
     "Ca²⁺",
     "Phospholipid"
+   ],
+   "by": [
+    "f7a"
    ]
   },
   {
@@ -555,6 +690,10 @@
    "requires": [
     "Ca²⁺",
     "Phospholipid"
+   ],
+   "by": [
+    "f10a",
+    "f5a"
    ]
   },
   {
@@ -569,7 +708,10 @@
      "fibrinopeptides"
     ]
    },
-   "loc": "blood plasma"
+   "loc": "blood plasma",
+   "by": [
+    "f2a"
+   ]
   },
   {
    "id": "r9",
@@ -584,6 +726,9 @@
    "loc": "blood plasma",
    "requires": [
     "Ca²⁺"
+   ],
+   "by": [
+    "f13a"
    ]
   },
   {
@@ -597,7 +742,10 @@
     "out": []
    },
    "loc": "blood plasma",
-   "branch": true
+   "branch": true,
+   "by": [
+    "f2a"
+   ]
   },
   {
    "id": "r11",
@@ -610,7 +758,10 @@
     "out": []
    },
    "loc": "blood plasma",
-   "branch": true
+   "branch": true,
+   "by": [
+    "f2a"
+   ]
   },
   {
    "id": "r12",
@@ -626,7 +777,52 @@
    "requires": [
     "Ca²⁺"
    ],
-   "branch": true
+   "branch": true,
+   "by": [
+    "f2a"
+   ]
+  },
+  {
+   "id": "r13",
+   "enzyme": "tm",
+   "from": "pc",
+   "to": "apc",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "by": [
+    "f2a"
+   ]
+  },
+  {
+   "id": "r14",
+   "enzyme": "tpa",
+   "from": "plg",
+   "to": "plasmin",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma"
+  },
+  {
+   "id": "r15",
+   "enzyme": "plasmin_e",
+   "from": "xfbn",
+   "to": "fdp",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "blood plasma",
+   "by": [
+    "plasmin"
+   ]
   }
  ],
  "groups": [
@@ -673,32 +869,71 @@
    "members": [
     "f10",
     "f10a",
+    "f5",
+    "f5a",
     "f2",
     "f2a",
     "fbg",
     "fbn",
-    "xfbn"
-   ],
-   "notes": "X → Xa (with Va) turns prothrombin into thrombin, which turns fibrinogen into fibrin. Direct Xa inhibitors (rivaroxaban, apixaban) and direct thrombin inhibitors (dabigatran, argatroban) act here."
-  },
-  {
-   "id": "feedback",
-   "name": "Activated by thrombin",
-   "aliases": [
-    "thrombin feedback",
-    "thrombin-activated factors",
-    "positive feedback",
-    "thrombin activates"
-   ],
-   "members": [
-    "f8",
-    "f8a",
-    "f5",
-    "f5a",
+    "xfbn",
     "f13",
     "f13a"
    ],
-   "notes": "Thrombin activates V and VIII (positive feedback that amplifies the cascade) and XIII (cross-links fibrin)."
+   "notes": "Factors X, V, II (prothrombin), I (fibrinogen) and XIII. X → Xa (with Va: prothrombinase) turns prothrombin into thrombin, which turns fibrinogen into fibrin; XIIIa cross-links it. Direct Xa inhibitors (rivaroxaban, apixaban) and direct thrombin inhibitors (dabigatran, argatroban, bivalirudin) act here."
+  },
+  {
+   "id": "anticoagulants",
+   "name": "Natural anticoagulants",
+   "aliases": [
+    "anticoagulants",
+    "anticoagulant pathway",
+    "protein C pathway",
+    "antithrombin and protein C",
+    "natural anticoagulant system"
+   ],
+   "members": [
+    "pc",
+    "apc",
+    "at"
+   ],
+   "notes": "Antithrombin (heparin’s target) inhibits thrombin and Xa; activated protein C with protein S inactivates Va and VIIIa. Deficiencies of any of them, or factor V Leiden, cause inherited thrombophilia."
+  },
+  {
+   "id": "fibrinolysis",
+   "name": "Fibrinolysis",
+   "aliases": [
+    "fibrinolytic system",
+    "clot breakdown",
+    "plasmin system"
+   ],
+   "members": [
+    "plg",
+    "plasmin",
+    "fdp"
+   ],
+   "notes": "tPA turns plasminogen into plasmin, which breaks cross-linked fibrin into fibrin degradation products (D-dimer)."
+  }
+ ],
+ "inhibits": [
+  {
+   "from": "apc",
+   "to": "f5a",
+   "note": "with protein S"
+  },
+  {
+   "from": "apc",
+   "to": "f8a",
+   "note": "with protein S"
+  },
+  {
+   "from": "at",
+   "to": "f2a",
+   "note": "heparin speeds it up"
+  },
+  {
+   "from": "at",
+   "to": "f10a",
+   "note": "heparin speeds it up"
   }
  ]
 }

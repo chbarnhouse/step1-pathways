@@ -23,6 +23,9 @@ const CHANGELOG = [
     'Editor: a Groups section. In Visual mode, the Group tool makes a group from a frame you drag around boxes; click a frame to rename it or change its boxes.',
     'Complement cascade rebuilt step by step: C1 (classical) or MBL–MASP (lectin) cuts C4 and C2 (C4a, C2a released), and C4b + C2b make the C3 convertase C4b2b. In the alternative pathway C3 breaks down on its own, and C3b with factor B (cut by factor D, Ba released) makes C3bBb. Both convertases cut C3 into C3a and C3b, and C3b joins each to make the C5 convertases. C5 is cut into C5a and C5b, which with C6–C9 forms the membrane attack complex. Current naming (C2b is the larger piece); the older C2a and C4b2a names are still accepted. Your answer history moves with it.',
     'Group frames make room for the step names inside them.',
+    'Connectors: a dashed line from a box to the step it carries out (green, arrowhead), or to a box it inhibits (red, flat bar). While a step’s enzyme is a blank, its connector hides so it doesn’t give the answer away.',
+    'Complement: the C3 and C5 convertases now connect to the C3 and C5 steps, so the terminal pathway joins the rest.',
+    'Coagulation rebuilt as a connected cascade: XIIa activates XI, XIa activates IX, IXa with VIIIa and VIIa with tissue factor activate X, Xa with Va makes thrombin, and thrombin acts on fibrinogen, V, VIII and XIII. New: protein C and activated protein C (thrombin–thrombomodulin; inactivates Va and VIIIa), antithrombin (inhibits thrombin and Xa), and fibrinolysis (tPA: plasminogen → plasmin → fibrin degradation products, D-dimer). The common pathway is now X, V, prothrombin, fibrinogen and XIII.',
   ] },
   { v: '3.11.1', date: '2026-10-20', items: [
     'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',

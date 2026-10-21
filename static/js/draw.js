@@ -340,7 +340,7 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m;
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Set();
   if (m.p.stitch) return stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
@@ -412,11 +412,14 @@ const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ?
 // A step's tags as its label shows them: never "irreversible" (the arrow says it), and "inhibits" only while its effect shows.
 const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)));
 
+// Steps that a connector lands on (grid): their name moves two-thirds along, clear of where the connector arrives.
+let CONN_STEPS = new Set();
+const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * 0.68 : (a + b) / 2);
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
   let s = arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r));
-  const mx = (p1[0] + p2[0]) / 2, my = (p1[1] + p2[1]) / 2;
+  const mx = labAt(r, p1[0], p2[0]), my = labAt(r, p1[1], p2[1]);
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
   if (Math.abs(p1[1] - p2[1]) < 4) {
@@ -449,6 +452,51 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   }
   return s;
 }
+/* A connector's route: right angles only, never through a box. Tried in order: straight; down (or up) then across;
+   across then down; across, down, across (through the gap between columns); down, across, down (between rows).
+   to: { pt, axis } lands on a step's line, arriving across it ('h': arrives level, onto an upright line), or { box }.
+   Leaves a box off-center, toward its target, so it never runs along the box's own arrows. */
+let CONN_LINES = [];
+function connector(S, to, near, cls) {
+  const sg = v => (v > 0 ? 1 : -1), clearOf = [S, to.box, ...near].filter(Boolean);
+  const blocked = (x0, y0, x1, y1) => DRAW_BOXES.some(bx => !clearOf.some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4)
+    && Math.max(x0, x1) > bx.x - 6 && Math.min(x0, x1) < bx.x + bx.w + 6 && Math.max(y0, y1) > bx.y - 6 && Math.min(y0, y1) < bx.y + bx.h + 6);
+  // Where it ends: on the step's line, or on the side of the target box it arrives at.
+  const end = axis => to.pt ? (to.axis === 'any' || to.axis === axis ? to.pt : null)
+    : axis === 'h' ? [to.box.cx - sg(to.box.cx - S.cx) * (BW / 2 + 4), to.box.cy] : [to.box.cx, to.box.cy - sg(to.box.cy - S.cy) * (BH / 2 + 4)];
+  const tx = to.pt ? to.pt[0] : to.box.cx, ty = to.pt ? to.pt[1] : to.box.cy;
+  const outV = y => [S.cx + sg(tx - S.cx) * Math.min(BW / 2 - 26, Math.abs(tx - S.cx)), S.cy + sg(y - S.cy) * (BH / 2 + 4)];
+  const outH = () => [S.cx + sg(tx - S.cx) * (BW / 2 + 4), S.cy];
+  const cands = [];
+  { const e = end('h'); if (e && Math.abs(e[1] - S.cy) < 4 && Math.abs(e[0] - S.cx) > BW / 2) cands.push([outH(), e]); }
+  { const e = end('v'); if (e && Math.abs(e[0] - S.cx) < BW / 2 - 20 && Math.abs(e[1] - S.cy) > BH) cands.push([[e[0], S.cy + sg(e[1] - S.cy) * (BH / 2 + 4)], e]); }
+  { const e = end('h'); if (e && Math.abs(e[1] - S.cy) > BH / 2 + 8) { const o = outV(e[1]); cands.push([o, [o[0], e[1]], e]); } }
+  { const e = end('v'); if (e && Math.abs(e[0] - S.cx) > BW / 2 + 8) { const o = outH(); cands.push([o, [e[0], o[1]], e]); } }
+  for (const off of [160, 110, 210]) { const e = end('h'); if (e) { const o = outH(), xm = S.cx + sg(tx - S.cx) * (BW / 2 + off); cands.push([o, [xm, o[1]], [xm, e[1]], e]); } }
+  for (const off of [58, 34, 84]) { const e = end('v'); if (e) { const o = outV(ty), ym = S.cy + sg(ty - S.cy) * (BH / 2 + off); cands.push([o, [o[0], ym], [e[0], ym], e]); } }
+  // Out the far side and back around (when the near side is crowded): down, across, then up to a target above.
+  for (const off of [34, 58]) { const e = end('v'); if (e && Math.abs(e[0] - S.cx) > BW / 2) { const o = outV(2 * S.cy - ty), ym = S.cy - sg(ty - S.cy) * (BH / 2 + off); cands.push([o, [o[0], ym], [e[0], ym], e]); } }
+  // Best route: never through a box; then never running alongside another source's connector (they'd read as one line);
+  // then the fewest crossings; then the fewest turns. Connectors from the same box may share a trunk.
+  const segs = pts => pts.slice(1).map((q, i) => [pts[i], q]);
+  const along = (a, b) => { const h = Math.abs(a[0][1] - a[1][1]) < 1, hb = Math.abs(b[0][1] - b[1][1]) < 1, k = h ? 1 : 0, j = h ? 0 : 1;
+    return h === hb && Math.abs(a[0][k] - b[0][k]) < 8 && Math.min(Math.max(a[0][j], a[1][j]), Math.max(b[0][j], b[1][j])) - Math.max(Math.min(a[0][j], a[1][j]), Math.min(b[0][j], b[1][j])) > 4; };
+  const cross = (a, b) => { const h = Math.abs(a[0][1] - a[1][1]) < 1, hb = Math.abs(b[0][1] - b[1][1]) < 1; if (h === hb) return false;
+    const [H, V] = h ? [a, b] : [b, a], y = H[0][1], x = V[0][0];
+    return x > Math.min(H[0][0], H[1][0]) + 2 && x < Math.max(H[0][0], H[1][0]) - 2 && y > Math.min(V[0][1], V[1][1]) + 2 && y < Math.max(V[0][1], V[1][1]) - 2; };
+  const score = pts => {
+    if (pts.some((q, i) => i && blocked(pts[i - 1][0], pts[i - 1][1], q[0], q[1]))) return 1e6;
+    let sc = pts.length;
+    // Through a step's name: avoid if there's another way.
+    for (const [a, b] of segs(pts)) if (DRAW_LABELS.some(l => Math.max(a[0], b[0]) > l.x - 4 && Math.min(a[0], b[0]) < l.x + l.w + 4 && Math.max(a[1], b[1]) > l.y - 3 && Math.min(a[1], b[1]) < l.y + l.h + 3)) sc += 40;
+    for (const L of CONN_LINES) for (const a of segs(pts)) for (const b of segs(L.pts)) { if (L.src !== S && along(a, b)) sc += 100; if (cross(a, b)) sc += 3; }
+    return sc;
+  };
+  const pts = cands.map(c => [score(c), c]).sort((a, b) => a[0] - b[0])[0]?.[1];
+  if (!pts) return '';
+  CONN_LINES.push({ src: S, pts });
+  return pts.length === 2 ? arrow(pts[0][0], pts[0][1], pts[1][0], pts[1][1], false, cls) : elbow(pts, false, cls);
+}
 // A side input's arrow on a grid: straight when the boxes line up, else down (or up) first, then into the product's side;
 // across first instead when the first way would run through a box.
 function joinEdge(a, b, r) {
@@ -467,7 +515,7 @@ function joinEdge(a, b, r) {
 function twinEdge(m, statusOf, r, a, b, forceSide = 0) {
   const down = b.cy > a.cy, side = forceSide || (down ? -1 : 1), x = a.cx + side * 14;
   const y1 = down ? a.cy + BH / 2 + 4 : a.cy - BH / 2 - 4, y2 = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
-  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), mid = (y1 + y2) / 2, anchor = side < 0 ? 'end' : 'start';
+  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), mid = labAt(r, y1, y2), anchor = side < 0 ? 'end' : 'start';
   // The name sits outside the cofactor text (which hugs the arrow), so the two never overlap.
   const cw = Math.max(0, ...cofParts(m, statusOf, r).map(q => (hidden(q.st) ? 110 : q.text.length * 7))), lx = x + side * (54 + cw + 14);
   let s = arrow(x, y1, x, y2, r.reversible, rxCls(r)) + enzLabel(lx, mid, it, es, anchor, 22, 'center');
@@ -478,7 +526,7 @@ function twinEdge(m, statusOf, r, a, b, forceSide = 0) {
 // One of two level steps between the same boxes: the first runs just above center with its label above it, the
 // second just below with its label (and cofactors) below.
 function pairEdge(m, statusOf, r, a, b, i) {
-  const dir = Math.sign(b.cx - a.cx) || 1, x1 = a.cx + dir * (BW / 2 + 4), x2 = b.cx - dir * (BW / 2 + 4), y = a.cy + (i ? 8 : -8), mx = (x1 + x2) / 2;
+  const dir = Math.sign(b.cx - a.cx) || 1, x1 = a.cx + dir * (BW / 2 + 4), x2 = b.cx - dir * (BW / 2 + 4), y = a.cy + (i ? 8 : -8), mx = labAt(r, x1, x2);
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r);
   let s = arrow(x1, y, x2, y, r.reversible, rxCls(r));
   if (!i) { s += enzLabel(mx, y - 8, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(enzRect(mx, y - 8, 'middle', it, 22, 'bottom')); return s; }
@@ -924,11 +972,32 @@ function gridSVG(m, statusOf, opts = {}) {
   const twin = r => p.reactions.find(o => o !== r && o.from === r.to && o.to === r.from);
   // Two enzymes doing the same step (factor X: intrinsic and extrinsic tenase): side by side, or one above the other.
   const pair = r => { const ps = p.reactions.filter(o => o.from === r.from && o.to === r.to); return ps.length === 2 ? ps.indexOf(r) : -1; };
+  // Connectors: a box that carries out a step (r.by: thrombin → fibrinogen → fibrin), or inhibits another box
+  // (p.inhibits: antithrombin ⊣ thrombin). Hidden while that step's enzyme is a blank.
+  const connOn = r => (r.by || []).some(id => pos[id]) && !hidden(statusOf('e:' + r.id)) && statusOf('e:' + r.id) !== 'hide';
+  CONN_STEPS = new Set(p.reactions.filter(connOn).map(r => r.id));
   p.reactions.forEach(r => {
     const a = pos[r.from], b = pos[r.to], i = pair(r);
     if (i >= 0 && Math.abs(a.cx - b.cx) < 4) s += twinEdge(m, statusOf, r, a, b, i ? 1 : -1);
     else if (i >= 0 && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, i);
     else s += twin(r) && Math.abs(a.cx - b.cx) < 4 ? twinEdge(m, statusOf, r, a, b) : drawEdge(m, statusOf, r, a, b);
+  });
+  // The line each connected step is drawn as (as its edge function draws it), and where a connector lands: a third along.
+  const stepLine = r => {
+    const a = pos[r.from], b = pos[r.to], i = pair(r), down = b.cy > a.cy, dx = Math.sign(b.cx - a.cx) || 1;
+    if (Math.abs(a.cx - b.cx) < 4) {
+      const side = i >= 0 ? (i ? 1 : -1) : twin(r) ? (down ? -1 : 1) : 0, x = a.cx + side * 14;
+      return { v: true, p1: [x, a.cy + (down ? 1 : -1) * (BH / 2 + 4)], p2: [x, b.cy - (down ? 1 : -1) * (BH / 2 + 4)] };
+    }
+    if (Math.abs(a.cy - b.cy) < 4) { const y = a.cy + (i >= 0 ? (i ? 8 : -8) : 0); return { v: false, p1: [a.cx + dx * (BW / 2 + 4), y], p2: [b.cx - dx * (BW / 2 + 4), y] }; }
+    return null;
+  };
+  CONN_LINES = [];
+  (p.inhibits || []).forEach(x => { if (pos[x.from] && pos[x.to]) s += connector(pos[x.from], { box: pos[x.to] }, [], 'ln conn inh fx-inh'); });
+  p.reactions.filter(connOn).forEach(r => {
+    const L = stepLine(r); if (!L) return;
+    const t = [L.p1[0] + (L.p2[0] - L.p1[0]) * 0.3, L.p1[1] + (L.p2[1] - L.p1[1]) * 0.3];
+    (r.by || []).forEach(id => { if (pos[id]) s += connector(pos[id], { pt: t, axis: L.v ? 'h' : 'v' }, [r.from, r.to].map(k => pos[k]), 'ln conn fx-act'); });
   });
   // A second input that joins a step (C2b joining C4b): a plain arrow from its box into the product.
   p.reactions.forEach(r => (r.also_from || []).forEach(id => { if (pos[id] && pos[r.to]) s += joinEdge(pos[id], pos[r.to], r); }));

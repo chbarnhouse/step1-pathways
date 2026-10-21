@@ -23,6 +23,10 @@ for (const p0 of Object.values(pathways)) {
     const missing = [];
     for (const r of p.reactions) for (const id of [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])]) if (!m.cof[id]) missing.push(id);
     if (missing.length) throw new Error('unknown cofactor ids: ' + uniq(missing).join(', '));
+    // Connectors: the boxes that carry out a step (by) and that inhibit another box (inhibits) exist.
+    const badConn = [...p.reactions.flatMap(r => (r.by || []).filter(id => !p.metabolites[id]).map(id => `${r.id} by ${id}`)),
+      ...(p.inhibits || []).filter(x => !p.metabolites[x.from] || !p.metabolites[x.to]).map(x => `inhibits ${x.from} → ${x.to}`)];
+    if (badConn.length) throw new Error('connectors to unknown boxes: ' + badConn.join(', '));
     // Groupings: every member exists, ids are unique, and (on a grid) the frame around a group holds no other box.
     const gids = new Set();
     for (const g of p.groups || []) {
