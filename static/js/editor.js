@@ -101,6 +101,7 @@ function itemRows(kind) {
       <label class="wide" title="Abbreviations and short forms. Not accepted when Require full names is on.">Sometimes written as (nicknames, comma-separated)<input data-path="${base}.${esc(id)}.nicknames" data-list value="${esc(listStr(it.nicknames))}" placeholder="e.g. ALAS, ALA synthase"></label>
       ${kind === 'met' && E.draft.layout === 'grid' ? `<label>Column<input type="number" min="0" step="any" data-gridpos="${esc(id)}" data-axis="0" value="${esc(it.pos?.[0] ?? 0)}"></label><label>Row<input type="number" min="0" step="any" data-gridpos="${esc(id)}" data-axis="1" value="${esc(it.pos?.[1] ?? 0)}"></label>` : ''}
       <label class="full">Facts shown after answering<textarea rows="2" data-path="${base}.${esc(id)}.notes">${esc(it.notes)}</textarea></label>
+      ${kind === 'met' ? `<div class="full side"><span class="muted">Inhibits:</span> ${inhChips(id)}</div>` : ''}
       <button class="btn ghost small" data-ed="del-${kind}" data-id="${esc(id)}">Remove</button>
     </div>`).join('');
   return rows || `<p class="muted">None yet — add one here or from a step's menus.</p>`;
@@ -115,7 +116,11 @@ function newGroup(members = []) {
   return id;
 }
 // A metabolite that's gone leaves its groups too.
-function pruneGroups(d) { for (const g of d.groups || []) g.members = (g.members || []).filter(id => d.metabolites[id]); }
+function pruneGroups(d) {
+  for (const g of d.groups || []) g.members = (g.members || []).filter(id => d.metabolites[id]);
+  for (const r of d.reactions) if (r.by) { r.by = r.by.filter(id => d.metabolites[id]); if (!r.by.length) delete r.by; }
+  if (d.inhibits) { d.inhibits = d.inhibits.filter(x => d.metabolites[x.from] && d.metabolites[x.to]); if (!d.inhibits.length) delete d.inhibits; }
+}
 const memberBoxes = (i, only = null) => Object.entries(E.draft.metabolites).filter(([id]) => !only || only(id)).map(([id, m]) =>
   `<label class="cb small"><input type="checkbox" data-gmem="${i}" value="${esc(id)}" ${edGroups()[i].members.includes(id) ? 'checked' : ''}> ${esc(m.name || id)}</label>`).join('');
 function groupFields(g, i) {
@@ -133,8 +138,15 @@ function groupRows() {
 }
 function sideChips(r, i, key) {
   const chips = (r[key] || []).map(s => `<span class="pillx">${esc(E.draft.metabolites[s]?.name || s)}<button data-ed="unside" data-i="${i}" data-key="${key}" data-id="${esc(s)}" aria-label="Remove">×</button></span>`).join('');
-  return `${chips}<select data-ed-add="${key}" data-i="${i}" class="small">${metOpts('', key === 'also_to' ? '+ side product' : '+ side input')}</select>`;
+  return `${chips}<select data-ed-add="${key}" data-i="${i}" class="small">${metOpts('', { also_to: '+ side product', also_from: '+ side input', by: '+ box that does it' }[key])}</select>`;
 }
+// The boxes a box inhibits (antithrombin ⊣ thrombin): a red flat-ended connector on grid diagrams.
+function inhChips(id) {
+  const chips = (E.draft.inhibits || []).filter(x => x.from === id).map(x => `<span class="pillx">${esc(E.draft.metabolites[x.to]?.name || x.to)}<button data-ed="uninh" data-from="${esc(id)}" data-to="${esc(x.to)}" aria-label="Remove">×</button></span>`).join('');
+  return `${chips}<select data-ed-inh="${esc(id)}" class="small">${metOpts('', '+ box it inhibits').replace(`<option value="${esc(id)}">`, `<option value="${esc(id)}" disabled>`)}</select>`;
+}
+// The step's "Carried out by" line: the boxes whose connector lands on it (factor XIIa → XI → XIa).
+const byRow = (r, i, cls = 'side') => `<div class="${cls}" data-rev="reactions.${i}.by" title="A dashed connector from each of these boxes to this step, on grid diagrams"><span class="muted">Carried out by:</span> ${sideChips(r, i, 'by')}</div>`;
 function stepCards() {
   const n = E.draft.reactions.length;
   return E.draft.reactions.map((r, i) => `
@@ -157,6 +169,7 @@ function stepCards() {
         <label>Requires<input data-path="reactions.${i}.requires" data-list value="${esc(listStr(r.requires))}" placeholder="e.g. B6 (PLP)"></label>
         <div class="full side" data-rev="reactions.${i}.also_to"><span class="muted">Side products:</span> ${sideChips(r, i, 'also_to')}</div>
         <div class="full side" data-rev="reactions.${i}.also_from"><span class="muted">Side inputs:</span> ${sideChips(r, i, 'also_from')}</div>
+        ${byRow(r, i, 'full side')}
       </div>
     </div>`).join('') || '<p class="muted">No steps yet.</p>';
 }
@@ -483,6 +496,13 @@ function onEdit(e, structural) {
     if (el.value === 'grid') { E.draft.layout = 'grid'; Object.entries(E.draft.metabolites).forEach(([id, mt], k) => { mt.pos = mt.pos || at[id] || [0, k]; }); }
     return renderEditor();
   }
+  if (el.dataset.edInh && structural) {
+    if (!el.value) return;
+    const d = E.draft, from = el.dataset.edInh, to = el.value;
+    d.inhibits = d.inhibits || [];
+    if (!d.inhibits.some(x => x.from === from && x.to === to)) d.inhibits.push({ from, to });
+    return renderEditor();
+  }
   if (el.dataset.gmem != null) {
     if (!structural) return;
     const g = edGroups()[+el.dataset.gmem];
@@ -611,6 +631,7 @@ document.addEventListener('click', e => {
       pruneGroups(p);
       return renderEditor();
     }
+    case 'uninh': pushUndo(); p.inhibits = (p.inhibits || []).filter(x => !(x.from === b.dataset.from && x.to === b.dataset.to)); if (!p.inhibits.length) delete p.inhibits; return renderEditor();
     case 'add-grp': pushUndo(); { const id = newGroup(E.sel?.kind === 'met' ? [E.sel.id] : []); if (E.mode === 'visual') E.sel = { kind: 'grp', id, focus: true }; } return renderEditor();
     case 'del-grp': pushUndo(); p.groups.splice(i, 1); if (!p.groups.length) delete p.groups; return renderEditor();
     case 'up': pushUndo(); if (i > 0) [R[i - 1], R[i]] = [R[i], R[i - 1]]; return renderEditor();

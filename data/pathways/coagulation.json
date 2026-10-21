@@ -67,7 +67,7 @@
    ],
    "notes": "Hageman factor. Deficiency prolongs the PTT but causes no bleeding (it may even predispose to clots).",
    "pos": [
-    0,
+    0.5,
     0
    ]
   },
@@ -80,8 +80,8 @@
     "factor 12a"
    ],
    "pos": [
-    0,
-    1
+    1.5,
+    0
    ]
   },
   "f11": {
@@ -107,8 +107,8 @@
     "factor 11a"
    ],
    "pos": [
-    1,
-    2
+    2,
+    1
    ]
   },
   "f9": {
@@ -121,7 +121,7 @@
    ],
    "notes": "Deficiency is hemophilia B (X-linked recessive): hemarthroses, prolonged PTT, normal PT. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    2,
+    1.5,
     2
    ]
   },
@@ -134,8 +134,8 @@
     "factor 9a"
    ],
    "pos": [
-    2,
-    3
+    2.5,
+    2
    ]
   },
   "f7": {
@@ -148,8 +148,8 @@
    ],
    "notes": "Shortest half-life of the vitamin K–dependent factors, so the PT rises first when warfarin starts or the liver fails. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    5,
-    2
+    4.5,
+    3
    ]
   },
   "f7a": {
@@ -162,8 +162,8 @@
    ],
    "notes": "With tissue factor it starts coagulation in vivo (the extrinsic pathway, measured by the PT). Recombinant VIIa treats bleeding in hemophilia with inhibitors.",
    "pos": [
-    4,
-    2
+    3.5,
+    3
    ]
   },
   "f8": {
@@ -176,8 +176,8 @@
    ],
    "notes": "Carried in plasma by von Willebrand factor, which protects it; vWF disease can lower VIII. Deficiency is hemophilia A (X-linked recessive), the most common hemophilia; treat with factor VIII concentrate, desmopressin in mild cases.",
    "pos": [
-    1,
-    4
+    0.5,
+    3
    ]
   },
   "f8a": {
@@ -190,8 +190,8 @@
    ],
    "notes": "Cofactor of IXa in the intrinsic tenase. Inactivated by activated protein C (with protein S).",
    "pos": [
-    2,
-    4
+    1.5,
+    3
    ]
   },
   "f10": {
@@ -205,8 +205,8 @@
    ],
    "notes": "Where the intrinsic and extrinsic pathways meet: the start of the common pathway. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    3,
-    3
+    2,
+    4
    ]
   },
   "f10a": {
@@ -234,8 +234,8 @@
    ],
    "notes": "Factor V Leiden (Arg506Gln) resists cleavage by activated protein C: the most common inherited thrombophilia.",
    "pos": [
-    6,
-    4
+    1,
+    5
    ]
   },
   "f5a": {
@@ -248,8 +248,8 @@
    ],
    "notes": "Cofactor of Xa in the prothrombinase. Inactivated by activated protein C (with protein S).",
    "pos": [
-    5,
-    4
+    2,
+    5
    ]
   },
   "f2": {
@@ -262,8 +262,8 @@
    ],
    "notes": "Prothrombin G20210A (3′ untranslated region) raises prothrombin levels: an inherited thrombophilia. Vitamin K–dependent: made in the liver and γ-carboxylated by γ-glutamyl carboxylase, which needs reduced vitamin K. Warfarin blocks vitamin K epoxide reductase (VKORC1), so it falls on warfarin.",
    "pos": [
-    4,
-    4
+    2.5,
+    6
    ]
   },
   "f2a": {
@@ -277,8 +277,8 @@
    ],
    "notes": "The cascade’s amplifier: cuts fibrinogen and activates V, VIII, XI and XIII, and activates platelets (PAR-1). Inhibited by antithrombin (with heparin) and directly by dabigatran, argatroban and bivalirudin. With thrombomodulin it turns on protein C instead.",
    "pos": [
-    4,
-    5
+    3.5,
+    6
    ]
   },
   "fbg": {
@@ -291,8 +291,8 @@
    ],
    "notes": "Also bridges platelets through GPIIb/IIIa. An acute-phase reactant; low in DIC.",
    "pos": [
-    4,
-    6
+    3,
+    7
    ]
   },
   "fbn": {
@@ -304,8 +304,8 @@
     "fibrin polymer"
    ],
    "pos": [
-    5,
-    6
+    4,
+    7
    ]
   },
   "f13": {
@@ -318,8 +318,8 @@
    ],
    "notes": "Deficiency: delayed bleeding (e.g. from the umbilical stump) with normal PT and PTT.",
    "pos": [
-    7,
-    7
+    2,
+    8
    ]
   },
   "f13a": {
@@ -331,8 +331,8 @@
     "factor 13a"
    ],
    "pos": [
-    6,
-    7
+    3,
+    8
    ]
   },
   "xfbn": {
@@ -346,8 +346,8 @@
    ],
    "notes": "Plasmin (from plasminogen, via tPA) breaks it down, releasing D-dimers.",
    "pos": [
-    5,
-    7
+    4,
+    9
    ]
   },
   "pc": {
@@ -359,8 +359,8 @@
    ],
    "notes": "Vitamin K–dependent anticoagulant made in the liver. Short half-life like VII, so warfarin lowers it first: transient hypercoagulability (warfarin skin necrosis, worst in protein C deficiency); bridge with heparin.",
    "pos": [
-    1,
-    6
+    0,
+    7
    ]
   },
   "apc": {
@@ -374,7 +374,7 @@
    ],
    "notes": "With its cofactor protein S, cuts and inactivates Va and VIIIa. Factor V Leiden resists it (activated protein C resistance). Protein S deficiency does the same.",
    "pos": [
-    2,
+    0,
     6
    ]
   },
@@ -389,8 +389,8 @@
    ],
    "notes": "Inhibits thrombin and Xa (also IXa, XIa, XIIa). Heparin makes it about a thousand times faster: unfractionated heparin acts on thrombin and Xa, LMWH and fondaparinux mostly on Xa. Deficiency (inherited, or lost in nephrotic syndrome): venous clots and little response to heparin.",
    "pos": [
-    2,
-    7
+    4.5,
+    6
    ]
   },
   "plg": {
@@ -401,7 +401,7 @@
    ],
    "notes": "Binds fibrin, so it is activated right where the clot is.",
    "pos": [
-    7,
+    5.5,
     8
    ]
   },
@@ -414,7 +414,7 @@
    ],
    "notes": "Breaks down fibrin and fibrinogen (and cleaves factors V and VIII, activates complement). Aminocaproic acid and tranexamic acid block its activation; α2-antiplasmin inhibits it.",
    "pos": [
-    6,
+    4.5,
     8
    ]
   },
@@ -431,7 +431,22 @@
    "notes": "D-dimer comes only from cross-linked fibrin: high in DVT/PE and DIC; a normal D-dimer helps rule out a clot when pretest probability is low.",
    "pos": [
     5,
-    8
+    9
+   ]
+  },
+  "f10ext": {
+   "name": "Factor X",
+   "short": "X",
+   "aliases": [
+    "Stuart–Prower factor",
+    "Stuart-Prower factor",
+    "FX",
+    "factor 10"
+   ],
+   "notes": "The same factor X, drawn twice: here the extrinsic tenase (tissue factor–VIIa) activates it.",
+   "pos": [
+    4,
+    4
    ]
   }
  },
@@ -660,7 +675,7 @@
   {
    "id": "r6",
    "enzyme": "etenase",
-   "from": "f10",
+   "from": "f10ext",
    "to": "f10a",
    "reversible": false,
    "cofactors": {
@@ -742,10 +757,7 @@
     "out": []
    },
    "loc": "blood plasma",
-   "branch": true,
-   "by": [
-    "f2a"
-   ]
+   "branch": true
   },
   {
    "id": "r11",
@@ -758,10 +770,7 @@
     "out": []
    },
    "loc": "blood plasma",
-   "branch": true,
-   "by": [
-    "f2a"
-   ]
+   "branch": true
   },
   {
    "id": "r12",
@@ -777,10 +786,7 @@
    "requires": [
     "Ca²⁺"
    ],
-   "branch": true,
-   "by": [
-    "f2a"
-   ]
+   "branch": true
   },
   {
    "id": "r13",
@@ -792,10 +798,7 @@
     "in": [],
     "out": []
    },
-   "loc": "blood plasma",
-   "by": [
-    "f2a"
-   ]
+   "loc": "blood plasma"
   },
   {
    "id": "r14",
@@ -840,7 +843,9 @@
     "f11",
     "f11a",
     "f9",
-    "f9a"
+    "f9a",
+    "f8",
+    "f8a"
    ],
    "notes": "Started by contact with negatively charged surfaces (factor XII). Measured by the PTT; heparin is monitored with it. Hemophilia A (VIII) and B (IX)."
   },
@@ -869,34 +874,18 @@
    "members": [
     "f10",
     "f10a",
+    "f10ext",
     "f5",
     "f5a",
     "f2",
     "f2a",
     "fbg",
     "fbn",
-    "xfbn",
     "f13",
-    "f13a"
+    "f13a",
+    "xfbn"
    ],
    "notes": "Factors X, V, II (prothrombin), I (fibrinogen) and XIII. X → Xa (with Va: prothrombinase) turns prothrombin into thrombin, which turns fibrinogen into fibrin; XIIIa cross-links it. Direct Xa inhibitors (rivaroxaban, apixaban) and direct thrombin inhibitors (dabigatran, argatroban, bivalirudin) act here."
-  },
-  {
-   "id": "anticoagulants",
-   "name": "Natural anticoagulants",
-   "aliases": [
-    "anticoagulants",
-    "anticoagulant pathway",
-    "protein C pathway",
-    "antithrombin and protein C",
-    "natural anticoagulant system"
-   ],
-   "members": [
-    "pc",
-    "apc",
-    "at"
-   ],
-   "notes": "Antithrombin (heparin’s target) inhibits thrombin and Xa; activated protein C with protein S inactivates Va and VIIIa. Deficiencies of any of them, or factor V Leiden, cause inherited thrombophilia."
   },
   {
    "id": "fibrinolysis",
@@ -928,11 +917,6 @@
   {
    "from": "at",
    "to": "f2a",
-   "note": "heparin speeds it up"
-  },
-  {
-   "from": "at",
-   "to": "f10a",
    "note": "heparin speeds it up"
   }
  ]

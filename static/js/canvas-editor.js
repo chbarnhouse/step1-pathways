@@ -161,6 +161,12 @@ function renderCanvas() {
     s += `<g class="vx-grp${g.id === selG ? ' sel' : ''}" data-grp="${esc(g.id)}"><rect class="vx-grp-hit" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14"/><rect class="gframe tone-${tone}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14"/><text class="gname tone-${tone}" x="${r.x + 2}" y="${r.y - 8}">${esc(g.name || 'Group')}</text></g>`;
   });
   if (E.drag?.type === 'frame' && E.drag.b) { const a = E.drag.a, b = E.drag.b; s += `<rect class="gdraft" x="${Math.min(a.x, b.x)}" y="${Math.min(a.y, b.y)}" width="${Math.abs(b.x - a.x)}" height="${Math.abs(b.y - a.y)}" rx="14"/>`; }
+  // Connectors, as straight dashed lines (quizzes route them at right angles): box → the step it carries out, box ⊣ box.
+  for (const r of d.reactions) for (const id of r.by || []) {
+    const a = P[id], f = P[r.from], t = P[r.to];
+    if (a && f && t) s += `<path class="ln conn fx-act" d="M${a.cx},${a.cy}L${(f.cx + t.cx) / 2},${(f.cy + t.cy) / 2}"/>`;
+  }
+  for (const x of d.inhibits || []) { const a = P[x.from], b = P[x.to]; if (a && b) s += `<path class="ln conn fx-inh" d="M${a.cx},${a.cy}L${b.cx},${b.cy}"/>`; }
   // Steps joining the same two boxes bow apart so each stays clickable.
   const pairN = {}, pairI = {};
   for (const r of d.reactions) { const k = [r.from, r.to].sort().join('|'); pairN[k] = (pairN[k] || 0) + 1; }
@@ -317,6 +323,7 @@ function metPanel(id) {
     </div>
     <h4>Steps</h4>
     ${uses.length ? `<ul class="vx-list">${uses.map(r => `<li><button type="button" class="linkish" data-vx="pick" data-kind="rxn" data-id="${esc(r.id)}">${esc(itemName('rxn', r.id))}</button></li>`).join('')}</ul>` : '<p class="muted">Not in any step yet.</p>'}
+    <div class="side" title="A red flat-ended dashed connector from this box to each of these, on grid diagrams"><span class="muted">Inhibits:</span> ${inhChips(id)}</div>
     ${edGroups().length ? `<h4>Groups</h4><div class="ed-members">${edGroups().map((g, i) => `<label class="cb small"><input type="checkbox" data-gmem="${i}" value="${esc(id)}" ${g.members.includes(id) ? 'checked' : ''}> ${esc(g.name)}</label>`).join('')}</div>` : ''}
     <label class="vx-connect">Add a step from here to<select data-vx-connect="${esc(id)}">${metOpts('', '— choose —').replace(`<option value="${esc(id)}">${esc(m.name || id)}</option>`, '')}</select></label>
     <div class="actions"><button type="button" class="btn small ghost" data-vx="delete">${mi('delete', 'sm')} Delete metabolite</button></div>`;
@@ -358,6 +365,7 @@ function rxnPanel(id) {
       <label>Requires<input data-path="reactions.${i}.requires" data-list value="${esc(listStr(r.requires))}" placeholder="e.g. B6 (PLP)"></label>
       <div class="side" data-rev="reactions.${i}.also_to"><span class="muted">Side products:</span> ${sideChips(r, i, 'also_to')}</div>
       <div class="side" data-rev="reactions.${i}.also_from"><span class="muted">Side inputs:</span> ${sideChips(r, i, 'also_from')}</div>
+      ${byRow(r, i)}
     </div>
     <div class="actions">
       <button type="button" class="btn small ghost" data-ed="up" data-i="${i}" ${i ? '' : 'disabled'}>Earlier in the list</button>

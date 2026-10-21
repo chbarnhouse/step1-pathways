@@ -340,7 +340,7 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Set();
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map();
   if (m.p.stitch) return stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
@@ -413,8 +413,8 @@ const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ?
 const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)));
 
 // Steps that a connector lands on (grid): their name moves two-thirds along, clear of where the connector arrives.
-let CONN_STEPS = new Set();
-const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * 0.68 : (a + b) / 2);
+let CONN_STEPS = new Map(); // step id → how far along its line connectors land (0–1)
+const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get(r.id) < 0.5 ? 0.72 : 0.28) : (a + b) / 2);
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
@@ -975,13 +975,6 @@ function gridSVG(m, statusOf, opts = {}) {
   // Connectors: a box that carries out a step (r.by: thrombin → fibrinogen → fibrin), or inhibits another box
   // (p.inhibits: antithrombin ⊣ thrombin). Hidden while that step's enzyme is a blank.
   const connOn = r => (r.by || []).some(id => pos[id]) && !hidden(statusOf('e:' + r.id)) && statusOf('e:' + r.id) !== 'hide';
-  CONN_STEPS = new Set(p.reactions.filter(connOn).map(r => r.id));
-  p.reactions.forEach(r => {
-    const a = pos[r.from], b = pos[r.to], i = pair(r);
-    if (i >= 0 && Math.abs(a.cx - b.cx) < 4) s += twinEdge(m, statusOf, r, a, b, i ? 1 : -1);
-    else if (i >= 0 && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, i);
-    else s += twin(r) && Math.abs(a.cx - b.cx) < 4 ? twinEdge(m, statusOf, r, a, b) : drawEdge(m, statusOf, r, a, b);
-  });
   // The line each connected step is drawn as (as its edge function draws it), and where a connector lands: a third along.
   const stepLine = r => {
     const a = pos[r.from], b = pos[r.to], i = pair(r), down = b.cy > a.cy, dx = Math.sign(b.cx - a.cx) || 1;
@@ -992,11 +985,24 @@ function gridSVG(m, statusOf, opts = {}) {
     if (Math.abs(a.cy - b.cy) < 4) { const y = a.cy + (i >= 0 ? (i ? 8 : -8) : 0); return { v: false, p1: [a.cx + dx * (BW / 2 + 4), y], p2: [b.cx - dx * (BW / 2 + 4), y] }; }
     return null;
   };
+  // Where connectors land: right under (or beside) the acting box when it sits over the step's line, else a third along.
+  const landing = r => {
+    const L = stepLine(r); if (!L) return null;
+    const k = L.v ? 1 : 0, len = L.p2[k] - L.p1[k], at = (r.by || []).map(id => pos[id]).filter(Boolean).map(q => ((L.v ? q.cy : q.cx) - L.p1[k]) / len).find(f => f > 0.15 && f < 0.85);
+    return { L, f: at ?? 0.3 };
+  };
+  const lands = new Map(p.reactions.filter(connOn).map(r => [r.id, landing(r)]).filter(([, x]) => x));
+  CONN_STEPS = new Map([...lands].map(([id, x]) => [id, x.f]));
+  p.reactions.forEach(r => {
+    const a = pos[r.from], b = pos[r.to], i = pair(r);
+    if (i >= 0 && Math.abs(a.cx - b.cx) < 4) s += twinEdge(m, statusOf, r, a, b, i ? 1 : -1);
+    else if (i >= 0 && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, i);
+    else s += twin(r) && Math.abs(a.cx - b.cx) < 4 ? twinEdge(m, statusOf, r, a, b) : drawEdge(m, statusOf, r, a, b);
+  });
   CONN_LINES = [];
   (p.inhibits || []).forEach(x => { if (pos[x.from] && pos[x.to]) s += connector(pos[x.from], { box: pos[x.to] }, [], 'ln conn inh fx-inh'); });
-  p.reactions.filter(connOn).forEach(r => {
-    const L = stepLine(r); if (!L) return;
-    const t = [L.p1[0] + (L.p2[0] - L.p1[0]) * 0.3, L.p1[1] + (L.p2[1] - L.p1[1]) * 0.3];
+  p.reactions.filter(r => lands.has(r.id)).forEach(r => {
+    const { L, f } = lands.get(r.id), t = [L.p1[0] + (L.p2[0] - L.p1[0]) * f, L.p1[1] + (L.p2[1] - L.p1[1]) * f];
     (r.by || []).forEach(id => { if (pos[id]) s += connector(pos[id], { pt: t, axis: L.v ? 'h' : 'v' }, [r.from, r.to].map(k => pos[k]), 'ln conn fx-act'); });
   });
   // A second input that joins a step (C2b joining C4b): a plain arrow from its box into the product.

@@ -26,6 +26,8 @@ const CHANGELOG = [
     'Connectors: a dashed line from a box to the step it carries out (green, arrowhead), or to a box it inhibits (red, flat bar). While a step’s enzyme is a blank, its connector hides so it doesn’t give the answer away.',
     'Complement: the C3 and C5 convertases now connect to the C3 and C5 steps, so the terminal pathway joins the rest.',
     'Coagulation rebuilt as a connected cascade: XIIa activates XI, XIa activates IX, IXa with VIIIa and VIIa with tissue factor activate X, Xa with Va makes thrombin, and thrombin acts on fibrinogen, V, VIII and XIII. New: protein C and activated protein C (thrombin–thrombomodulin; inactivates Va and VIIIa), antithrombin (inhibits thrombin and Xa), and fibrinolysis (tPA: plasminogen → plasmin → fibrin degradation products, D-dimer). The common pathway is now X, V, prothrombin, fibrinogen and XIII.',
+    'Coagulation laid out like the classic figure: each activation runs left to right, and each active factor sits above the next activation and drops straight onto it (XIIa → XI, XIa → IX, IXa + VIIIa → X, Xa + Va → prothrombin, thrombin → fibrinogen). Factor X appears twice so the extrinsic pathway (VIIa) comes in from the right. VIII and VIIIa now sit in the intrinsic frame.',
+    'Editor: each step has “Carried out by” (the boxes whose connector lands on it) and each box has “Inhibits”. Connectors show as dashed lines on the Visual canvas too.',
   ] },
   { v: '3.11.1', date: '2026-10-20', items: [
     'The first-visit notice adds one more box: Step 1 Pathways is provided as is, with no guarantee that it’s accurate or bug-free, and you use it at your own risk. If you’ve already accepted the notice, you’ll see just this box once.',
