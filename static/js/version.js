@@ -5,10 +5,10 @@
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.11.1';
+const APP_VERSION = '3.12.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
-  { v: 'next', items: [
+  { v: '3.12.0', date: '2026-10-20', items: [
     'Immunology: three new pathways in Blood & immunity. Helper T cell differentiation (naive CD4⁺ → Th1, Th2, Th17, Treg, Tfh: the cytokines that drive each, its master transcription factor as what it needs, and the cytokines it then makes). Cytokines (who makes each one and what it acts on, IL-1 to IL-13, IFN-γ, TNF-α, with the drugs that block them). B cell class switching (CD40L, then IFN-γ → IgG, IL-4/IL-13 → IgE, TGF-β → IgA, all needing AID). Blanks there ask for a cell or a cytokine rather than a metabolite or an enzyme.',
     'Cytokines redrawn as one network: each cell appears once, and each cytokine is an arrow from the cell that makes it to what it acts on, so the loops show (macrophage IL-12 → Th1 and NK cells, their IFN-γ → back to macrophages; Th1 and Th2 holding each other back). Th17 cells added: IL-17 draws neutrophils; IFN-γ and IL-4 hold them back; IL-6 holds back Tregs.',
     'Activates or inhibits: in Cytokines, a step that activates is a green line ending in an arrow, one that inhibits a red line ending in a flat bar (and labeled). New quiz has an Effects row (Show / Quiz / Hide) when a chosen pathway has them; Quiz asks Activates or Inhibits for each step.',

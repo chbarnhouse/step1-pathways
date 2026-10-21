@@ -100,10 +100,28 @@
     "r9"
    ]
   },
+  "class-switching": {
+   "metabolites": [
+    "act",
+    "iga",
+    "ige",
+    "igg",
+    "naive"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
+   ]
+  },
   "coagulation": {
    "metabolites": [
+    "apc",
+    "at",
     "f10",
     "f10a",
+    "f10ext",
     "f11",
     "f11a",
     "f12",
@@ -122,6 +140,10 @@
     "f9a",
     "fbg",
     "fbn",
+    "fdp",
+    "pc",
+    "plasmin",
+    "plg",
     "xfbn"
    ],
    "reactions": [
@@ -129,6 +151,9 @@
     "r10",
     "r11",
     "r12",
+    "r13",
+    "r14",
+    "r15",
     "r2",
     "r3",
     "r4",
@@ -141,21 +166,67 @@
   },
   "complement": {
    "metabolites": [
+    "c2",
+    "c2b",
     "c3",
+    "c3alt",
     "c3b",
-    "c3b_fb",
+    "c3balt",
     "c3bbb",
     "c3bbb3b",
-    "c42",
+    "c4",
+    "c4b",
     "c4b2a",
     "c4b2a3b",
     "c5",
     "c5b",
+    "fb",
     "mac"
    ],
    "reactions": [
     "r1",
     "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "cytokines": {
+   "metabolites": [
+    "bcell",
+    "bm",
+    "endo",
+    "eos",
+    "hypo",
+    "liver",
+    "mac",
+    "neut",
+    "tc",
+    "th1",
+    "th17",
+    "th2",
+    "treg"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "r16",
+    "r17",
+    "r18",
     "r2",
     "r3",
     "r4",
@@ -345,6 +416,53 @@
     "r1",
     "r10",
     "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "hematopoiesis": {
+   "metabolites": [
+    "baso",
+    "bcell",
+    "cd4",
+    "cd8",
+    "clp",
+    "cmp",
+    "eos",
+    "gmp",
+    "hsc",
+    "mac",
+    "mast",
+    "mb",
+    "mep",
+    "mk",
+    "mono",
+    "neut",
+    "nk",
+    "plasma",
+    "plt",
+    "rbc",
+    "tcell"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "r16",
+    "r17",
+    "r18",
+    "r19",
+    "r2",
+    "r20",
     "r3",
     "r4",
     "r5",
@@ -651,6 +769,23 @@
     "r6",
     "r7",
     "r8"
+   ]
+  },
+  "th-differentiation": {
+   "metabolites": [
+    "tfh",
+    "th0",
+    "th1",
+    "th17",
+    "th2",
+    "treg"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
    ]
   },
   "urea": {
