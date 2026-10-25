@@ -10,6 +10,8 @@ const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy
 const CHANGELOG = [
   { v: 'next', items: [
     'A molecule now appears once, in the compartment where it starts: no more “Glycine (mitochondria)” copies. When a step’s substrate crosses a membrane first, its transporter sits on the membrane as a pill, and the enzyme is named on the side where it acts (SLC25A38 then ALA synthase; the ALA exporter then ALA dehydratase; ORNT1 into and out of the urea cycle’s mitochondria). Terminal exports and absorption journeys (glucose out through GLUT2, galactose across the gut, the nephron) still show each place.',
+    'Cycles show cofactors as a small curl on each step, inside the ring (inputs join, outputs leave), like the straight steps; rings with cofactors are drawn a little wider so the short top and bottom steps have room. Labels on crowded side steps move until they clear their neighbors.',
+    'Compartments in connected drawings are one smooth shape each: a rounded rectangle, or, where another compartment sits in its corner, one outline that fits around it, with no stepped edges. Each name tab finds a free spot.',
     'Connected pathways keep their transporters (and the Transporters row in New quiz).',
     'Every transporter’s name sits in a solid pill, so it never reads as an enzyme. Transporters are still their own Show / Quiz / Hide row, and each one has its own Library page.',
     'What a step needs (B6, biotin, B12, TPP…) now goes in with its inputs on the cofactor arrow (“Succinyl-CoA + B6 → CoA + CO₂”) instead of under the enzyme’s name, without repeating one already listed.',

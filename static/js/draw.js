@@ -174,6 +174,10 @@ function cofArcParts(x, y1, y2, parts, up = false) {
   // A blank (a pill) needs more room than a line of text: keep it inside the gap between the two boxes.
   const off = p => (p && hidden(p.st) ? 15 : 12);
   const a = [x + 44, yF + off(pin) * d], b = [x + 44, yT - off(pout) * d];
+  // A label that would land on another (a side step's, beside a short arrow) slides along the step, its curl end with it.
+  const lw = p => (hidden(p.st) ? 160 : p.text.length * 7 + 24), free = (p, y) => !hitsBox({ x: x + 50, y: y - 14, w: lw(p), h: 28 });
+  if (pin && !free(pin, a[1])) for (let k = 1; k < 8; k++) { const y = a[1] + d * k * 8; if (Math.abs(y - b[1]) < 26) break; if (free(pin, y)) { a[1] = y; break; } }
+  if (pout && !free(pout, b[1])) for (let k = 1; k < 8; k++) { const y = b[1] - d * k * 8; if (Math.abs(y - a[1]) < 26) break; if (free(pout, y)) { b[1] = y; break; } }
   const start = pin ? a : [x + 3, mid], end = pout ? b : [x + 3, mid];
   const ctrl = pin && pout ? [x + 2, mid] : pin ? [x + 12, yF + 20 * d] : [x + 12, yT - 20 * d];
   const ang = Math.atan2(end[1] - ctrl[1], end[0] - ctrl[0]);
@@ -199,7 +203,7 @@ const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b 
 // An enzyme's whole label: its name, tags (RATE-LIMITING) and what it needs, as enzLabel stacks them.
 const enzRect = (x, y, anchor, item, max = 18, valign = 'center') => {
   const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? (item.via ? viaTags(r) : shownTags(r)) : []), ];
-  const w = Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15;
+  const pill = item?.kind === 'trn', w = pill ? Math.max(1, ...lines.map(l => l.length)) * 6.9 + 18 : Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15 + (pill ? 8 : 0); // a transporter's pill
   return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h, rid: r?.id };
 };
 const labelRect = (x, y, anchor, text, max = 18, valign = 'center') => {
@@ -235,12 +239,66 @@ function cofArcLine(p1, p2, n, parts, flip = false) {
     // Level steps (grids, side steps) center each label under its end, clear of the columns' labels on either side.
     const level = Math.abs(u[1]) < 0.1 && two;
     let anchor = side || (level ? 'middle' : two ? ((u[0] >= 0) === first ? 'end' : 'start') : n[0] >= 0 ? 'start' : 'end');
-    const lx = P[0] + n[0] * 10, ly = P[1] + n[1] * (level ? 20 : 16);
+    let lx = P[0] + n[0] * 10, ly = P[1] + n[1] * (level ? 20 : 16);
     const live = isLive(p), w = live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw;
     const xAt = a => (a === 'end' ? lx - w : a === 'middle' ? lx - w / 2 : lx);
     // A label that would run under a box goes the other way instead (Dehydroascorbate beside norepinephrine).
     if (hitsBox({ x: xAt(anchor), y: ly - 13, w, h: 26 })) anchor = ['start', 'end', 'middle'].filter(a => a !== anchor).find(a => !hitsBox({ x: xAt(a), y: ly - 13, w, h: 26 })) || anchor;
-    const x0 = xAt(anchor);
+    let x0 = xAt(anchor);
+    for (let k = 1; k < 5 && hitsBox({ x: x0, y: ly - 13, w, h: 26 }); k++) { lx += n[0] * 16; ly += n[1] * 16; x0 = xAt(anchor); }
+    DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
+    if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
+    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
+    else s += `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
+  }
+  return s;
+}
+/* A cycle's cofactors: a tight curl at the middle M of the step's arrow, on the ring's inside (n), with the inputs
+   before it and the outputs after it in the direction of travel (u), both held clear of the boxes at the arrow's ends. */
+let CURL_AVOID = []; // points along the ring's arrows, which a cycle's cofactor labels keep clear of too
+const blocked = r => hitsBox(r) || CURL_AVOID.some(([x, y]) => x > r.x - 3 && x < r.x + r.w + 3 && y > r.y - 3 && y < r.y + r.h + 3);
+function cofCurl(M, u, n, parts, cx0 = M[0]) { // cx0: the ring's middle
+  parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
+  const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out'), two = !!(pin && pout);
+  if (!pin && !pout) return parts.length ? cofRow(M[0] + n[0] * 40, M[1] + n[1] * 40, Math.abs(n[0]) > 0.5 ? (n[0] > 0 ? 'start' : 'end') : 'middle', parts) : '';
+  const at = (a, b) => [M[0] + n[0] * a + u[0] * b, M[1] + n[1] * a + u[1] * b];
+  const side = Math.abs(n[0]) > 0.3; // the ring's sides and diagonals: labels beside the curl, inputs above outputs
+  const wOf = p => (!p ? 0 : isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * 7);
+  // Top or bottom of the ring, where the arrows are short: both labels at one depth inward (inputs before, outputs after,
+  // in the direction of travel), as deep as it takes to clear the boxes.
+  const fw = u[0] >= 0 ? 1 : -1, rectAt = (q, w, a) => ({ x: a === 'end' ? q[0] - w : q[0], y: q[1] - 11, w, h: 22 });
+  let k = 34;
+  if (!side) for (; k < 160; k += 8) {
+    const iq = at(k, -6), oq = at(k, 6);
+    if ((!pin || !blocked(rectAt(iq, wOf(pin), fw > 0 ? 'end' : 'start'))) && (!pout || !blocked(rectAt(oq, wOf(pout), fw > 0 ? 'start' : 'end')))) break;
+  }
+  // Beside the curl: as far in as it takes to clear the boxes, the arrows and the labels already drawn (a carrier pill).
+  let ds = 30;
+  if (side) for (; ds < 110; ds += 8) {
+    const a = n[0] > 0 ? 'start' : 'end', ok = [[pin, -16], [pout, 16]].every(([p, o]) => !p || !blocked(rectAt(at(ds + 8, o), wOf(p), a)));
+    if (ok) break;
+  }
+  let inAt = side ? null : at(k, -6), outAt = side ? null : at(k, 6);
+  let S = pin ? (side ? at(ds, -16) : at(k - 14, -12)) : at(3, -10), E = pout ? (side ? at(ds, 16) : at(k - 14, 12)) : at(3, 10);
+  let C = pin && pout ? at(4, 0) : pin ? at(10, -4) : at(10, 4), stack = 0;
+  // Side by side would still run into a box or a label (a long input beside a short arrow): stack them instead, inputs
+  // first, both running toward the ring's middle, the curl hooking round from the arrow to their near ends.
+  if (!side && pin && pout && (k > 46 || blocked(rectAt(inAt, wOf(pin), fw > 0 ? 'end' : 'start')) || blocked(rectAt(outAt, wOf(pout), fw > 0 ? 'start' : 'end')))) {
+    stack = cx0 - M[0] >= 0 ? 1 : -1;
+    let dk = 34;
+    for (; dk < 140; dk += 8) if (!blocked(rectAt(at(dk, 0), wOf(pin), stack > 0 ? 'start' : 'end')) && !blocked(rectAt(at(dk + 22, 0), wOf(pout), stack > 0 ? 'start' : 'end'))) break;
+    inAt = at(dk, 0); outAt = at(dk + 22, 0);
+    S = [inAt[0] - stack * 8, inAt[1]]; E = [outAt[0] - stack * 8, outAt[1]]; C = [M[0] - stack * 30 + n[0] * 30, M[1] + n[1] * 30];
+  }
+  const ang = Math.atan2(E[1] - C[1], E[0] - C[0]);
+  let s = `<path class="cof" d="M${S[0]},${S[1]}Q${C[0]},${C[1]} ${E[0] - Math.cos(ang) * 4},${E[1] - Math.sin(ang) * 4}"/>` + head(E[0], E[1], ang, 7, 'cofh');
+  for (const [p, P, first] of [[pin, S, true], [pout, E, false]]) {
+    if (!p) continue;
+    const live = isLive(p), w = wOf(p);
+    // Beside the curl's end, away from the arrow; on the top and bottom, centered in their stack.
+    const Q = side && !stack ? [P[0] + n[0] * 8, P[1] + n[1] * 8] : first ? inAt : outAt, lx = Q[0], ly = Q[1];
+    const anchor = stack ? (stack > 0 ? 'start' : 'end') : side ? (n[0] > 0 ? 'start' : 'end') : (first === (fw > 0) ? 'end' : 'start');
+    const x0 = anchor === 'end' ? lx - w : anchor === 'middle' ? lx - w / 2 : lx;
     DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
     if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
     else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
@@ -712,6 +770,58 @@ const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brus
 const zoneTone = key => { const k = String(key).split('|').pop(); return ZONE_TONES[k] || (k.startsWith('tubularlumen') ? 'gold' : 'slate'); };
 const zoneTissue = key => (String(key).includes('|') ? String(key).split('|')[0] : '');
 // Boxes that are close together in one compartment share one dashed region.
+/* A set of overlapping rectangles as one shape: its outline, every corner rounded (inside corners too), so pieces of a
+   compartment that fit around another read as one smooth puzzle piece instead of stepped boxes. */
+function unionPath(rects, R = 18) {
+  const xs = [...new Set(rects.flatMap(r => [r.x, r.x + r.w]))].sort((a, b) => a - b), ys = [...new Set(rects.flatMap(r => [r.y, r.y + r.h]))].sort((a, b) => a - b);
+  const on = (i, j) => i >= 0 && j >= 0 && i < xs.length - 1 && j < ys.length - 1 && rects.some(r => { const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2; return cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h; });
+  const edges = new Map(), key = p => p[0] + ',' + p[1], add = (a, b) => edges.set(key(a), [...(edges.get(key(a)) || []), b]);
+  for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
+    if (!on(i, j)) continue;
+    const [a, b, c, d] = [[xs[i], ys[j]], [xs[i + 1], ys[j]], [xs[i + 1], ys[j + 1]], [xs[i], ys[j + 1]]]; // clockwise
+    if (!on(i, j - 1)) add(a, b); if (!on(i + 1, j)) add(b, c); if (!on(i, j + 1)) add(c, d); if (!on(i - 1, j)) add(d, a);
+  }
+  let d = '';
+  while (edges.size) {
+    const [k0] = edges.keys(); let p = k0.split(',').map(Number); const loop = [p];
+    for (let n = 0; n < 4000; n++) { const out = edges.get(key(p)); if (!out?.length) break; const q = out.shift(); if (!out.length) edges.delete(key(p)); if (key(q) === k0) break; loop.push(q); p = q; }
+    edges.delete(k0);
+    // Keep the corners only (drop points in the middle of a straight run), then round each one.
+    const pts = loop.filter((v, i) => { const a = loop[(i - 1 + loop.length) % loop.length], b = loop[(i + 1) % loop.length]; return !((a[0] === v[0] && v[0] === b[0]) || (a[1] === v[1] && v[1] === b[1])); });
+    if (pts.length < 3) continue;
+    pts.forEach((v, i) => {
+      const a = pts[(i - 1 + pts.length) % pts.length], b = pts[(i + 1) % pts.length], la = Math.hypot(v[0] - a[0], v[1] - a[1]), lb = Math.hypot(b[0] - v[0], b[1] - v[1]), r = Math.min(R, la / 2, lb / 2);
+      const p1 = [v[0] - (v[0] - a[0]) / la * r, v[1] - (v[1] - a[1]) / la * r], p2 = [v[0] + (b[0] - v[0]) / lb * r, v[1] + (b[1] - v[1]) / lb * r];
+      d += `${i ? 'L' : 'M'}${p1[0]},${p1[1]} Q${v[0]},${v[1]} ${p2[0]},${p2[1]} `;
+    });
+    d += 'Z ';
+  }
+  return d;
+}
+// A compartment's bounding box with the other compartments cut out (each with a margin), never its own pieces: the
+// cells left over, for unionPath to outline as one puzzle piece.
+function boxMinus(b, own, obs, gap = 14) {
+  let cut = obs.map(o => ({ x: o.x - gap, y: o.y - gap, w: o.w + 2 * gap, h: o.h + 2 * gap }));
+  // Cut-outs that touch become one (their bounding box), so the notch is one clean step, not a staircase of ledges.
+  for (let merged = true; merged;) {
+    merged = false;
+    for (let i = 0; i < cut.length && !merged; i++) for (let j = i + 1; j < cut.length && !merged; j++) {
+      const a = cut[i], c = cut[j];
+      if (a.x < c.x + c.w + 8 && c.x < a.x + a.w + 8 && a.y < c.y + c.h + 8 && c.y < a.y + a.h + 8) {
+        const x = Math.min(a.x, c.x), y = Math.min(a.y, c.y);
+        cut[i] = { x, y, w: Math.max(a.x + a.w, c.x + c.w) - x, h: Math.max(a.y + a.h, c.y + c.h) - y }; cut.splice(j, 1); merged = true;
+      }
+    }
+  }
+  const xs = [...new Set([b.x, b.x + b.w, ...cut.flatMap(o => [o.x, o.x + o.w]), ...own.flatMap(o => [o.x, o.x + o.w])].filter(x => x >= b.x && x <= b.x + b.w))].sort((p, q) => p - q);
+  const ys = [...new Set([b.y, b.y + b.h, ...cut.flatMap(o => [o.y, o.y + o.h]), ...own.flatMap(o => [o.y, o.y + o.h])].filter(y => y >= b.y && y <= b.y + b.h))].sort((p, q) => p - q);
+  const inside = (r, x, y) => x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h, cells = [];
+  for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
+    const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
+    if (own.some(r => inside(r, cx, cy)) || !cut.some(r => inside(r, cx, cy))) cells.push({ x: xs[i], y: ys[j], w: xs[i + 1] - xs[i], h: ys[j + 1] - ys[j] });
+  }
+  return cells;
+}
 function clusterRects(rects) {
   const out = [];
   rects.slice().sort((a, b) => a.y - b.y).forEach(r => {
@@ -975,7 +1085,9 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
 function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn the ring (a connected drawing lines a box up with another part)
   const { p, items, spine, spineMets, branches } = m;
   const n = spineMets.length, w = 176;
-  const RY = Math.max(170, n * 30), RX = Math.round(RY * 1.5);
+  // With cofactors to curl off its steps, a ring gets wider, so its short top and bottom arrows have room.
+  const cofs = spine.some(r => (r.cofactors?.in || []).length || (r.cofactors?.out || []).length || (r.requires || []).length);
+  const RY = Math.max(170, n * (cofs ? 34 : 30)), RX = Math.round(RY * (cofs ? 1.85 : 1.5));
   // An extra input outside the ring (acetyl-CoA into citrate synthase) and whatever feeds it need room above.
   const extraIn = spine.some(r => (r.also_from || []).length), cx = RX + w / 2 + 300, cy = RY + 190 + (extraIn ? 150 : 0);
   const pt = (t, d = 0) => [cx + (RX + d) * Math.cos(t), cy + (RY + d) * Math.sin(t)];
@@ -1003,7 +1115,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     const up = b.to === sp; // sd feeds sp: it goes above
     // Room for the step's label between them: name, tags and what it needs.
     const lines = wrap(items['e:' + b.id]?.name || '', 18).length + (b.tags || []).filter(t => t !== 'irreversible').length;
-    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24) + (b.via ? VIA_ROOM + 30 : 0)), t: pos[sp].t, side: true };
+    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24) + (b.via ? VIA_ROOM + 30 : 0) + ((b.cofactors?.in || []).length + (b.cofactors?.out || []).length + (b.requires || []).length ? 36 : 0)), t: pos[sp].t, side: true };
   });
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
   // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
@@ -1049,6 +1161,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
       + `<text class="zonet" x="${q.cx}" y="${q.cy - BH / 2 - 14}" text-anchor="middle">${esc(own)}</text>`;
   }
   let vias = ''; // carrier pills go over the arrows
+  CURL_AVOID = spine.flatMap(r => { let a = pos[r.from].t, b = pos[r.to].t; if (b <= a) b += 2 * Math.PI; return Array.from({ length: 25 }, (_, i) => pt(a + (b - a) * i / 24)); });
   const arc = (d, t1, t2, cls) => { const [x1, y1] = pt(t1, d), [x2, y2] = pt(t2, d); return `<path class="${cls}" d="M${x1},${y1} A${RX + d},${RY + d} 0 ${t2 - t1 > Math.PI ? 1 : 0} 1 ${x2},${y2}"/>`; };
   spine.forEach(r => {
     const a = pos[r.from], b = pos[r.to];
@@ -1069,20 +1182,17 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     const es = statusOf('e:' + r.id), it = items['e:' + r.id];
     s += enzLabel(lx, ly0, it, es, anchor, 20, 'center', loc);
     DRAW_LABELS.push(enzRect(lx, ly0, anchor, it, 20));
+    // Cofactors curl off the step on the ring's inside, the enzyme's name being outside: inputs join, outputs leave.
     const cs = cofSt(m, statusOf, r);
     if (cs !== 'none' && cs !== 'hide') {
-      const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + loc.length;
-      const ly = ly0 + Math.max(lines * 7.5, 0) + 14;
-      if (hidden(cs)) s += cofRow(lx, ly + 6, anchor, cofParts(m, statusOf, r));
-      else {
-        const ct = cofLine(m, statusOf, r);
-        s += `<text class="coft" x="${lx}" y="${ly + 4}" text-anchor="${anchor}">${esc(ct)}</text>`;
-        DRAW_LABELS.push(labelRect(lx, ly, anchor, ct, 99));
-        s += cofMark(anchor === 'end' ? lx + 12 : anchor === 'start' ? lx - 12 : lx - ct.length * 3.3 - 12, ly, cs);
-      }
+      const tc = r.via ? tv + (s2 - tv) * 0.62 : tm; // past the carrier pill
+      const M = pt(tc), d = 0.02, A = pt(tc - d), B = pt(tc + d), L = Math.hypot(B[0] - A[0], B[1] - A[1]) || 1, u = [(B[0] - A[0]) / L, (B[1] - A[1]) / L];
+      let n = [-u[1], u[0]];
+      if ((cx - M[0]) * n[0] + (cy - M[1]) * n[1] < 0) n = [-n[0], -n[1]];
+      s += cofCurl(M, u, n, cofParts(m, statusOf, r), cx);
     }
   });
-  s += vias;
+  s += vias; CURL_AVOID = [];
   branches.forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to], w, w); });
   spine.forEach(r => (r.also_from || []).forEach(id => { if (pos[id] && pos[r.to]) { const a = edgePt(pos[id], pos[r.to].cx, pos[r.to].cy, w), b = edgePt(pos[r.to], pos[id].cx, pos[id].cy, w); s += arrow(a[0], a[1], b[0], b[1], false); } }));
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id), w);
@@ -1589,17 +1699,33 @@ function stitchSVG(m, statusOf) {
   let bg = '', fg = '';
   ZONE_INLINE_DONE = false;
   const regions = [], tabs = [];
+  // Each connected piece is one shape: a plain rounded rectangle when the corner it would leave out is empty anyway,
+  // else its own outline, fitting around the other compartment like a puzzle piece.
+  const pieces = {};
   for (const [z, rs] of Object.entries(shapes)) {
-    bg += `<g class="blob">${rs.map(r => `<rect class="t-${zoneTone(z)}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="16"/>`).join('')}</g>`;
-    // Connected pieces: each gets the name once, on its topmost edge.
     const comp = rs.map((_, i) => i), find = i => (comp[i] === i ? i : (comp[i] = find(comp[i])));
     rs.forEach((a, i) => rs.forEach((b, j) => { if (j > i && hit(a, b)) comp[find(i)] = find(j); }));
     const groups = {}; rs.forEach((r, i) => (groups[find(i)] = groups[find(i)] || []).push(r));
-    for (const g of Object.values(groups)) {
+    pieces[z] = Object.values(groups);
+  }
+  const boxOf = g => g.reduce(bbox);
+  for (const [z, gs] of Object.entries(pieces)) {
+    const others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
+    bg += `<g class="blob">${gs.map(g => { const b = boxOf(g);
+      return g.length === 1 || !others.some(o => hit(b, o)) ? `<rect class="t-${zoneTone(z)}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="18"/>` : `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${unionPath(boxMinus(b, g, others.filter(o => hit(b, o))))}"/>`; }).join('')}</g>`;
+  }
+  for (const [z, gs] of Object.entries(pieces)) {
+    for (const g0 of gs) {
+      const b0 = boxOf(g0), others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
+      const g = g0.length === 1 || !others.some(o => hit(b0, o)) ? [b0] : [b0, ...g0]; // where its name can go: its corners first
       // On a top edge, left or right end, wherever it doesn't cover a label or box (topmost edge first).
       const name = m.items['z:' + z]?.name || '', tw = name.length * 8.1 + 16, free = r => !occ.some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o));
-      const spots = g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - 22 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - 22 }]);
-      const at = spots.find(q => free({ ...q, w: tw, h: 18 })) || spots[0];
+      const spots = g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - 22 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - 22 },
+        { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - 22 }, { x: r.x + 12, y: r.y - 9 }, { x: r.x + r.w - 12 - tw, y: r.y - 9 }, { x: r.x + 12, y: r.y + r.h - 9 }]); // on the edge itself, last
+      // Nowhere fully free: the spot it covers least of (labels count most), just outside the shape too.
+      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - 22 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - 9 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - 9 }));
+      const cost = q => { const t = { ...q, w: tw, h: 18 }; return occ.filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
+      const at = spots.find(q => free({ ...q, w: tw, h: 18 }) && !others.some(o => hit({ ...q, w: tw, h: 18 }, o))) || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
       tabs.push({ ...at, w: tw, h: 18 });
       fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start');
       regions.push(...g);
