@@ -1087,6 +1087,8 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .act-fav { width: 34px; height: 34px; display: inline-grid; place-items: center; } .act-fav .mi { width: 20px; height: 20px; fill: var(--blue); }
 /* links to other pathways: dotted line + a small tag (outlined, dashed: never mistaken for a metabolite box) */
 .flow .xline { fill: none; stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 2 4; stroke-linecap: round; }
+/* A hand-off from a cofactor to the box it becomes: dot where it leaves, arrowhead where it arrives */
+.flow .xdot { fill: var(--ink-2); }
 .flow .xtag { fill: var(--card); stroke: var(--slate); stroke-width: 1.2; stroke-dasharray: 4 3; }
 .flow .xtagt { fill: var(--ink-2); font-size: var(--fs-xs); font-weight: 700; }
 .flow a.xlink.nav { cursor: pointer; }

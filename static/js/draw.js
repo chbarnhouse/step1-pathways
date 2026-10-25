@@ -1676,6 +1676,7 @@ function stitchSVG(m, statusOf) {
     if (!a || !b) continue;
     // A link that names a molecule another step gives off ("fumarate", from argininosuccinate lyase): start the line at
     // that cofactor's label, beside its own step, and end at the other part's box of that name; both ends are named, so no tag.
+    let fromCof = '';
     if (d.label && d.b) {
       const word = new RegExp(`(^|[^a-z])${d.label.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`);
       for (const [end, other] of [['a', 'b'], ['b', 'a']]) {
@@ -1683,13 +1684,23 @@ function stitchSVG(m, statusOf) {
         if (!sp) continue;
         const at = shift(sp, R.dx, R.dy);
         if (end === 'a') a = { ...at, R }; else b = { ...at, R };
-        d.label = ''; break;
+        d.label = ''; fromCof = end; break;
       }
+    }
+    // From a cofactor's label: straight out of the middle of its label (not off to one side), rounded corners, and an
+    // arrowhead into the box it becomes, with a dot where it leaves, so the two read as one hand-off.
+    if (fromCof) {
+      const src = fromCof === 'a' ? a : b, near = l => !(l.x < src.x + src.w + 6 && src.x < l.x + l.w + 6 && l.y < src.y + src.h + 6 && src.y < l.y + l.h + 6);
+      const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS.filter(near)], false) || route(a, b, DRAW_BOXES, false) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      let P = trim(pts, a, b); if (fromCof === 'b') P = P.reverse();
+      drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
+      between += `<circle class="xdot" cx="${P[0][0]}" cy="${P[0][1]}" r="3"/>` + elbow(P, false, 'xline xhand');
+      continue;
     }
     // Routed like the arrows (clear of boxes and labels, never along another line), its name on the longest leg.
     const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS], true) || route(a, b, DRAW_BOXES, true) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
     const P = trim(pts, a, b); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
-    between += `<path class="xline" d="M${P.map(q => q.join(',')).join('L')}"/>`;
+    between += elbow(P, false, 'xline').replace(/<path class="ah"[^>]*\/>/, ''); // rounded corners, no arrowhead
     if (d.label) {
       // On a stretch of the line where it covers nothing; the middle of the longest leg if there's none.
       const w = d.label.length * 6.4 + 20, segs = P.slice(1).map((q, i) => [P[i], q]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
