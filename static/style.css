@@ -1187,3 +1187,4 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .ed-members legend { font-weight: 600; margin-bottom: 4px; }
 /* Connectors: a box that carries out a step (green, arrowhead) or inhibits another box (red, flat bar); dashed. */
 .flow .ln.conn { stroke-width: 1.6; stroke-dasharray: 6 4; }
+.flow .carrier { fill: var(--card); stroke: var(--ink-2); stroke-width: 2; }

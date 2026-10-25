@@ -340,7 +340,7 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map();
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map(); GRID_MEMBRANES = [];
   if (m.p.stitch) return stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
@@ -413,16 +413,35 @@ const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ?
 const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)));
 
 // Steps that a connector lands on (grid): their name moves two-thirds along, clear of where the connector arrives.
-let CONN_STEPS = new Map(); // step id → how far along its line connectors land (0–1)
+let CONN_STEPS = new Map();
+// Membrane lines of a grid with column bands (x positions): a transport step across one draws its carrier on it.
+let GRID_MEMBRANES = []; // step id → how far along its line connectors land (0–1)
 const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get(r.id) < 0.5 ? 0.72 : 0.28) : (a + b) / 2);
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
+  const isEnd = bx => [a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4);
+  const crosses = (x, y0, y1) => DRAW_BOXES.some(bx => x > bx.x && x < bx.x + bx.w && Math.min(y0, y1) < bx.y + bx.h - 2 && Math.max(y0, y1) > bx.y + 2 && !isEnd(bx));
+  const crossesH = (y, x0, x1) => DRAW_BOXES.some(bx => y > bx.y && y < bx.y + bx.h && Math.min(x0, x1) < bx.x + bx.w - 2 && Math.max(x0, x1) > bx.x + 2 && !isEnd(bx));
+  // Straight up or down past another box (glucose in the ER up to glucose in the blood): swing out beside the column.
+  if (Math.abs(p1[0] - p2[0]) < 4 && crosses(a.cx, a.cy, b.cy)) {
+    const gx = a.cx + wA / 2 + 46, pts = [[a.cx + wA / 2 + 4, a.cy], [gx, a.cy], [gx, b.cy], [b.cx + wB / 2 + 4, b.cy]];
+    const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), mid = (a.cy + b.cy) / 2;
+    DRAW_LABELS.push(enzRect(gx + 12, mid, 'start', it, 18));
+    return elbow(pts, r.reversible, rxCls(r)) + enzLabel(gx + 12, mid, it, es, 'start', 18, 'center');
+  }
   let s = arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r));
   const mx = labAt(r, p1[0], p2[0]), my = labAt(r, p1[1], p2[1]);
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
-  if (Math.abs(p1[1] - p2[1]) < 4) {
+  const xm = r.transport && Math.abs(p1[1] - p2[1]) < 4 ? GRID_MEMBRANES.find(x => x > Math.min(p1[0], p2[0]) && x < Math.max(p1[0], p2[0])) : undefined;
+  if (xm !== undefined) {
+    // A carrier in a membrane (a tubular cell): a small circle on the membrane, its name beside it, toward where the solute goes.
+    const right = p2[0] > p1[0], lx = xm + (right ? 16 : -16), anchor = right ? 'start' : 'end';
+    s += `<circle class="carrier" cx="${xm}" cy="${my}" r="9"/>`;
+    s += enzLabel(lx, my - 8, it, es, anchor, 20, 'bottom'); DRAW_LABELS.push(enzRect(lx, my - 8, anchor, it, 20, 'bottom'));
+    if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r));
+  } else if (Math.abs(p1[1] - p2[1]) < 4) {
     s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(enzRect(mx, my - 8, 'middle', it, 16, 'bottom'));
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
@@ -434,12 +453,16 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     s = '';
     const down = b.cy > a.cy;
     // Which corner: leave a main-line box from its side; otherwise drop first, unless that drop would run through a box.
-    const crosses = (x, y0, y1) => DRAW_BOXES.some(bx => x > bx.x && x < bx.x + bx.w && Math.min(y0, y1) < bx.y + bx.h - 2 && Math.max(y0, y1) > bx.y + 2 && ![a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4));
-    const crossesH = (y, x0, x1) => DRAW_BOXES.some(bx => y > bx.y && y < bx.y + bx.h && Math.min(x0, x1) < bx.x + bx.w - 2 && Math.max(x0, x1) > bx.x + 2 && ![a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4));
     let fromSpine = (m.onSpine?.has(r.from) && !m.onSpine?.has(r.to)) || crosses(a.cx, a.cy + (down ? BH / 2 : -BH / 2), b.cy);
     // Whichever corner it takes, neither leg may run through a box; if only the other corner is clear, take that one.
     const hClear = !crossesH(a.cy, a.cx, b.cx) && !crosses(b.cx, a.cy, b.cy), vClear = !crosses(a.cx, a.cy, b.cy) && !crossesH(b.cy, a.cx, b.cx);
     if (fromSpine && !hClear && vClear) fromSpine = false; else if (!fromSpine && !vClear && hClear) fromSpine = true;
+    // Neither corner is clear: across to the gutter beside the target, along it, then into the target's side.
+    const gx = b.cx + Math.sign(a.cx - b.cx) * (wB / 2 + 54);
+    if (!hClear && !vClear && !crossesH(a.cy, a.cx, gx) && !crosses(gx, a.cy, b.cy)) {
+      const pts = [[a.cx - Math.sign(a.cx - b.cx) * (wA / 2 + 4), a.cy], [gx, a.cy], [gx, b.cy], [b.cx + Math.sign(a.cx - b.cx) * (wB / 2 + 4), b.cy]];
+      return elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[0], pts[1]], null);
+    }
     if (fromSpine) {
       const x0 = a.cx + Math.sign(b.cx - a.cx) * (wA / 2 + 4), yb = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
       const pts = [[x0, a.cy], [b.cx, a.cy], [b.cx, yb]];
@@ -562,7 +585,6 @@ function diagLabel(m, statusOf, r, p1, p2, boxes = []) {
 const LANE_ORDER = { blood: 0, lumen: 0, 'brush border': 0, 'plasma membrane': 0.5, cytosol: 1, er: 2, golgi: 2.2, vesicle: 2.4, peroxisome: 2.6, nucleus: 2.8, 'intermembrane space': 3, mitochondria: 4 };
 function computeLanes(m) {
   const { p, spine, spineMets } = m;
-  const tissues = uniq(spine.map(r => r.tissue || p.tissue || '').filter(Boolean));
   const multiT = m.multiTissue;
   const keyOf = (loc, tissue) => zoneKey(m, loc, tissue);
   const where = {};
@@ -575,6 +597,8 @@ function computeLanes(m) {
   });
   // Anything still unplaced inherits from its neighbor on the line.
   spineMets.forEach((id, i) => { if (!where[id]) where[id] = where[spineMets[i - 1]] || where[spineMets[i + 1]] || { loc: '' }; });
+  // Tissues left to right in the order the molecules travel through them (macrophage → blood → liver → gut).
+  const tissues = uniq(spineMets.map(id => where[id].tissue || p.tissue || '').filter(Boolean));
   const lanes = {};
   for (const id of spineMets) {
     const w = where[id], k = keyOf(w.loc, w.tissue);
@@ -587,7 +611,7 @@ function computeLanes(m) {
   list.forEach((l, i) => {
     l.i = i;
     const loc = Object.entries(l.labels).sort((a, b) => b[1] - a[1])[0][0];
-    l.label = [multiT ? l.tissue : '', loc].filter(Boolean).join(' · ');
+    l.label = [multiT && norm(l.tissue) !== norm(loc) ? l.tissue : '', loc].filter(Boolean).join(' · ');
   });
   const laneOf = {};
   for (const id of spineMets) laneOf[id] = lanes[keyOf(where[id].loc, where[id].tissue)].i;
@@ -600,7 +624,7 @@ const LANE_W = 470;
 const BLEED = 20000;
 const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
-const ZONE_TONES = { blood: 'slate', lumen: 'slate', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
+const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
   mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
 const zoneTone = key => ZONE_TONES[String(key).split('|').pop()] || 'slate';
 const zoneTissue = key => (String(key).includes('|') ? String(key).split('|')[0] : '');
@@ -696,19 +720,22 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   let H = bottom + 14 + (Object.entries(pos).some(([id, q]) => !onSpine.has(id) && q.y + BH === bottom) ? 34 : 0);
   let s = '', bg = '', fg = ''; // fg: region name tabs, drawn over the arrows
   // Side steps in another compartment (e.g. pyruvate carboxylase in the mitochondria) get a dashed, labeled region.
-  const sideRects = {};
+  const sideRects = {}, zoneNames = {};
+  const zoneName = k => m.items['z:' + k]?.name || zoneNames[k] || '';
   const laneKeyAt = x => { if (!lanesOn) return L.list[0]?.key; let i = 0; while (i < last && x >= laneLeft(i + 1)) i++; return L.list[i].key; };
-  const addRect = (k, rect) => { if (zones && k && m.items['z:' + k] && k !== laneKeyAt(rect.x + rect.w / 2)) (sideRects[k] = sideRects[k] || []).push(rect); };
+  const addRect = (k, rect) => { if (zones && k && zoneName(k) && k !== laneKeyAt(rect.x + rect.w / 2)) (sideRects[k] = sideRects[k] || []).push(rect); };
+  // A side box with its own location (acetoacetate in the blood) sits in that compartment, whatever step made it.
+  const ownZone = (id, r) => { const x = p.metabolites[id]; if (!x?.loc) return zoneOfR(r); const k = zoneKey(m, x.loc, x.tissue || r?.tissue); zoneNames[k] = zoneNames[k] || x.loc; return k; };
   const onLine = new Set(spineMets), membranes = [];
   for (const [id, pt] of Object.entries(pos)) {
     if (onLine.has(id)) continue;
     const r = stepOf(id);
     if (r?.transport) {
-      // Across a membrane: the metabolite on the far side sits in its own dashed box, named for that membrane.
-      addRect(zoneOfR(r), { x: pt.x - BW / 2 - 16, y: pt.y - 16, w: BW + 32, h: BH + 30 });
+      // Across a membrane: the metabolite on the far side sits in its own dashed box, named for its compartment.
+      addRect(ownZone(id, r), { x: pt.x - BW / 2 - 16, y: pt.y - 16, w: BW + 32, h: BH + 30 });
       continue;
     }
-    addRect(zoneOfR(r), { x: pt.x - BW / 2 - 12, y: pt.y - 22, w: BW + 24, h: BH + 42 });
+    addRect(ownZone(id, r), { x: pt.x - BW / 2 - 12, y: pt.y - 22, w: BW + 24, h: BH + 42 });
     // The step's own label (its enzyme) is in that compartment too.
     const other = r && pos[r.from === id ? r.to : r.from];
     if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 22, w: g1 - g0 - 40, h: BH + 42 }); }
@@ -740,7 +767,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   const hits = (a, b) => Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x) > 2 && Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y) > 2;
   const all = Object.values(clusters).flat();
   for (const [k, cs] of Object.entries(clusters)) {
-    const lw = (m.items['z:' + k]?.name.length || 0) * 8.1 + 44;
+    const lw = zoneName(k).length * 8.1 + 44;
     clusters[k] = cs.map(c => {
       if (c.w >= lw) return c;
       const right = { ...c, w: lw }, left = { ...c, x: Math.max(4, c.x + c.w - lw), w: lw }, others = all.filter(o => o !== c);
@@ -766,9 +793,9 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   }
   // A region's name sits on its top border, on a small tab at the right end, so the dashed line never runs through it.
   const legend = (c, k) => {
-    const name = m.items['z:' + k]?.name || '', tw = name.length * 8.1 + 16;
+    const name = zoneName(k), tw = name.length * 8.1 + 16;
     const x0 = c.x + c.w - 14 - tw; // right end: arrows and enzyme names crowd the left
-    return `<rect class="legend" x="${x0}" y="${c.y - 9}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, k, x0 + 7, c.y + 4, 'start');
+    return `<rect class="legend" x="${x0}" y="${c.y - 9}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, k, x0 + 7, c.y + 4, 'start', name);
   };
   if (zones) {
     for (const [k, cs] of Object.entries(clusters)) {
@@ -918,6 +945,13 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
   // Along the ring's direction there, the box edge is as far as the nearer of its side and its top/bottom.
   const ext = t => { const L = speed(t), ux = Math.abs(RX * Math.sin(t) / L), uy = Math.abs(RY * Math.cos(t) / L); return (Math.min(ux > 1e-6 ? w / 2 / ux : Infinity, uy > 1e-6 ? BH / 2 / uy : Infinity) + 10) / L; };
   const tangent = t => Math.atan2(RY * Math.cos(t), -RX * Math.sin(t));
+  // A side box in another compartment than the ring's (cytosolic pyruvate beside the TCA cycle): its own patch.
+  if (zones && mainKey) for (const [id, q] of Object.entries(pos)) {
+    const own = p.metabolites[id]?.loc, k = own && zoneKey(m, own, p.metabolites[id].tissue);
+    if (!q.side || !k || k === mainKey) continue;
+    s += `<rect class="zone t-${zoneTone(k)}" x="${q.cx - w / 2 - 22}" y="${q.cy - BH / 2 - 34}" width="${w + 44}" height="${BH + 56}" rx="16"/>`
+      + `<text class="zonet" x="${q.cx}" y="${q.cy - BH / 2 - 14}" text-anchor="middle">${esc(own)}</text>`;
+  }
   const arc = (d, t1, t2, cls) => { const [x1, y1] = pt(t1, d), [x2, y2] = pt(t2, d); return `<path class="${cls}" d="M${x1},${y1} A${RX + d},${RY + d} 0 ${t2 - t1 > Math.PI ? 1 : 0} 1 ${x2},${y2}"/>`; };
   spine.forEach(r => {
     const a = pos[r.from], b = pos[r.to];
@@ -962,11 +996,30 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
 
 // Grids (steroidogenesis): every metabolite sets pos: [column, row]; optional grid_columns headers.
 function gridSVG(m, statusOf, opts = {}) {
-  const { p, items } = m, COLW = BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.grid_columns ? 34 : 0);
+  const { p, items } = m, COLW = BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.column_zones ? 78 : p.grid_columns ? 34 : 0);
   const pos = {};
   for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
+  // Column bands (p.column_zones): when each column is one compartment (a tubular cell: lumen | cell | blood), shade
+  // the columns, name each band at the top (quizzable like any compartment), and draw the membranes between them.
+  const bands = [];
+  if (p.column_zones && opts.zones !== false) {
+    const byCol = new Map();
+    for (const x of Object.values(p.metabolites)) { const c = (x.pos || [0])[0]; if (x.loc && !byCol.has(c)) byCol.set(c, { k: zoneKey(m, x.loc, x.tissue), loc: x.loc }); }
+    for (const c of [...byCol.keys()].sort((a, b) => a - b)) { const z = byCol.get(c), last = bands[bands.length - 1]; if (last && last.k === z.k) last.c1 = c; else bands.push({ ...z, c0: c, c1: c }); }
+  }
+  bands.forEach((b, i) => {
+    const left = i ? (X0 + bands[i - 1].c1 * COLW + X0 + b.c0 * COLW) / 2 : -BLEED, right = i < bands.length - 1 ? (X0 + b.c1 * COLW + X0 + bands[i + 1].c0 * COLW) / 2 : BLEED;
+    b.x0 = left; b.x1 = right;
+    s += `<rect class="zone t-${zoneTone(b.k)}" x="${left}" y="${-BLEED}" width="${right - left}" height="${2 * BLEED}"/>`;
+    if (i) { s += `<line class="cellwall" x1="${left}" x2="${left}" y1="${-BLEED}" y2="${BLEED}"/>`; GRID_MEMBRANES.push(left); }
+  });
+  const membranes = (p.column_zones && p.column_zones.membranes) || [];
+  bands.forEach((b, i) => {
+    s += zoneLabel(m, statusOf, b.k, X0 + (b.c0 + b.c1) / 2 * COLW, TOP + 8, 'middle', b.loc);
+    if (i && membranes[i - 1]) { const t = membranes[i - 1], w = t.length * 7.2 + 14; s += `<rect class="legend" x="${b.x0 - w / 2}" y="${TOP + 17}" width="${w}" height="17" rx="5"/><text class="zonet" x="${b.x0}" y="${TOP + 29}" text-anchor="middle">${esc(t)}</text>`; }
+  });
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
   // Two one-way steps between the same boxes, in opposite directions (cortisol ⇄ cortisone, two enzymes): side by side.
   const twin = r => p.reactions.find(o => o !== r && o.from === r.to && o.to === r.from);
@@ -1013,7 +1066,7 @@ function gridSVG(m, statusOf, opts = {}) {
   // Room under the boxes for group frames (up to two deep) before the compartment list.
   let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24 + ((p.groups || []).length ? 48 : 0);
   const W = Math.max(Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24, lk.maxX + 12);
-  if (opts.zones !== false) {
+  if (opts.zones !== false && !bands.length) {
     // Grids don't split into lanes, so the compartments are listed underneath (and quizzable there).
     const zs = Object.values(items).filter(it => it.kind === 'loc');
     // In columns wide enough for the longest name, one per line, so long tissue names never run into each other.
