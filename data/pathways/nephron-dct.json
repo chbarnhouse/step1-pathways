@@ -1,0 +1,467 @@
+{
+ "id": "nephron-dct",
+ "name": "Distal convoluted tubule",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "DCT",
+  "distal convoluted tubule",
+  "early distal tubule",
+  "distal tubule"
+ ],
+ "summary": "Reabsorbs about 5% of filtered NaCl through NCC and stays impermeable to water, so it keeps diluting the fluid. The main site of hormone-regulated Ca²⁺ reabsorption: PTH adds TRPV5 channels. Thiazides block NCC (Na⁺ out, Ca²⁺ in); Gitelman syndrome is a genetic version.",
+ "tissue": "kidney: distal convoluted tubule (cortex)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "dct",
+  "order": 5
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Water (blood)",
+   "Glucose (lumen)",
+   "H⁺ (lumen)"
+  ],
+  "enzymes": [
+   "NKCC2",
+   "ENaC",
+   "Aquaporin-2",
+   "ROMK",
+   "H⁺-ATPase",
+   "Pendrin",
+   "SGLT2",
+   "NHE3",
+   "AE1"
+  ]
+ },
+ "links": [
+  {
+   "at": "na_l",
+   "to": "nephron-cd-principal",
+   "dir": "out",
+   "via": "the tubular fluid flows on"
+  }
+ ],
+ "metabolites": {
+  "na_l": {
+   "name": "Na⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "na_c": {
+   "name": "Na⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "cytosol (DCT cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "na_b": {
+   "name": "Na⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "k_c": {
+   "name": "K⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "cytosol (DCT cell)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "k_b": {
+   "name": "K⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    1
+   ]
+  },
+  "cl_l": {
+   "name": "Cl⁻ (lumen)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "cl_c": {
+   "name": "Cl⁻ (cell)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "cytosol (DCT cell)",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "cl_b": {
+   "name": "Cl⁻ (blood)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "ca_l": {
+   "name": "Ca²⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Ca²⁺",
+    "calcium",
+    "Ca"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "ca_c": {
+   "name": "Ca²⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "Ca²⁺",
+    "calcium",
+    "Ca"
+   ],
+   "loc": "cytosol (DCT cell)",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "ca_b": {
+   "name": "Ca²⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Ca²⁺",
+    "calcium",
+    "Ca"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "mg_l": {
+   "name": "Mg²⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Mg²⁺",
+    "magnesium",
+    "Mg"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "mg_c": {
+   "name": "Mg²⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "Mg²⁺",
+    "magnesium",
+    "Mg"
+   ],
+   "loc": "cytosol (DCT cell)",
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "mg_b": {
+   "name": "Mg²⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Mg²⁺",
+    "magnesium",
+    "Mg"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    4
+   ]
+  }
+ },
+ "enzymes": {
+  "ncc": {
+   "name": "NCC (Na⁺–Cl⁻ cotransporter)",
+   "short": "",
+   "aliases": [
+    "NCC",
+    "Na-Cl cotransporter",
+    "Na+/Cl- cotransporter",
+    "thiazide-sensitive cotransporter",
+    "SLC12A3",
+    "NCCT"
+   ],
+   "notes": "Carries Na⁺ with Cl⁻ into the cell (about 5% of filtered Na⁺). Thiazides block it (hydrochlorothiazide, chlorthalidone, metolazone): Na⁺ loss, and more Ca²⁺ reabsorbed (“thiazides take calcium in”; used for calcium stones). Gitelman syndrome: loss of NCC (hypokalemia, hypomagnesemia, low urine calcium)."
+  },
+  "nak": {
+   "name": "Na⁺/K⁺-ATPase",
+   "short": "",
+   "aliases": [
+    "Na/K ATPase",
+    "Na+/K+ ATPase",
+    "sodium-potassium pump",
+    "Na pump",
+    "Na-K-ATPase"
+   ],
+   "notes": "On the basolateral side of every tubular cell: 3 Na⁺ out, 2 K⁺ in, using ATP. Keeping cell Na⁺ low is what drives every apical Na⁺ carrier (secondary active transport)."
+  },
+  "clckb": {
+   "name": "ClC-Kb (chloride channel)",
+   "short": "",
+   "aliases": [
+    "ClC-Kb",
+    "CLCNKB",
+    "chloride channel",
+    "barttin",
+    "ClC-K"
+   ],
+   "notes": "Basolateral Cl⁻ channel that needs its partner barttin to work. Loss of either: Bartter syndrome (types 3 and 4)."
+  },
+  "trpv5": {
+   "name": "TRPV5 (Ca²⁺ channel)",
+   "short": "",
+   "aliases": [
+    "TRPV5",
+    "epithelial calcium channel",
+    "ECaC",
+    "calcium channel"
+   ],
+   "notes": "Apical Ca²⁺ channel. PTH (and calcitriol) increase Ca²⁺ reabsorption here by adding TRPV5 and its partners."
+  },
+  "ncx1": {
+   "name": "NCX1 (Na⁺/Ca²⁺ exchanger)",
+   "short": "",
+   "aliases": [
+    "NCX1",
+    "Na+/Ca2+ exchanger",
+    "sodium-calcium exchanger",
+    "SLC8A1",
+    "PMCA",
+    "Ca2+-ATPase"
+   ],
+   "notes": "Basolateral: 3 Na⁺ in for 1 Ca²⁺ out (with the Ca²⁺-ATPase PMCA). When thiazides lower cell Na⁺, this exit speeds up, one reason they raise Ca²⁺ reabsorption."
+  },
+  "trpm6": {
+   "name": "TRPM6 (Mg²⁺ channel)",
+   "short": "",
+   "aliases": [
+    "TRPM6",
+    "magnesium channel"
+   ],
+   "notes": "Apical Mg²⁺ channel; its mutations cause hypomagnesemia with secondary hypocalcemia."
+  },
+  "mgout": {
+   "name": "Basolateral Mg²⁺ exit (carrier not established)",
+   "short": "",
+   "aliases": [
+    "basolateral magnesium transporter",
+    "CNNM2",
+    "magnesium exit"
+   ],
+   "notes": "How Mg²⁺ leaves the cell is not settled (CNNM2 is a candidate)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "ncc",
+   "from": "na_l",
+   "to": "na_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "nak",
+   "from": "na_c",
+   "to": "na_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r3",
+   "enzyme": "nak",
+   "from": "k_b",
+   "to": "k_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "ncc",
+   "from": "cl_l",
+   "to": "cl_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r5",
+   "enzyme": "clckb",
+   "from": "cl_c",
+   "to": "cl_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r6",
+   "enzyme": "trpv5",
+   "from": "ca_l",
+   "to": "ca_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "ncx1",
+   "from": "ca_c",
+   "to": "ca_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r8",
+   "enzyme": "trpm6",
+   "from": "mg_l",
+   "to": "mg_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r9",
+   "enzyme": "mgout",
+   "from": "mg_c",
+   "to": "mg_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  }
+ ]
+}

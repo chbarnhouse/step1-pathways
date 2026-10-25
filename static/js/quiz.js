@@ -272,6 +272,7 @@ function nextSingle() {
     R.deck = weightedDeck(all, x => Stats.rate(x.m.p.id, x.k));
     if (R.deck.length > 1 && R.deck[R.deck.length - 1].k === R.target && R.deck[R.deck.length - 1].m === Q.m) R.deck.unshift(R.deck.pop());
   }
+  if (!R.deck.length) { Q.round = { type: 'none', msg: 'Nothing here matches what is set to <b>Quiz</b>. Go back and pick something else to quiz.' }; return; }
   const { m, k } = R.deck.pop();
   Q.m = m; R.target = k;
   R.q = withAlong(itemQ(m.items[k], m), m);

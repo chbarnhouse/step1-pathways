@@ -1188,3 +1188,13 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 /* Connectors: a box that carries out a step (green, arrowhead) or inhibits another box (red, flat bar); dashed. */
 .flow .ln.conn { stroke-width: 1.6; stroke-dasharray: 6 4; }
 .flow .carrier { fill: var(--card); stroke: var(--ink-2); stroke-width: 2; }
+/* The nephron: cortex and a medulla that darkens with depth; the tubule as one continuous tube; each cell framed and named. */
+.flow .neph-cortex { fill: var(--sunk); }
+.flow .neph-med0 { stop-color: var(--slate-bg); } .flow .neph-med1 { stop-color: var(--slate); stop-opacity: .45; }
+.flow .neph-cm { stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: 10 7; }
+.flow .neph-wall { fill: none; stroke: var(--ink-2); stroke-width: 82; stroke-linejoin: round; }
+.flow .neph-tube { fill: none; stroke: var(--gold-bg); stroke-width: 76; stroke-linejoin: round; }
+.flow .neph-flow { fill: var(--gold); font-size: 15px; font-weight: 700; }
+.flow .neph-frame { fill: none; stroke: var(--ink-2); stroke-width: 2; }
+.flow .neph-name { fill: var(--ink); font-size: 15px; font-weight: 800; }
+.flow .neph-missing { fill: var(--muted); font-size: 16px; font-weight: 700; }

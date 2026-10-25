@@ -328,6 +328,7 @@ function tileHTML(p, page, selected) {
   return `<article class="ptile lib">
       <a class="tile-link" href="#/pathways/${esc(p.id)}">${tileArt(p)}<span class="tile-text"><span class="tile-name">${esc(p.name)}</span>${akaHTML}<span class="tile-meta">${meta}</span>${acc}${tagHTML}</span></a>
       <div class="tile-actions"><button class="btn small" data-lib="study" data-id="${esc(p.id)}">${mi('play_arrow', 'sm')} Study</button><a class="btn small ghost" href="#/pathways/${esc(p.id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn small ghost" data-lib="tags" data-id="${esc(p.id)}">${mi('sell', 'sm')} Tags</button>
+        ${p.nephron && nephronLink() ? `<a class="btn small ghost" href="#/pathways/${esc(nephronLink())}" title="Every segment on one textbook nephron">${mi('water_drop', 'sm')} Whole nephron</a>` : ''}
         ${pairsOf(p.id).map(pp => `<button class="btn small ghost" data-lib="study" data-id="${esc(pp.id)}" title="${esc(pp.name)}: both on one diagram">${mi('sync_alt', 'sm')} Study with ${esc(pp.compose.filter(x => x !== p.id).map(x => Library.get(x)?.name).filter(Boolean).join(' + '))}</button>`).join('')}</div>
     </article>`;
 }
@@ -622,10 +623,13 @@ function renderLibrary() {
   </div>`;
   updateRows();
 }
+// The whole nephron: every segment pathway (p.nephron), in the order the fluid flows, studied as one connected drawing.
+const nephronLink = () => { const ids = Library.atomic().filter(p => p.nephron).sort((a, b) => a.nephron.order - b.nephron.order).map(p => p.id); return ids.length > 1 ? linkId(ids) : null; };
 function studyPathway(id) {
   homeDraft();
   const p = Library.get(id);
-  if (p?.compose) { C.draft.pathway = p.compose[0]; C.draft.combine = true; }
+  if (p?.stitch) { C.draft.pathway = p.stitch.parts[0]; C.draft.extra = p.stitch.parts.slice(1); C.draft.combine = false; }
+  else if (p?.compose) { C.draft.pathway = p.compose[0]; C.draft.combine = true; }
   else { C.draft.pathway = id; C.draft.combine = false; }
   C.draft.allPathways = false;
   location.hash = '#/new';
@@ -654,7 +658,7 @@ function renderPathway(id) {
   $('#view').innerHTML = `<div class="page pathway">
     ${crumbsHTML([])}
     ${pageHead(`${tileArt(p)} ${esc(p.name)}`, `${esc(p.group || 'Other')} · ${plural(p.reactions.length, 'step')}${p.shared?.by ? ` · shared by ${esc(p.shared.by)}` : ''}${st !== 'builtin' ? ` · ${st === 'edited' ? 'edited copy' : 'your pathway'}` : ''}${a ? ` · ${a.pct}% first try` : ''}`,
-      `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button><a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>${sharingEnabled() && st !== 'builtin' ? `<button class="btn ghost" data-pw="share">${mi('public', 'sm')} Share with classmates</button>` : ''}`)}
+      `<button class="btn primary" data-pw="study">${mi('play_arrow', 'sm')} Study</button>${p.nephron && nephronLink() ? `<a class="btn" href="#/pathways/${esc(nephronLink())}">${mi('water_drop', 'sm')} Whole nephron</a>` : ''}<a class="btn" href="#/pathways/${esc(id)}/edit">${mi('edit', 'sm')} Edit</a><button class="btn ghost" data-pw="export">${mi('download', 'sm')} Export</button>${sharingEnabled() && st !== 'builtin' ? `<button class="btn ghost" data-pw="share">${mi('public', 'sm')} Share with classmates</button>` : ''}`)}
     <div class="tagrow">${mi('sell', 'sm')} ${sysChips(id)}${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : systemsOf(id).length ? '' : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">

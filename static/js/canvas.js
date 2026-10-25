@@ -63,7 +63,10 @@ function applyZoom(scope = document) {
   // Same diagram, same zoom mode as a moment ago (e.g. the next question): keep the view where it was.
   if (CANVAS_VIEW && CANVAS_VIEW.key && CANVAS_VIEW.key === st.dataset.view && CANVAS_VIEW.mode === z) return setView(st, CANVAS_VIEW);
   const { w, h } = contentSize(st);
-  const k = typeof z === 'number' ? z : fitK(st, z);
+  let k = typeof z === 'number' ? z : fitK(st, z);
+  // Quizzing with Follow on a drawing too big to fit legibly (the whole nephron): start readable and let Follow
+  // keep the blank in view; holding Peek still shows all of it.
+  if (typeof z !== 'number' && Store.settings.follow && st.closest('.quiz') && k < 0.45) k = 0.6;
   const x = Math.max(CANVAS.pad, (st.clientWidth - w * k) / 2);
   const y = z === 'fit' || z === 'height' ? Math.max(CANVAS.pad, (st.clientHeight - h * k) / 2) : CANVAS.pad;
   setView(st, { k, x, y });

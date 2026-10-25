@@ -34,6 +34,8 @@ function sigParts(name) {
 // pathways' arrows are a cell developing into another.
 const signaling = p => p.terms?.enz === 'cytokine';
 
+// A molecule's catalog name: a nephron names each copy by where it is ("Na⁺ (lumen)"); its page is just "Na⁺".
+const metBase = (p, name) => (p.nephron ? String(name).replace(/\s*\([^)]*\)\s*$/, '') : baseMetName(name));
 function catalog() {
   const ps = Library.atomic().filter(p => (p.reactions || []).length);
   if (CAT.built && CAT.sig.length === ps.length && CAT.sig.every((p, i) => p === ps[i])) return CAT.built;
@@ -42,10 +44,10 @@ function catalog() {
   const note = (e, text, p) => { if (text && !e.notes.some(n => n.text === text)) e.notes.push({ text, pid: p.id }); };
   for (const p of ps) {
     let m; try { m = modelFor(p); } catch { continue; }
-    if (p.terms) { immunoEntries(p, m, entry, note); continue; }
+    if (p.terms && !p.nephron) { immunoEntries(p, m, entry, note); continue; } // cells and cytokines; a nephron's solutes are molecules
     for (const [id, x] of Object.entries(p.metabolites)) {
-      const e = entry('met', catKey(baseMetName(x.name)), x.name);
-      e.names.push(x.name); if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p);
+      const e = entry('met', catKey(metBase(p, x.name)), x.name);
+      e.names.push(p.nephron ? metBase(p, x.name) : x.name); if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p);
       e.pathways.add(p.id); e.keys.push([p.id, 'm:' + id]);
       for (const r of p.reactions) {
         const made = r.to === id || (r.also_to || []).includes(id), used = r.from === id || (r.also_from || []).includes(id);
@@ -107,14 +109,14 @@ function catLink(kind, key, label) {
 }
 const metLink = (p, id) => {
   const name = p.metabolites[id]?.name || id;
-  if (!p.terms) return catLink('met', catKey(baseMetName(name)), name);
+  if (!p.terms || p.nephron) return catLink('met', catKey(metBase(p, name)), name);
   const parts = cellParts(name);
   return parts.map(c => catLink('cell', cellKey(c), c)).join(' and ');
 };
 // A step's enzyme, or in an immunology pathway its signal, each cytokine in it linked.
 function enzLink(p, r) {
   const name = p.enzymes[r.enzyme]?.name || r.enzyme;
-  if (!p.terms) return catLink('enz', catKey(name), name);
+  if (!p.terms || p.nephron) return catLink('enz', catKey(name), name);
   const parts = sigParts(name);
   // Each cytokine in the name becomes a link where it stands: "TGF-β + IL-6 (+ IL-23)".
   return esc(name).split(/(\s*[+()]\s*)/).map(t => (parts.includes(t) ? catLink('sig', catKey(t), t) : t)).join('');
@@ -298,7 +300,7 @@ function focusStatus(e, p) {
   return k => (focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
 }
 function stepLine(e, s) {
-  if (s.p.terms) return immunoLine(e, s);
+  if (s.p.terms && !s.p.nephron) return immunoLine(e, s);
   const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name, needs = cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []);
   const role = e.kind === 'met' ? (s.role === 'made' ? 'made by ' : s.role === 'used' ? 'used by ' : '') : e.kind === 'cof' ? ({ in: 'goes in at ', out: 'comes out of ', need: 'needed by ' }[s.role] || '') : '';
   const bits = [e.kind === 'enz' ? '' : `${role}${catLink('enz', catKey(en), en)}`, reactionCell(p, r), `cofactors ${cofCell(m, r)}`, needs ? `needs ${needs}` : '', whereCell(r),

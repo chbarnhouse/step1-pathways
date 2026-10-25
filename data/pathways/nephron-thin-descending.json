@@ -1,0 +1,221 @@
+{
+ "id": "nephron-thin-descending",
+ "name": "Thin descending limb",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [],
+ "aliases": [
+  "thin descending limb",
+  "descending limb",
+  "descending loop of Henle",
+  "tDL",
+  "concentrating segment"
+ ],
+ "summary": "Water leaves by osmosis through aquaporin-1 into the hypertonic medulla, but the segment is impermeable to NaCl, so the fluid concentrates as it descends (up to ~1200 mOsm at the tip of long loops). The concentrating segment.",
+ "tissue": "kidney: loop of Henle, thin descending limb (medulla)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "thin-descending",
+  "order": 2
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Na⁺ (interstitium)",
+   "Glucose (lumen)"
+  ],
+  "enzymes": [
+   "Aquaporin-2",
+   "NKCC2",
+   "ENaC",
+   "ROMK"
+  ]
+ },
+ "links": [
+  {
+   "at": "w_l",
+   "to": "nephron-thin-ascending",
+   "dir": "out",
+   "via": "the tubular fluid flows on"
+  }
+ ],
+ "metabolites": {
+  "w_l": {
+   "name": "Water (lumen)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    0
+   ],
+   "notes": "Leaves the lumen by osmosis: the fluid reaches about 1200 mOsm at the tip of a long loop."
+  },
+  "w_c": {
+   "name": "Water (cell)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "cytosol (thin limb cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "w_i": {
+   "name": "Water (interstitium)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "interstitium (medulla)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "urea_i": {
+   "name": "Urea (interstitium)",
+   "short": "",
+   "aliases": [
+    "Urea",
+    "urea"
+   ],
+   "loc": "interstitium (medulla)",
+   "pos": [
+    3,
+    1
+   ]
+  },
+  "urea_c": {
+   "name": "Urea (cell)",
+   "short": "",
+   "aliases": [
+    "Urea",
+    "urea"
+   ],
+   "loc": "cytosol (thin limb cell)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "urea_l": {
+   "name": "Urea (lumen)",
+   "short": "",
+   "aliases": [
+    "Urea",
+    "urea"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    1
+   ]
+  }
+ },
+ "enzymes": {
+  "aqp1": {
+   "name": "Aquaporin-1",
+   "short": "",
+   "aliases": [
+    "AQP1",
+    "aquaporin 1",
+    "aquaporin",
+    "water channel"
+   ],
+   "notes": "Always-open water channels on both membranes: water leaves by osmosis into the ever saltier medulla, so the fluid concentrates on the way down."
+  },
+  "uta2": {
+   "name": "UT-A2 (urea transporter)",
+   "short": "",
+   "aliases": [
+    "UT-A2",
+    "urea transporter",
+    "SLC14A2",
+    "urea channel"
+   ],
+   "notes": "Lets urea from the medullary interstitium back into the thin limbs (urea recycling), part of how the medulla keeps its high osmolality."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "aqp1",
+   "from": "w_l",
+   "to": "w_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "aqp1",
+   "from": "w_c",
+   "to": "w_i",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r3",
+   "enzyme": "uta2",
+   "from": "urea_i",
+   "to": "urea_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "uta2",
+   "from": "urea_c",
+   "to": "urea_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  }
+ ]
+}

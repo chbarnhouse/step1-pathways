@@ -1,0 +1,1012 @@
+{
+ "id": "nephron-pct",
+ "name": "Proximal convoluted tubule",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "PCT",
+  "proximal tubule",
+  "proximal convoluted tubule",
+  "nephron: proximal tubule",
+  "early tubule"
+ ],
+ "summary": "The workhorse segment. Reabsorbs about 65% of filtered Na⁺ and water (isotonically), about 85% of HCO₃⁻, almost all glucose and amino acids and most phosphate; makes NH₄⁺ (ammoniagenesis) and secretes organic anions and drugs. Angiotensin II stimulates NHE3; PTH inhibits Na⁺–phosphate cotransport. Drugs: acetazolamide (carbonic anhydrase), SGLT2 inhibitors. Generalized failure is Fanconi syndrome; failure to reclaim HCO₃⁻ is proximal (type 2) renal tubular acidosis.",
+ "tissue": "kidney: proximal convoluted tubule (cortex)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane (brush border)",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "pct",
+  "order": 1
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {
+  "h": {
+   "name": "H⁺",
+   "aliases": [
+    "proton",
+    "hydrogen ion"
+   ]
+  }
+ },
+ "distractors": {
+  "metabolites": [
+   "Urea (lumen)",
+   "Ca²⁺ (lumen)",
+   "Mg²⁺ (lumen)",
+   "Cl⁻ (cell)"
+  ],
+  "enzymes": [
+   "NKCC2",
+   "NCC (Na⁺–Cl⁻ cotransporter)",
+   "ENaC",
+   "Aquaporin-2",
+   "ROMK",
+   "H⁺-ATPase",
+   "Pendrin",
+   "AE1"
+  ]
+ },
+ "links": [
+  {
+   "at": "na_l",
+   "to": "nephron-thin-descending",
+   "dir": "out",
+   "via": "the tubular fluid flows on"
+  }
+ ],
+ "metabolites": {
+  "na_l": {
+   "name": "Na⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    0
+   ],
+   "notes": "The PCT reabsorbs about 65% of filtered Na⁺, with water following (isotonic)."
+  },
+  "na_c": {
+   "name": "Na⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "na_b": {
+   "name": "Na⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "k_c": {
+   "name": "K⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "k_b": {
+   "name": "K⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    1
+   ]
+  },
+  "h_c": {
+   "name": "H⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "H⁺",
+    "hydrogen ion",
+    "proton",
+    "H"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "h_l": {
+   "name": "H⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "H⁺",
+    "hydrogen ion",
+    "proton",
+    "H"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "hco3_l": {
+   "name": "HCO₃⁻ (lumen)",
+   "short": "",
+   "aliases": [
+    "HCO₃⁻",
+    "bicarbonate",
+    "HCO3-",
+    "HCO3"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    0,
+    3
+   ],
+   "notes": "Filtered bicarbonate: the PCT reclaims about 85% of it, not by carrying it across but by turning it into CO₂."
+  },
+  "co2_l": {
+   "name": "CO₂ (lumen)",
+   "short": "",
+   "aliases": [
+    "CO₂",
+    "carbon dioxide",
+    "CO2"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "co2_c": {
+   "name": "CO₂ (cell)",
+   "short": "",
+   "aliases": [
+    "CO₂",
+    "carbon dioxide",
+    "CO2"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "hco3_c": {
+   "name": "HCO₃⁻ (cell)",
+   "short": "",
+   "aliases": [
+    "HCO₃⁻",
+    "bicarbonate",
+    "HCO3-",
+    "HCO3"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "hco3_b": {
+   "name": "HCO₃⁻ (blood)",
+   "short": "",
+   "aliases": [
+    "HCO₃⁻",
+    "bicarbonate",
+    "HCO3-",
+    "HCO3"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    4
+   ]
+  },
+  "glc_l": {
+   "name": "Glucose (lumen)",
+   "short": "",
+   "aliases": [
+    "Glucose",
+    "glucose"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    5
+   ],
+   "notes": "Normally all reabsorbed here; glucosuria starts when plasma glucose passes about 200 mg/dL."
+  },
+  "glc_c": {
+   "name": "Glucose (cell)",
+   "short": "",
+   "aliases": [
+    "Glucose",
+    "glucose"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    5
+   ]
+  },
+  "glc_b": {
+   "name": "Glucose (blood)",
+   "short": "",
+   "aliases": [
+    "Glucose",
+    "glucose"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    5
+   ]
+  },
+  "aa_l": {
+   "name": "Amino acids (lumen)",
+   "short": "",
+   "aliases": [
+    "Amino acids",
+    "amino acids"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    6
+   ]
+  },
+  "aa_c": {
+   "name": "Amino acids (cell)",
+   "short": "",
+   "aliases": [
+    "Amino acids",
+    "amino acids"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    6
+   ]
+  },
+  "aa_b": {
+   "name": "Amino acids (blood)",
+   "short": "",
+   "aliases": [
+    "Amino acids",
+    "amino acids"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    6
+   ]
+  },
+  "pi_l": {
+   "name": "Phosphate (lumen)",
+   "short": "",
+   "aliases": [
+    "Phosphate",
+    "phosphate",
+    "PO₄³⁻",
+    "Pi",
+    "PO4"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    7
+   ]
+  },
+  "pi_c": {
+   "name": "Phosphate (cell)",
+   "short": "",
+   "aliases": [
+    "Phosphate",
+    "phosphate",
+    "PO₄³⁻",
+    "Pi",
+    "PO4"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    7
+   ]
+  },
+  "pi_b": {
+   "name": "Phosphate (blood)",
+   "short": "",
+   "aliases": [
+    "Phosphate",
+    "phosphate",
+    "PO₄³⁻",
+    "Pi",
+    "PO4"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    7
+   ]
+  },
+  "gln_b": {
+   "name": "Glutamine (blood)",
+   "short": "",
+   "aliases": [
+    "Glutamine",
+    "glutamine",
+    "Gln"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    8
+   ]
+  },
+  "gln_c": {
+   "name": "Glutamine (cell)",
+   "short": "",
+   "aliases": [
+    "Glutamine",
+    "glutamine",
+    "Gln"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    8
+   ]
+  },
+  "nh4_c": {
+   "name": "NH₄⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "NH₄⁺",
+    "ammonium",
+    "NH4+"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    9
+   ]
+  },
+  "nh4_l": {
+   "name": "NH₄⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "NH₄⁺",
+    "ammonium",
+    "NH4+"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    9
+   ],
+   "notes": "Secreted ammonium carries acid out in the urine (most of the kidney’s acid excretion)."
+  },
+  "w_l": {
+   "name": "Water (lumen)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    10
+   ]
+  },
+  "w_c": {
+   "name": "Water (cell)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    10
+   ]
+  },
+  "w_b": {
+   "name": "Water (blood)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    10
+   ]
+  },
+  "oa_b": {
+   "name": "Organic anions (blood)",
+   "short": "",
+   "aliases": [
+    "Organic anions",
+    "organic anions",
+    "PAH",
+    "para-aminohippurate",
+    "drugs"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    11
+   ],
+   "notes": "PAH (para-aminohippurate) is almost all secreted in one pass, so its clearance measures renal plasma flow."
+  },
+  "oa_c": {
+   "name": "Organic anions (cell)",
+   "short": "",
+   "aliases": [
+    "Organic anions",
+    "organic anions",
+    "PAH",
+    "para-aminohippurate",
+    "drugs"
+   ],
+   "loc": "cytosol (PCT cell)",
+   "pos": [
+    2,
+    11
+   ]
+  },
+  "oa_l": {
+   "name": "Organic anions (lumen)",
+   "short": "",
+   "aliases": [
+    "Organic anions",
+    "organic anions",
+    "PAH",
+    "para-aminohippurate",
+    "drugs"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    11
+   ]
+  }
+ },
+ "enzymes": {
+  "nhe3": {
+   "name": "NHE3 (Na⁺/H⁺ exchanger)",
+   "short": "",
+   "aliases": [
+    "NHE3",
+    "Na+/H+ exchanger",
+    "sodium-hydrogen exchanger",
+    "Na/H exchanger",
+    "NHE",
+    "SLC9A3",
+    "Na⁺/H⁺ antiporter"
+   ],
+   "notes": "On the brush border: Na⁺ in, H⁺ (or NH₄⁺) out. The main way the PCT takes up Na⁺. Angiotensin II stimulates it, so more Na⁺, water and HCO₃⁻ are reabsorbed (contraction alkalosis)."
+  },
+  "nak": {
+   "name": "Na⁺/K⁺-ATPase",
+   "short": "",
+   "aliases": [
+    "Na/K ATPase",
+    "Na+/K+ ATPase",
+    "sodium-potassium pump",
+    "Na pump",
+    "Na-K-ATPase"
+   ],
+   "notes": "On the basolateral side of every tubular cell: 3 Na⁺ out, 2 K⁺ in, using ATP. Keeping cell Na⁺ low is what drives every apical Na⁺ carrier (secondary active transport)."
+  },
+  "ca4": {
+   "name": "Carbonic anhydrase IV",
+   "short": "",
+   "aliases": [
+    "CA IV",
+    "carbonic anhydrase",
+    "CA4",
+    "brush border carbonic anhydrase"
+   ],
+   "notes": "On the brush border: H⁺ + HCO₃⁻ → H₂CO₃ → CO₂ + H₂O, so filtered HCO₃⁻ can be reclaimed as CO₂. Acetazolamide blocks it: HCO₃⁻ stays in the urine (alkaline urine, metabolic acidosis)."
+  },
+  "diff": {
+   "name": "Simple diffusion",
+   "short": "",
+   "aliases": [
+    "diffusion",
+    "simple diffusion",
+    "passive diffusion"
+   ],
+   "notes": "CO₂ is lipid-soluble and crosses the membrane without a carrier."
+  },
+  "ca2": {
+   "name": "Carbonic anhydrase II",
+   "short": "",
+   "aliases": [
+    "CA II",
+    "carbonic anhydrase",
+    "CA2",
+    "cytosolic carbonic anhydrase"
+   ],
+   "notes": "Inside the cell: CO₂ + H₂O → H₂CO₃ → H⁺ + HCO₃⁻. The H⁺ is secreted again by NHE3; the HCO₃⁻ goes to the blood. Acetazolamide blocks it too. CA II deficiency: renal tubular acidosis with osteopetrosis."
+  },
+  "nbce1": {
+   "name": "NBCe1 (Na⁺–HCO₃⁻ cotransporter)",
+   "short": "",
+   "aliases": [
+    "NBCe1",
+    "NBC1",
+    "Na+-HCO3- cotransporter",
+    "sodium-bicarbonate cotransporter",
+    "SLC4A4",
+    "NBC"
+   ],
+   "notes": "Basolateral: carries 1 Na⁺ with 3 HCO₃⁻ into the blood. Mutations cause proximal (type 2) renal tubular acidosis, with eye findings."
+  },
+  "sglt2": {
+   "name": "SGLT2 (Na⁺–glucose cotransporter)",
+   "short": "",
+   "aliases": [
+    "SGLT2",
+    "SGLT",
+    "sodium-glucose cotransporter 2",
+    "Na-glucose cotransporter",
+    "SLC5A2"
+   ],
+   "notes": "Takes up about 90% of filtered glucose, with Na⁺ (SGLT1 takes the rest further along). Saturates around a plasma glucose of 200 mg/dL, so glucose spills into urine above that (diabetes; also pregnancy, as GFR rises). SGLT2 inhibitors (-gliflozins: empagliflozin, dapagliflozin) block it."
+  },
+  "glut2": {
+   "name": "GLUT2",
+   "short": "",
+   "aliases": [
+    "GLUT2",
+    "glucose transporter 2",
+    "SLC2A2"
+   ],
+   "notes": "Basolateral facilitated diffusion of glucose out to the blood."
+  },
+  "naaa": {
+   "name": "Na⁺–amino acid cotransporters",
+   "short": "",
+   "aliases": [
+    "amino acid transporters",
+    "Na+-amino acid cotransporter",
+    "sodium-coupled amino acid transporters",
+    "B0AT1",
+    "rBAT"
+   ],
+   "notes": "Several Na⁺-coupled carriers reclaim all filtered amino acids. Defects: Hartnup disease (B⁰AT1, neutral amino acids like tryptophan: pellagra-like rash) and cystinuria (cystine, ornithine, lysine, arginine: cystine stones)."
+  },
+  "aaout": {
+   "name": "Basolateral amino acid transporters",
+   "short": "",
+   "aliases": [
+    "amino acid transporters",
+    "basolateral amino acid transporter"
+   ],
+   "notes": "Let amino acids out of the cell into the blood."
+  },
+  "napi": {
+   "name": "NaPi-IIa (Na⁺–phosphate cotransporter)",
+   "short": "",
+   "aliases": [
+    "NaPi-IIa",
+    "NaPi2a",
+    "Na+-phosphate cotransporter",
+    "sodium-phosphate cotransporter",
+    "SLC34A1",
+    "NPT2a"
+   ],
+   "notes": "Reclaims most filtered phosphate. PTH and FGF23 pull it out of the membrane, so phosphate is lost in the urine (hypophosphatemia in hyperparathyroidism and FGF23-excess rickets)."
+  },
+  "piout": {
+   "name": "Basolateral phosphate exit (carrier not established)",
+   "short": "",
+   "aliases": [
+    "basolateral phosphate transporter",
+    "phosphate exit",
+    "XPR1"
+   ],
+   "notes": "How phosphate leaves the cell for the blood is not settled (XPR1 is a candidate)."
+  },
+  "snat3": {
+   "name": "SNAT3 (glutamine transporter)",
+   "short": "",
+   "aliases": [
+    "SNAT3",
+    "SLC38A3",
+    "glutamine transporter",
+    "basolateral glutamine transporter"
+   ],
+   "notes": "Takes glutamine up from the blood for ammoniagenesis; there is more of it in metabolic acidosis."
+  },
+  "glnase": {
+   "name": "Glutaminase (ammoniagenesis)",
+   "short": "",
+   "aliases": [
+    "glutaminase",
+    "ammoniagenesis",
+    "phosphate-dependent glutaminase",
+    "glutamate dehydrogenase"
+   ],
+   "notes": "Glutamine → glutamate → α-ketoglutarate, releasing 2 NH₄⁺ and making 2 new HCO₃⁻ (to the blood). Ammoniagenesis rises in acidosis and with hypokalemia; hyperkalemia suppresses it (type 4 RTA: low urine NH₄⁺)."
+  },
+  "aqp1": {
+   "name": "Aquaporin-1",
+   "short": "",
+   "aliases": [
+    "AQP1",
+    "aquaporin 1",
+    "aquaporin",
+    "water channel"
+   ],
+   "notes": "Always open water channels on both membranes of the PCT (and thin descending limb): water follows solute, so the PCT reabsorbs isotonically. Not regulated by ADH."
+  },
+  "oat": {
+   "name": "OAT1 and OAT3 (organic anion transporters)",
+   "short": "",
+   "aliases": [
+    "OAT1",
+    "OAT3",
+    "OAT",
+    "organic anion transporter",
+    "SLC22A6",
+    "SLC22A8"
+   ],
+   "notes": "Basolateral: take up PAH, penicillin, methotrexate, NSAIDs and most diuretics from the blood, which is how loop and thiazide diuretics reach their targets in the lumen. Probenecid blocks them (it raises penicillin levels)."
+  },
+  "mrp": {
+   "name": "MRP2 and MRP4 (apical efflux pumps)",
+   "short": "",
+   "aliases": [
+    "MRP2",
+    "MRP4",
+    "MRP",
+    "apical efflux",
+    "multidrug resistance-associated protein"
+   ],
+   "notes": "Push organic anions out into the lumen (secretion)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "nhe3",
+   "from": "na_l",
+   "to": "na_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "nak",
+   "from": "na_c",
+   "to": "na_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r3",
+   "enzyme": "nak",
+   "from": "k_b",
+   "to": "k_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "nhe3",
+   "from": "h_c",
+   "to": "h_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r5",
+   "enzyme": "ca4",
+   "from": "h_l",
+   "to": "co2_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "h2o"
+    ]
+   },
+   "loc": "tubular lumen",
+   "also_from": [
+    "hco3_l"
+   ]
+  },
+  {
+   "id": "r6",
+   "enzyme": "diff",
+   "from": "co2_l",
+   "to": "co2_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "ca2",
+   "from": "co2_c",
+   "to": "hco3_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "h"
+    ]
+   },
+   "loc": "cytosol (PCT cell)"
+  },
+  {
+   "id": "r8",
+   "enzyme": "nbce1",
+   "from": "hco3_c",
+   "to": "hco3_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r9",
+   "enzyme": "sglt2",
+   "from": "glc_l",
+   "to": "glc_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r10",
+   "enzyme": "glut2",
+   "from": "glc_c",
+   "to": "glc_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r11",
+   "enzyme": "naaa",
+   "from": "aa_l",
+   "to": "aa_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r12",
+   "enzyme": "aaout",
+   "from": "aa_c",
+   "to": "aa_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r13",
+   "enzyme": "napi",
+   "from": "pi_l",
+   "to": "pi_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r14",
+   "enzyme": "piout",
+   "from": "pi_c",
+   "to": "pi_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r15",
+   "enzyme": "snat3",
+   "from": "gln_b",
+   "to": "gln_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r16",
+   "enzyme": "glnase",
+   "from": "gln_c",
+   "to": "nh4_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": [
+     "hco3"
+    ]
+   },
+   "loc": "cytosol (PCT cell)"
+  },
+  {
+   "id": "r17",
+   "enzyme": "nhe3",
+   "from": "nh4_c",
+   "to": "nh4_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r18",
+   "enzyme": "aqp1",
+   "from": "w_l",
+   "to": "w_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r19",
+   "enzyme": "aqp1",
+   "from": "w_c",
+   "to": "w_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r20",
+   "enzyme": "oat",
+   "from": "oa_b",
+   "to": "oa_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r21",
+   "enzyme": "mrp",
+   "from": "oa_c",
+   "to": "oa_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  }
+ ]
+}

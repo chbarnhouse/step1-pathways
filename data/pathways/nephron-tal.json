@@ -1,0 +1,412 @@
+{
+ "id": "nephron-tal",
+ "name": "Thick ascending limb",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "TAL",
+  "thick ascending limb",
+  "ascending loop of Henle",
+  "diluting segment",
+  "loop of Henle"
+ ],
+ "summary": "The diluting segment. Actively reabsorbs about 25% of filtered NaCl through NKCC2 but is impermeable to water, so fluid leaves it hypotonic (~100 mOsm) and the salt it pumps out makes the medulla hypertonic (the countercurrent multiplier). K⁺ recycling through ROMK makes the lumen positive, which drives Ca²⁺ and Mg²⁺ reabsorption between the cells. Loop diuretics block NKCC2; Bartter syndrome is a genetic version. Makes uromodulin (Tamm–Horsfall protein, the matrix of casts); its macula densa senses NaCl for tubuloglomerular feedback and renin release.",
+ "tissue": "kidney: loop of Henle, thick ascending limb (outer medulla and cortex)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "tal",
+  "order": 4
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Water (blood)",
+   "Glucose (lumen)",
+   "H⁺ (lumen)"
+  ],
+  "enzymes": [
+   "NCC (Na⁺–Cl⁻ cotransporter)",
+   "ENaC",
+   "Aquaporin-2",
+   "H⁺-ATPase",
+   "Pendrin",
+   "SGLT2",
+   "NHE3",
+   "AE1"
+  ]
+ },
+ "links": [
+  {
+   "at": "na_l",
+   "to": "nephron-dct",
+   "dir": "out",
+   "via": "the tubular fluid flows on"
+  }
+ ],
+ "metabolites": {
+  "na_l": {
+   "name": "Na⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    0
+   ],
+   "notes": "About 25% of filtered Na⁺ is reabsorbed here."
+  },
+  "na_c": {
+   "name": "Na⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "cytosol (TAL cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "na_b": {
+   "name": "Na⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "k_l": {
+   "name": "K⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "k_c": {
+   "name": "K⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "cytosol (TAL cell)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "cl_l": {
+   "name": "Cl⁻ (lumen)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "cl_c": {
+   "name": "Cl⁻ (cell)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "cytosol (TAL cell)",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "cl_b": {
+   "name": "Cl⁻ (blood)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "ca_l": {
+   "name": "Ca²⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Ca²⁺",
+    "calcium",
+    "Ca"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "ca_b": {
+   "name": "Ca²⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Ca²⁺",
+    "calcium",
+    "Ca"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    3
+   ]
+  },
+  "mg_l": {
+   "name": "Mg²⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Mg²⁺",
+    "magnesium",
+    "Mg"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    4
+   ]
+  },
+  "mg_b": {
+   "name": "Mg²⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Mg²⁺",
+    "magnesium",
+    "Mg"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    4
+   ]
+  }
+ },
+ "enzymes": {
+  "nkcc2": {
+   "name": "NKCC2 (Na⁺–K⁺–2Cl⁻ cotransporter)",
+   "short": "",
+   "aliases": [
+    "NKCC2",
+    "NKCC",
+    "Na-K-2Cl cotransporter",
+    "Na+/K+/2Cl- cotransporter",
+    "SLC12A1",
+    "furosemide-sensitive cotransporter"
+   ],
+   "notes": "Carries Na⁺, K⁺ and 2 Cl⁻ into the cell. Loop diuretics (furosemide, bumetanide, torsemide, ethacrynic acid) block it: up to 25% of filtered Na⁺ escapes, the medullary gradient collapses, and more Ca²⁺ and Mg²⁺ are lost (“loops lose calcium”). Bartter syndrome type 1 (looks like taking a loop diuretic)."
+  },
+  "nak": {
+   "name": "Na⁺/K⁺-ATPase",
+   "short": "",
+   "aliases": [
+    "Na/K ATPase",
+    "Na+/K+ ATPase",
+    "sodium-potassium pump",
+    "Na pump",
+    "Na-K-ATPase"
+   ],
+   "notes": "On the basolateral side of every tubular cell: 3 Na⁺ out, 2 K⁺ in, using ATP. Keeping cell Na⁺ low is what drives every apical Na⁺ carrier (secondary active transport)."
+  },
+  "clckb": {
+   "name": "ClC-Kb (chloride channel)",
+   "short": "",
+   "aliases": [
+    "ClC-Kb",
+    "CLCNKB",
+    "chloride channel",
+    "barttin",
+    "ClC-K"
+   ],
+   "notes": "Basolateral Cl⁻ channel that needs its partner barttin to work. Loss of either: Bartter syndrome (types 3 and 4)."
+  },
+  "romk": {
+   "name": "ROMK (K⁺ channel)",
+   "short": "",
+   "aliases": [
+    "ROMK",
+    "Kir1.1",
+    "KCNJ1",
+    "renal outer medullary K channel",
+    "K+ channel",
+    "potassium channel"
+   ],
+   "notes": "Lets K⁺ back into the lumen so NKCC2 never runs short of K⁺, and makes the lumen positive, which pushes Ca²⁺ and Mg²⁺ out between the cells. Bartter syndrome type 2."
+  },
+  "para": {
+   "name": "Paracellular (lumen-positive voltage)",
+   "short": "",
+   "aliases": [
+    "paracellular",
+    "between cells",
+    "tight junction",
+    "claudin-16",
+    "paracellin-1",
+    "claudin-19"
+   ],
+   "notes": "The lumen-positive voltage drives Ca²⁺ and Mg²⁺ between the cells, through tight junctions made of claudin-16 and claudin-19 (their loss: familial hypomagnesemia with hypercalciuria). Loop diuretics remove the voltage, so more Ca²⁺ and Mg²⁺ are lost."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "nkcc2",
+   "from": "na_l",
+   "to": "na_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "nak",
+   "from": "na_c",
+   "to": "na_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r3",
+   "enzyme": "nkcc2",
+   "from": "k_l",
+   "to": "k_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "romk",
+   "from": "k_c",
+   "to": "k_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r5",
+   "enzyme": "nkcc2",
+   "from": "cl_l",
+   "to": "cl_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r6",
+   "enzyme": "clckb",
+   "from": "cl_c",
+   "to": "cl_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "para",
+   "from": "ca_l",
+   "to": "ca_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "paracellular": true,
+   "loc": "tight junction (between cells)"
+  },
+  {
+   "id": "r8",
+   "enzyme": "para",
+   "from": "mg_l",
+   "to": "mg_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "paracellular": true,
+   "loc": "tight junction (between cells)"
+  }
+ ]
+}

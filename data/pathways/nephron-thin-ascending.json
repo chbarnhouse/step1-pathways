@@ -1,0 +1,194 @@
+{
+ "id": "nephron-thin-ascending",
+ "name": "Thin ascending limb",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [],
+ "aliases": [
+  "thin ascending limb",
+  "tAL",
+  "ascending thin limb"
+ ],
+ "summary": "Impermeable to water. NaCl leaves passively (Cl⁻ through ClC-K1 channels, Na⁺ between the cells), so the fluid becomes less concentrated as it rises while the medulla stays salty.",
+ "tissue": "kidney: loop of Henle, thin ascending limb (inner medulla)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "thin-ascending",
+  "order": 3
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Water (interstitium)",
+   "Glucose (lumen)"
+  ],
+  "enzymes": [
+   "Aquaporin-1",
+   "NKCC2",
+   "Na⁺/K⁺-ATPase",
+   "ENaC"
+  ]
+ },
+ "links": [
+  {
+   "at": "cl_l",
+   "to": "nephron-tal",
+   "dir": "out",
+   "via": "the tubular fluid flows on"
+  }
+ ],
+ "metabolites": {
+  "cl_l": {
+   "name": "Cl⁻ (lumen)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "cl_c": {
+   "name": "Cl⁻ (cell)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "cytosol (thin limb cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "cl_i": {
+   "name": "Cl⁻ (interstitium)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "interstitium (medulla)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "na_l": {
+   "name": "Na⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    1
+   ],
+   "notes": "The fluid arriving from the tip is very salty, so NaCl leaks out passively here: no water follows (impermeable)."
+  },
+  "na_i": {
+   "name": "Na⁺ (interstitium)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "interstitium (medulla)",
+   "pos": [
+    3,
+    1
+   ]
+  }
+ },
+ "enzymes": {
+  "clck1": {
+   "name": "ClC-K1 (chloride channel)",
+   "short": "",
+   "aliases": [
+    "ClC-K1",
+    "CLCNKA",
+    "chloride channel",
+    "barttin",
+    "ClC-K"
+   ],
+   "notes": "Chloride channel on both membranes of the thin ascending limb (with barttin): Cl⁻ leaves passively down its concentration gradient."
+  },
+  "para": {
+   "name": "Paracellular diffusion",
+   "short": "",
+   "aliases": [
+    "paracellular",
+    "between cells",
+    "tight junction",
+    "passive diffusion"
+   ],
+   "notes": "Na⁺ follows Cl⁻ out between the cells, through the tight junctions, without a carrier."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "clck1",
+   "from": "cl_l",
+   "to": "cl_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "clck1",
+   "from": "cl_c",
+   "to": "cl_i",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r3",
+   "enzyme": "para",
+   "from": "na_l",
+   "to": "na_i",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "paracellular": true,
+   "loc": "tight junction (between cells)"
+  }
+ ]
+}

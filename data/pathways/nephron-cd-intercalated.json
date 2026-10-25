@@ -1,0 +1,457 @@
+{
+ "id": "nephron-cd-intercalated",
+ "name": "Collecting duct: α-intercalated cell",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "α-intercalated cell",
+  "alpha-intercalated cell",
+  "intercalated cell",
+  "type A intercalated cell",
+  "acid-secreting cell"
+ ],
+ "summary": "Secretes acid into the urine and returns new HCO₃⁻ to the blood. CA II makes H⁺ and HCO₃⁻ from CO₂; H⁺-ATPase (aldosterone-stimulated) and H⁺/K⁺-ATPase pump the H⁺ out, where NH₃ (trapped as NH₄⁺) and phosphate (titratable acid) buffer it; AE1 swaps the HCO₃⁻ for Cl⁻ on the blood side. Failure is distal (type 1) RTA. β-intercalated cells do the reverse (pendrin secretes HCO₃⁻ in alkalosis).",
+ "tissue": "kidney: collecting duct (cortex and outer medulla)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "cd-intercalated",
+  "order": 7
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {
+  "h": {
+   "name": "H⁺",
+   "aliases": [
+    "proton",
+    "hydrogen ion"
+   ]
+  },
+  "hpo4": {
+   "name": "HPO₄²⁻",
+   "aliases": [
+    "phosphate",
+    "hydrogen phosphate",
+    "HPO4"
+   ]
+  }
+ },
+ "distractors": {
+  "metabolites": [
+   "Glucose (lumen)",
+   "Na⁺ (cell)",
+   "Water (blood)"
+  ],
+  "enzymes": [
+   "NKCC2",
+   "NCC (Na⁺–Cl⁻ cotransporter)",
+   "ENaC",
+   "Aquaporin-2",
+   "ROMK",
+   "Pendrin",
+   "SGLT2",
+   "NHE3"
+  ]
+ },
+ "links": [],
+ "metabolites": {
+  "co2_b": {
+   "name": "CO₂ (blood)",
+   "short": "",
+   "aliases": [
+    "CO₂",
+    "carbon dioxide",
+    "CO2"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "co2_c": {
+   "name": "CO₂ (cell)",
+   "short": "",
+   "aliases": [
+    "CO₂",
+    "carbon dioxide",
+    "CO2"
+   ],
+   "loc": "cytosol (α-intercalated cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "h_c": {
+   "name": "H⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "H⁺",
+    "hydrogen ion",
+    "proton",
+    "H"
+   ],
+   "loc": "cytosol (α-intercalated cell)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "hco3_c": {
+   "name": "HCO₃⁻ (cell)",
+   "short": "",
+   "aliases": [
+    "HCO₃⁻",
+    "bicarbonate",
+    "HCO3-",
+    "HCO3"
+   ],
+   "loc": "cytosol (α-intercalated cell)",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "hco3_b": {
+   "name": "HCO₃⁻ (blood)",
+   "short": "",
+   "aliases": [
+    "HCO₃⁻",
+    "bicarbonate",
+    "HCO3-",
+    "HCO3"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "h_l": {
+   "name": "H⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "H⁺",
+    "hydrogen ion",
+    "proton",
+    "H"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "k_l": {
+   "name": "K⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "k_c": {
+   "name": "K⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "cytosol (α-intercalated cell)",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "cl_b": {
+   "name": "Cl⁻ (blood)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    4
+   ]
+  },
+  "cl_c": {
+   "name": "Cl⁻ (cell)",
+   "short": "",
+   "aliases": [
+    "Cl⁻",
+    "chloride",
+    "Cl"
+   ],
+   "loc": "cytosol (α-intercalated cell)",
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "nh4_l": {
+   "name": "NH₄⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "NH₄⁺",
+    "ammonium",
+    "NH4+"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    0,
+    1
+   ],
+   "notes": "Most of the acid the kidney excretes leaves as NH₄⁺."
+  },
+  "h2po4_l": {
+   "name": "H₂PO₄⁻ (lumen)",
+   "short": "",
+   "aliases": [
+    "H₂PO₄⁻",
+    "dihydrogen phosphate",
+    "H2PO4-",
+    "titratable acid"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    2
+   ],
+   "notes": "Titratable acid: the rest of the acid excreted."
+  }
+ },
+ "enzymes": {
+  "diff": {
+   "name": "Simple diffusion",
+   "short": "",
+   "aliases": [
+    "diffusion",
+    "simple diffusion",
+    "passive diffusion"
+   ],
+   "notes": "Lipid-soluble gases (CO₂, NH₃) cross membranes without a carrier."
+  },
+  "ca2": {
+   "name": "Carbonic anhydrase II",
+   "short": "",
+   "aliases": [
+    "CA II",
+    "carbonic anhydrase",
+    "CA2",
+    "cytosolic carbonic anhydrase"
+   ],
+   "notes": "Inside the cell: CO₂ + H₂O → H₂CO₃ → H⁺ + HCO₃⁻. Acetazolamide blocks it. CA II deficiency: renal tubular acidosis with osteopetrosis."
+  },
+  "hatp": {
+   "name": "H⁺-ATPase",
+   "short": "",
+   "aliases": [
+    "H+-ATPase",
+    "proton pump",
+    "V-ATPase",
+    "vacuolar H+-ATPase",
+    "H+ ATPase"
+   ],
+   "notes": "Pumps H⁺ into the urine (aldosterone stimulates it). Distal (type 1) renal tubular acidosis: α-intercalated cells cannot acidify the urine: urine pH stays above 5.5, hypokalemia, calcium phosphate stones (amphotericin B, Sjögren syndrome, lupus, genetic V-ATPase or AE1 defects)."
+  },
+  "hk": {
+   "name": "H⁺/K⁺-ATPase",
+   "short": "",
+   "aliases": [
+    "H+/K+-ATPase",
+    "H+/K+ ATPase",
+    "proton-potassium pump",
+    "colonic H/K ATPase"
+   ],
+   "notes": "Swaps H⁺ out for K⁺ in: reclaims K⁺ in K⁺ depletion (one reason hypokalemia goes with alkalosis)."
+  },
+  "ae1": {
+   "name": "AE1 (Cl⁻/HCO₃⁻ exchanger)",
+   "short": "",
+   "aliases": [
+    "AE1",
+    "band 3",
+    "SLC4A1",
+    "Cl-/HCO3- exchanger",
+    "anion exchanger 1"
+   ],
+   "notes": "Basolateral: new HCO₃⁻ out to the blood in exchange for Cl⁻ (the same protein as band 3 in red cells). Mutations cause distal RTA (sometimes with hereditary spherocytosis)."
+  },
+  "trap": {
+   "name": "NH₃ trapping (NH₃ + H⁺ → NH₄⁺)",
+   "short": "",
+   "aliases": [
+    "ammonia trapping",
+    "diffusion trapping",
+    "NH3 trapping",
+    "ammonium buffer"
+   ],
+   "notes": "NH₃ made in the PCT diffuses into the lumen and takes up a secreted H⁺; NH₄⁺ cannot diffuse back, so it is trapped. The main way acid leaves; it rises in acidosis."
+  },
+  "titr": {
+   "name": "Titratable acid (HPO₄²⁻ + H⁺ → H₂PO₄⁻)",
+   "short": "",
+   "aliases": [
+    "titratable acid",
+    "phosphate buffer",
+    "HPO4 buffer"
+   ],
+   "notes": "Filtered phosphate buffers secreted H⁺; measured as titratable acid."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "diff",
+   "from": "co2_b",
+   "to": "co2_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "ca2",
+   "from": "co2_c",
+   "to": "hco3_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "h2o"
+    ],
+    "out": [
+     "h"
+    ]
+   },
+   "loc": "cytosol (α-intercalated cell)"
+  },
+  {
+   "id": "r3",
+   "enzyme": "hatp",
+   "from": "h_c",
+   "to": "h_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "hk",
+   "from": "h_c",
+   "to": "h_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r5",
+   "enzyme": "ae1",
+   "from": "hco3_c",
+   "to": "hco3_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r6",
+   "enzyme": "hk",
+   "from": "k_l",
+   "to": "k_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "ae1",
+   "from": "cl_b",
+   "to": "cl_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r8",
+   "enzyme": "trap",
+   "from": "h_l",
+   "to": "nh4_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "nh3"
+    ],
+    "out": []
+   },
+   "loc": "tubular lumen"
+  },
+  {
+   "id": "r9",
+   "enzyme": "titr",
+   "from": "h_l",
+   "to": "h2po4_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "hpo4"
+    ],
+    "out": []
+   },
+   "loc": "tubular lumen"
+  }
+ ]
+}

@@ -95,12 +95,21 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     const z = zones[key] = zones[key] || { raw: {}, rs: [] };
     z.raw[r.loc] = (z.raw[r.loc] || 0) + 1; z.rs.push(r); z.tissue = r.tissue || p.tissue;
   }
+  // A box's own location is a compartment too (the lumen, cell and blood of a tubular cell; glucose in the blood),
+  // even when only transport steps touch it.
+  const zoneMets = {};
+  for (const [id, x] of Object.entries(mets)) {
+    if (!x.loc) continue;
+    const key = zoneKey(m0z, x.loc, x.tissue);
+    if (!zones[key]) zones[key] = { raw: { [x.loc]: 1 }, rs: [], tissue: x.tissue || p.tissue };
+    if (!zones[key].rs.length) (zoneMets[key] = zoneMets[key] || []).push(id);
+  }
   for (const [key, z] of Object.entries(zones)) {
     const loc = Object.entries(z.raw).sort((a, b) => b[1] - a[1])[0][0];
-    const name = (m0z.multiTissue && z.tissue ? z.tissue + ' · ' : '') + loc;
+    const name = (m0z.multiTissue && z.tissue && norm(z.tissue) !== norm(loc) ? z.tissue + ' · ' : '') + loc; // not "blood · blood"
     items['z:' + key] = { key: 'z:' + key, kind: 'loc', id: key, canon: canonLoc(loc), name, short: '', aliases: Object.keys(z.raw),
-      notes: 'Steps here: ' + uniq(z.rs.map(r => enzs[r.enzyme]?.name)).join(', ') + '.' };
-    const first = seq.findIndex(k => k[0] === 'e' && z.rs.includes(items[k].rxn));
+      notes: z.rs.length ? 'Steps here: ' + uniq(z.rs.map(r => enzs[r.enzyme]?.name)).join(', ') + '.' : 'Here: ' + (zoneMets[key] || []).map(id => mets[id].name).join(', ') + '.' };
+    const first = z.rs.length ? seq.findIndex(k => k[0] === 'e' && z.rs.includes(items[k].rxn)) : seq.findIndex(k => k[0] === 'm' && (zoneMets[key] || []).includes(k.slice(2)));
     if (first >= 0) seq.splice(first, 0, 'z:' + key); else seq.push('z:' + key);
   }
 

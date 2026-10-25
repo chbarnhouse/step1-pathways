@@ -1,0 +1,303 @@
+{
+ "id": "nephron-glomerulus",
+ "name": "Glomerulus",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "glomerular filtration",
+  "glomerulus",
+  "Bowman’s capsule",
+  "filtration barrier",
+  "renal corpuscle"
+ ],
+ "summary": "Where the nephron starts: plasma is filtered from the glomerular capillaries into Bowman’s space through a barrier of fenestrated endothelium, basement membrane and podocytes. Water and small solutes (Na⁺, glucose, urea, amino acids) pass freely; albumin and cells are held back by size and negative charge. GFR (~120 mL/min) depends on Starling forces and the tone of the afferent (prostaglandins dilate; NSAIDs) and efferent (angiotensin II constricts; ACE inhibitors) arterioles. Nephrotic syndrome: protein leaks; nephritic syndrome: blood and inflammation.",
+ "tissue": "kidney: renal corpuscle (cortex)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "filtration barrier"
+  ]
+ },
+ "nephron": {
+  "segment": "glomerulus",
+  "order": 0
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Albumin (blood)",
+   "Urea (Bowman’s space)"
+  ],
+  "enzymes": [
+   "Aquaporin-1",
+   "Tubular secretion",
+   "Na⁺/K⁺-ATPase"
+  ]
+ },
+ "links": [
+  {
+   "at": "w_l",
+   "to": "nephron-pct",
+   "dir": "out",
+   "via": "the tubular fluid flows on"
+  }
+ ],
+ "metabolites": {
+  "w_b": {
+   "name": "Water (blood)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "blood (glomerular capillary)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "w_l": {
+   "name": "Water (Bowman’s space)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "tubular lumen (Bowman’s space)",
+   "pos": [
+    1,
+    0
+   ]
+  },
+  "na_b": {
+   "name": "Na⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "blood (glomerular capillary)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "na_l": {
+   "name": "Na⁺ (Bowman’s space)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "tubular lumen (Bowman’s space)",
+   "pos": [
+    1,
+    1
+   ]
+  },
+  "glc_b": {
+   "name": "Glucose (blood)",
+   "short": "",
+   "aliases": [
+    "Glucose",
+    "glucose"
+   ],
+   "loc": "blood (glomerular capillary)",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "glc_l": {
+   "name": "Glucose (Bowman’s space)",
+   "short": "",
+   "aliases": [
+    "Glucose",
+    "glucose"
+   ],
+   "loc": "tubular lumen (Bowman’s space)",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "alb_b": {
+   "name": "Albumin (blood)",
+   "short": "",
+   "aliases": [
+    "Albumin",
+    "albumin",
+    "plasma proteins",
+    "protein"
+   ],
+   "loc": "blood (glomerular capillary)",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "alb_l": {
+   "name": "Albumin (Bowman’s space)",
+   "short": "",
+   "aliases": [
+    "Albumin",
+    "albumin",
+    "plasma proteins",
+    "protein"
+   ],
+   "loc": "tubular lumen (Bowman’s space)",
+   "pos": [
+    1,
+    3
+   ],
+   "notes": "Normally almost none: albumin in the urine (>30 mg/day) is an early sign of diabetic nephropathy; heavy proteinuria is nephrotic syndrome."
+  },
+  "rbc_b": {
+   "name": "Red blood cells (blood)",
+   "short": "",
+   "aliases": [
+    "Red blood cells",
+    "RBCs",
+    "red cells",
+    "erythrocytes"
+   ],
+   "loc": "blood (glomerular capillary)",
+   "pos": [
+    2,
+    4
+   ]
+  },
+  "rbc_l": {
+   "name": "Red blood cells (Bowman’s space)",
+   "short": "",
+   "aliases": [
+    "Red blood cells",
+    "RBCs",
+    "red cells",
+    "erythrocytes"
+   ],
+   "loc": "tubular lumen (Bowman’s space)",
+   "pos": [
+    1,
+    4
+   ],
+   "notes": "Normally none. Dysmorphic red cells and RBC casts mean glomerular bleeding: nephritic syndrome."
+  }
+ },
+ "enzymes": {
+  "filt": {
+   "name": "Ultrafiltration (Starling forces)",
+   "short": "",
+   "aliases": [
+    "filtration",
+    "ultrafiltration",
+    "glomerular filtration",
+    "Starling forces"
+   ],
+   "notes": "Glomerular capillary hydrostatic pressure pushes plasma water and small solutes out, against the pressure in Bowman’s space and the plasma oncotic pressure. GFR is about 120 mL/min (inulin clearance; creatinine clearance estimates it). Constricting the efferent arteriole (angiotensin II) raises GFR; ACE inhibitors and ARBs lower it. Dilating the afferent arteriole (prostaglandins) raises it; NSAIDs lower it. Filtration fraction = GFR / RPF, about 20%."
+  },
+  "barrier": {
+   "name": "Filtration barrier (size and charge)",
+   "short": "",
+   "aliases": [
+    "filtration barrier",
+    "glomerular filtration barrier",
+    "charge barrier",
+    "size barrier",
+    "podocytes",
+    "GBM"
+   ],
+   "notes": "Fenestrated endothelium, the glomerular basement membrane (negatively charged heparan sulfate) and podocyte foot processes with slit diaphragms (nephrin). Albumin is held back by its size and negative charge. Nephrotic syndrome: the barrier (often the podocytes) fails, more than 3.5 g/day of protein. Nephritic syndrome: inflammation breaks it, letting red cells through (hematuria, RBC casts)."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "filt",
+   "from": "w_b",
+   "to": "w_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "filtration barrier"
+  },
+  {
+   "id": "r2",
+   "enzyme": "filt",
+   "from": "na_b",
+   "to": "na_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "filtration barrier"
+  },
+  {
+   "id": "r3",
+   "enzyme": "filt",
+   "from": "glc_b",
+   "to": "glc_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "filtration barrier"
+  },
+  {
+   "id": "r4",
+   "enzyme": "barrier",
+   "from": "alb_b",
+   "to": "alb_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "filtration barrier",
+   "tags": [
+    "blocked"
+   ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "barrier",
+   "from": "rbc_b",
+   "to": "rbc_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "filtration barrier",
+   "tags": [
+    "blocked"
+   ]
+  }
+ ]
+}

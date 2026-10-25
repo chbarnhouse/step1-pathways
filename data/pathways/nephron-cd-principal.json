@@ -1,0 +1,428 @@
+{
+ "id": "nephron-cd-principal",
+ "name": "Collecting duct: principal cell",
+ "group": "Renal",
+ "systems": [
+  "Renal"
+ ],
+ "tags": [
+  "Drug targets"
+ ],
+ "aliases": [
+  "principal cell",
+  "collecting duct",
+  "cortical collecting duct",
+  "CCD",
+  "late distal tubule",
+  "collecting tubule"
+ ],
+ "summary": "Where the final amounts are set by hormones. Aldosterone adds ENaC and Na⁺/K⁺-ATPase: Na⁺ reabsorbed, K⁺ secreted (through ROMK and BK). ADH inserts aquaporin-2 so water follows the medullary gradient, and opens urea channels in the inner medulla. Drugs: K⁺-sparing diuretics (amiloride, triamterene on ENaC; spironolactone, eplerenone on the receptor); vaptans block ADH’s V2 receptor.",
+ "tissue": "kidney: collecting duct (cortex to inner medulla)",
+ "icon": "water_drop",
+ "color": "gold",
+ "layout": "grid",
+ "grid_columns": [],
+ "column_zones": {
+  "membranes": [
+   "apical membrane",
+   "basolateral membrane"
+  ]
+ },
+ "nephron": {
+  "segment": "cd-principal",
+  "order": 6
+ },
+ "terms": {
+  "met": "solute"
+ },
+ "cofactors": {},
+ "distractors": {
+  "metabolites": [
+   "Glucose (lumen)",
+   "H⁺ (lumen)",
+   "HCO₃⁻ (blood)"
+  ],
+  "enzymes": [
+   "NKCC2",
+   "NCC (Na⁺–Cl⁻ cotransporter)",
+   "H⁺-ATPase",
+   "Pendrin",
+   "SGLT2",
+   "NHE3",
+   "AE1"
+  ]
+ },
+ "links": [
+  {
+   "at": "na_l",
+   "to": "nephron-cd-intercalated",
+   "dir": "out",
+   "via": "the other cell type lining the duct"
+  }
+ ],
+ "metabolites": {
+  "na_l": {
+   "name": "Na⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    0
+   ],
+   "notes": "Only about 3% of filtered Na⁺ is left to reabsorb here, but this is where aldosterone sets the final amount."
+  },
+  "na_c": {
+   "name": "Na⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "cytosol (principal cell)",
+   "pos": [
+    2,
+    0
+   ]
+  },
+  "na_b": {
+   "name": "Na⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "Na⁺",
+    "sodium",
+    "Na"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    0
+   ]
+  },
+  "k_b": {
+   "name": "K⁺ (blood)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    1
+   ]
+  },
+  "k_c": {
+   "name": "K⁺ (cell)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "cytosol (principal cell)",
+   "pos": [
+    2,
+    1
+   ]
+  },
+  "k_l": {
+   "name": "K⁺ (lumen)",
+   "short": "",
+   "aliases": [
+    "K⁺",
+    "potassium",
+    "K"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    1
+   ],
+   "notes": "Most of the K⁺ in urine was secreted here."
+  },
+  "w_l": {
+   "name": "Water (lumen)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    2
+   ]
+  },
+  "w_c": {
+   "name": "Water (cell)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "cytosol (principal cell)",
+   "pos": [
+    2,
+    2
+   ]
+  },
+  "w_b": {
+   "name": "Water (blood)",
+   "short": "",
+   "aliases": [
+    "Water",
+    "water",
+    "H₂O",
+    "H2O"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    2
+   ]
+  },
+  "urea_l": {
+   "name": "Urea (lumen)",
+   "short": "",
+   "aliases": [
+    "Urea",
+    "urea"
+   ],
+   "loc": "tubular lumen",
+   "pos": [
+    1,
+    3
+   ]
+  },
+  "urea_c": {
+   "name": "Urea (cell)",
+   "short": "",
+   "aliases": [
+    "Urea",
+    "urea"
+   ],
+   "loc": "cytosol (principal cell)",
+   "pos": [
+    2,
+    3
+   ]
+  },
+  "urea_b": {
+   "name": "Urea (blood)",
+   "short": "",
+   "aliases": [
+    "Urea",
+    "urea"
+   ],
+   "loc": "blood (peritubular capillary)",
+   "pos": [
+    3,
+    3
+   ]
+  }
+ },
+ "enzymes": {
+  "enac": {
+   "name": "ENaC (epithelial Na⁺ channel)",
+   "short": "",
+   "aliases": [
+    "ENaC",
+    "epithelial sodium channel",
+    "amiloride-sensitive sodium channel",
+    "SCNN1"
+   ],
+   "notes": "Apical Na⁺ channel. Aldosterone (through the mineralocorticoid receptor) adds ENaC and Na⁺/K⁺-ATPase; spironolactone and eplerenone block the receptor; amiloride and triamterene block ENaC (K⁺-sparing diuretics). Liddle syndrome: ENaC that is not removed (gain of function): hypertension, hypokalemia, low renin and aldosterone. The lumen-negative voltage it makes drives K⁺ and H⁺ secretion."
+  },
+  "nak": {
+   "name": "Na⁺/K⁺-ATPase",
+   "short": "",
+   "aliases": [
+    "Na/K ATPase",
+    "Na+/K+ ATPase",
+    "sodium-potassium pump",
+    "Na pump",
+    "Na-K-ATPase"
+   ],
+   "notes": "On the basolateral side of every tubular cell: 3 Na⁺ out, 2 K⁺ in, using ATP. Keeping cell Na⁺ low is what drives every apical Na⁺ carrier (secondary active transport)."
+  },
+  "romk": {
+   "name": "ROMK and BK (K⁺ channels)",
+   "short": "",
+   "aliases": [
+    "ROMK",
+    "BK",
+    "maxi-K",
+    "K+ channels",
+    "potassium channels",
+    "Kir1.1"
+   ],
+   "notes": "Secrete K⁺ into the lumen: more with aldosterone, with high flow and with more Na⁺ reaching here, which is why loop and thiazide diuretics cause hypokalemia (and K⁺-sparing diuretics do not)."
+  },
+  "aqp2": {
+   "name": "Aquaporin-2 (ADH)",
+   "short": "",
+   "aliases": [
+    "AQP2",
+    "aquaporin 2",
+    "aquaporin",
+    "water channel",
+    "ADH-regulated water channel"
+   ],
+   "notes": "ADH (vasopressin) binds V2 receptors → cAMP → AQP2 inserted in the apical membrane, and water follows the hypertonic medulla (concentrated urine). Central diabetes insipidus: no ADH (desmopressin works). Nephrogenic diabetes insipidus: V2 or AQP2 defects, lithium, demeclocycline. SIADH: too much ADH (vaptans block V2)."
+  },
+  "aqp34": {
+   "name": "Aquaporin-3 and aquaporin-4",
+   "short": "",
+   "aliases": [
+    "AQP3",
+    "AQP4",
+    "aquaporins",
+    "basolateral aquaporins"
+   ],
+   "notes": "Always-open basolateral water channels: water leaves the cell for the blood."
+  },
+  "uta1": {
+   "name": "UT-A1 (urea channel, ADH)",
+   "short": "",
+   "aliases": [
+    "UT-A1",
+    "urea transporter",
+    "urea channel",
+    "SLC14A2"
+   ],
+   "notes": "In the inner medullary collecting duct; ADH adds more. Urea leaves into the medulla, building its osmolality so more water can be pulled out."
+  },
+  "uta3": {
+   "name": "UT-A3 (urea channel)",
+   "short": "",
+   "aliases": [
+    "UT-A3",
+    "urea transporter",
+    "basolateral urea channel"
+   ],
+   "notes": "Basolateral urea exit to the interstitium."
+  }
+ },
+ "reactions": [
+  {
+   "id": "r1",
+   "enzyme": "enac",
+   "from": "na_l",
+   "to": "na_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r2",
+   "enzyme": "nak",
+   "from": "na_c",
+   "to": "na_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [
+     "atp"
+    ],
+    "out": [
+     "adp",
+     "pi"
+    ]
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r3",
+   "enzyme": "nak",
+   "from": "k_b",
+   "to": "k_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r4",
+   "enzyme": "romk",
+   "from": "k_c",
+   "to": "k_l",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r5",
+   "enzyme": "aqp2",
+   "from": "w_l",
+   "to": "w_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r6",
+   "enzyme": "aqp34",
+   "from": "w_c",
+   "to": "w_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "uta1",
+   "from": "urea_l",
+   "to": "urea_c",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "apical membrane"
+  },
+  {
+   "id": "r8",
+   "enzyme": "uta3",
+   "from": "urea_c",
+   "to": "urea_b",
+   "reversible": false,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "transport": true,
+   "loc": "basolateral membrane"
+  }
+ ]
+}

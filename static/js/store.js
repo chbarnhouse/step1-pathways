@@ -236,14 +236,16 @@ function stitchPathway(ids) {
   const id = linkId(tiles.map(t => t.id));
   const hit = stitchCache.get(id);
   if (hit && hit.tiles.length === tiles.length && hit.tiles.every((t, i) => t === tiles[i])) return hit.p;
-  const out = { id, name: tiles.map(t => t.name).join(' + '), group: 'Connected', summary: '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
+  // Nephron segments each have their own lumen, cell and blood: nothing is shared between them, and the set draws as a nephron.
+  const nephron = tiles.length > 1 && tiles.every(t => t.nephron), whole = nephron && tiles.length === Object.values(Library.builtin()).filter(p => p.nephron).length;
+  const out = { id, name: whole ? 'Whole nephron' : tiles.map(t => t.name).join(' + '), group: nephron ? 'Renal' : 'Connected', summary: whole ? 'Every nephron segment on one drawing, in the order the fluid flows: glomerulus, proximal tubule, loop of Henle, distal tubule and collecting duct, each cell with its carriers.' : '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
     distractors: { metabolites: [], enzymes: [] }, links: [], stitch: { parts: tiles.map(t => t.id), tiles: [], origin: { m: {}, r: {} }, joins: [] } };
   const byBase = new Map(), inSet = new Set(tiles.flatMap(t => [t.id, ...(t.compose || [])])); // a pair counts as both its parts
   for (const t of tiles) {
     const mid = {}, eid = {}, pre = x => `${t.id}.${x}`, where = tileWhere(t);
     for (const [k, m] of Object.entries(t.metabolites)) {
       const base = baseMetName(m.name), zone = canonLoc(where[k]?.loc || ''), cands = byBase.get(base) || [];
-      const have = cands.find(c => c.tile !== t.id && (c.zone === zone || !c.zone || !zone)); // never two boxes of one part
+      const have = !nephron && cands.find(c => c.tile !== t.id && (c.zone === zone || !c.zone || !zone)); // never two boxes of one part
       if (have) { mid[k] = have.id; out.stitch.origin.m[have.id].push([t.id, k]); continue; }
       mid[k] = pre(k); out.stitch.origin.m[mid[k]] = [[t.id, k]];
       // Only where the two pathways name this molecule as their hand-off (glycolysis's pyruvate → TCA cycle).

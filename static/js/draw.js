@@ -340,8 +340,8 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map(); GRID_MEMBRANES = [];
-  if (m.p.stitch) return stitchSVG(m, statusOf, opts);
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = [];
+  if (m.p.stitch) return m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
   if (grps.length && !outer) DRAW_POS = {};
@@ -402,7 +402,7 @@ function withGroups(svg, m, statusOf, grps, pos) {
 const effSt = r => (DRAW_MODEL?.items['f:' + r.id] ? (DRAW_STATUS ? DRAW_STATUS('f:' + r.id) || 'shown' : 'shown') : null);
 const effShown = r => { const st = effSt(r); return st === null || !(hidden(st) || st === 'hide'); };
 function rxCls(r) {
-  const base = r.transport ? 'ln trn' : 'ln', inh = (r.tags || []).includes('inhibits'), st = effSt(r);
+  const base = r.transport ? 'ln trn' : 'ln', inh = (r.tags || []).some(t => t === 'inhibits' || t === 'blocked'), st = effSt(r);
   if (st === null) return base + (inh ? ' inh' : '');
   if (st === 'hide') return base;
   if (hidden(st)) return base + ' effq' + (st === 'target' ? ' eff-target' : '');
@@ -415,7 +415,7 @@ const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !==
 // Steps that a connector lands on (grid): their name moves two-thirds along, clear of where the connector arrives.
 let CONN_STEPS = new Map();
 // Membrane lines of a grid with column bands (x positions): a transport step across one draws its carrier on it.
-let GRID_MEMBRANES = []; // step id → how far along its line connectors land (0–1)
+let GRID_MEMBRANES = [], GRID_MEMBRANES_Y = []; // step id → how far along its line connectors land (0–1)
 const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get(r.id) < 0.5 ? 0.72 : 0.28) : (a + b) / 2);
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
@@ -434,7 +434,7 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const mx = labAt(r, p1[0], p2[0]), my = labAt(r, p1[1], p2[1]);
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
-  const xm = r.transport && Math.abs(p1[1] - p2[1]) < 4 ? GRID_MEMBRANES.find(x => x > Math.min(p1[0], p2[0]) && x < Math.max(p1[0], p2[0])) : undefined;
+  const xm = r.transport && !r.paracellular && Math.abs(p1[1] - p2[1]) < 4 ? GRID_MEMBRANES.find(x => x > Math.min(p1[0], p2[0]) && x < Math.max(p1[0], p2[0])) : undefined;
   if (xm !== undefined) {
     // A carrier in a membrane (a tubular cell): a small circle on the membrane, its name beside it, toward where the solute goes.
     const right = p2[0] > p1[0], lx = xm + (right ? 16 : -16), anchor = right ? 'start' : 'end';
@@ -444,6 +444,11 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   } else if (Math.abs(p1[1] - p2[1]) < 4) {
     s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(enzRect(mx, my - 8, 'middle', it, 16, 'bottom'));
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
+  } else if (Math.abs(p1[0] - p2[0]) < 4 && r.transport && !r.paracellular && GRID_MEMBRANES_Y.some(y => y > Math.min(p1[1], p2[1]) && y < Math.max(p1[1], p2[1]))) {
+    // Across a horizontal membrane (a cell on its side): the carrier on the line, its name beside it toward where the solute goes.
+    const ym = GRID_MEMBRANES_Y.find(y => y > Math.min(p1[1], p2[1]) && y < Math.max(p1[1], p2[1])), dn = p2[1] > p1[1], ly = ym + (dn ? 26 : -26);
+    s += `<circle class="carrier" cx="${p1[0]}" cy="${ym}" r="9"/>` + enzLabel(p1[0] - 16, ly, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(p1[0] - 16, ly, 'end', it, 18));
+    if (cs !== 'none' && cs !== 'hide') s += cofArcParts(p1[0], Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(mx - 14, my, 'end', it, 18));
     if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
@@ -549,9 +554,18 @@ function twinEdge(m, statusOf, r, a, b, forceSide = 0) {
 // One of two level steps between the same boxes: the first runs just above center with its label above it, the
 // second just below with its label (and cofactors) below.
 function pairEdge(m, statusOf, r, a, b, i) {
-  const dir = Math.sign(b.cx - a.cx) || 1, x1 = a.cx + dir * (BW / 2 + 4), x2 = b.cx - dir * (BW / 2 + 4), y = a.cy + (i ? 8 : -8), mx = labAt(r, x1, x2);
+  const dir = Math.sign(b.cx - a.cx) || 1, x1 = a.cx + dir * (BW / 2 + 4), x2 = b.cx - dir * (BW / 2 + 4), y = a.cy + (i ? 10 : -10);
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r);
-  let s = arrow(x1, y, x2, y, r.reversible, rxCls(r));
+  // Across a membrane: the carrier sits on it, named on the side the solute heads to (above for the first, below for the second).
+  const xm = r.transport && !r.paracellular ? GRID_MEMBRANES.find(x => x > Math.min(x1, x2) && x < Math.max(x1, x2)) : undefined;
+  const mx = xm !== undefined ? xm + dir * 16 + (dir > 0 ? 0 : 0) : labAt(r, x1, x2), anchor = xm !== undefined ? (dir > 0 ? 'start' : 'end') : 'middle';
+  let s = arrow(x1, y, x2, y, r.reversible, rxCls(r)) + (xm !== undefined ? `<circle class="carrier" cx="${xm}" cy="${y}" r="8"/>` : '');
+  if (anchor !== 'middle') {
+    const ly = i ? y + 12 + enzRect(mx, 0, anchor, it, 22).h / 2 : y - 8;
+    s += enzLabel(mx, ly, it, es, anchor, 22, i ? 'center' : 'bottom'); DRAW_LABELS.push(enzRect(mx, ly, anchor, it, 22, i ? 'center' : 'bottom'));
+    if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x1, y], [x2, y], [0, i ? 1 : -1], cofParts(m, statusOf, r));
+    return s;
+  }
   if (!i) { s += enzLabel(mx, y - 8, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(enzRect(mx, y - 8, 'middle', it, 22, 'bottom')); return s; }
   const h = enzRect(mx, 0, 'middle', it, 22).h, ly = y + 12 + h / 2;
   s += enzLabel(mx, ly, it, es, 'middle', 22, 'center'); DRAW_LABELS.push(enzRect(mx, ly, 'middle', it, 22));
@@ -626,7 +640,7 @@ const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofact
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
   mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
-const zoneTone = key => ZONE_TONES[String(key).split('|').pop()] || 'slate';
+const zoneTone = key => { const k = String(key).split('|').pop(); return ZONE_TONES[k] || (k.startsWith('tubularlumen') ? 'gold' : 'slate'); };
 const zoneTissue = key => (String(key).includes('|') ? String(key).split('|')[0] : '');
 // Boxes that are close together in one compartment share one dashed region.
 function clusterRects(rects) {
@@ -996,27 +1010,37 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
 
 // Grids (steroidogenesis): every metabolite sets pos: [column, row]; optional grid_columns headers.
 function gridSVG(m, statusOf, opts = {}) {
-  const { p, items } = m, COLW = BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + 130, Y0 = TOP + (p.column_zones ? 78 : p.grid_columns ? 34 : 0);
+  const { p, items } = m, rowBands = p.column_zones?.axis === 'y', COLW = p.grid_colw || BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + (rowBands ? 190 : 130), Y0 = TOP + (rowBands ? 30 : p.column_zones ? 78 : p.grid_columns ? 34 : 0);
   const pos = {};
   for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
   // Column bands (p.column_zones): when each column is one compartment (a tubular cell: lumen | cell | blood), shade
   // the columns, name each band at the top (quizzable like any compartment), and draw the membranes between them.
-  const bands = [];
+  // Bands run down columns, or (axis 'y': a cell turned on its side, lumen at the bottom) across rows.
+  const bands = [], ax = rowBands ? 1 : 0, at = v => (rowBands ? Y0 + v * ROWH + BH / 2 : X0 + v * COLW);
   if (p.column_zones && opts.zones !== false) {
-    const byCol = new Map();
-    for (const x of Object.values(p.metabolites)) { const c = (x.pos || [0])[0]; if (x.loc && !byCol.has(c)) byCol.set(c, { k: zoneKey(m, x.loc, x.tissue), loc: x.loc }); }
-    for (const c of [...byCol.keys()].sort((a, b) => a - b)) { const z = byCol.get(c), last = bands[bands.length - 1]; if (last && last.k === z.k) last.c1 = c; else bands.push({ ...z, c0: c, c1: c }); }
+    const byLine = new Map();
+    for (const x of Object.values(p.metabolites)) { const c = (x.pos || [0, 0])[ax]; if (x.loc && !byLine.has(c)) byLine.set(c, { k: zoneKey(m, x.loc, x.tissue), loc: x.loc }); }
+    for (const c of [...byLine.keys()].sort((a, b) => a - b)) { const z = byLine.get(c), last = bands[bands.length - 1]; if (last && last.k === z.k) last.c1 = c; else bands.push({ ...z, c0: c, c1: c }); }
   }
   bands.forEach((b, i) => {
-    const left = i ? (X0 + bands[i - 1].c1 * COLW + X0 + b.c0 * COLW) / 2 : -BLEED, right = i < bands.length - 1 ? (X0 + b.c1 * COLW + X0 + bands[i + 1].c0 * COLW) / 2 : BLEED;
-    b.x0 = left; b.x1 = right;
-    s += `<rect class="zone t-${zoneTone(b.k)}" x="${left}" y="${-BLEED}" width="${right - left}" height="${2 * BLEED}"/>`;
-    if (i) { s += `<line class="cellwall" x1="${left}" x2="${left}" y1="${-BLEED}" y2="${BLEED}"/>`; GRID_MEMBRANES.push(left); }
+    const lo = i ? (at(bands[i - 1].c1) + at(b.c0)) / 2 : -BLEED, hi = i < bands.length - 1 ? (at(b.c1) + at(bands[i + 1].c0)) / 2 : BLEED;
+    b.x0 = lo; b.x1 = hi;
+    s += rowBands ? `<rect class="zone t-${zoneTone(b.k)}" x="${-BLEED}" y="${lo}" width="${2 * BLEED}" height="${hi - lo}"/>` : `<rect class="zone t-${zoneTone(b.k)}" x="${lo}" y="${-BLEED}" width="${hi - lo}" height="${2 * BLEED}"/>`;
+    if (i) {
+      s += rowBands ? `<line class="cellwall" x1="${-BLEED}" x2="${BLEED}" y1="${lo}" y2="${lo}"/>` : `<line class="cellwall" x1="${lo}" x2="${lo}" y1="${-BLEED}" y2="${BLEED}"/>`;
+      (rowBands ? GRID_MEMBRANES_Y : GRID_MEMBRANES).push(lo);
+    }
   });
   const membranes = (p.column_zones && p.column_zones.membranes) || [];
   bands.forEach((b, i) => {
+    if (rowBands) {
+      // Names at the left end of each band; membrane names on their line.
+      s += zoneLabel(m, statusOf, b.k, 16, Math.max(b.x0, 0) + 22, 'start', b.loc);
+      if (i && membranes[i - 1]) { const t = membranes[i - 1], w = t.length * 7.2 + 14; s += `<rect class="legend" x="12" y="${b.x0 - 9}" width="${w}" height="17" rx="5"/><text class="zonet" x="19" y="${b.x0 + 3}">${esc(t)}</text>`; }
+      return;
+    }
     s += zoneLabel(m, statusOf, b.k, X0 + (b.c0 + b.c1) / 2 * COLW, TOP + 8, 'middle', b.loc);
     if (i && membranes[i - 1]) { const t = membranes[i - 1], w = t.length * 7.2 + 14; s += `<rect class="legend" x="${b.x0 - w / 2}" y="${TOP + 17}" width="${w}" height="17" rx="5"/><text class="zonet" x="${b.x0}" y="${TOP + 29}" text-anchor="middle">${esc(t)}</text>`; }
   });
@@ -1050,6 +1074,7 @@ function gridSVG(m, statusOf, opts = {}) {
     const a = pos[r.from], b = pos[r.to], i = pair(r);
     if (i >= 0 && Math.abs(a.cx - b.cx) < 4) s += twinEdge(m, statusOf, r, a, b, i ? 1 : -1);
     else if (i >= 0 && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, i);
+    else if (twin(r) && Math.abs(a.cy - b.cy) < 4) s += pairEdge(m, statusOf, r, a, b, p.reactions.indexOf(r) < p.reactions.indexOf(twin(r)) ? 0 : 1);
     else s += twin(r) && Math.abs(a.cx - b.cx) < 4 ? twinEdge(m, statusOf, r, a, b) : drawEdge(m, statusOf, r, a, b);
   });
   CONN_LINES = [];
@@ -1175,6 +1200,68 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
   const keptAt = keep && pos['m:' + keep]; if (keep) delete pos['m:' + keep];
   return { T, sm, pos, keptAt, drop, keep, rot, labels, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
+}
+/* ---------- the nephron ----------
+   Nephron segments studied together draw as a textbook nephron: one continuous tube (the tubular lumen) from the
+   glomerulus along the top (PCT), down into the medulla and back up (loop of Henle), across the top (DCT) and down the
+   right (collecting duct). Each segment's own cell diagram sits beside its stretch of tube, turned so its lumen faces
+   the tube: on its side above the horizontal stretches, mirrored on the left of the descending limb. */
+const NEPHRON_ORIENT = { glomerulus: 'mirror', pct: 'transpose', 'thin-descending': 'mirror', 'thin-ascending': 'normal', tal: 'normal', dct: 'transpose', 'cd-principal': 'normal', 'cd-intercalated': 'normal' };
+const NEPHRON_NAMES = { glomerulus: 'Glomerulus', pct: 'Proximal convoluted tubule', 'thin-descending': 'Thin descending limb', 'thin-ascending': 'Thin ascending limb', tal: 'Thick ascending limb', dct: 'Distal convoluted tubule', 'cd-principal': 'Collecting duct: principal cell', 'cd-intercalated': 'Collecting duct: α-intercalated cell' };
+function orientTile(p, how) {
+  if (how === 'normal') return p;
+  const maxC = Math.max(...Object.values(p.metabolites).map(x => (x.pos || [0])[0]));
+  const metabolites = Object.fromEntries(Object.entries(p.metabolites).map(([k, x]) => { const [c, r] = x.pos || [0, 0]; return [k, { ...x, pos: how === 'mirror' ? [maxC - c, r] : [r, maxC - c] }]; }));
+  const cz = { ...(p.column_zones || {}), membranes: [...((p.column_zones || {}).membranes || [])].reverse(), ...(how === 'transpose' ? { axis: 'y' } : {}) };
+  return { ...p, id: p.id + '~' + how, metabolites, column_zones: cz, ...(how === 'transpose' ? { grid_colw: BW + 170 } : {}) };
+}
+function nephronSVG(m, statusOf) {
+  const R = {};
+  for (const T of m.p.stitch.tiles) {
+    const seg = T.p.nephron.segment;
+    T.oriented = T.oriented || orientTile(T.p, NEPHRON_ORIENT[seg] || 'normal');
+    const svg = flowSVG(modelFor(T.oriented), statusOf, { zones: true });
+    const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
+    R[seg] = { seg, vb, w: vb[2], h: vb[3], body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')) };
+  }
+  DRAW_STATUS = statusOf; DRAW_MODEL = m;
+  const sz = k => R[k] || { w: 520, h: 300, missing: true }, TUBE = 76, GAP = 46;
+  const G = sz('glomerulus'), P = sz('pct'), D = sz('thin-descending'), A = sz('thin-ascending'), T = sz('tal'), Dc = sz('dct'), Pc = sz('cd-principal'), I = sz('cd-intercalated');
+  // Along the top: glomerulus, then the PCT above the tube.
+  G.x = 0; P.x = G.w + GAP; P.y = 0;
+  const yT = P.h + GAP + TUBE / 2;
+  G.y = yT + TUBE / 2 - G.h;
+  const xD = P.x + P.w + GAP + TUBE / 2;
+  D.x = xD - TUBE / 2 - GAP - D.w; D.y = yT + TUBE / 2 + 2 * GAP;
+  const xA = xD + TUBE + 180;
+  T.x = A.x = Dc.x = xA + TUBE / 2 + GAP; T.y = yT + TUBE / 2 + 2 * GAP; A.y = T.y + T.h + 2 * GAP;
+  Dc.y = yT - TUBE / 2 - GAP - Dc.h;
+  const yB = Math.max(D.y + D.h, A.y + A.h) + 2 * GAP + TUBE / 2;
+  const xC = Math.max(Dc.x + Dc.w, T.x + T.w, A.x + A.w) + GAP + TUBE / 2;
+  Pc.x = I.x = xC + TUBE / 2 + GAP; Pc.y = yT + TUBE / 2 + 2 * GAP; I.y = Pc.y + Pc.h + 2 * GAP;
+  const yE = Math.max(I.y + I.h, yB) + 2 * GAP;
+  const all = [G, P, D, A, T, Dc, Pc, I];
+  const x0 = Math.min(...all.map(r => r.x)) - 140, y0 = Math.min(...all.map(r => r.y), yT - TUBE) - 60;
+  const x1 = Math.max(...all.map(r => r.x + r.w), xC + TUBE) + 60, y1 = Math.max(...all.map(r => r.y + r.h), yE) + 60;
+  const rr = 60, yCM = yT + TUBE / 2 + GAP; // cortex above, medulla below
+  const tube = `M${G.x + G.w},${yT} H${xD - rr} Q${xD},${yT} ${xD},${yT + rr} V${yB - (xA - xD) / 2} A${(xA - xD) / 2},${(xA - xD) / 2} 0 0 0 ${xA},${yB - (xA - xD) / 2} V${yT + rr} Q${xA},${yT} ${xA + rr},${yT} H${xC - rr} Q${xC},${yT} ${xC},${yT + rr} V${yE}`;
+  let s = `<defs><linearGradient id="nephMed" x1="0" y1="0" x2="0" y2="1"><stop offset="0" class="neph-med0"/><stop offset="1" class="neph-med1"/></linearGradient></defs>`;
+  s += `<rect class="neph-cortex" x="${x0}" y="${y0}" width="${x1 - x0}" height="${yCM - y0}"/><rect x="${x0}" y="${yCM}" width="${x1 - x0}" height="${y1 - yCM}" fill="url(#nephMed)"/>`;
+  s += `<line class="neph-cm" x1="${x0}" x2="${x1}" y1="${yCM}" y2="${yCM}"/><text class="zonet" x="${x0 + 16}" y="${yCM - 10}">Cortex</text><text class="zonet" x="${x0 + 16}" y="${yCM + 22}">Medulla · 300 mOsm</text><text class="zonet" x="${x0 + 16}" y="${y1 - 16}">1200 mOsm</text>`;
+  s += `<path class="neph-wall" d="${tube}"/><path class="neph-tube" d="${tube}"/>`;
+  s += `<text class="neph-flow" x="${G.x + G.w + 12}" y="${yT + 5}">filtrate →</text><text class="neph-flow" x="${xC + 8}" y="${yE - 12}">urine ↓</text>`;
+  // Each segment's cell, framed and named; a segment not in this quiz is just named on its stretch of tube.
+  const slots = [];
+  for (const r of all) {
+    const name = NEPHRON_NAMES[r === G ? 'glomerulus' : r === P ? 'pct' : r === D ? 'thin-descending' : r === A ? 'thin-ascending' : r === T ? 'tal' : r === Dc ? 'dct' : r === Pc ? 'cd-principal' : 'cd-intercalated'];
+    if (r.missing) { s += `<text class="neph-missing" x="${r.x + r.w / 2}" y="${r.y + r.h / 2}" text-anchor="middle">${esc(name)}</text>`; continue; }
+    const body = r.body.replace(/<rect class="inl-slot" x="([-\d.]+)" y="([-\d.]+)"([^>]*)\/>/g, (_, x, y, rest) => { slots.push(`<rect class="inl-slot" x="${+x - r.vb[0] + r.x - x0}" y="${+y - r.vb[1] + r.y - y0}"${rest} data-moved="1"/>`); return ''; });
+    s += `<svg x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" viewBox="${r.vb.join(' ')}" overflow="hidden">${body}</svg>`;
+    s += `<rect class="neph-frame" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="10"/>`;
+    const tw = name.length * 8.6 + 22;
+    s += `<rect class="legend" x="${r.x + 12}" y="${r.y - 13}" width="${tw}" height="26" rx="7"/><text class="neph-name" x="${r.x + 23}" y="${r.y + 5}">${esc(name)}</text>`;
+  }
+  return `<svg class="flow stitched nephron" viewBox="0 0 ${x1 - x0} ${y1 - y0}" role="img" aria-label="${esc(m.p.name)}: nephron diagram"><g transform="translate(${-x0},${-y0})">${s}</g>${slots.join('')}</svg>`;
 }
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
