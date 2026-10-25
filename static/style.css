@@ -997,7 +997,7 @@ form.ansform .cofcount { right: 92px; }
 button.zpct { height: 36px; padding: 0 4px; border: 0; border-radius: 8px; background: none; font: inherit; font-size: var(--fs-sm); font-weight: 600; color: var(--muted); cursor: pointer; }
 button.zpct:hover { background: var(--sunk); color: var(--ink); }
 /* the shared tooltip */
-.tip { position: fixed; z-index: 1000; pointer-events: none; max-width: 260px; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--raise); font-size: var(--fs-sm); line-height: 1.3; box-shadow: var(--shadow); }
+.tip { white-space: pre-line; position: fixed; z-index: 1000; pointer-events: none; max-width: 260px; padding: 5px 9px; border-radius: 6px; background: var(--ink); color: var(--raise); font-size: var(--fs-sm); line-height: 1.3; box-shadow: var(--shadow); }
 .fact-body .names { margin: 2px 0; font-size: var(--fs-sm); }
 /* spoilers in the answer panel: a solid bar until clicked */
 .spoiler { background: var(--ink-2); color: transparent; border-radius: 4px; padding: 0 2px; cursor: pointer; -webkit-user-select: none; user-select: none; box-decoration-break: clone; -webkit-box-decoration-break: clone; }
@@ -1127,6 +1127,7 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .addchip { display: inline-flex; align-items: center; gap: 4px; height: 32px; padding: 0 12px 0 8px; border: 1.5px dashed var(--ink-2); border-radius: 999px; background: var(--card); color: var(--ink); font: inherit; font-size: var(--fs-sm); font-weight: 600; cursor: pointer; }
 .addchip .mi { width: 16px; height: 16px; fill: currentColor; }
 .addchip:hover { border-style: solid; border-color: var(--blue); color: var(--blue); }
+.addchip.multi { border-style: double; border-width: 3px; }
 .tile-combo { display: inline-flex; vertical-align: -3px; margin-left: 2px; }
 .tile-combo .mi { width: 16px; height: 16px; fill: var(--muted); }
 /* Data notice: the content note, set apart from the storage notice above it. */

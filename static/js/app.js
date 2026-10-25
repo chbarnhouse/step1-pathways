@@ -427,8 +427,8 @@ function renderCreate() {
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   // Effects (activates / inhibits): a row only when a chosen pathway marks them.
-  let effectsHere = false, groupsHere = [], stitched = false;
-  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
+  let effectsHere = false, groupsHere = [], stitched = false, transportsHere = true;
+  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); transportsHere = its.some(it => it.kind === 'trn'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
   const placeNote = () => {
     const qp = Library.get(draftPathway(d));
     if (qp?.stitch) return `<span class="el-note muted small">${mi('help', 'sm')} Place works on one pathway at a time; with connected pathways, compartments just show.</span>`;
@@ -438,7 +438,7 @@ function renderCreate() {
   };
   const groupNote = () => `<span class="el-note muted small">${mi('help', 'sm')} ${stitched ? 'Draw yourself works on one pathway at a time; with connected pathways, groups just show.' : `No frames at first: you drag a frame around the boxes of each group (${groupsHere.length}), then name it. ${d.mode === 'review' ? '' : 'Before the rest of the quiz.'}`}</span>`;
   const elNote = k => (k === 'grp' && elOf(d, 'grp') === 'place' ? groupNote() : k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
-  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'grp' || groupsHere.length))
+  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'trn' || transportsHere) && (k !== 'grp' || groupsHere.length))
     .map(([k, label, allowed]) => {
       // Show / Quiz / Hide; where it can also be drawn (compartments), Quiz then asks how: fill in the blanks, or draw it yourself.
       const v = elOf(d, k), draw = allowed.includes('place'), top = v === 'place' ? 'quiz' : v;
@@ -501,16 +501,24 @@ function suggestions(d) {
     return { id, score: (partners.has(id) ? 1000 : 0) + links * 10 + shared, ok: partners.has(id) || links > 0 };
   }).filter(x => x.ok).sort((a, b) => b.score - a.score || Library.get(a.id).name.localeCompare(Library.get(b.id).name)).map(x => x.id);
 }
+// With a nephron segment picked, one pill adds every segment not yet in the quiz; hovering it lists them.
+function nephronAllPill(have) {
+  if (!have.some(id => Library.get(id)?.nephron)) return '';
+  const miss = Library.atomic().filter(p => p.nephron && !have.includes(p.id)).sort((a, b) => a.nephron.order - b.nephron.order);
+  if (miss.length < 2) return '';
+  const tip = `Adds ${miss.length} nephron segments, in the order fluid flows:\n` + miss.map(p => '· ' + p.name).join('\n');
+  return `<button type="button" class="addchip multi" data-cadds="${esc(miss.map(p => p.id).join(','))}" data-tip="${esc(tip)}" aria-label="${esc(tip.replace(/\n· /g, ', ').replace(':,', ':'))}">${mi('water_drop', 'sm')}All nephron segments · ${miss.length}</button>`;
+}
 function pickedHTML(d) {
   const have = draftParts(d);
   if (!have.length) return `<div class="picked"><span class="glabel">Pathway</span>
     <p class="pick-prompt">${mi('arrow_back', 'sm')}<span><b>Select a pathway to study</b><span class="muted small">Click a pathway's tile. Pathways that connect to it are suggested here, to quiz together.</span></span></p></div>`;
-  const more = suggestions(d), shown = C.allSugg ? more : more.slice(0, 8);
+  const more = suggestions(d), shown = C.allSugg ? more : more.slice(0, 8), multi = nephronAllPill(have);
   const pill = id => `<button type="button" class="fchip" data-cpill="${esc(id)}" aria-label="Take ${esc(Library.get(id).name)} out of this quiz">${esc(Library.get(id).name)}${mi('close', 'sm')}</button>`;
   return `<div class="picked"><div class="picked-h"><span class="glabel">${have.length > 1 ? `Pathways · ${have.length}, on one diagram` : 'Pathway'}</span><button type="button" class="btn ghost small" data-cclear>${mi('close', 'sm')} Clear all</button></div>
     <div class="chips">${have.map(pill).join('')}</div>
-    ${more.length ? `<span class="glabel">${mi('link', 'sm')} Add a connected pathway</span><p class="muted small">Most closely related first.</p>
-      <div class="chips">${shown.map(id => `<button type="button" class="addchip" data-cadd="${esc(id)}" aria-label="Add ${esc(Library.get(id).name)}">${mi('add', 'sm')}${esc(Library.get(id).name)}</button>`).join('')}
+    ${more.length || multi ? `<span class="glabel">${mi('link', 'sm')} Add a connected pathway</span><p class="muted small">Most closely related first.</p>
+      <div class="chips">${multi}${shown.map(id => `<button type="button" class="addchip" data-cadd="${esc(id)}" aria-label="Add ${esc(Library.get(id).name)}">${mi('add', 'sm')}${esc(Library.get(id).name)}</button>`).join('')}
       ${more.length > 8 ? `<button type="button" class="btn ghost small" data-cmore>${C.allSugg ? 'Fewer' : `${more.length - 8} more`}</button>` : ''}</div>` : ''}
   </div>`;
 }
@@ -567,6 +575,14 @@ document.addEventListener('click', e => {
     const id = pick.dataset.cpick;
     if (d.pathway !== id) { d.combine = false; d.extra = []; if (d.start !== 'random' && d.start !== 'begin') d.start = 'random'; }
     d.pathway = id; d.allPathways = false;
+    return renderCreate();
+  }
+  const adds = e.target.closest('[data-cadds]');
+  if (adds) {
+    for (const id of adds.dataset.cadds.split(',')) addPathway(d, id);
+    // All nephron now: put them in the order fluid flows, so the quiz starts at the glomerulus.
+    const parts = draftParts(d);
+    if (parts.every(id => Library.get(id)?.nephron)) { const s = parts.sort((a, b) => Library.get(a).nephron.order - Library.get(b).nephron.order); d.pathway = s[0]; d.combine = false; d.extra = s.slice(1); }
     return renderCreate();
   }
   const add = e.target.closest('[data-cadd]'), pill = e.target.closest('[data-cpill]');
