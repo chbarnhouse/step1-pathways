@@ -56,7 +56,9 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     }
   }
 
-  const spineMets = p.circular ? spine.map(r => r.from) : [spine[0].from, ...spine.map(r => r.to)];
+  // The main line's boxes in order. A gap (a connected drawing hands a box to another part, taking its steps with it)
+  // still places the box the next step starts from.
+  const spineMets = p.circular ? spine.map(r => r.from) : spine.reduce((out, r) => (out[out.length - 1] !== r.from ? [...out, r.from, r.to] : [...out, r.to]), []);
   const onSpine = new Set(spineMets);
   const branches = rx.filter(r => r.branch);
 

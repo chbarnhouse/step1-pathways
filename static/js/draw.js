@@ -1176,10 +1176,11 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
       + `<text class="zonet" x="${q.cx}" y="${q.cy - BH / 2 - 14}" text-anchor="middle">${esc(own)}</text>`;
   }
   let vias = ''; // carrier pills go over the arrows
-  CURL_AVOID = spine.flatMap(r => { let a = pos[r.from].t, b = pos[r.to].t; if (b <= a) b += 2 * Math.PI; return Array.from({ length: 25 }, (_, i) => pt(a + (b - a) * i / 24)); });
+  CURL_AVOID = spine.filter(r => pos[r.from] && pos[r.to]).flatMap(r => { let a = pos[r.from].t, b = pos[r.to].t; if (b <= a) b += 2 * Math.PI; return Array.from({ length: 25 }, (_, i) => pt(a + (b - a) * i / 24)); });
   const arc = (d, t1, t2, cls) => { const [x1, y1] = pt(t1, d), [x2, y2] = pt(t2, d); return `<path class="${cls}" d="M${x1},${y1} A${RX + d},${RY + d} 0 ${t2 - t1 > Math.PI ? 1 : 0} 1 ${x2},${y2}"/>`; };
   spine.forEach(r => {
     const a = pos[r.from], b = pos[r.to];
+    if (!a || !b) return; // an end handed to another part of a connected drawing: that part draws the step
     let t1 = a.t, t2 = b.t; if (t2 <= t1) t2 += 2 * Math.PI;
     const s1 = t1 + ext(t1), s2 = t2 - ext(t2), h2 = 7 / speed(s2), h1 = 7 / speed(s1);
     if (!r.reversible) {
