@@ -81,6 +81,26 @@
    "short": "",
    "aliases": [],
    "notes": "Yellow color of urine."
+  },
+  "ubili_b": {
+   "name": "Unconjugated bilirubin (blood, on albumin)",
+   "short": "",
+   "aliases": [
+    "unconjugated bilirubin",
+    "indirect bilirubin",
+    "albumin-bound bilirubin"
+   ],
+   "loc": "blood",
+   "tissue": "blood"
+  },
+  "urob_b": {
+   "name": "Urobilinogen (blood)",
+   "short": "",
+   "aliases": [
+    "urobilinogen"
+   ],
+   "loc": "blood",
+   "tissue": "blood"
   }
  },
  "enzymes": {
@@ -98,14 +118,20 @@
    "aliases": []
   },
   "alb": {
-   "name": "Albumin (blood) and hepatic uptake",
+   "name": "OATP1B1 and OATP1B3",
    "short": "",
    "aliases": [
+    "OATP1B1",
+    "OATP1B3",
+    "OATP",
+    "organic anion-transporting polypeptides",
+    "hepatic uptake",
+    "Albumin (blood) and hepatic uptake",
     "albumin",
     "albumin transport",
     "OATP uptake"
    ],
-   "notes": "Unconjugated bilirubin rides on albumin; drugs like sulfonamides can displace it (kernicterus risk in newborns)."
+   "notes": "Take bilirubin off albumin into the hepatocyte across the sinusoidal membrane. Missing in Rotor syndrome: conjugated bilirubin that leaks back into blood is not taken up again (mild conjugated hyperbilirubinemia, normal liver color). Rifampin and other drugs compete for them."
   },
   "ugt": {
    "name": "UDP-glucuronosyltransferase",
@@ -150,6 +176,29 @@
    "aliases": [
     "renal excretion"
    ]
+  },
+  "ubrel": {
+   "name": "Diffuses out, binds albumin",
+   "short": "",
+   "aliases": [
+    "simple diffusion",
+    "diffusion",
+    "albumin",
+    "albumin binding",
+    "release"
+   ],
+   "notes": "Unconjugated bilirubin is lipid-soluble: it leaves the macrophage and is carried in blood tightly bound to albumin (so it is not filtered into urine). Displaced from albumin by sulfonamides and ceftriaxone, it can cross into a newborn’s brain (kernicterus)."
+  },
+  "urobreab": {
+   "name": "Reabsorbed by the gut (enterohepatic circulation)",
+   "short": "",
+   "aliases": [
+    "reabsorption",
+    "enterohepatic circulation",
+    "enterohepatic recirculation",
+    "intestinal reabsorption"
+   ],
+   "notes": "About a fifth of urobilinogen is reabsorbed from the gut into portal blood; most goes back into bile, a little is filtered by the kidney into urine."
   }
  },
  "reactions": [
@@ -191,16 +240,32 @@
    "tissue": "spleen (macrophages)"
   },
   {
+   "id": "r3a",
+   "enzyme": "ubrel",
+   "from": "ubili",
+   "to": "ubili_b",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane",
+   "tissue": "spleen (macrophages)"
+  },
+  {
    "id": "r3",
    "enzyme": "alb",
-   "from": "ubili",
+   "from": "ubili_b",
    "to": "ubilil",
    "reversible": false,
    "cofactors": {
     "in": [],
     "out": []
    },
-   "transport": true
+   "transport": true,
+   "loc": "plasma membrane (sinusoidal)",
+   "tissue": "liver"
   },
   {
    "id": "r4",
@@ -229,7 +294,9 @@
     "in": [],
     "out": []
    },
-   "transport": true
+   "transport": true,
+   "loc": "canalicular membrane",
+   "tissue": "liver"
   },
   {
    "id": "r6",
@@ -258,9 +325,24 @@
    "tissue": "gut"
   },
   {
+   "id": "r8a",
+   "enzyme": "urobreab",
+   "from": "urobilinogen",
+   "to": "urob_b",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "intestinal epithelium",
+   "tissue": "gut",
+   "branch": true
+  },
+  {
    "id": "r8",
    "enzyme": "kid",
-   "from": "urobilinogen",
+   "from": "urob_b",
    "to": "urobilin",
    "reversible": false,
    "cofactors": {

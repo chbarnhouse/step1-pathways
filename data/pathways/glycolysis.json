@@ -118,7 +118,8 @@
     "glucose",
     "blood glucose"
    ],
-   "notes": "Plasma glucose crosses the membrane by facilitated diffusion (GLUT) — or, in gut and kidney, by Na⁺ co-transport (SGLT)."
+   "notes": "Plasma glucose crosses the membrane by facilitated diffusion (GLUT) — or, in gut and kidney, by Na⁺ co-transport (SGLT).",
+   "loc": "blood"
   }
  },
  "enzymes": {

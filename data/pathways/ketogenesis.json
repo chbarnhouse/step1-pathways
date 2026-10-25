@@ -70,6 +70,26 @@
    "short": "",
    "aliases": [],
    "notes": "Not used for fuel; exhaled → fruity breath."
+  },
+  "bhb_b": {
+   "name": "β-Hydroxybutyrate (blood)",
+   "short": "",
+   "aliases": [
+    "β-hydroxybutyrate",
+    "beta-hydroxybutyrate",
+    "BHB",
+    "3-hydroxybutyrate"
+   ],
+   "loc": "blood"
+  },
+  "acac_b": {
+   "name": "Acetoacetate (blood)",
+   "short": "",
+   "aliases": [
+    "acetoacetate",
+    "acetoacetic acid"
+   ],
+   "loc": "blood"
   }
  },
  "enzymes": {
@@ -126,6 +146,17 @@
     "no enzyme"
    ],
    "notes": "Non-enzymatic loss of CO₂ from acetoacetate."
+  },
+  "mct1": {
+   "name": "Monocarboxylate transporter (MCT1)",
+   "short": "",
+   "aliases": [
+    "MCT1",
+    "MCT",
+    "monocarboxylate transporter",
+    "SLC16A1"
+   ],
+   "notes": "Ketone bodies leave the hepatocyte through MCT1 (how they cross the inner mitochondrial membrane is less clear) and enter muscle, heart and brain the same way. The liver cannot use them: it lacks succinyl-CoA:3-ketoacid CoA transferase (SCOT)."
   }
  },
  "reactions": [
@@ -200,9 +231,36 @@
    "loc": "mitochondria"
   },
   {
+   "id": "r6",
+   "enzyme": "mct1",
+   "from": "bhb",
+   "to": "bhb_b",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane"
+  },
+  {
+   "id": "r7",
+   "enzyme": "mct1",
+   "from": "acac",
+   "to": "acac_b",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane",
+   "branch": true
+  },
+  {
    "id": "r5",
    "enzyme": "spont",
-   "from": "acac",
+   "from": "acac_b",
    "to": "acetone",
    "reversible": false,
    "cofactors": {
@@ -212,7 +270,7 @@
     ]
    },
    "branch": true,
-   "loc": "blood (spontaneous)"
+   "loc": "blood"
   }
  ],
  "distractors": {

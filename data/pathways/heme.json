@@ -16,25 +16,30 @@
  "summary": "Bone marrow (erythroid precursors) and liver. Starts and ends in mitochondria; the middle steps are cytosolic. ALA synthase is rate-limiting and repressed by heme. Lead inhibits ALA dehydratase and ferrochelatase. Each enzyme deficiency past ALA dehydratase is a porphyria.",
  "metabolites": {
   "glycine": {
-   "name": "Glycine",
+   "name": "Glycine (mitochondria)",
    "short": "Gly",
-   "aliases": [],
-   "notes": "Condenses with succinyl-CoA (from the TCA cycle)."
+   "aliases": [
+    "Glycine"
+   ],
+   "notes": "Condenses with succinyl-CoA (from the TCA cycle).",
+   "loc": "mitochondria"
   },
   "ala": {
-   "name": "δ-Aminolevulinic acid",
+   "name": "δ-Aminolevulinic acid (mitochondria)",
    "short": "δ-ALA",
    "aliases": [
     "aminolevulinic acid",
     "delta-aminolevulinic acid",
     "5-aminolevulinate",
-    "aminolevulinate"
+    "aminolevulinate",
+    "δ-Aminolevulinic acid"
    ],
    "nicknames": [
     "ALA",
     "delta ALA"
    ],
-   "notes": "Exits the mitochondrion. Elevated in lead poisoning and acute intermittent porphyria."
+   "notes": "Exits the mitochondrion. Elevated in lead poisoning and acute intermittent porphyria.",
+   "loc": "mitochondria"
   },
   "pbg": {
    "name": "Porphobilinogen",
@@ -93,6 +98,38 @@
     "heme b"
    ],
    "notes": "Represses ALA synthase (and hemin is given in acute porphyria attacks for that reason)."
+  },
+  "glycine_c": {
+   "name": "Glycine",
+   "short": "",
+   "aliases": [
+    "glycine",
+    "Gly"
+   ],
+   "loc": "cytosol"
+  },
+  "ala_c": {
+   "name": "δ-Aminolevulinic acid",
+   "short": "",
+   "aliases": [
+    "ALA",
+    "δ-ALA",
+    "delta-aminolevulinic acid",
+    "aminolevulinic acid",
+    "aminolevulinate",
+    "d-ALA"
+   ],
+   "loc": "cytosol"
+  },
+  "copro_m": {
+   "name": "Coproporphyrinogen III (mitochondria)",
+   "short": "",
+   "aliases": [
+    "coproporphyrinogen III",
+    "coproporphyrinogen"
+   ],
+   "loc": "mitochondria",
+   "notes": "Back inside the mitochondria (the intermembrane space, where coproporphyrinogen oxidase sits)."
   }
  },
  "enzymes": {
@@ -176,10 +213,56 @@
    "aliases": [
     "heme synthase"
    ],
-   "notes": "Inserts Fe²⁺. Inhibited by lead (→ ↑ zinc protoporphyrin). Deficiency → erythropoietic protoporphyria (painful, non-blistering photosensitivity)."
+   "notes": "Inserts Fe²⁺. Inhibited by lead (→ ↑ zinc protoporphyrin). Deficiency → erythropoietic protoporphyria (painful, non-blistering photosensitivity). Its iron (Fe²⁺) comes into the matrix through mitoferrin-1 (SLC25A37)."
+  },
+  "slc25a38": {
+   "name": "SLC25A38",
+   "short": "",
+   "aliases": [
+    "SLC25A38",
+    "mitochondrial glycine carrier",
+    "glycine carrier",
+    "glycine transporter"
+   ],
+   "notes": "Imports glycine into the mitochondrial matrix for ALA synthase. Loss-of-function mutations cause congenital sideroblastic anemia."
+  },
+  "alaexp": {
+   "name": "ALA exporter (not identified)",
+   "short": "",
+   "aliases": [
+    "ALA export",
+    "ALA exporter",
+    "mitochondrial export",
+    "export",
+    "exporter"
+   ],
+   "notes": "ALA leaves the mitochondria for the cytosol, where ALA dehydratase works. The carrier has not been pinned down (SLC25A38 may swap glycine in for ALA out)."
+  },
+  "abcb6": {
+   "name": "ABCB6",
+   "short": "",
+   "aliases": [
+    "ABCB6",
+    "outer mitochondrial membrane transporter",
+    "porphyrin transporter"
+   ],
+   "notes": "An ABC transporter in the outer mitochondrial membrane that brings coproporphyrinogen III back into the mitochondria for the last three steps."
   }
  },
  "reactions": [
+  {
+   "id": "r0",
+   "enzyme": "slc25a38",
+   "from": "glycine_c",
+   "to": "glycine",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
   {
    "id": "r1",
    "enzyme": "alas",
@@ -205,9 +288,22 @@
    ]
   },
   {
+   "id": "r1b",
+   "enzyme": "alaexp",
+   "from": "ala",
+   "to": "ala_c",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
    "id": "r2",
    "enzyme": "alad",
-   "from": "ala",
+   "from": "ala_c",
    "to": "pbg",
    "reversible": false,
    "cofactors": {
@@ -274,9 +370,22 @@
    ]
   },
   {
+   "id": "r5b",
+   "enzyme": "abcb6",
+   "from": "copro",
+   "to": "copro_m",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "outer mitochondrial membrane"
+  },
+  {
    "id": "r6",
    "enzyme": "cpox",
-   "from": "copro",
+   "from": "copro_m",
    "to": "protogen",
    "reversible": false,
    "cofactors": {

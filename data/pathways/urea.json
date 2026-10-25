@@ -22,13 +22,17 @@
    "name": "Ornithine",
    "short": "Orn",
    "aliases": [],
-   "notes": "Carried back into the mitochondrion to take up the next carbamoyl phosphate."
+   "notes": "Carried back into the mitochondrion to take up the next carbamoyl phosphate.",
+   "loc": "cytosol"
   },
   "citrulline": {
-   "name": "Citrulline",
+   "name": "Citrulline (mitochondria)",
    "short": "Cit",
-   "aliases": [],
-   "notes": "Leaves the mitochondrion for the cytosolic steps."
+   "aliases": [
+    "Citrulline"
+   ],
+   "notes": "Leaves the mitochondrion for the cytosolic steps.",
+   "loc": "mitochondria"
   },
   "argsucc": {
    "name": "Argininosuccinate",
@@ -42,6 +46,22 @@
    "short": "Arg",
    "aliases": [],
    "notes": "Also the substrate for nitric oxide synthase (→ NO + citrulline)."
+  },
+  "orn_m": {
+   "name": "Ornithine (mitochondria)",
+   "short": "",
+   "aliases": [
+    "ornithine"
+   ],
+   "loc": "mitochondria"
+  },
+  "cit_c": {
+   "name": "Citrulline",
+   "short": "",
+   "aliases": [
+    "citrulline"
+   ],
+   "loc": "cytosol"
   }
  },
  "enzymes": {
@@ -77,13 +97,39 @@
     "arginase 1"
    ],
    "notes": "Cleaves off urea and regenerates ornithine. Deficiency → progressive spastic diplegia, ↑ arginine, milder hyperammonemia; treat with a low-arginine diet."
+  },
+  "ornt1": {
+   "name": "Ornithine translocase (ORNT1)",
+   "short": "",
+   "aliases": [
+    "ORNT1",
+    "SLC25A15",
+    "ornithine translocase",
+    "ornithine transporter",
+    "ornithine–citrulline antiporter",
+    "ornithine/citrulline antiporter"
+   ],
+   "notes": "Swaps cytosolic ornithine for mitochondrial citrulline across the inner membrane. Deficiency: HHH syndrome (hyperornithinemia, hyperammonemia, homocitrullinuria)."
   }
  },
  "reactions": [
   {
+   "id": "r0",
+   "enzyme": "ornt1",
+   "from": "ornithine",
+   "to": "orn_m",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
    "id": "r1",
    "enzyme": "otc",
-   "from": "ornithine",
+   "from": "orn_m",
    "to": "citrulline",
    "reversible": false,
    "cofactors": {
@@ -100,9 +146,22 @@
    ]
   },
   {
+   "id": "r1b",
+   "enzyme": "ornt1",
+   "from": "citrulline",
+   "to": "cit_c",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
    "id": "r2",
    "enzyme": "ass",
-   "from": "citrulline",
+   "from": "cit_c",
    "to": "argsucc",
    "reversible": false,
    "cofactors": {

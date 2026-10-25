@@ -121,6 +121,24 @@
     "TMP"
    ],
    "notes": "The only nucleotide made solely for DNA. Folate or B12 deficiency starves this step → megaloblastic anemia."
+  },
+  "dho_ims": {
+   "name": "Dihydroorotate (intermembrane space)",
+   "short": "",
+   "aliases": [
+    "dihydroorotate",
+    "dihydroorotic acid"
+   ],
+   "loc": "intermembrane space"
+  },
+  "orotate_ims": {
+   "name": "Orotate (intermembrane space)",
+   "short": "",
+   "aliases": [
+    "orotate",
+    "orotic acid"
+   ],
+   "loc": "intermembrane space"
   }
  },
  "enzymes": {
@@ -158,7 +176,7 @@
    "nicknames": [
     "dihydroorotate DH"
    ],
-   "notes": "The only mitochondrial step: inner membrane, passes electrons to CoQ. Inhibited by leflunomide/teriflunomide (RA, MS) — they block T-cell proliferation."
+   "notes": "The only mitochondrial step: inner membrane, passes electrons to CoQ. Inhibited by leflunomide/teriflunomide (RA, MS) — they block T-cell proliferation. The only pyrimidine enzyme in mitochondria: on the outer face of the inner membrane, passing electrons to coenzyme Q."
   },
   "oprt": {
    "name": "Orotate phosphoribosyltransferase",
@@ -241,6 +259,19 @@
     "thymidylate synthetase"
    ],
    "notes": "Methylates dUMP with N⁵,N¹⁰-methylene-THF, which becomes DHF. Inhibited by 5-fluorouracil (as 5-FdUMP, a suicide inhibitor; capecitabine is its prodrug; leucovorin enhances it) and pemetrexed. DHF is recycled to THF by dihydrofolate reductase — inhibited by methotrexate (human), trimethoprim (bacterial) and pyrimethamine (protozoal); leucovorin (folinic acid) rescues methotrexate toxicity."
+  },
+  "vdac": {
+   "name": "Porins (VDAC): simple diffusion",
+   "short": "",
+   "aliases": [
+    "porins",
+    "VDAC",
+    "porin",
+    "voltage-dependent anion channel",
+    "simple diffusion",
+    "diffusion"
+   ],
+   "notes": "The outer mitochondrial membrane is leaky: small molecules diffuse through porin channels (VDAC) without a specific carrier."
   }
  },
  "reactions": [
@@ -299,10 +330,23 @@
    "loc": "cytosol"
   },
   {
+   "id": "r3b",
+   "enzyme": "vdac",
+   "from": "dho",
+   "to": "dho_ims",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "outer mitochondrial membrane"
+  },
+  {
    "id": "r4",
    "enzyme": "dhodh",
-   "from": "dho",
-   "to": "orotate",
+   "from": "dho_ims",
+   "to": "orotate_ims",
    "reversible": false,
    "cofactors": {
     "in": [
@@ -313,6 +357,19 @@
     ]
    },
    "loc": "inner mitochondrial membrane"
+  },
+  {
+   "id": "r4b",
+   "enzyme": "vdac",
+   "from": "orotate_ims",
+   "to": "orotate",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "outer mitochondrial membrane"
   },
   {
    "id": "r5",

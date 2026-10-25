@@ -23,9 +23,11 @@
    "aliases": []
   },
   "tyr": {
-   "name": "Tyrosine",
+   "name": "Tyrosine (liver)",
    "short": "Tyr",
-   "aliases": [],
+   "aliases": [
+    "Tyrosine"
+   ],
    "notes": "Also → thyroid hormones and melanin (tyrosinase; albinism)."
   },
   "dopa": {
@@ -54,7 +56,9 @@
    "aliases": [
     "noradrenaline"
    ],
-   "notes": "Broken down to normetanephrine and VMA."
+   "notes": "Broken down to normetanephrine and VMA.",
+   "loc": "secretory vesicles",
+   "tissue": "adrenal medulla, neurons"
   },
   "epi": {
    "name": "Epinephrine",
@@ -62,7 +66,50 @@
    "aliases": [
     "adrenaline"
    ],
-   "notes": "Broken down to metanephrine and VMA. Pheochromocytoma: ↑ plasma free metanephrines."
+   "notes": "Broken down to metanephrine and VMA. Pheochromocytoma: ↑ plasma free metanephrines.",
+   "loc": "cytosol",
+   "tissue": "adrenal medulla, neurons"
+  },
+  "tyr_n": {
+   "name": "Tyrosine",
+   "short": "",
+   "aliases": [
+    "tyrosine",
+    "Tyr",
+    "L-tyrosine"
+   ],
+   "loc": "cytosol",
+   "tissue": "adrenal medulla, neurons"
+  },
+  "dopamine_v": {
+   "name": "Dopamine (vesicle)",
+   "short": "",
+   "aliases": [
+    "dopamine"
+   ],
+   "loc": "secretory vesicles",
+   "tissue": "adrenal medulla, neurons"
+  },
+  "ne_c": {
+   "name": "Norepinephrine (cytosol)",
+   "short": "",
+   "aliases": [
+    "norepinephrine",
+    "noradrenaline",
+    "NE"
+   ],
+   "loc": "cytosol",
+   "tissue": "adrenal medulla, neurons"
+  },
+  "epi_v": {
+   "name": "Epinephrine (vesicle)",
+   "short": "",
+   "aliases": [
+    "epinephrine",
+    "adrenaline"
+   ],
+   "loc": "secretory vesicles",
+   "tissue": "adrenal medulla, neurons"
   }
  },
  "enzymes": {
@@ -110,6 +157,43 @@
     "phenylethanolamine N methyltransferase"
    ],
    "notes": "Adrenal medulla. Methyl group from SAM. Induced by cortisol arriving via the adrenal portal circulation."
+  },
+  "lat1": {
+   "name": "LAT1",
+   "short": "",
+   "aliases": [
+    "LAT1",
+    "L-type amino acid transporter",
+    "large neutral amino acid transporter",
+    "SLC7A5",
+    "system L"
+   ],
+   "notes": "Tyrosine reaches the adrenal medulla and neurons in the blood (from the diet or the liver) and enters through LAT1, the large neutral amino acid carrier that also takes L-DOPA across the blood–brain barrier."
+  },
+  "vmat": {
+   "name": "VMAT (vesicular monoamine transporter)",
+   "short": "",
+   "aliases": [
+    "VMAT",
+    "VMAT1",
+    "VMAT2",
+    "vesicular monoamine transporter",
+    "SLC18A1",
+    "SLC18A2"
+   ],
+   "notes": "Pumps dopamine, norepinephrine, epinephrine and serotonin into vesicles in exchange for protons (VMAT2 in neurons, VMAT1 in chromaffin cells). Reserpine blocks it irreversibly; tetrabenazine blocks VMAT2."
+  },
+  "neleak": {
+   "name": "Leaks out of the vesicle",
+   "short": "",
+   "aliases": [
+    "leak",
+    "efflux",
+    "passive efflux",
+    "diffusion",
+    "leaks out"
+   ],
+   "notes": "In adrenal chromaffin cells some norepinephrine leaks from the vesicles into the cytosol, where PNMT (induced by cortisol from the cortex) makes epinephrine."
   }
  },
  "reactions": [
@@ -139,9 +223,23 @@
    "tissue": "liver"
   },
   {
+   "id": "r1b",
+   "enzyme": "lat1",
+   "from": "tyr",
+   "to": "tyr_n",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane",
+   "tissue": "adrenal medulla, neurons"
+  },
+  {
    "id": "r2",
    "enzyme": "th",
-   "from": "tyr",
+   "from": "tyr_n",
    "to": "dopa",
    "reversible": false,
    "cofactors": {
@@ -185,9 +283,23 @@
    "tissue": "adrenal medulla, neurons"
   },
   {
+   "id": "r3b",
+   "enzyme": "vmat",
+   "from": "dopamine",
+   "to": "dopamine_v",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "vesicle membrane",
+   "tissue": "adrenal medulla, neurons"
+  },
+  {
    "id": "r4",
    "enzyme": "dbh",
-   "from": "dopamine",
+   "from": "dopamine_v",
    "to": "ne",
    "reversible": false,
    "cofactors": {
@@ -210,9 +322,23 @@
    "tissue": "adrenal medulla, neurons"
   },
   {
+   "id": "r4b",
+   "enzyme": "neleak",
+   "from": "ne",
+   "to": "ne_c",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "vesicle membrane",
+   "tissue": "adrenal medulla, neurons"
+  },
+  {
    "id": "r5",
    "enzyme": "pnmt",
-   "from": "ne",
+   "from": "ne_c",
    "to": "epi",
    "reversible": false,
    "cofactors": {
@@ -227,7 +353,21 @@
    "tags": [
     "irreversible"
    ],
-   "tissue": "adrenal medulla"
+   "tissue": "adrenal medulla, neurons"
+  },
+  {
+   "id": "r6",
+   "enzyme": "vmat",
+   "from": "epi",
+   "to": "epi_v",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "vesicle membrane",
+   "tissue": "adrenal medulla, neurons"
   }
  ],
  "distractors": {

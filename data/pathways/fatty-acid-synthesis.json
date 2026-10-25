@@ -82,7 +82,8 @@
     "citrate",
     "mitochondrial citrate"
    ],
-   "notes": "Made by citrate synthase when acetyl-CoA is plentiful; acetyl-CoA itself can't cross the inner membrane."
+   "notes": "Made by citrate synthase when acetyl-CoA is plentiful; acetyl-CoA itself can't cross the inner membrane.",
+   "loc": "mitochondria"
   }
  },
  "enzymes": {

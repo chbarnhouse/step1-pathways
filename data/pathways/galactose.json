@@ -17,7 +17,9 @@
    "short": "Gal",
    "aliases": [
     "D-galactose"
-   ]
+   ],
+   "loc": "cytosol",
+   "tissue": "liver"
   },
   "gal1p": {
    "name": "Galactose-1-phosphate",
@@ -62,6 +64,24 @@
    "aliases": [
     "galactose"
    ]
+  },
+  "gal_e": {
+   "name": "Galactose (enterocyte)",
+   "short": "",
+   "aliases": [
+    "galactose"
+   ],
+   "loc": "cytosol",
+   "tissue": "small intestine"
+  },
+  "gal_bl": {
+   "name": "Galactose (blood)",
+   "short": "",
+   "aliases": [
+    "galactose"
+   ],
+   "loc": "blood",
+   "tissue": "blood"
   }
  },
  "enzymes": {
@@ -114,7 +134,17 @@
    "nicknames": [
     "SGLT1"
    ],
-   "notes": "Apical Na⁺-coupled uptake of glucose and galactose into enterocytes (then GLUT2 out to the blood). Fructose uses GLUT5 instead."
+   "notes": "Apical Na⁺-coupled uptake of glucose and galactose into enterocytes (then GLUT2 out to the blood). Fructose uses GLUT5 instead. Brings glucose and galactose into the enterocyte with Na⁺ (secondary active transport)."
+  },
+  "glut2": {
+   "name": "GLUT2",
+   "short": "",
+   "aliases": [
+    "GLUT-2",
+    "SLC2A2",
+    "glucose transporter 2"
+   ],
+   "notes": "Bidirectional, high-capacity: lets galactose out of the enterocyte (basolateral side) and into the hepatocyte."
   }
  },
  "reactions": [
@@ -140,6 +170,34 @@
    "id": "r0b",
    "enzyme": "sglt1",
    "from": "galb",
+   "to": "gal_e",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "apical membrane",
+   "tissue": "small intestine"
+  },
+  {
+   "id": "r0c",
+   "enzyme": "glut2",
+   "from": "gal_e",
+   "to": "gal_bl",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "basolateral membrane",
+   "tissue": "small intestine"
+  },
+  {
+   "id": "r0d",
+   "enzyme": "glut2",
+   "from": "gal_bl",
    "to": "galactose",
    "reversible": false,
    "transport": true,
@@ -147,8 +205,8 @@
     "in": [],
     "out": []
    },
-   "loc": "apical membrane → blood",
-   "tissue": "small intestine"
+   "loc": "plasma membrane",
+   "tissue": "liver"
   },
   {
    "id": "r1",

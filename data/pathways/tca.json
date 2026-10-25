@@ -18,12 +18,14 @@
  "circular": true,
  "metabolites": {
   "pyruvate": {
-   "name": "Pyruvate",
+   "name": "Pyruvate (mitochondria)",
    "short": "",
    "aliases": [
-    "pyruvic acid"
+    "pyruvic acid",
+    "Pyruvate"
    ],
-   "notes": "From glycolysis (or alanine, lactate). Enters the mitochondrion on the pyruvate carrier."
+   "notes": "From glycolysis (or alanine, lactate). Enters the mitochondrion on the pyruvate carrier.",
+   "loc": "mitochondria"
   },
   "acetylcoa": {
    "name": "Acetyl-CoA",
@@ -100,6 +102,15 @@
     "malic acid"
    ],
    "notes": "Carries OAA carbon out of the mitochondrion for gluconeogenesis (malate shuttle)."
+  },
+  "pyruvate_c": {
+   "name": "Pyruvate",
+   "short": "",
+   "aliases": [
+    "pyruvate",
+    "pyruvic acid"
+   ],
+   "loc": "cytosol"
   }
  },
  "enzymes": {
@@ -185,9 +196,36 @@
     "PDH complex"
    ],
    "notes": "Irreversible link from glycolysis to the TCA cycle. Five cofactors: thiamine pyrophosphate (B1), lipoic acid, CoA (B5), FAD (B2), NAD⁺ (B3) ('Tender Loving Care For Nancy'); same set as α-ketoglutarate dehydrogenase. Activated by insulin, ADP, NAD⁺ and Ca²⁺ (muscle); inhibited by acetyl-CoA, NADH and ATP (via PDH kinase). Arsenic binds lipoic acid. Deficiency (often X-linked E1α) → lactic acidosis, neurologic defects; treat with a ketogenic diet (lysine, leucine). Thiamine deficiency also blocks it (Wernicke, beriberi)."
+  },
+  "mpc": {
+   "name": "Mitochondrial pyruvate carrier",
+   "short": "",
+   "aliases": [
+    "MPC",
+    "MPC1",
+    "MPC2",
+    "pyruvate carrier",
+    "pyruvate transporter",
+    "mitochondrial pyruvate transporter"
+   ],
+   "notes": "Carries pyruvate (with a proton) across the inner mitochondrial membrane into the matrix."
   }
  },
  "reactions": [
+  {
+   "id": "r9",
+   "enzyme": "mpc",
+   "from": "pyruvate_c",
+   "to": "pyruvate",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane",
+   "branch": true
+  },
   {
    "id": "r0",
    "enzyme": "pdh",
@@ -414,7 +452,7 @@
    "dir": "in"
   },
   {
-   "at": "pyruvate",
+   "at": "pyruvate_c",
    "to": "glycolysis",
    "dir": "in"
   },

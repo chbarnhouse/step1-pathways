@@ -14,12 +14,14 @@
  "summary": "Liver (also kidney, intestinal epithelium) during fasting. 2 pyruvate → glucose costs 4 ATP + 2 GTP + 2 NADH. The four bypass enzymes: pyruvate carboxylase, PEPCK, fructose-1,6-bisphosphatase (rate-limiting), glucose-6-phosphatase. Muscle can't release glucose (no glucose-6-phosphatase).",
  "metabolites": {
   "pyruvate": {
-   "name": "Pyruvate",
+   "name": "Pyruvate (mitochondria)",
    "short": "Pyr",
    "aliases": [
-    "pyruvic acid"
+    "pyruvic acid",
+    "Pyruvate"
    ],
-   "notes": "Comes from lactate (Cori cycle, LDH) and alanine (ALT)."
+   "notes": "Comes from lactate (Cori cycle, LDH) and alanine (ALT).",
+   "loc": "mitochondria"
   },
   "oaa": {
    "name": "Oxaloacetate",
@@ -93,11 +95,69 @@
    "aliases": []
   },
   "glucose": {
-   "name": "Glucose",
+   "name": "Glucose (ER lumen)",
    "short": "Glc",
    "aliases": [
-    "D-glucose"
-   ]
+    "D-glucose",
+    "Glucose",
+    "glucose"
+   ],
+   "loc": "ER lumen"
+  },
+  "pyruvate_c": {
+   "name": "Pyruvate",
+   "short": "",
+   "aliases": [
+    "pyruvate",
+    "pyruvic acid"
+   ],
+   "loc": "cytosol"
+  },
+  "malate_m": {
+   "name": "Malate (mitochondria)",
+   "short": "",
+   "aliases": [
+    "malate",
+    "malic acid"
+   ],
+   "loc": "mitochondria"
+  },
+  "malate_c": {
+   "name": "Malate",
+   "short": "",
+   "aliases": [
+    "malate",
+    "malic acid"
+   ],
+   "loc": "cytosol"
+  },
+  "oaa_c": {
+   "name": "Oxaloacetate (cytosol)",
+   "short": "",
+   "aliases": [
+    "oxaloacetate",
+    "OAA",
+    "oxaloacetic acid"
+   ],
+   "loc": "cytosol"
+  },
+  "g6p_er": {
+   "name": "Glucose-6-phosphate (ER lumen)",
+   "short": "",
+   "aliases": [
+    "glucose-6-phosphate",
+    "G6P"
+   ],
+   "loc": "ER lumen"
+  },
+  "glucose_b": {
+   "name": "Glucose (blood)",
+   "short": "",
+   "aliases": [
+    "glucose",
+    "blood glucose"
+   ],
+   "loc": "blood"
   }
  },
  "enzymes": {
@@ -201,9 +261,91 @@
     "glucose 6-phosphatase"
    ],
    "notes": "In the ER lumen of liver and kidney (not muscle). Deficiency = von Gierke disease (type I glycogen storage): severe fasting hypoglycemia, lactic acidosis, hepatomegaly, hyperuricemia, hypertriglyceridemia."
+  },
+  "mpc": {
+   "name": "Mitochondrial pyruvate carrier",
+   "short": "",
+   "aliases": [
+    "MPC",
+    "MPC1",
+    "MPC2",
+    "pyruvate carrier",
+    "pyruvate transporter",
+    "mitochondrial pyruvate transporter"
+   ],
+   "notes": "Carries pyruvate (with a proton) across the inner mitochondrial membrane into the matrix."
+  },
+  "mdh_m": {
+   "name": "Malate dehydrogenase (mitochondrial)",
+   "short": "",
+   "aliases": [
+    "malate dehydrogenase",
+    "MDH",
+    "mitochondrial malate dehydrogenase",
+    "MDH2"
+   ],
+   "notes": "Oxaloacetate cannot cross the inner mitochondrial membrane, so it leaves as malate."
+  },
+  "maltrans": {
+   "name": "Malate transporter",
+   "short": "",
+   "aliases": [
+    "malate–α-ketoglutarate antiporter",
+    "malate shuttle",
+    "dicarboxylate carrier",
+    "malate carrier",
+    "SLC25A11"
+   ],
+   "notes": "Malate crosses the inner mitochondrial membrane on a carrier (the malate–α-ketoglutarate antiporter or the dicarboxylate carrier), carrying reducing equivalents with it."
+  },
+  "mdh_c": {
+   "name": "Malate dehydrogenase (cytosolic)",
+   "short": "",
+   "aliases": [
+    "malate dehydrogenase",
+    "MDH",
+    "cytosolic malate dehydrogenase",
+    "MDH1"
+   ],
+   "notes": "Turns malate back into oxaloacetate in the cytosol, regenerating the NADH that gluconeogenesis needs (at the glyceraldehyde-3-phosphate dehydrogenase step)."
+  },
+  "g6pt": {
+   "name": "Glucose-6-phosphate translocase",
+   "short": "",
+   "aliases": [
+    "G6PT",
+    "G6P translocase",
+    "SLC37A4",
+    "glucose-6-phosphate transporter",
+    "G6P transporter"
+   ],
+   "notes": "Carries glucose-6-phosphate from the cytosol into the ER lumen, where glucose-6-phosphatase works. Deficiency: von Gierke disease type Ib (also neutropenia and infections)."
+  },
+  "glut2": {
+   "name": "GLUT2",
+   "short": "",
+   "aliases": [
+    "GLUT-2",
+    "SLC2A2",
+    "glucose transporter 2"
+   ],
+   "notes": "Glucose leaves the ER (that carrier is not established) and then the cell through GLUT2 into the blood. GLUT2 is bidirectional and high-capacity (liver, kidney, small intestine, β cells). Fanconi-Bickel syndrome: GLUT2 deficiency."
   }
  },
  "reactions": [
+  {
+   "id": "r0",
+   "enzyme": "mpc",
+   "from": "pyruvate_c",
+   "to": "pyruvate",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
   {
    "id": "r1",
    "enzyme": "pc",
@@ -230,9 +372,54 @@
    ]
   },
   {
+   "id": "r1c",
+   "enzyme": "mdh_m",
+   "from": "oaa",
+   "to": "malate_m",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nadh"
+    ],
+    "out": [
+     "nad"
+    ]
+   },
+   "loc": "mitochondria"
+  },
+  {
+   "id": "r1d",
+   "enzyme": "maltrans",
+   "from": "malate_m",
+   "to": "malate_c",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "inner mitochondrial membrane"
+  },
+  {
+   "id": "r1e",
+   "enzyme": "mdh_c",
+   "from": "malate_c",
+   "to": "oaa_c",
+   "reversible": true,
+   "cofactors": {
+    "in": [
+     "nad"
+    ],
+    "out": [
+     "nadh"
+    ]
+   },
+   "loc": "cytosol"
+  },
+  {
    "id": "r2",
    "enzyme": "pepck",
-   "from": "oaa",
+   "from": "oaa_c",
    "to": "pep",
    "reversible": false,
    "cofactors": {
@@ -374,9 +561,22 @@
    "loc": "cytosol"
   },
   {
+   "id": "r10b",
+   "enzyme": "g6pt",
+   "from": "g6p",
+   "to": "g6p_er",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "ER membrane"
+  },
+  {
    "id": "r11",
    "enzyme": "g6pase",
-   "from": "g6p",
+   "from": "g6p_er",
    "to": "glucose",
    "reversible": false,
    "cofactors": {
@@ -390,8 +590,20 @@
    "loc": "ER lumen",
    "tags": [
     "irreversible"
-   ],
-   "tissue": "liver, kidney (not muscle)"
+   ]
+  },
+  {
+   "id": "r12",
+   "enzyme": "glut2",
+   "from": "glucose",
+   "to": "glucose_b",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane"
   }
  ],
  "distractors": {
@@ -429,6 +641,7 @@
  "lanes": [
   "mitochondria",
   "cytosol",
-  "er"
+  "er",
+  "blood"
  ]
 }

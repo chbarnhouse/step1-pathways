@@ -44,12 +44,15 @@
    "notes": "Muscle sends it into glycolysis (no glucose-6-phosphatase)."
   },
   "glucose": {
-   "name": "Glucose",
+   "name": "Glucose (ER lumen)",
    "short": "Glc",
    "aliases": [
-    "D-glucose"
+    "D-glucose",
+    "Glucose",
+    "glucose"
    ],
-   "notes": "Made in the ER lumen by glucose-6-phosphatase (liver and kidney) and exported to the blood. Muscle lacks this enzyme, so its glycogen only feeds its own glycolysis."
+   "notes": "Made in the ER lumen by glucose-6-phosphatase (liver and kidney) and exported to the blood. Muscle lacks this enzyme, so its glycogen only feeds its own glycolysis.",
+   "loc": "ER lumen"
   },
   "glucosec": {
    "name": "Glucose (cytosol)",
@@ -60,6 +63,24 @@
    ],
    "loc": "cytosol",
    "notes": "About 8–10% of the glucose from glycogen: the debranching enzyme frees each α-1,6 branch point as glucose, not G1P."
+  },
+  "g6p_er": {
+   "name": "Glucose-6-phosphate (ER lumen)",
+   "short": "",
+   "aliases": [
+    "glucose-6-phosphate",
+    "G6P"
+   ],
+   "loc": "ER lumen"
+  },
+  "glucose_b": {
+   "name": "Glucose (blood)",
+   "short": "",
+   "aliases": [
+    "glucose",
+    "blood glucose"
+   ],
+   "loc": "blood"
   }
  },
  "enzymes": {
@@ -97,6 +118,28 @@
     "glucose 6-phosphatase"
    ],
    "notes": "ER lumen of liver and kidney, not muscle. Deficiency = von Gierke disease (GSD I): severe fasting hypoglycemia, lactic acidosis, hepatomegaly, hyperuricemia, hypertriglyceridemia, doll-like face."
+  },
+  "g6pt": {
+   "name": "Glucose-6-phosphate translocase",
+   "short": "",
+   "aliases": [
+    "G6PT",
+    "G6P translocase",
+    "SLC37A4",
+    "glucose-6-phosphate transporter",
+    "G6P transporter"
+   ],
+   "notes": "Carries glucose-6-phosphate from the cytosol into the ER lumen, where glucose-6-phosphatase works. Deficiency: von Gierke disease type Ib (also neutropenia and infections)."
+  },
+  "glut2": {
+   "name": "GLUT2",
+   "short": "",
+   "aliases": [
+    "GLUT-2",
+    "SLC2A2",
+    "glucose transporter 2"
+   ],
+   "notes": "Glucose leaves the ER (that carrier is not established) and then the cell through GLUT2 into the blood. GLUT2 is bidirectional and high-capacity (liver, kidney, small intestine, β cells). Fanconi-Bickel syndrome: GLUT2 deficiency."
   }
  },
  "reactions": [
@@ -152,9 +195,22 @@
    "loc": "cytosol"
   },
   {
+   "id": "r3b",
+   "enzyme": "g6pt",
+   "from": "g6p",
+   "to": "g6p_er",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "ER membrane"
+  },
+  {
    "id": "r4",
    "enzyme": "g6pase",
-   "from": "g6p",
+   "from": "g6p_er",
    "to": "glucose",
    "reversible": false,
    "cofactors": {
@@ -169,6 +225,19 @@
    "tags": [
     "irreversible"
    ]
+  },
+  {
+   "id": "r5",
+   "enzyme": "glut2",
+   "from": "glucose",
+   "to": "glucose_b",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "plasma membrane"
   }
  ],
  "distractors": {
@@ -199,5 +268,10 @@
    "to": "glycolysis",
    "dir": "out"
   }
+ ],
+ "lanes": [
+  "cytosol",
+  "er",
+  "blood"
  ]
 }

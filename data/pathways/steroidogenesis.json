@@ -28,7 +28,8 @@
    "pos": [
     0,
     0
-   ]
+   ],
+   "loc": "cytosol"
   },
   "cholm": {
    "name": "Cholesterol (mitochondria)",
@@ -48,8 +49,9 @@
    "notes": "Precursor to all steroid hormones.",
    "pos": [
     0,
-    2
-   ]
+    3
+   ],
+   "loc": "smooth ER"
   },
   "ohpreg": {
    "name": "17α-Hydroxypregnenolone",
@@ -60,7 +62,7 @@
    ],
    "pos": [
     1,
-    2
+    3
    ]
   },
   "dhea": {
@@ -75,7 +77,7 @@
    "notes": "Main adrenal androgen (with DHEA-S); weak on its own.",
    "pos": [
     2,
-    2
+    3
    ]
   },
   "prog": {
@@ -84,7 +86,7 @@
    "aliases": [],
    "pos": [
     0,
-    3
+    4
    ]
   },
   "ohprog": {
@@ -99,7 +101,7 @@
    "notes": "↑ in 21-hydroxylase deficiency — the newborn screening marker.",
    "pos": [
     1,
-    3
+    4
    ]
   },
   "andro": {
@@ -110,7 +112,7 @@
    ],
    "pos": [
     2,
-    3
+    4
    ]
   },
   "estrone": {
@@ -120,7 +122,7 @@
    "notes": "Main estrogen after menopause (made in adipose).",
    "pos": [
     3,
-    3
+    4
    ]
   },
   "doc": {
@@ -133,8 +135,9 @@
    "notes": "A weak mineralocorticoid — in excess (11β-hydroxylase or 17α-hydroxylase deficiency) it causes hypertension and hypokalemia.",
    "pos": [
     0,
-    4
-   ]
+    5
+   ],
+   "loc": "smooth ER"
   },
   "deoxycortisol": {
    "name": "11-Deoxycortisol",
@@ -145,8 +148,9 @@
    ],
    "pos": [
     1,
-    4
-   ]
+    5
+   ],
+   "loc": "smooth ER"
   },
   "testo": {
    "name": "Testosterone",
@@ -154,7 +158,7 @@
    "aliases": [],
    "pos": [
     2,
-    4
+    5
    ]
   },
   "estradiol": {
@@ -166,7 +170,7 @@
    ],
    "pos": [
     3,
-    4
+    5
    ]
   },
   "corticosterone": {
@@ -175,7 +179,7 @@
    "aliases": [],
    "pos": [
     0,
-    5
+    7
    ]
   },
   "cortisol": {
@@ -187,7 +191,7 @@
    "notes": "Feeds back on ACTH. Low cortisol → ↑ ACTH → adrenal hyperplasia in CAH.",
    "pos": [
     1,
-    5
+    7
    ]
   },
   "dht": {
@@ -200,7 +204,7 @@
    "notes": "Drives external male genitalia, prostate growth, male-pattern baldness.",
    "pos": [
     2,
-    5
+    7
    ]
   },
   "aldo": {
@@ -210,7 +214,7 @@
    "notes": "Zona glomerulosa only; driven by angiotensin II and K⁺, not much by ACTH.",
    "pos": [
     0,
-    6
+    8
    ]
   },
   "cortisone": {
@@ -219,9 +223,49 @@
    "aliases": [],
    "pos": [
     1,
-    6
+    8
    ],
    "notes": "Inactive: it doesn't activate the glucocorticoid or mineralocorticoid receptor. Tissues switch cortisol off (11β-HSD2) or back on (11β-HSD1). Given as a drug, it works only after the liver converts it to cortisol (likewise prednisone → prednisolone)."
+  },
+  "pregm": {
+   "name": "Pregnenolone (mitochondria)",
+   "short": "",
+   "aliases": [
+    "pregnenolone"
+   ],
+   "loc": "mitochondria",
+   "pos": [
+    0,
+    2
+   ]
+  },
+  "docm": {
+   "name": "11-Deoxycorticosterone (mitochondria)",
+   "short": "",
+   "aliases": [
+    "11-deoxycorticosterone",
+    "deoxycorticosterone",
+    "11-deoxycorticosterone"
+   ],
+   "loc": "mitochondria",
+   "pos": [
+    0,
+    6
+   ]
+  },
+  "deoxycortisolm": {
+   "name": "11-Deoxycortisol (mitochondria)",
+   "short": "",
+   "aliases": [
+    "11-deoxycortisol",
+    "deoxycortisol",
+    "11-deoxycortisol"
+   ],
+   "loc": "mitochondria",
+   "pos": [
+    1,
+    6
+   ]
   }
  },
  "enzymes": {
@@ -369,6 +413,17 @@
     "11β-HSD type 1"
    ],
    "notes": "Liver, adipose tissue, brain: regenerates active cortisol from cortisone inside cells (NADPH comes from hexose-6-phosphate dehydrogenase in the ER lumen). Why oral cortisone and prednisone work: they're activated here."
+  },
+  "diffusion": {
+   "name": "Simple diffusion",
+   "short": "",
+   "aliases": [
+    "diffusion",
+    "simple diffusion",
+    "passive diffusion",
+    "diffuses"
+   ],
+   "notes": "Steroids are lipid-soluble: they cross mitochondrial and ER membranes (and leave the cell) without a carrier. Only cholesterol needs help into the mitochondria (StAR)."
   }
  },
  "reactions": [
@@ -392,7 +447,7 @@
    "id": "r2",
    "enzyme": "scc",
    "from": "cholm",
-   "to": "preg",
+   "to": "pregm",
    "reversible": false,
    "cofactors": {
     "in": [
@@ -409,6 +464,19 @@
     "rate-limiting",
     "irreversible"
    ]
+  },
+  {
+   "id": "r2b",
+   "enzyme": "diffusion",
+   "from": "pregm",
+   "to": "preg",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "mitochondrial membranes"
   },
   {
    "id": "r3",
@@ -571,9 +639,23 @@
    "tissue": "zona fasciculata"
   },
   {
+   "id": "r12b",
+   "enzyme": "diffusion",
+   "from": "doc",
+   "to": "docm",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "mitochondrial membranes",
+   "tissue": "zona glomerulosa"
+  },
+  {
    "id": "r12",
    "enzyme": "cyp11b1",
-   "from": "doc",
+   "from": "docm",
    "to": "corticosterone",
    "reversible": false,
    "cofactors": {
@@ -590,9 +672,23 @@
    "tissue": "zona glomerulosa"
   },
   {
+   "id": "r13b",
+   "enzyme": "diffusion",
+   "from": "deoxycortisol",
+   "to": "deoxycortisolm",
+   "reversible": false,
+   "transport": true,
+   "cofactors": {
+    "in": [],
+    "out": []
+   },
+   "loc": "mitochondrial membranes",
+   "tissue": "zona fasciculata"
+  },
+  {
    "id": "r13",
    "enzyme": "cyp11b1",
-   "from": "deoxycortisol",
+   "from": "deoxycortisolm",
    "to": "cortisol",
    "reversible": false,
    "cofactors": {

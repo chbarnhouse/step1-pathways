@@ -88,8 +88,9 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // Compartments are items too ('z:<key>'): one per place the pathway runs, read just before its first step there.
   const m0z = { p, multiTissue: new Set(rx.map(r => r.tissue || '')).size > 1 };
   const zones = {};
+  // A transport step's place is a membrane, not a compartment: it doesn't make or name one.
   for (const r of rx) {
-    if (!r.loc) continue;
+    if (!r.loc || r.transport) continue;
     const key = zoneKey(m0z, r.loc, r.tissue);
     const z = zones[key] = zones[key] || { raw: {}, rs: [] };
     z.raw[r.loc] = (z.raw[r.loc] || 0) + 1; z.rs.push(r); z.tissue = r.tissue || p.tissue;
