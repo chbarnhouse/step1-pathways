@@ -512,7 +512,7 @@ function viaAt(pts) {
   // No membrane drawn across it: on its longest leg (never a trunk it shares), near where that leg starts.
   const [[x0, y0], [x1, y1]] = segs.reduce((a, b) => (Math.hypot(b[1][0] - b[0][0], b[1][1] - b[0][1]) > Math.hypot(a[1][0] - a[0][0], a[1][1] - a[0][1]) ? b : a));
   // A straight step: clear of the box it leaves and of its name, which moves toward the far end.
-  const L = Math.hypot(x1 - x0, y1 - y0), f = segs.length === 1 ? Math.min(0.4, Math.max(0.22, (Math.abs(x1 - x0) > Math.abs(y1 - y0) ? 92 : 30) / (L || 1))) : 0.3;
+  const L = Math.hypot(x1 - x0, y1 - y0), f = segs.length === 1 ? Math.min(0.4, Math.max(0.22, (Math.abs(x1 - x0) > Math.abs(y1 - y0) ? 96 : 56) / (L || 1))) : 0.3; // clear of the box and its compartment's edge
   return [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f];
 }
 function viaPill(m, statusOf, r, at) {
@@ -762,7 +762,7 @@ const LANE_W = 470;
 // On the canvas, compartment tints and membranes run past the drawing to the canvas edges (the SVG may paint outside
 // its box there); anywhere else the browser clips them to the drawing as before.
 const BLEED = 20000;
-const VIA_ROOM = 44; // a via step's extra height: its carrier pill above the enzyme
+const VIA_ROOM = 56; // a via step's extra height: its carrier pill above the enzyme
 const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
@@ -772,7 +772,8 @@ const zoneTissue = key => (String(key).includes('|') ? String(key).split('|')[0]
 // Boxes that are close together in one compartment share one dashed region.
 /* A set of overlapping rectangles as one shape: its outline, every corner rounded (inside corners too), so pieces of a
    compartment that fit around another read as one smooth puzzle piece instead of stepped boxes. */
-function unionPath(rects, R = 18) {
+const REGION_R = 18, REGION_GAP = 22; // a compartment's corner radius; the space kept around another one it fits around
+function unionPath(rects, R = REGION_R, Rin = REGION_R + REGION_GAP) { // Rin: inside corners, concentric with the shape they wrap
   const xs = [...new Set(rects.flatMap(r => [r.x, r.x + r.w]))].sort((a, b) => a - b), ys = [...new Set(rects.flatMap(r => [r.y, r.y + r.h]))].sort((a, b) => a - b);
   const on = (i, j) => i >= 0 && j >= 0 && i < xs.length - 1 && j < ys.length - 1 && rects.some(r => { const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2; return cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h; });
   const edges = new Map(), key = p => p[0] + ',' + p[1], add = (a, b) => edges.set(key(a), [...(edges.get(key(a)) || []), b]);
@@ -790,7 +791,8 @@ function unionPath(rects, R = 18) {
     const pts = loop.filter((v, i) => { const a = loop[(i - 1 + loop.length) % loop.length], b = loop[(i + 1) % loop.length]; return !((a[0] === v[0] && v[0] === b[0]) || (a[1] === v[1] && v[1] === b[1])); });
     if (pts.length < 3) continue;
     pts.forEach((v, i) => {
-      const a = pts[(i - 1 + pts.length) % pts.length], b = pts[(i + 1) % pts.length], la = Math.hypot(v[0] - a[0], v[1] - a[1]), lb = Math.hypot(b[0] - v[0], b[1] - v[1]), r = Math.min(R, la / 2, lb / 2);
+      const a = pts[(i - 1 + pts.length) % pts.length], b = pts[(i + 1) % pts.length], la = Math.hypot(v[0] - a[0], v[1] - a[1]), lb = Math.hypot(b[0] - v[0], b[1] - v[1]);
+      const inner = (v[0] - a[0]) * (b[1] - v[1]) - (v[1] - a[1]) * (b[0] - v[0]) < 0, r = Math.min(inner ? Rin : R, la / 2, lb / 2); // clockwise: a left turn is an inside corner
       const p1 = [v[0] - (v[0] - a[0]) / la * r, v[1] - (v[1] - a[1]) / la * r], p2 = [v[0] + (b[0] - v[0]) / lb * r, v[1] + (b[1] - v[1]) / lb * r];
       d += `${i ? 'L' : 'M'}${p1[0]},${p1[1]} Q${v[0]},${v[1]} ${p2[0]},${p2[1]} `;
     });
@@ -798,9 +800,9 @@ function unionPath(rects, R = 18) {
   }
   return d;
 }
-// A compartment's bounding box with the other compartments cut out (each with a margin), never its own pieces: the
+// A compartment's bounding box with the other compartments cut out (each with a margin), never its own boxes: the
 // cells left over, for unionPath to outline as one puzzle piece.
-function boxMinus(b, own, obs, gap = 14) {
+function boxMinus(b, own, obs, gap = REGION_GAP) {
   let cut = obs.map(o => ({ x: o.x - gap, y: o.y - gap, w: o.w + 2 * gap, h: o.h + 2 * gap }));
   // Cut-outs that touch become one (their bounding box), so the notch is one clean step, not a staircase of ledges.
   for (let merged = true; merged;) {
@@ -815,6 +817,15 @@ function boxMinus(b, own, obs, gap = 14) {
   }
   const xs = [...new Set([b.x, b.x + b.w, ...cut.flatMap(o => [o.x, o.x + o.w]), ...own.flatMap(o => [o.x, o.x + o.w])].filter(x => x >= b.x && x <= b.x + b.w))].sort((p, q) => p - q);
   const ys = [...new Set([b.y, b.y + b.h, ...cut.flatMap(o => [o.y, o.y + o.h]), ...own.flatMap(o => [o.y, o.y + o.h])].filter(y => y >= b.y && y <= b.y + b.h))].sort((p, q) => p - q);
+  // A cut-out that reaches into the region's own pieces is trimmed back on the side that loses least, so the notch stays
+  // one clean rectangle instead of leaving a ledge where the two overlap.
+  for (const c of cut) for (const o of own) {
+    if (!(c.x < o.x + o.w && o.x < c.x + c.w && c.y < o.y + o.h && o.y < c.y + c.h)) continue;
+    const opts = [{ ...c, h: o.y - c.y }, { ...c, y: o.y + o.h, h: c.y + c.h - o.y - o.h }, { ...c, w: o.x - c.x }, { ...c, x: o.x + o.w, w: c.x + c.w - o.x - o.w }].filter(t => t.w > 0 && t.h > 0);
+    const best = opts.sort((p, q) => q.w * q.h - p.w * p.h)[0] || { ...c, w: 0, h: 0 };
+    Object.assign(c, best);
+  }
+  cut = cut.filter(c => c.w > 0 && c.h > 0);
   const inside = (r, x, y) => x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h, cells = [];
   for (let i = 0; i < xs.length - 1; i++) for (let j = 0; j < ys.length - 1; j++) {
     const cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
@@ -1028,7 +1039,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       const X = xa;
       // A via step: its carrier just below the box it leaves, the enzyme (and cofactors) below that.
       const ya = r.via ? y1 + VIA_ROOM : y1;
-      s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r)) + (r.via ? viaPill(m, statusOf, r, [X, y1 + 22]) : '');
+      s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r)) + (r.via ? viaPill(m, statusOf, r, [X, y1 + 28]) : '');
       s += enzLabel(X - 34, (ya + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
       DRAW_LABELS.push(enzRect(X - 34, (ya + y2) / 2, 'end', items['e:' + r.id], 24));
       const cs = cofSt(m, statusOf, r);
@@ -1037,10 +1048,10 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       // Crosses a membrane: down, across into the other lane, down (a right angle, not a slant).
       // With a carrier (r.via): across just below the first box, the carrier on the membrane, then the enzyme
       // beside the drop into the other compartment, where it acts.
-      const ym = r.via ? y1 + 24 : (y1 + y2) / 2, pts = [[xa, y1 + 4], [xa, ym], [xb, ym], [xb, y2 - 4]];
+      const ym = r.via ? y1 + 30 : (y1 + y2) / 2, pts = [[xa, y1 + 4], [xa, ym], [xb, ym], [xb, y2 - 4]];
       // A transport: its carrier pill on the membrane it crosses.
       if (r.transport && !r.via) { const at = viaAt(pts), it = items['e:' + r.id]; DRAW_LABELS.push(enzRect(at[0], at[1], 'middle', it, 22)); s += elbow(pts, r.reversible, rxCls(r)) + enzLabel(at[0], at[1], it, statusOf('e:' + r.id), 'middle', 22, 'center'); }
-      else s += elbow(pts, r.reversible, rxCls(r)) + (r.via ? elbowLabels(m, statusOf, r, null, [[xb, ym + 16], [xb, y2 - 4]]) + viaPill(m, statusOf, r, viaAt(pts)) : elbowLabels(m, statusOf, r, [pts[1], pts[2]], null));
+      else s += elbow(pts, r.reversible, rxCls(r)) + (r.via ? elbowLabels(m, statusOf, r, null, [[xb, ym + 22], [xb, y2 - 4]]) + viaPill(m, statusOf, r, viaAt(pts)) : elbowLabels(m, statusOf, r, [pts[1], pts[2]], null));
     }
     // Extra products/reactants leave from the box's lower-right corner, clear of the cofactor text beside the arrow.
     // Extra products leave the box's side and turn down into theirs (glycogen → limit dextrin).
@@ -1115,7 +1126,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     const up = b.to === sp; // sd feeds sp: it goes above
     // Room for the step's label between them: name, tags and what it needs.
     const lines = wrap(items['e:' + b.id]?.name || '', 18).length + (b.tags || []).filter(t => t !== 'irreversible').length;
-    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24) + (b.via ? VIA_ROOM + 30 : 0) + ((b.cofactors?.in || []).length + (b.cofactors?.out || []).length + (b.requires || []).length ? 36 : 0)), t: pos[sp].t, side: true };
+    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24) + (b.via ? VIA_ROOM + 60 : 0) + ((b.cofactors?.in || []).length + (b.cofactors?.out || []).length + (b.requires || []).length ? 36 : 0)), t: pos[sp].t, side: true };
   });
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
   // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
@@ -1157,7 +1168,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
   if (zones && mainKey) for (const [id, q] of Object.entries(pos)) {
     const own = p.metabolites[id]?.loc, k = own && zoneKey(m, own, p.metabolites[id].tissue);
     if (!q.side || !k || k === mainKey) continue;
-    s += `<rect class="zone t-${zoneTone(k)}" x="${q.cx - w / 2 - 22}" y="${q.cy - BH / 2 - 34}" width="${w + 44}" height="${BH + 56}" rx="16"/>`
+    s += `<rect class="zone t-${zoneTone(k)}" x="${q.cx - w / 2 - 26}" y="${q.cy - BH / 2 - 38}" width="${w + 52}" height="${BH + 64}" rx="${REGION_R}"/>`
       + `<text class="zonet" x="${q.cx}" y="${q.cy - BH / 2 - 14}" text-anchor="middle">${esc(own)}</text>`;
   }
   let vias = ''; // carrier pills go over the arrows
@@ -1674,7 +1685,7 @@ function stitchSVG(m, statusOf) {
   DRAW_BOXES = [];
   // Compartments, once for the whole picture: each one is a tinted shape that follows its own boxes and the steps
   // between them (one flat tint, however the pieces overlap), named once per connected piece.
-  const zoneOf = {}, pad = b => ({ x: b.x - 20, y: b.y - 32, w: b.w + 40, h: b.h + 52 });
+  const zoneOf = {}, pad = b => ({ x: b.x - 26, y: b.y - 38, w: b.w + 52, h: b.h + 64 });
   for (const [k, g] of Object.entries(G)) { const w = g.R.where[g.id], z = w && zoneKey(m, w.loc, w.tissue); if (z && m.items['z:' + z]) zoneOf[k] = z; }
   const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   const bbox = (a, b) => { const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; };
@@ -1709,10 +1720,12 @@ function stitchSVG(m, statusOf) {
     pieces[z] = Object.values(groups);
   }
   const boxOf = g => g.reduce(bbox);
+  // Its own boxes (padded) are never cut; the filler between them (joins, a ring's middle) may be.
+  const ownBoxes = z => Object.entries(zoneOf).filter(([, z2]) => z2 === z).map(([k]) => pad(G[k]));
   for (const [z, gs] of Object.entries(pieces)) {
     const others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
     bg += `<g class="blob">${gs.map(g => { const b = boxOf(g);
-      return g.length === 1 || !others.some(o => hit(b, o)) ? `<rect class="t-${zoneTone(z)}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="18"/>` : `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${unionPath(boxMinus(b, g, others.filter(o => hit(b, o))))}"/>`; }).join('')}</g>`;
+      return g.length === 1 || !others.some(o => hit(b, o)) ? `<rect class="t-${zoneTone(z)}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${REGION_R}"/>` : `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${unionPath(boxMinus(b, ownBoxes(z).filter(o => hit(b, o)), others.filter(o => hit(b, o))))}"/>`; }).join('')}</g>`;
   }
   for (const [z, gs] of Object.entries(pieces)) {
     for (const g0 of gs) {
