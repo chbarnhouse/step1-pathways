@@ -5,10 +5,10 @@
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.12.0';
+const APP_VERSION = '3.13.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
-  { v: 'next', items: [
+  { v: '3.13.0', date: '2026-10-25', items: [
     'A molecule now appears once, in the compartment where it starts: no more “Glycine (mitochondria)” copies. When a step’s substrate crosses a membrane first, its transporter sits on the membrane as a pill, and the enzyme is named on the side where it acts (SLC25A38 then ALA synthase; the ALA exporter then ALA dehydratase; ORNT1 into and out of the urea cycle’s mitochondria). Terminal exports and absorption journeys (glucose out through GLUT2, galactose across the gut, the nephron) still show each place.',
     'Cycles show cofactors as a small curl on each step, inside the ring (inputs join, outputs leave), like the straight steps; rings with cofactors are drawn a little wider so the short top and bottom steps have room. Labels on crowded side steps move until they clear their neighbors.',
     'Fixed: some connected drawings failed to draw at all (gluconeogenesis or glycogenolysis with the TCA cycle, glycolysis or fructose, and three-pathway sets with the urea cycle), when one part handed a box to another.',

@@ -5,7 +5,6 @@
    "metabolites": [
     "acetylcoa",
     "acylcarn",
-    "acylcarnm",
     "acylcoa",
     "acylcoam",
     "enoyl",
@@ -17,7 +16,6 @@
    "reactions": [
     "r1",
     "r2",
-    "r2b",
     "r3",
     "r4",
     "r5",
@@ -29,7 +27,6 @@
    "metabolites": [
     "biliverdin",
     "cbili",
-    "cbilig",
     "heme",
     "stercobilin",
     "ubili",
@@ -40,9 +37,8 @@
    "reactions": [
     "r1",
     "r2",
-    "r3",
+    "r3a",
     "r4",
-    "r5",
     "r6",
     "r7",
     "r8"
@@ -53,6 +49,7 @@
     "dopa",
     "dopamine",
     "epi",
+    "epi_v",
     "ne",
     "phe",
     "tyr"
@@ -62,7 +59,8 @@
     "r2",
     "r3",
     "r4",
-    "r5"
+    "r5",
+    "r6"
    ]
   },
   "cholesterol-synthesis": {
@@ -269,7 +267,6 @@
   "fatty-acid-synthesis": {
    "metabolites": [
     "acetylcoa",
-    "citm",
     "citrate",
     "malate",
     "malonylcoa",
@@ -278,7 +275,6 @@
     "pyruvate"
    ],
    "reactions": [
-    "r0",
     "r1",
     "r2",
     "r3",
@@ -321,6 +317,7 @@
     "g1p",
     "g6p",
     "gal1p",
+    "gal_e",
     "galactitol",
     "galactose",
     "galb",
@@ -330,6 +327,7 @@
    "reactions": [
     "r0",
     "r0b",
+    "r0c",
     "r1",
     "r2",
     "r3",
@@ -345,7 +343,10 @@
     "g3p",
     "g6p",
     "glucose",
+    "glucose_b",
+    "malate_m",
     "oaa",
+    "oaa_c",
     "pep",
     "pg2",
     "pg3",
@@ -355,6 +356,9 @@
     "r1",
     "r10",
     "r11",
+    "r12",
+    "r1c",
+    "r1e",
     "r2",
     "r3",
     "r4",
@@ -385,6 +389,7 @@
     "g1p",
     "g6p",
     "glucose",
+    "glucose_b",
     "glucosec",
     "glycogen",
     "limit"
@@ -393,7 +398,8 @@
     "r1",
     "r2",
     "r3",
-    "r4"
+    "r4",
+    "r5"
    ]
   },
   "glycolysis": {
@@ -404,7 +410,6 @@
     "f6p",
     "g3p",
     "g6p",
-    "glcb",
     "glucose",
     "pep",
     "pg2",
@@ -412,7 +417,6 @@
     "pyruvate"
    ],
    "reactions": [
-    "r0",
     "r1",
     "r10",
     "r2",
@@ -502,6 +506,7 @@
     "acetone",
     "acetylcoa",
     "bhb",
+    "bhb_b",
     "hmgcoa"
    ],
    "reactions": [
@@ -509,7 +514,8 @@
     "r2",
     "r3",
     "r4",
-    "r5"
+    "r5",
+    "r6"
    ]
   },
   "methionine": {
@@ -528,6 +534,223 @@
     "r4",
     "r5",
     "r6"
+   ]
+  },
+  "nephron-cd-intercalated": {
+   "metabolites": [
+    "cl_b",
+    "cl_c",
+    "co2_b",
+    "co2_c",
+    "h2po4_l",
+    "h_c",
+    "h_l",
+    "hco3_b",
+    "hco3_c",
+    "k_c",
+    "k_l",
+    "nh4_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "nephron-cd-principal": {
+   "metabolites": [
+    "k_b",
+    "k_c",
+    "k_l",
+    "na_b",
+    "na_c",
+    "na_l",
+    "urea_b",
+    "urea_c",
+    "urea_l",
+    "w_b",
+    "w_c",
+    "w_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8"
+   ]
+  },
+  "nephron-dct": {
+   "metabolites": [
+    "ca_b",
+    "ca_c",
+    "ca_l",
+    "cl_b",
+    "cl_c",
+    "cl_l",
+    "k_b",
+    "k_c",
+    "mg_b",
+    "mg_c",
+    "mg_l",
+    "na_b",
+    "na_c",
+    "na_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "nephron-glomerulus": {
+   "metabolites": [
+    "alb_b",
+    "alb_l",
+    "glc_b",
+    "glc_l",
+    "na_b",
+    "na_l",
+    "rbc_b",
+    "rbc_l",
+    "w_b",
+    "w_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5"
+   ]
+  },
+  "nephron-pct": {
+   "metabolites": [
+    "aa_b",
+    "aa_c",
+    "aa_l",
+    "co2_c",
+    "co2_l",
+    "glc_b",
+    "glc_c",
+    "glc_l",
+    "gln_b",
+    "gln_c",
+    "h_c",
+    "h_l",
+    "hco3_b",
+    "hco3_c",
+    "hco3_l",
+    "k_b",
+    "k_c",
+    "na_b",
+    "na_c",
+    "na_l",
+    "nh4_c",
+    "nh4_l",
+    "oa_b",
+    "oa_c",
+    "oa_l",
+    "pi_b",
+    "pi_c",
+    "pi_l",
+    "w_b",
+    "w_c",
+    "w_l"
+   ],
+   "reactions": [
+    "r1",
+    "r10",
+    "r11",
+    "r12",
+    "r13",
+    "r14",
+    "r15",
+    "r16",
+    "r17",
+    "r18",
+    "r19",
+    "r2",
+    "r20",
+    "r21",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8",
+    "r9"
+   ]
+  },
+  "nephron-tal": {
+   "metabolites": [
+    "ca_b",
+    "ca_l",
+    "cl_b",
+    "cl_c",
+    "cl_l",
+    "k_c",
+    "k_l",
+    "mg_b",
+    "mg_l",
+    "na_b",
+    "na_c",
+    "na_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4",
+    "r5",
+    "r6",
+    "r7",
+    "r8"
+   ]
+  },
+  "nephron-thin-ascending": {
+   "metabolites": [
+    "cl_c",
+    "cl_i",
+    "cl_l",
+    "na_i",
+    "na_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3"
+   ]
+  },
+  "nephron-thin-descending": {
+   "metabolites": [
+    "urea_c",
+    "urea_i",
+    "urea_l",
+    "w_c",
+    "w_i",
+    "w_l"
+   ],
+   "reactions": [
+    "r1",
+    "r2",
+    "r3",
+    "r4"
    ]
   },
   "polyol": {
@@ -707,7 +930,6 @@
     "aldo",
     "andro",
     "chol",
-    "cholm",
     "corticosterone",
     "cortisol",
     "cortisone",
@@ -724,7 +946,6 @@
     "testo"
    ],
    "reactions": [
-    "r1",
     "r10",
     "r11",
     "r12",
