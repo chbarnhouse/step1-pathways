@@ -85,6 +85,7 @@ function renderDashboard() {
       ${backupCardHTML()}
     </div>
     <div class="dash-quick">${favoritesCardHTML()}${presetsCardHTML()}</div>
+    ${Store.mode === 'server' ? `<div class="dash-feedback" id="dashFeedback">${feedbackHTML()}</div>` : ''}
     <div class="dash-cols">
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
@@ -101,6 +102,56 @@ function renderDashboard() {
     </div>
   </div>`;
 }
+/* Feedback from the two Google Forms (issue reports, shared pathways), on your own server copy only: the server reads
+   their response sheet through the Apps Script bridge (tools/feedback-bridge.gs). The public copy has no server, so it
+   never shows this. Each card: how many came in, how many are still open, and the newest, each with Mark as done. */
+const FB = { data: null, loading: false, err: '', open: new Set() };
+const FB_SHEET = 'https://docs.google.com/spreadsheets/d/1SAOQhz292xTqfYWBH2OWgPtDHTWEuoSWv0-L8tIwoOE/edit';
+const FB_KINDS = {
+  report: { title: 'Issue reports', icon: 'bug_report', empty: 'No reports yet.', main: f => f['What happened'] || f['More details'] || '(no description)', tag: f => f['What type of issue are you encountering?'],
+    extra: [['What you expected', 'Expected'], ['What date did you first notice this issue?', 'First noticed'], ['More details', 'Details'], ['Email Address', 'From']] },
+  share: { title: 'Shared pathways', icon: 'ios_share', empty: 'No pathways shared yet.', main: f => f['Pathway Name'] || '(unnamed pathway)', tag: f => f['What is it'],
+    extra: [['Your Name', 'From'], ['Notes', 'Notes'], ['Email Address', 'Email'], ['Pathway File', 'File']] },
+};
+function loadFeedback(force) {
+  if (Store.mode !== 'server' || FB.loading || (FB.data && !force)) return;
+  FB.loading = true;
+  fetch('/api/feedback').then(r => r.json()).then(d => { FB.data = d; FB.err = d.configured && !d.ok ? d.error || 'The sheet didn’t answer.' : ''; })
+    .catch(() => { FB.err = 'Couldn’t reach your server.'; }).finally(() => { FB.loading = false; const el = $('#dashFeedback'); if (el) el.innerHTML = feedbackHTML(); });
+}
+const fbWhen = iso => { const t = Date.parse(iso); if (!t) return iso || ''; const d = Math.floor((Date.now() - t) / 86400000); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d < 7 ? `${d} days ago` : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
+const fbLink = v => (/^https?:\/\//.test(v) ? v.split(/,\s*/).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${mi('open_in_new', 'sm')} Open</a>`).join(' ') : esc(v));
+function feedbackHTML() {
+  if (!FB.data) { loadFeedback(); return `<section class="card pad fb-card"><p class="muted small">${mi('refresh', 'sm')} Loading feedback…</p></section>`; }
+  if (!FB.data.configured) return `<section class="card pad fb-card"><div class="sec-h"><h2>${mi('bug_report', 'h-ic')} Feedback</h2></div><p class="muted small">Not connected yet: the issue reports and shared pathways will show here once the forms' sheet is linked (see tools/feedback-bridge.gs).</p></section>`;
+  if (FB.err) return `<section class="card pad fb-card"><div class="sec-h"><h2>${mi('bug_report', 'h-ic')} Feedback</h2><button class="btn small ghost" data-fb="reload">${mi('refresh', 'sm')} Try again</button></div><p class="muted small">${esc(FB.err)}</p></section>`;
+  return Object.entries(FB_KINDS).map(([k, K]) => {
+    const t = FB.data[k] || { total: 0, open: 0, recent: [] };
+    const items = t.recent.map(it => {
+      const key = k + ':' + it.row, f = it.fields, open = FB.open.has(key);
+      const extra = K.extra.filter(([h]) => f[h]).map(([h, label]) => `<div><dt>${esc(label)}</dt><dd>${fbLink(f[h])}</dd></div>`).join('');
+      return `<li class="fb-item${it.done ? ' done' : ''}">
+        <${extra ? `button class="fb-main" data-fb="toggle" data-key="${esc(key)}" aria-expanded="${open}"` : 'span class="fb-main"'}><span class="fb-text"><b>${esc(K.main(f))}</b><span class="muted small">${esc([K.tag(f), fbWhen(f.Timestamp)].filter(Boolean).join(' · '))}${it.done ? ` · ${mi('task_alt', 'sm')} done ${esc(fbWhen(it.done))}` : ''}${extra ? ` · ${open ? 'less' : 'more'}` : ''}</span></span></${extra ? 'button' : 'span'}>
+        <button class="btn small ${it.done ? 'ghost' : ''}" data-fb="${it.done ? 'reopen' : 'done'}" data-tab="${k}" data-row="${it.row}">${it.done ? `${mi('undo', 'sm')} Reopen` : `${mi('task_alt', 'sm')} Mark as done`}</button>
+        ${open && extra ? `<dl class="fb-extra">${extra}</dl>` : ''}</li>`;
+    }).join('');
+    return `<section class="card pad fb-card"><div class="sec-h"><h2>${mi(K.icon, 'h-ic')} ${K.title}</h2><span class="fb-count"><b>${t.total}</b> total · <b>${t.open}</b> open</span></div>
+      ${items ? `<ul class="fb-list">${items}</ul>` : `<p class="muted small">${K.empty}</p>`}
+      <div class="btnrow tight"><a class="btn small ghost" href="${FB_SHEET}" target="_blank" rel="noopener">${mi('open_in_new', 'sm')} Open the sheet</a><button class="btn small ghost" data-fb="reload">${mi('refresh', 'sm')} Refresh</button></div></section>`;
+  }).join('');
+}
+document.addEventListener('click', e => {
+  const b = e.target.closest('[data-fb]'); if (!b || !$('#dashFeedback')) return;
+  const act = b.dataset.fb, el = () => $('#dashFeedback');
+  if (act === 'reload') { FB.data = null; el().innerHTML = feedbackHTML(); return; }
+  if (act === 'toggle') { const k = b.dataset.key; FB.open.has(k) ? FB.open.delete(k) : FB.open.add(k); el().innerHTML = feedbackHTML(); return; }
+  if (act === 'done' || act === 'reopen') {
+    b.disabled = true;
+    fetch('/api/feedback/done', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tab: b.dataset.tab, row: +b.dataset.row, done: act === 'done' }) })
+      .then(r => r.json()).then(d => { if (d.ok) { FB.data = d; FB.err = ''; } else FB.err = d.error || 'The sheet didn’t save that.'; })
+      .catch(() => { FB.err = 'Couldn’t reach your server.'; }).finally(() => { if (el()) el().innerHTML = feedbackHTML(); });
+  }
+});
 // What you studied, when, how, and how it went — newest first, grouped by day.
 const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step', review: 'Review' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };

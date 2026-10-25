@@ -975,6 +975,17 @@ form.ansform .cofcount { right: 92px; }
 /* Dashboard quick start: Favorites and Presets side by side; each row opens New quiz with it loaded. */
 .dash-quick { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: stretch; }
 .quick-card { display: grid; gap: 8px; min-width: 0; align-content: start; }
+/* Feedback (your server copy only): issue reports and shared pathways from the Google Forms */
+.dash-feedback { display: grid; gap: 14px; grid-template-columns: repeat(auto-fit, minmax(min(100%, 340px), 1fr)); align-items: start; }
+.fb-card { display: grid; gap: 10px; min-width: 0; }
+.fb-count { color: var(--muted); font-size: var(--fs-sm); } .fb-count b { color: var(--ink); }
+.fb-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 340px; overflow: auto; }
+.fb-item { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 10px; align-items: center; padding: 8px 10px; border: 1px solid var(--line); border-radius: var(--ctrl); background: var(--card); }
+.fb-item.done { background: var(--sunk); } .fb-item.done .fb-text b { color: var(--muted); text-decoration: line-through; }
+.fb-main { all: unset; cursor: pointer; min-width: 0; } .fb-main:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; border-radius: 6px; }
+.fb-text { display: grid; gap: 2px; min-width: 0; } .fb-text b { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fb-extra { grid-column: 1 / -1; margin: 4px 0 0; display: grid; gap: 4px; font-size: var(--fs-sm); }
+.fb-extra div { display: grid; grid-template-columns: 7.5em minmax(0, 1fr); gap: 8px; } .fb-extra dt { color: var(--muted); } .fb-extra dd { margin: 0; overflow-wrap: anywhere; white-space: pre-wrap; }
 .quick-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; max-height: 236px; overflow: auto; }
 .quick-list li { display: flex; align-items: center; gap: 4px; min-width: 0; border-radius: 10px; }
 .quick-list li:hover { background: var(--sunk); }

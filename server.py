@@ -6,18 +6,24 @@ Standard library only. Serves the app from ./static plus:
   GET /bundle.js           built-in pathways + cofactors, generated live from ./data
   GET /api/state           your edits and answer history (data/user/state.json)
   PUT /api/state           replace it (single user, LAN only — no auth)
+  GET /api/feedback        the two form-response tabs (issue reports, shared pathways), through the Apps Script
+                           bridge in tools/feedback-bridge.gs; {configured: false} until feedback.json exists
+  POST /api/feedback/done  {tab, row, done}: mark a response done (or not)
 
 The same front end also runs with no server at all: build.py inlines everything into
 dist/pathways.html, which keeps its state in the browser instead.
 
 Env: PORT (default 8000), HOST (default 0.0.0.0), PATHWAYS_DATA (default ./data),
      PATHWAYS_USER_STATE (default ./data/user/state.json — keep it outside the code on a server).
+     The feedback bridge reads feedback.json beside the state file: {"url": "<web app URL>", "token": "<its TOKEN>"}.
 """
 import json
 import os
 import shutil
 import tempfile
 import time
+import urllib.parse
+import urllib.request
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -43,6 +49,40 @@ def bundle_js():
 
 
 BACKUPS_KEPT = 30
+
+FEEDBACK = STATE.parent / "feedback.json"
+_feedback_cache = {"at": 0, "data": None}
+
+
+def feedback_config():
+    try:
+        c = json.loads(FEEDBACK.read_text())
+        return c if c.get("url") and c.get("token") else None
+    except Exception:
+        return None
+
+
+def feedback(tab=None, row=None, done=None):
+    """The responses from the bridge (cached 30 s); with tab/row, first marks that row done or not."""
+    c = feedback_config()
+    if not c:
+        return {"configured": False}
+    if tab is None and _feedback_cache["data"] and time.time() - _feedback_cache["at"] < 30:
+        return _feedback_cache["data"]
+    if tab is None:
+        req = urllib.request.Request(c["url"] + "?" + urllib.parse.urlencode({"token": c["token"]}))
+    else:  # Apps Script answers a POST with a redirect; urllib follows it with a GET, which returns the result
+        body = json.dumps({"token": c["token"], "tab": tab, "row": row, "done": bool(done)}).encode()
+        req = urllib.request.Request(c["url"], data=body, headers={"Content-Type": "text/plain"})
+    try:
+        with urllib.request.urlopen(req, timeout=20) as r:
+            data = json.loads(r.read().decode())
+    except Exception as e:
+        return {"configured": True, "ok": False, "error": f"couldn't reach the sheet: {e}"}
+    data["configured"] = True
+    if data.get("ok"):
+        _feedback_cache.update(at=time.time(), data=data)
+    return data
 
 
 def keep_daily_backup():
@@ -77,9 +117,22 @@ class Handler(SimpleHTTPRequestHandler):
             return self.send_body(bundle_js().encode(), "text/javascript; charset=utf-8")
         if path == "/api/state":
             return self.send_json(json.loads(STATE.read_text()) if STATE.exists() else {})
+        if path == "/api/feedback":
+            return self.send_json(feedback())
         if path.startswith("/api/"):
             return self.send_json({"error": "not found"}, 404)
         return super().do_GET()
+
+    def do_POST(self):
+        if self.path.split("?", 1)[0] != "/api/feedback/done":
+            return self.send_json({"error": "not found"}, 404)
+        n = int(self.headers.get("Content-Length") or 0)
+        try:
+            b = json.loads(self.rfile.read(n)) if 0 < n < 4096 else None
+            assert b["tab"] in ("report", "share") and int(b["row"]) >= 2
+        except Exception:
+            return self.send_json({"error": "bad request"}, 400)
+        return self.send_json(feedback(b["tab"], int(b["row"]), b.get("done", True)))
 
     def do_PUT(self):
         if self.path.split("?", 1)[0] != "/api/state":
