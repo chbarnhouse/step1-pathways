@@ -189,7 +189,7 @@ function cofArcParts(x, y1, y2, parts, up = false) {
     DRAW_LABELS.push({ x: x0, y: y - 14, w: hidden(p.st) ? 160 : p.text.length * cw + 24, h: 28 });
     if (isLive(p)) { const w = Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64); s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24); }
     else if (hidden(p.st)) { const w = pillW(cofWord(p, two)); s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`; }
-    else s += `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(x0 + p.text.length * cw + 14, y, p.st);
+    else s += cofSpot(p, x0, y, p.text.length * cw) + `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(x0 + p.text.length * cw + 14, y, p.st);
   }
   return s;
 }
@@ -249,7 +249,7 @@ function cofArcLine(p1, p2, n, parts, flip = false) {
     DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
     if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
     else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
-    else s += `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
+    else s += cofSpot(p, x0, ly, w) + `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
   }
   return s;
 }
@@ -302,7 +302,7 @@ function cofCurl(M, u, n, parts, cx0 = M[0]) { // cx0: the ring's middle
     DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
     if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
     else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
-    else s += `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
+    else s += cofSpot(p, x0, ly, w) + `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
   }
   return s;
 }
@@ -351,11 +351,15 @@ function cofRow(x, y, anchor, parts) {
     if (i) { s += `<text class="coft" x="${cx + gap + aw / 2}" y="${y + 4}" text-anchor="middle">→</text>`; cx += aw + 2 * gap; }
     if (p.live) s += `<g class="elab target"><rect x="${cx}" y="${y - 16}" width="${p.w}" height="32" rx="16"/></g>` + inlineField(cx + 4, y - 13, p.w - 8, 26);
     else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${cx}" y="${y - 13}" width="${p.w}" height="26" rx="13"/>${blankText(cx + p.w / 2, y, cofWord(p, two))}</g>`;
-    else s += `<text class="coft" x="${cx}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(cx + p.text.length * cw + 10, y, p.st);
+    else s += cofSpot(p, cx, y, p.text.length * cw) + `<text class="coft" x="${cx}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(cx + p.text.length * cw + 10, y, p.st);
     cx += p.w;
   });
   return s;
 }
+// Where each shown cofactor label went (its text and box), so a link to another pathway can start at it (fumarate leaving
+// argininosuccinate lyase, on to the TCA cycle). Reset with each drawing.
+let COF_SPOTS = [];
+const cofSpot = (p, x, y, w) => { COF_SPOTS.push({ text: p.text, x: x - 2, y: y - 10, w: w + 4, h: 20 }); return ''; };
 const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'missed' ? svgIcon(x, y, 'no') : '');
 
 /* Connections to other pathways (p.links): a dotted line from a box to a small tag naming where it leads ("→ TCA cycle")
@@ -405,7 +409,7 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = [];
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; COF_SPOTS = []; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = [];
   if (m.p.stitch) return rlStrip(m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts), m, statusOf);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
@@ -1407,13 +1411,13 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   const sm = modelFor(p);
   DRAW_POS = {};
   let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false, rot });
-  const pos = DRAW_POS, labels = DRAW_LABELS.slice(); DRAW_POS = null;
+  const pos = DRAW_POS, labels = DRAW_LABELS.slice(), cofs = COF_SPOTS.slice(); DRAW_POS = null;
   // Its tags to other pathways ("from β-Oxidation") take room too.
   for (const t of svg.matchAll(/<rect class="xtag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) labels.push({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] });
   if (keep) { const at = svg.indexOf(`data-key="m:${keep}"`), g0 = svg.lastIndexOf('<g', at), g1 = svg.indexOf('</g>', at); if (at > 0) svg = svg.slice(0, g0) + svg.slice(g1 + 4); }
   const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
   const keptAt = keep && pos['m:' + keep]; if (keep) delete pos['m:' + keep];
-  return { T, sm, pos, keptAt, drop, keep, rot, labels, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
+  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
 }
 /* ---------- the nephron ----------
    Nephron segments studied together draw as a textbook nephron: one continuous tube (the tubular lumen) from the
@@ -1626,7 +1630,7 @@ function stitchSVG(m, statusOf) {
     for (const P of prev) {
       const l = T.rawLinks.find(l => l.to === P.id), back = P.rawLinks.find(l => l.to === T.id);
       if (!l && !back) continue;
-      mine = l ? T.mid[l.at] : T.ids[0]; theirs = back ? P.mid[back.at] : P.ids.find(id => G['m:' + id]); via = (l || back).via || ''; break;
+      mine = l ? T.mid[l.at] : T.ids[0]; theirs = back ? P.mid[back.at] : P.ids.find(id => G['m:' + id]); via = l?.via || back?.via || ''; break; // either side may name what passes between them
     }
     const R = renderTile(T, statusOf, new Set()), tgt = G['m:' + theirs] || Object.values(G)[0];
     place(R, ...nearby(R, 'm:' + mine, tgt));
@@ -1667,8 +1671,20 @@ function stitchSVG(m, statusOf) {
     between += drawRoute(r, a, b, undefined, false); // its enzyme is already named on the step's main arrow
   }
   for (const d of dots) {
-    const a = G[d.a], b = d.b ? G[d.b] : (() => { const r = d.R.pos[d.a]; return r && shift(r, d.R.dx, d.R.dy); })();
+    let a = G[d.a], b = d.b ? G[d.b] : (() => { const r = d.R.pos[d.a]; return r && shift(r, d.R.dx, d.R.dy); })();
     if (!a || !b) continue;
+    // A link that names a molecule another step gives off ("fumarate", from argininosuccinate lyase): start the line at
+    // that cofactor's label, beside its own step, and end at the other part's box of that name; both ends are named, so no tag.
+    if (d.label && d.b) {
+      const word = new RegExp(`(^|[^a-z])${d.label.toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}($|[^a-z])`);
+      for (const [end, other] of [['a', 'b'], ['b', 'a']]) {
+        const box = end === 'a' ? a : b, R = box.R, sp = (R?.cofs || []).find(c => word.test(c.text.toLowerCase()));
+        if (!sp) continue;
+        const at = shift(sp, R.dx, R.dy);
+        if (end === 'a') a = { ...at, R }; else b = { ...at, R };
+        d.label = ''; break;
+      }
+    }
     // Routed like the arrows (clear of boxes and labels, never along another line), its name on the longest leg.
     const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS], true) || route(a, b, DRAW_BOXES, true) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
     const P = trim(pts, a, b); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
