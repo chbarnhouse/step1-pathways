@@ -41,23 +41,6 @@
     "ureidosuccinate"
    ]
   },
-  "dho": {
-   "name": "Dihydroorotate",
-   "short": "DHO",
-   "aliases": [
-    "dihydroorotic acid"
-   ],
-   "notes": "The pyrimidine ring is closed."
-  },
-  "orotate": {
-   "name": "Orotate",
-   "short": "",
-   "aliases": [
-    "orotic acid"
-   ],
-   "notes": "Excreted in urine in orotic aciduria and in OTC deficiency.",
-   "loc": "cytosol"
-  },
   "omp": {
    "name": "Orotidine monophosphate",
    "short": "OMP",
@@ -122,17 +105,16 @@
    ],
    "notes": "The only nucleotide made solely for DNA. Folate or B12 deficiency starves this step → megaloblastic anemia."
   },
-  "dho_ims": {
-   "name": "Dihydroorotate (intermembrane space)",
-   "short": "",
+  "dho": {
+   "name": "Dihydroorotate",
+   "short": "DHO",
    "aliases": [
-    "dihydroorotate",
     "dihydroorotic acid"
    ],
-   "loc": "intermembrane space"
+   "notes": "The pyrimidine ring is closed."
   },
-  "orotate_ims": {
-   "name": "Orotate (intermembrane space)",
+  "orotate": {
+   "name": "Orotate",
    "short": "",
    "aliases": [
     "orotate",
@@ -330,23 +312,10 @@
    "loc": "cytosol"
   },
   {
-   "id": "r3b",
-   "enzyme": "vdac",
-   "from": "dho",
-   "to": "dho_ims",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "outer mitochondrial membrane"
-  },
-  {
    "id": "r4",
    "enzyme": "dhodh",
-   "from": "dho_ims",
-   "to": "orotate_ims",
+   "from": "dho",
+   "to": "orotate",
    "reversible": false,
    "cofactors": {
     "in": [
@@ -356,20 +325,8 @@
      "coqh2"
     ]
    },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
-   "id": "r4b",
-   "enzyme": "vdac",
-   "from": "orotate_ims",
-   "to": "orotate",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "outer mitochondrial membrane"
+   "loc": "inner mitochondrial membrane",
+   "via": "vdac"
   },
   {
    "id": "r5",
@@ -385,7 +342,8 @@
      "ppi"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "via": "vdac"
   },
   {
    "id": "r6",

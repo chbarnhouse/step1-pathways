@@ -17,16 +17,6 @@
  "summary": "Mitochondrial matrix. Per acetyl-CoA: 3 NADH, 1 FADH₂, 1 GTP, 2 CO₂ (≈10 ATP). Irreversible: citrate synthase, isocitrate dehydrogenase (rate-limiting), α-ketoglutarate dehydrogenase. “Citrate Is Krebs' Starting Substrate For Making Oxaloacetate.”",
  "circular": true,
  "metabolites": {
-  "pyruvate": {
-   "name": "Pyruvate (mitochondria)",
-   "short": "",
-   "aliases": [
-    "pyruvic acid",
-    "Pyruvate"
-   ],
-   "notes": "From glycolysis (or alanine, lactate). Enters the mitochondrion on the pyruvate carrier.",
-   "loc": "mitochondria"
-  },
   "acetylcoa": {
    "name": "Acetyl-CoA",
    "short": "",
@@ -103,7 +93,7 @@
    ],
    "notes": "Carries OAA carbon out of the mitochondrion for gluconeogenesis (malate shuttle)."
   },
-  "pyruvate_c": {
+  "pyruvate": {
    "name": "Pyruvate",
    "short": "",
    "aliases": [
@@ -213,20 +203,6 @@
  },
  "reactions": [
   {
-   "id": "r9",
-   "enzyme": "mpc",
-   "from": "pyruvate_c",
-   "to": "pyruvate",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane",
-   "branch": true
-  },
-  {
    "id": "r0",
    "enzyme": "pdh",
    "from": "pyruvate",
@@ -251,7 +227,8 @@
    ],
    "tags": [
     "irreversible"
-   ]
+   ],
+   "via": "mpc"
   },
   {
    "id": "r1",
@@ -452,7 +429,7 @@
    "dir": "in"
   },
   {
-   "at": "pyruvate_c",
+   "at": "pyruvate",
    "to": "glycolysis",
    "dir": "in"
   },

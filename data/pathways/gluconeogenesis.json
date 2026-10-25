@@ -13,16 +13,6 @@
  "multiplier_label": "per glucose",
  "summary": "Liver (also kidney, intestinal epithelium) during fasting. 2 pyruvate → glucose costs 4 ATP + 2 GTP + 2 NADH. The four bypass enzymes: pyruvate carboxylase, PEPCK, fructose-1,6-bisphosphatase (rate-limiting), glucose-6-phosphatase. Muscle can't release glucose (no glucose-6-phosphatase).",
  "metabolites": {
-  "pyruvate": {
-   "name": "Pyruvate (mitochondria)",
-   "short": "Pyr",
-   "aliases": [
-    "pyruvic acid",
-    "Pyruvate"
-   ],
-   "notes": "Comes from lactate (Cori cycle, LDH) and alanine (ALT).",
-   "loc": "mitochondria"
-  },
   "oaa": {
    "name": "Oxaloacetate",
    "short": "OAA",
@@ -89,11 +79,6 @@
    "short": "F6P",
    "aliases": []
   },
-  "g6p": {
-   "name": "Glucose-6-phosphate",
-   "short": "G6P",
-   "aliases": []
-  },
   "glucose": {
    "name": "Glucose (ER lumen)",
    "short": "Glc",
@@ -103,33 +88,6 @@
     "glucose"
    ],
    "loc": "ER lumen"
-  },
-  "pyruvate_c": {
-   "name": "Pyruvate",
-   "short": "",
-   "aliases": [
-    "pyruvate",
-    "pyruvic acid"
-   ],
-   "loc": "cytosol"
-  },
-  "malate_m": {
-   "name": "Malate (mitochondria)",
-   "short": "",
-   "aliases": [
-    "malate",
-    "malic acid"
-   ],
-   "loc": "mitochondria"
-  },
-  "malate_c": {
-   "name": "Malate",
-   "short": "",
-   "aliases": [
-    "malate",
-    "malic acid"
-   ],
-   "loc": "cytosol"
   },
   "oaa_c": {
    "name": "Oxaloacetate (cytosol)",
@@ -141,15 +99,6 @@
    ],
    "loc": "cytosol"
   },
-  "g6p_er": {
-   "name": "Glucose-6-phosphate (ER lumen)",
-   "short": "",
-   "aliases": [
-    "glucose-6-phosphate",
-    "G6P"
-   ],
-   "loc": "ER lumen"
-  },
   "glucose_b": {
    "name": "Glucose (blood)",
    "short": "",
@@ -158,6 +107,29 @@
     "blood glucose"
    ],
    "loc": "blood"
+  },
+  "pyruvate": {
+   "name": "Pyruvate",
+   "short": "",
+   "aliases": [
+    "pyruvate",
+    "pyruvic acid"
+   ],
+   "loc": "cytosol"
+  },
+  "malate_m": {
+   "name": "Malate",
+   "short": "",
+   "aliases": [
+    "malate",
+    "malic acid"
+   ],
+   "loc": "mitochondria"
+  },
+  "g6p": {
+   "name": "Glucose-6-phosphate",
+   "short": "G6P",
+   "aliases": []
   }
  },
  "enzymes": {
@@ -334,19 +306,6 @@
  },
  "reactions": [
   {
-   "id": "r0",
-   "enzyme": "mpc",
-   "from": "pyruvate_c",
-   "to": "pyruvate",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
    "id": "r1",
    "enzyme": "pc",
    "from": "pyruvate",
@@ -369,7 +328,8 @@
    ],
    "requires": [
     "Biotin (B7)"
-   ]
+   ],
+   "via": "mpc"
   },
   {
    "id": "r1c",
@@ -388,22 +348,9 @@
    "loc": "mitochondria"
   },
   {
-   "id": "r1d",
-   "enzyme": "maltrans",
-   "from": "malate_m",
-   "to": "malate_c",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
    "id": "r1e",
    "enzyme": "mdh_c",
-   "from": "malate_c",
+   "from": "malate_m",
    "to": "oaa_c",
    "reversible": true,
    "cofactors": {
@@ -414,7 +361,8 @@
      "nadh"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "via": "maltrans"
   },
   {
    "id": "r2",
@@ -561,22 +509,9 @@
    "loc": "cytosol"
   },
   {
-   "id": "r10b",
-   "enzyme": "g6pt",
-   "from": "g6p",
-   "to": "g6p_er",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "ER membrane"
-  },
-  {
    "id": "r11",
    "enzyme": "g6pase",
-   "from": "g6p_er",
+   "from": "g6p",
    "to": "glucose",
    "reversible": false,
    "cofactors": {
@@ -590,7 +525,8 @@
    "loc": "ER lumen",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "via": "g6pt"
   },
   {
    "id": "r12",

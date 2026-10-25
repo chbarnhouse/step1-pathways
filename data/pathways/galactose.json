@@ -12,15 +12,6 @@
  ],
  "summary": "Liver. Lactose → glucose + galactose; galactose joins glycolysis as glucose-6-phosphate. UDP-galactose 4-epimerase turns the UDP-galactose made by GALT back into UDP-glucose. When the pathway is blocked, aldose reductase makes galactitol, which pulls water into the lens → cataracts.",
  "metabolites": {
-  "galactose": {
-   "name": "Galactose",
-   "short": "Gal",
-   "aliases": [
-    "D-galactose"
-   ],
-   "loc": "cytosol",
-   "tissue": "liver"
-  },
   "gal1p": {
    "name": "Galactose-1-phosphate",
    "short": "Gal-1-P",
@@ -74,7 +65,7 @@
    "loc": "cytosol",
    "tissue": "small intestine"
   },
-  "gal_bl": {
+  "galactose": {
    "name": "Galactose (blood)",
    "short": "",
    "aliases": [
@@ -184,7 +175,7 @@
    "id": "r0c",
    "enzyme": "glut2",
    "from": "gal_e",
-   "to": "gal_bl",
+   "to": "galactose",
    "reversible": false,
    "transport": true,
    "cofactors": {
@@ -193,20 +184,6 @@
    },
    "loc": "basolateral membrane",
    "tissue": "small intestine"
-  },
-  {
-   "id": "r0d",
-   "enzyme": "glut2",
-   "from": "gal_bl",
-   "to": "galactose",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "plasma membrane",
-   "tissue": "liver"
   },
   {
    "id": "r1",
@@ -226,7 +203,8 @@
    "tags": [
     "irreversible"
    ],
-   "tissue": "liver"
+   "tissue": "liver",
+   "via": "glut2"
   },
   {
    "id": "r2",
@@ -274,7 +252,8 @@
    },
    "branch": true,
    "loc": "cytosol",
-   "tissue": "liver"
+   "tissue": "liver",
+   "via": "glut2"
   }
  ],
  "distractors": {

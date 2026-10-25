@@ -38,38 +38,6 @@
    ],
    "notes": "Yellow and fat-soluble: travels bound to albumin, isn't filtered by the kidney (no bilirubinuria), and in newborns can cross the blood-brain barrier (kernicterus)."
   },
-  "ubilil": {
-   "name": "Unconjugated bilirubin (liver)",
-   "short": "",
-   "aliases": [
-    "unconjugated bilirubin in hepatocytes"
-   ],
-   "notes": "Taken up from albumin into the hepatocyte."
-  },
-  "cbili": {
-   "name": "Conjugated bilirubin",
-   "short": "",
-   "aliases": [
-    "direct bilirubin",
-    "bilirubin diglucuronide",
-    "bilirubin glucuronide"
-   ],
-   "notes": "Water-soluble: when it backs up into blood it appears in urine (dark urine)."
-  },
-  "cbilig": {
-   "name": "Conjugated bilirubin (gut)",
-   "short": "",
-   "aliases": [
-    "conjugated bilirubin in bile"
-   ],
-   "notes": "Reaches the intestine in bile."
-  },
-  "urobilinogen": {
-   "name": "Urobilinogen",
-   "short": "",
-   "aliases": [],
-   "notes": "About 20% is reabsorbed (enterohepatic circulation); a little reaches the kidney. Absent from urine in complete biliary obstruction; ↑ in hemolysis."
-  },
   "stercobilin": {
    "name": "Stercobilin",
    "short": "",
@@ -82,7 +50,7 @@
    "aliases": [],
    "notes": "Yellow color of urine."
   },
-  "ubili_b": {
+  "ubilil": {
    "name": "Unconjugated bilirubin (blood, on albumin)",
    "short": "",
    "aliases": [
@@ -93,14 +61,21 @@
    "loc": "blood",
    "tissue": "blood"
   },
-  "urob_b": {
-   "name": "Urobilinogen (blood)",
+  "cbili": {
+   "name": "Conjugated bilirubin",
    "short": "",
    "aliases": [
-    "urobilinogen"
+    "direct bilirubin",
+    "bilirubin diglucuronide",
+    "bilirubin glucuronide"
    ],
-   "loc": "blood",
-   "tissue": "blood"
+   "notes": "Water-soluble: when it backs up into blood it appears in urine (dark urine)."
+  },
+  "urobilinogen": {
+   "name": "Urobilinogen",
+   "short": "",
+   "aliases": [],
+   "notes": "About 20% is reabsorbed (enterohepatic circulation); a little reaches the kidney. Absent from urine in complete biliary obstruction; ↑ in hemolysis."
   }
  },
  "enzymes": {
@@ -243,7 +218,7 @@
    "id": "r3a",
    "enzyme": "ubrel",
    "from": "ubili",
-   "to": "ubili_b",
+   "to": "ubilil",
    "reversible": false,
    "transport": true,
    "cofactors": {
@@ -252,20 +227,6 @@
    },
    "loc": "plasma membrane",
    "tissue": "spleen (macrophages)"
-  },
-  {
-   "id": "r3",
-   "enzyme": "alb",
-   "from": "ubili_b",
-   "to": "ubilil",
-   "reversible": false,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "transport": true,
-   "loc": "plasma membrane (sinusoidal)",
-   "tissue": "liver"
   },
   {
    "id": "r4",
@@ -282,26 +243,13 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "liver"
-  },
-  {
-   "id": "r5",
-   "enzyme": "mrp2",
-   "from": "cbili",
-   "to": "cbilig",
-   "reversible": false,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "transport": true,
-   "loc": "canalicular membrane",
-   "tissue": "liver"
+   "tissue": "liver",
+   "via": "alb"
   },
   {
    "id": "r6",
    "enzyme": "gut",
-   "from": "cbilig",
+   "from": "cbili",
    "to": "urobilinogen",
    "reversible": false,
    "cofactors": {
@@ -309,7 +257,8 @@
     "out": []
    },
    "loc": "intestinal lumen",
-   "tissue": "gut"
+   "tissue": "gut",
+   "via": "mrp2"
   },
   {
    "id": "r7",
@@ -325,24 +274,9 @@
    "tissue": "gut"
   },
   {
-   "id": "r8a",
-   "enzyme": "urobreab",
-   "from": "urobilinogen",
-   "to": "urob_b",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "intestinal epithelium",
-   "tissue": "gut",
-   "branch": true
-  },
-  {
    "id": "r8",
    "enzyme": "kid",
-   "from": "urob_b",
+   "from": "urobilinogen",
    "to": "urobilin",
    "reversible": false,
    "cofactors": {
@@ -351,7 +285,8 @@
    },
    "loc": "urine",
    "branch": true,
-   "tissue": "kidney"
+   "tissue": "kidney",
+   "via": "urobreab"
   }
  ],
  "distractors": {

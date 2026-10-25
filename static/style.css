@@ -413,6 +413,8 @@ form.inl { margin: 0; display: block; height: 100%; }
 .flow .membrane { stroke: var(--slate); stroke-width: 1.5; stroke-dasharray: 2 4; fill: none; }
 .flow .zonet { fill: var(--muted); font-size: var(--fs-xs); font-weight: 700; letter-spacing: .1em; text-transform: uppercase; }
 .flow .elab.trn text { font-style: normal; font-weight: 600; }
+/* A transporter's name: a solid pill (a blank is dashed) */
+.flow .elab rect.trnpill { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.5; stroke-dasharray: none; }
 .flow .trnmark { fill: var(--card); stroke: var(--ink-2); stroke-width: 1.5; }
 
 /* list view */

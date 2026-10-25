@@ -4,6 +4,21 @@
  "metabolites": {
   "complement": {
    "c42": "c4"
+  },
+  "beta-oxidation": {
+   "acylcarnm": "acylcarn"
+  },
+  "bilirubin": {
+   "cbilig": "cbili"
+  },
+  "fatty-acid-synthesis": {
+   "citm": "citrate"
+  },
+  "glycolysis": {
+   "glcb": "glucose"
+  },
+  "steroidogenesis": {
+   "cholm": "chol"
   }
  },
  "reactions": {},
@@ -14,6 +29,23 @@
     "c3b_fb"
    ]
   },
-  "reactions": {}
+  "reactions": {
+   "beta-oxidation": [
+    "r2b"
+   ],
+   "bilirubin": [
+    "r3",
+    "r5"
+   ],
+   "fatty-acid-synthesis": [
+    "r0"
+   ],
+   "glycolysis": [
+    "r0"
+   ],
+   "steroidogenesis": [
+    "r1"
+   ]
+  }
  }
 }

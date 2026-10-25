@@ -237,7 +237,7 @@ const MODES = [
 /* ---------- pathway browser (New quiz + Pathways) ----------
    Icon tiles with search, composable filters (group, your tags, status) and sorting. Filters stack:
    any of the chosen groups AND any of the chosen tags AND the chosen status. Remembered per page. */
-const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Blood & immunity', 'Renal', 'Combined'];
+const GROUP_ORDER = ['Carbohydrates', 'Energy', 'Lipids', 'Nitrogen & amino acids', 'Nucleotides', 'Heme', 'Blood & immunity', 'Nephron', 'Combined'];
 const plural = (n, w) => `${n} ${w}${n === 1 ? '' : 's'}`;
 const BROWSE_DEFAULT = { q: '', groups: [], systems: [], tags: [], status: '', source: '', sort: 'group' };
 // Where a pathway came from: built in, shared by a classmate (reviewed and approved), or your own / your edit.
@@ -427,8 +427,8 @@ function renderCreate() {
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   // Effects (activates / inhibits): a row only when a chosen pathway marks them.
-  let effectsHere = false, groupsHere = [], stitched = false, transportsHere = true;
-  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); transportsHere = its.some(it => it.kind === 'trn'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
+  let effectsHere = false, groupsHere = [], stitched = false, transportsHere = true, rlHere = true;
+  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); transportsHere = its.some(it => it.kind === 'trn'); rlHere = its.some(it => it.kind === 'rl'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
   const placeNote = () => {
     const qp = Library.get(draftPathway(d));
     if (qp?.stitch) return `<span class="el-note muted small">${mi('help', 'sm')} Place works on one pathway at a time; with connected pathways, compartments just show.</span>`;
@@ -438,7 +438,7 @@ function renderCreate() {
   };
   const groupNote = () => `<span class="el-note muted small">${mi('help', 'sm')} ${stitched ? 'Draw yourself works on one pathway at a time; with connected pathways, groups just show.' : `No frames at first: you drag a frame around the boxes of each group (${groupsHere.length}), then name it. ${d.mode === 'review' ? '' : 'Before the rest of the quiz.'}`}</span>`;
   const elNote = k => (k === 'grp' && elOf(d, 'grp') === 'place' ? groupNote() : k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
-  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'trn' || transportsHere) && (k !== 'grp' || groupsHere.length))
+  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'trn' || transportsHere) && (k !== 'rl' || (rlHere && elOf(d, 'enz') !== 'hide')) && (k !== 'grp' || groupsHere.length))
     .map(([k, label, allowed]) => {
       // Show / Quiz / Hide; where it can also be drawn (compartments), Quiz then asks how: fill in the blanks, or draw it yourself.
       const v = elOf(d, k), draw = allowed.includes('place'), top = v === 'place' ? 'quiz' : v;

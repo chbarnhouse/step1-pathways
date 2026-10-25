@@ -1,7 +1,7 @@
 {
  "id": "nephron-pct",
  "name": "Proximal convoluted tubule",
- "group": "Renal",
+ "group": "Nephron",
  "systems": [
   "Renal"
  ],

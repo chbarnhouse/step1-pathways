@@ -15,32 +15,6 @@
  ],
  "summary": "Bone marrow (erythroid precursors) and liver. Starts and ends in mitochondria; the middle steps are cytosolic. ALA synthase is rate-limiting and repressed by heme. Lead inhibits ALA dehydratase and ferrochelatase. Each enzyme deficiency past ALA dehydratase is a porphyria.",
  "metabolites": {
-  "glycine": {
-   "name": "Glycine (mitochondria)",
-   "short": "Gly",
-   "aliases": [
-    "Glycine"
-   ],
-   "notes": "Condenses with succinyl-CoA (from the TCA cycle).",
-   "loc": "mitochondria"
-  },
-  "ala": {
-   "name": "δ-Aminolevulinic acid (mitochondria)",
-   "short": "δ-ALA",
-   "aliases": [
-    "aminolevulinic acid",
-    "delta-aminolevulinic acid",
-    "5-aminolevulinate",
-    "aminolevulinate",
-    "δ-Aminolevulinic acid"
-   ],
-   "nicknames": [
-    "ALA",
-    "delta ALA"
-   ],
-   "notes": "Exits the mitochondrion. Elevated in lead poisoning and acute intermittent porphyria.",
-   "loc": "mitochondria"
-  },
   "pbg": {
    "name": "Porphobilinogen",
    "short": "PBG",
@@ -63,15 +37,6 @@
     "uroporphyrinogen 3"
    ],
    "notes": "↑ in porphyria cutanea tarda (urine looks tea-colored)."
-  },
-  "copro": {
-   "name": "Coproporphyrinogen III",
-   "short": "Copro III",
-   "aliases": [
-    "coproporphyrinogen",
-    "coproporphyrinogen 3"
-   ],
-   "notes": "Re-enters the mitochondrion."
   },
   "protogen": {
    "name": "Protoporphyrinogen IX",
@@ -99,7 +64,7 @@
    ],
    "notes": "Represses ALA synthase (and hemin is given in acute porphyria attacks for that reason)."
   },
-  "glycine_c": {
+  "glycine": {
    "name": "Glycine",
    "short": "",
    "aliases": [
@@ -108,28 +73,31 @@
    ],
    "loc": "cytosol"
   },
-  "ala_c": {
+  "ala": {
    "name": "δ-Aminolevulinic acid",
-   "short": "",
+   "short": "δ-ALA",
    "aliases": [
-    "ALA",
-    "δ-ALA",
-    "delta-aminolevulinic acid",
     "aminolevulinic acid",
+    "delta-aminolevulinic acid",
+    "5-aminolevulinate",
     "aminolevulinate",
-    "d-ALA"
+    "δ-Aminolevulinic acid"
    ],
-   "loc": "cytosol"
+   "nicknames": [
+    "ALA",
+    "delta ALA"
+   ],
+   "notes": "Exits the mitochondrion. Elevated in lead poisoning and acute intermittent porphyria.",
+   "loc": "mitochondria"
   },
-  "copro_m": {
-   "name": "Coproporphyrinogen III (mitochondria)",
-   "short": "",
+  "copro": {
+   "name": "Coproporphyrinogen III",
+   "short": "Copro III",
    "aliases": [
-    "coproporphyrinogen III",
-    "coproporphyrinogen"
+    "coproporphyrinogen",
+    "coproporphyrinogen 3"
    ],
-   "loc": "mitochondria",
-   "notes": "Back inside the mitochondria (the intermembrane space, where coproporphyrinogen oxidase sits)."
+   "notes": "Re-enters the mitochondrion."
   }
  },
  "enzymes": {
@@ -251,19 +219,6 @@
  },
  "reactions": [
   {
-   "id": "r0",
-   "enzyme": "slc25a38",
-   "from": "glycine_c",
-   "to": "glycine",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
    "id": "r1",
    "enzyme": "alas",
    "from": "glycine",
@@ -285,25 +240,13 @@
    ],
    "requires": [
     "B6 (pyridoxal phosphate)"
-   ]
-  },
-  {
-   "id": "r1b",
-   "enzyme": "alaexp",
-   "from": "ala",
-   "to": "ala_c",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
+   ],
+   "via": "slc25a38"
   },
   {
    "id": "r2",
    "enzyme": "alad",
-   "from": "ala_c",
+   "from": "ala",
    "to": "pbg",
    "reversible": false,
    "cofactors": {
@@ -316,7 +259,8 @@
    "tags": [
     "irreversible"
    ],
-   "notes": "2 ALA → PBG"
+   "notes": "2 ALA → PBG",
+   "via": "alaexp"
   },
   {
    "id": "r3",
@@ -370,22 +314,9 @@
    ]
   },
   {
-   "id": "r5b",
-   "enzyme": "abcb6",
-   "from": "copro",
-   "to": "copro_m",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "outer mitochondrial membrane"
-  },
-  {
    "id": "r6",
    "enzyme": "cpox",
-   "from": "copro_m",
+   "from": "copro",
    "to": "protogen",
    "reversible": false,
    "cofactors": {
@@ -399,7 +330,8 @@
    "loc": "mitochondria",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "via": "abcb6"
   },
   {
    "id": "r7",
@@ -460,10 +392,10 @@
  "color": "pink",
  "links": [
   {
-   "at": "glycine",
+   "at": "ala",
    "to": "tca",
    "dir": "in",
-   "via": "succinyl-CoA joins here"
+   "via": "succinyl-CoA, for ALA synthase"
   }
  ]
 }

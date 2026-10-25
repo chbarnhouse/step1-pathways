@@ -22,14 +22,6 @@
    "short": "Phe",
    "aliases": []
   },
-  "tyr": {
-   "name": "Tyrosine (liver)",
-   "short": "Tyr",
-   "aliases": [
-    "Tyrosine"
-   ],
-   "notes": "Also → thyroid hormones and melanin (tyrosinase; albinism)."
-  },
   "dopa": {
    "name": "L-DOPA",
    "short": "DOPA",
@@ -44,6 +36,34 @@
    ],
    "notes": "Crosses the blood–brain barrier; dopamine doesn't."
   },
+  "epi": {
+   "name": "Epinephrine",
+   "short": "Epi",
+   "aliases": [
+    "adrenaline"
+   ],
+   "notes": "Broken down to metanephrine and VMA. Pheochromocytoma: ↑ plasma free metanephrines.",
+   "loc": "cytosol",
+   "tissue": "adrenal medulla, neurons"
+  },
+  "epi_v": {
+   "name": "Epinephrine (vesicle)",
+   "short": "",
+   "aliases": [
+    "epinephrine",
+    "adrenaline"
+   ],
+   "loc": "secretory vesicles",
+   "tissue": "adrenal medulla, neurons"
+  },
+  "tyr": {
+   "name": "Tyrosine",
+   "short": "Tyr",
+   "aliases": [
+    "Tyrosine"
+   ],
+   "notes": "Also → thyroid hormones and melanin (tyrosinase; albinism)."
+  },
   "dopamine": {
    "name": "Dopamine",
    "short": "DA",
@@ -57,57 +77,6 @@
     "noradrenaline"
    ],
    "notes": "Broken down to normetanephrine and VMA.",
-   "loc": "secretory vesicles",
-   "tissue": "adrenal medulla, neurons"
-  },
-  "epi": {
-   "name": "Epinephrine",
-   "short": "Epi",
-   "aliases": [
-    "adrenaline"
-   ],
-   "notes": "Broken down to metanephrine and VMA. Pheochromocytoma: ↑ plasma free metanephrines.",
-   "loc": "cytosol",
-   "tissue": "adrenal medulla, neurons"
-  },
-  "tyr_n": {
-   "name": "Tyrosine",
-   "short": "",
-   "aliases": [
-    "tyrosine",
-    "Tyr",
-    "L-tyrosine"
-   ],
-   "loc": "cytosol",
-   "tissue": "adrenal medulla, neurons"
-  },
-  "dopamine_v": {
-   "name": "Dopamine (vesicle)",
-   "short": "",
-   "aliases": [
-    "dopamine"
-   ],
-   "loc": "secretory vesicles",
-   "tissue": "adrenal medulla, neurons"
-  },
-  "ne_c": {
-   "name": "Norepinephrine (cytosol)",
-   "short": "",
-   "aliases": [
-    "norepinephrine",
-    "noradrenaline",
-    "NE"
-   ],
-   "loc": "cytosol",
-   "tissue": "adrenal medulla, neurons"
-  },
-  "epi_v": {
-   "name": "Epinephrine (vesicle)",
-   "short": "",
-   "aliases": [
-    "epinephrine",
-    "adrenaline"
-   ],
    "loc": "secretory vesicles",
    "tissue": "adrenal medulla, neurons"
   }
@@ -223,23 +192,9 @@
    "tissue": "liver"
   },
   {
-   "id": "r1b",
-   "enzyme": "lat1",
-   "from": "tyr",
-   "to": "tyr_n",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "plasma membrane",
-   "tissue": "adrenal medulla, neurons"
-  },
-  {
    "id": "r2",
    "enzyme": "th",
-   "from": "tyr_n",
+   "from": "tyr",
    "to": "dopa",
    "reversible": false,
    "cofactors": {
@@ -259,7 +214,8 @@
    "requires": [
     "BH₄ (tetrahydrobiopterin)"
    ],
-   "tissue": "adrenal medulla, neurons"
+   "tissue": "adrenal medulla, neurons",
+   "via": "lat1"
   },
   {
    "id": "r3",
@@ -283,23 +239,9 @@
    "tissue": "adrenal medulla, neurons"
   },
   {
-   "id": "r3b",
-   "enzyme": "vmat",
-   "from": "dopamine",
-   "to": "dopamine_v",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "vesicle membrane",
-   "tissue": "adrenal medulla, neurons"
-  },
-  {
    "id": "r4",
    "enzyme": "dbh",
-   "from": "dopamine_v",
+   "from": "dopamine",
    "to": "ne",
    "reversible": false,
    "cofactors": {
@@ -319,26 +261,13 @@
     "Vitamin C",
     "Copper"
    ],
-   "tissue": "adrenal medulla, neurons"
-  },
-  {
-   "id": "r4b",
-   "enzyme": "neleak",
-   "from": "ne",
-   "to": "ne_c",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "vesicle membrane",
-   "tissue": "adrenal medulla, neurons"
+   "tissue": "adrenal medulla, neurons",
+   "via": "vmat"
   },
   {
    "id": "r5",
    "enzyme": "pnmt",
-   "from": "ne_c",
+   "from": "ne",
    "to": "epi",
    "reversible": false,
    "cofactors": {
@@ -353,7 +282,8 @@
    "tags": [
     "irreversible"
    ],
-   "tissue": "adrenal medulla, neurons"
+   "tissue": "adrenal medulla, neurons",
+   "via": "neleak"
   },
   {
    "id": "r6",

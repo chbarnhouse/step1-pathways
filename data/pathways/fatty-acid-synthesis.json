@@ -18,14 +18,6 @@
  "multiplier_label": "per palmitate",
  "summary": "Liver, adipose and lactating breast in the fed state, in the cytosol. Acetyl-CoA leaves the mitochondria as citrate (citrate shuttle) and is released by ATP citrate lyase. Acetyl-CoA carboxylase (rate-limiting, biotin) makes malonyl-CoA, which also blocks CPT I so new fat isn't burned. Fatty acid synthase builds palmitate (C16) from 1 acetyl-CoA + 7 malonyl-CoA using 14 NADPH (from the PPP and malic enzyme). Insulin turns it on; glucagon and epinephrine turn it off.",
  "metabolites": {
-  "citrate": {
-   "name": "Citrate",
-   "short": "",
-   "aliases": [
-    "citric acid"
-   ],
-   "notes": "Made in the mitochondria (citrate synthase: acetyl-CoA + OAA) and exported by the citrate shuttle when ATP is high. Also allosterically activates acetyl-CoA carboxylase."
-  },
   "acetylcoa": {
    "name": "Acetyl-CoA",
    "short": "AcCoA",
@@ -75,8 +67,8 @@
    ],
    "notes": "Released by the thioesterase domain. Longer and unsaturated fatty acids are made in the ER; humans can't add double bonds past C9, so linoleic and α-linolenic acid are essential."
   },
-  "citm": {
-   "name": "Citrate (mitochondria)",
+  "citrate": {
+   "name": "Citrate",
    "short": "",
    "aliases": [
     "citrate",
@@ -149,19 +141,6 @@
  },
  "reactions": [
   {
-   "id": "r0",
-   "enzyme": "cic",
-   "from": "citm",
-   "to": "citrate",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
    "id": "r1",
    "enzyme": "acl",
    "from": "citrate",
@@ -184,7 +163,8 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "via": "cic"
   },
   {
    "id": "r2",
@@ -297,7 +277,7 @@
  "color": "gold",
  "links": [
   {
-   "at": "citm",
+   "at": "citrate",
    "to": "tca",
    "dir": "in"
   }

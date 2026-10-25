@@ -59,6 +59,10 @@ function catalog() {
       const e = entry('enz', catKey(x.name), x.name);
       e.names.push(x.name); if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p);
       e.pathways.add(p.id); e.steps.push({ p, m, r }); e.keys.push([p.id, 'e:' + r.id]);
+      // The carrier that brings a via step's substrate across has its own page too.
+      const v = r.via && p.enzymes[r.via];
+      if (v) { const t = entry('enz', catKey(v.name), v.name); t.names.push(v.name); if (v.short) t.short.add(v.short); (v.aliases || []).forEach(a => t.aliases.add(a)); note(t, v.notes, p);
+        t.pathways.add(p.id); t.steps.push({ p, m, r, via: true }); t.keys.push([p.id, 't:' + r.id]); }
       const c = r.cofactors || {}, need = m.items['n:' + r.id]?.cofs.in || [];
       for (const [ids, role] of [[c.in || [], 'in'], [c.out || [], 'out'], [need, 'need']]) for (const cid of ids) {
         const cx = m.cof[cid] || { name: cid }, ce = entry('cof', cofPage(m, cid), cx.name);
@@ -141,7 +145,7 @@ function libTabs(active) {
    Sections: enzymes by what kind of enzyme they are, metabolites by their pathways' group, cofactors by what they do.
    Systems, tags and pathways come from the pathways a thing appears in; status from your answers about it there. */
 const SECTIONS = {
-  enz: [['Transporters', 'arrow_forward', 'slate', e => e.steps.some(s => s.r.transport)], ['Kinases', 'local_fire_department', 'orange', e => /kinase/i.test(e.name)],
+  enz: [['Transporters', 'arrow_forward', 'slate', e => e.steps.some(s => s.r.transport || s.via)], ['Kinases', 'local_fire_department', 'orange', e => /kinase/i.test(e.name)],
     ['Phosphatases', 'opacity', 'teal', e => /phosphatase/i.test(e.name)], ['Dehydrogenases, reductases & oxidases', 'sync_alt', 'blue', e => /dehydrogenase|reductase|oxidase|oxygenase|hydroxylase|peroxidase|desaturase|aromatase|desmolase|demethylase|malic enzyme/i.test(e.name)],
     ['Carboxylases & decarboxylases', 'science', 'gold', e => /carboxylase|carboxykinase/i.test(e.name)], ['Synthases & synthetases', 'inventory_2', 'pink', e => /synth/i.test(e.name)],
     ['Transferases', 'swap_horiz', 'slate', e => /transferase|transaminase|transcarbamylase|transcarbamoylase|transformylase|phosphorylase|branching enzyme/i.test(e.name)], ['Isomerases & mutases', 'cycle', 'teal', e => /isomerase|mutase|epimerase|racemase/i.test(e.name)],
@@ -294,7 +298,7 @@ document.addEventListener('click', e => {
 function focusStatus(e, p) {
   const mine = e.steps.filter(s => s.p === p), focus = new Set(), near = new Set();
   const touch = r => [r.from, r.to, ...(r.also_to || []), ...(r.also_from || [])].forEach(id => near.add('m:' + id));
-  if (e.kind === 'enz' || e.kind === 'sig') mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
+  if (e.kind === 'enz' || e.kind === 'sig') mine.forEach(({ r, via }) => { focus.add((via ? 't:' : 'e:') + r.id); touch(r); });
   else if (e.kind === 'met' || e.kind === 'cell') { e.keys.filter(([pid]) => pid === p.id).forEach(([, k]) => focus.add(k)); mine.forEach(({ r }) => { near.add('e:' + r.id); touch(r); }); }
   else mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
   return k => (focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
@@ -303,6 +307,8 @@ function stepLine(e, s) {
   if (s.p.terms && !s.p.nephron) return immunoLine(e, s);
   const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name, needs = cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []);
   const role = e.kind === 'met' ? (s.role === 'made' ? 'made by ' : s.role === 'used' ? 'used by ' : '') : e.kind === 'cof' ? ({ in: 'goes in at ', out: 'comes out of ', need: 'needed by ' }[s.role] || '') : '';
+  // A carrier's page: the step it brings the substrate across for.
+  if (s.via) return `<li>${[`brings ${metLink(p, r.from)} across for ${catLink('enz', catKey(en), en)}`, reactionCell(p, r), whereCell(r), (r.via_tags || []).includes('rate-limiting') ? '<b>rate-limiting</b>' : ''].filter(Boolean).join(' · ')}</li>`;
   const bits = [e.kind === 'enz' ? '' : `${role}${catLink('enz', catKey(en), en)}`, reactionCell(p, r), `cofactors ${cofCell(m, r)}`, needs ? `needs ${needs}` : '', whereCell(r),
     (r.tags || []).includes('rate-limiting') ? '<b>rate-limiting</b>' : '', r.reversible ? 'reversible' : ''].filter(Boolean);
   return `<li>${bits.join(' · ')}</li>`;
@@ -342,17 +348,20 @@ function glanceHTML(e, ps) {
   rows.push([e.kind === 'met' ? 'Group' : 'Kind', esc(facets(e).section)]);
   if (e.kind === 'cell' || e.kind === 'sig') rows.push(...immunoRows(e));
   rows.push(['In', ps.map(p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join(', ')]);
-  const where = uniq(e.steps.filter(s => !signaling(s.p)).map(({ r }) => [r.tissue, r.loc].filter(Boolean).join(' · ')).filter(Boolean));
+  // A carrier (via) works on a membrane: say which, by the two compartments it joins.
+  const viaWhere = ({ p, r }) => { const a = p.metabolites[r.from]?.loc; return a && r.loc ? `between ${a} and ${r.loc}` : ''; };
+  const where = uniq(e.steps.filter(s => !signaling(s.p)).map(s => (s.via ? viaWhere(s) : [s.r.tissue, s.r.loc].filter(Boolean).join(' · '))).filter(Boolean));
   if (where.length) rows.push(['Where', esc(where.join('; '))]);
   if (e.kind === 'enz') {
-    const rl = uniq(e.steps.filter(s => (s.r.tags || []).includes('rate-limiting')).map(s => s.p.name));
+    const own = e.steps.filter(s => !s.via); // a carrier's steps belong to their enzyme: their cofactors aren't its own
+    const rl = uniq(e.steps.filter(s => ((s.via ? s.r.via_tags : s.r.tags) || []).includes('rate-limiting')).map(s => s.p.name));
     if (rl.length) rows.push(['Rate-limiting in', esc(rl.join(', '))]);
-    const needs = e.steps.flatMap(({ m, r }) => (m.items['n:' + r.id]?.cofs.in || []).map(id => cofPage(m, id)));
+    const needs = own.flatMap(({ m, r }) => (m.items['n:' + r.id]?.cofs.in || []).map(id => cofPage(m, id)));
     if (needs.length) rows.push(['Needs', linkList('cof', needs)]);
-    const cofs = e.steps.flatMap(({ m, r }) => [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])].map(id => cofPage(m, id)));
+    const cofs = own.flatMap(({ m, r }) => [...(r.cofactors?.in || []), ...(r.cofactors?.out || [])].map(id => cofPage(m, id)));
     if (cofs.length) rows.push(['Cofactors', linkList('cof', cofs)]);
-    const dir = uniq(e.steps.map(s => (s.r.reversible ? 'reversible' : 'one-way')));
-    rows.push(['Direction', esc(dir.join(' or '))]);
+    const dir = uniq(own.map(s => (s.r.reversible ? 'reversible' : 'one-way')));
+    if (dir.length) rows.push(['Direction', esc(dir.join(' or '))]);
   } else if (e.kind === 'met') {
     const en = s => catKey(s.p.enzymes[s.r.enzyme]?.name);
     const made = e.steps.filter(s => s.role !== 'used').map(en), used = e.steps.filter(s => s.role !== 'made').map(en);

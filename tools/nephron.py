@@ -71,7 +71,7 @@ class Seg:
         links = [l for l in links if l['to'] != 'nephron-cd-intercalated' or self.key == 'cd-principal']
         for l in links:
             if not l['via']: del l['via']
-        p = {'id': f'nephron-{self.key}', 'name': name, 'group': 'Renal', 'systems': ['Renal'], 'tags': list(tags), 'aliases': aliases,
+        p = {'id': f'nephron-{self.key}', 'name': name, 'group': 'Nephron', 'systems': ['Renal'], 'tags': list(tags), 'aliases': aliases,
              'summary': summary, 'tissue': tissue, 'icon': 'water_drop', 'color': 'gold', 'layout': 'grid', 'grid_columns': [],
              'column_zones': {'membranes': self.membranes}, 'nephron': {'segment': self.key, 'order': i}, 'terms': {'met': 'solute'},
              'cofactors': cofactors or {}, 'distractors': distractors or {'metabolites': [], 'enzymes': []},

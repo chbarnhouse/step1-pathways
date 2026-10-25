@@ -19,13 +19,6 @@
  "summary": "Cytosol, every cell. Glucose → 2 pyruvate, net 2 ATP + 2 NADH. Everything from glyceraldehyde-3-phosphate on runs twice per glucose. Irreversible (and regulated): hexokinase/glucokinase, PFK-1, pyruvate kinase.",
  "circular": false,
  "metabolites": {
-  "glucose": {
-   "name": "Glucose",
-   "short": "Glc",
-   "aliases": [
-    "D-glucose"
-   ]
-  },
   "g6p": {
    "name": "Glucose-6-phosphate",
    "short": "G6P",
@@ -111,8 +104,8 @@
    ],
    "notes": "Fates: lactate (LDH, regenerates NAD⁺), acetyl-CoA (PDH), oxaloacetate (pyruvate carboxylase), alanine (ALT)."
   },
-  "glcb": {
-   "name": "Glucose (blood)",
+  "glucose": {
+   "name": "Glucose",
    "short": "",
    "aliases": [
     "glucose",
@@ -247,20 +240,6 @@
  },
  "reactions": [
   {
-   "id": "r0",
-   "enzyme": "glut",
-   "from": "glcb",
-   "to": "glucose",
-   "reversible": true,
-   "branch": true,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "plasma membrane"
-  },
-  {
    "id": "r1",
    "enzyme": "hk",
    "from": "glucose",
@@ -277,7 +256,8 @@
    "tags": [
     "irreversible"
    ],
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "via": "glut"
   },
   {
    "id": "r2",

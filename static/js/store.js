@@ -238,7 +238,7 @@ function stitchPathway(ids) {
   if (hit && hit.tiles.length === tiles.length && hit.tiles.every((t, i) => t === tiles[i])) return hit.p;
   // Nephron segments each have their own lumen, cell and blood: nothing is shared between them, and the set draws as a nephron.
   const nephron = tiles.length > 1 && tiles.every(t => t.nephron), whole = nephron && tiles.length === Object.values(Library.builtin()).filter(p => p.nephron).length;
-  const out = { id, name: whole ? 'Whole nephron' : tiles.map(t => t.name).join(' + '), group: nephron ? 'Renal' : 'Connected', summary: whole ? 'Every nephron segment on one drawing, in the order the fluid flows: glomerulus, proximal tubule, loop of Henle, distal tubule and collecting duct, each cell with its carriers.' : '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
+  const out = { id, name: whole ? 'Whole nephron' : tiles.map(t => t.name).join(' + '), group: nephron ? 'Nephron' : 'Connected', summary: whole ? 'Every nephron segment on one drawing, in the order the fluid flows: glomerulus, proximal tubule, loop of Henle, distal tubule and collecting duct, each cell with its carriers.' : '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
     distractors: { metabolites: [], enzymes: [] }, links: [], stitch: { parts: tiles.map(t => t.id), tiles: [], origin: { m: {}, r: {} }, joins: [] } };
   const byBase = new Map(), inSet = new Set(tiles.flatMap(t => [t.id, ...(t.compose || [])])); // a pair counts as both its parts
   for (const t of tiles) {

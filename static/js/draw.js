@@ -57,7 +57,7 @@ function elbowLabels(m, statusOf, r, h, v) {
     const y = h[0][1], dir = Math.sign(h[1][0] - h[0][0]), len = Math.abs(h[1][0] - h[0][0]);
     // The spot along the run with nothing just above it (a blank is a tall pill), the middle if it's free.
     const xAt = f => h[0][0] + (h[1][0] - h[0][0]) * f;
-    const f = [0.5, 0.65, 0.75, 0.85, 0.35, 0.25, 0.15].find(f => !DRAW_BOXES.some(bx => overlaps({ x: xAt(f) - 90, y: y - 46, w: 180, h: 40 }, bx))) ?? 0.5, mx = xAt(f);
+    const f = (r.via ? [0.68, 0.78, 0.6, 0.85] : [0.5, 0.65, 0.75, 0.85, 0.35, 0.25, 0.15]).find(f => !DRAW_BOXES.some(bx => overlaps({ x: xAt(f) - 90, y: y - 46, w: 180, h: 40 }, bx))) ?? 0.5, mx = xAt(f);
     const half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(h[0][0], h[1][0]) + 14, mx - half), a1 = Math.min(Math.max(h[0][0], h[1][0]) - 14, mx + half);
     // Cofactors go under the run unless something is already there; then they go above it, with the name above them.
     const up = cof && hitsBox({ x: a0, y: y + 8, w: a1 - a0, h: 52 }) && !hitsBox({ x: a0, y: y - 60, w: a1 - a0, h: 52 });
@@ -145,22 +145,17 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
     return `<g class="elab ${cls}"><rect x="${rx}" y="${ry}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, ry + 13, word)}</g>`;
   }
   const lines = wrap(item.name, max);
-  const tags = shownTags(item.rxn);
-  // What it needs is its own blank (quizzed with the cofactors): hidden, it's a "needs" pill under the rest of the label.
-  const nst = (item.rxn?.requires || []).length && DRAW_STATUS ? DRAW_STATUS('n:' + item.rxn.id) || 'shown' : 'shown';
-  const needs = nst === 'hide' ? [] : hidden(nst) ? [['needblank', '']] : wrap(needsText(item.rxn), max).map(t => ['req', t]);
-  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t]), ...needs];
+  const tags = item.kind === 'rl' ? [] : item.via ? viaTags(item.rxn) : shownTags(item.rxn);
+  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t])];
   const lh = 15, y0 = valign === 'bottom' ? y - (all.length - 1) * lh - 6 : y - (all.length - 1) * lh / 2;
-  let s = `<g class="elab ${cls}${item.rxn?.transport ? ' trn' : ''}" data-key="${item.key}">`;
-  let pill = '';
-  all.forEach(([c, l], i) => {
-    const ly = y0 + i * lh + (c === 'needblank' ? 8 : 0);
-    if (c !== 'needblank') { s += `<text class="${c}" x="${x}" y="${ly}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; return; }
-    const live = nst === 'target' && INLINE, w = live ? Math.max(170, INLINE.along ? INLINE.along.length * 8 + 28 : 0) : pillW('needs'), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
-    pill = live ? `<g class="elab target"><rect x="${rx}" y="${ly - 15}" width="${w}" height="30" rx="15"/></g>` + inlineField(rx + 4, ly - 12, w - 8, 24)
-      : `<g class="elab ${nst}"><rect x="${rx}" y="${ly - 12}" width="${w}" height="24" rx="12"/>${blankText(rx + w / 2, ly, 'needs')}</g>`;
-  });
-  s += '</g>' + pill;
+  let s = `<g class="elab ${cls}${item.kind === 'trn' ? ' trn' : ''}" data-key="${item.key}">`;
+  // A transporter's name sits in a pill, so it never reads as an enzyme.
+  if (item.kind === 'trn') {
+    const pw = Math.max(...all.map(([, l]) => l.length)) * 6.9 + 18, px = anchor === 'end' ? x - pw + 8 : anchor === 'start' ? x - 8 : x - pw / 2;
+    s += `<rect class="trnpill" x="${px}" y="${y0 - 11}" width="${pw}" height="${(all.length - 1) * lh + 22}" rx="11"/>`;
+  }
+  all.forEach(([c, l], i) => { s += `<text class="${c}" x="${x}" y="${y0 + i * lh}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; });
+  s += '</g>';
   const ix = anchor === 'end' ? x + 14 : anchor === 'start' ? x - 14 : x;
   const iy = anchor === 'middle' ? y0 - 18 : y0;
   if (st === 'right') s += svgIcon(ix, iy, 'ok');
@@ -203,7 +198,7 @@ const overlaps = (r, b) => r.x < b.x + b.w + 4 && r.x + r.w > b.x - 4 && r.y < b
 const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b => overlaps(r, b));
 // An enzyme's whole label: its name, tags (RATE-LIMITING) and what it needs, as enzLabel stacks them.
 const enzRect = (x, y, anchor, item, max = 18, valign = 'center') => {
-  const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? shownTags(r) : []), ...wrap(needsText(r), max)];
+  const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? (item.via ? viaTags(r) : shownTags(r)) : []), ];
   const w = Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15;
   return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h, rid: r?.id };
 };
@@ -259,7 +254,17 @@ function cofArcLine(p1, p2, n, parts, flip = false) {
 // of its cofactors is still a blank they show as one plain "cofactors" pill. The quiz sets it; elsewhere it's never hidden.
 let cofShapeHidden = () => false;
 const cofParts = (m, statusOf, r) => {
-  const ps = cofItemsOf(m, r).map(it => ({ key: it.key, side: it.side, st: statusOf(it.key), text: cofSideText(m, it.cofs) }));
+  let ps = cofItemsOf(m, r).map(it => ({ key: it.key, side: it.side, st: statusOf(it.key), text: cofSideText(m, it.cofs) }));
+  // What the step needs (B6, biotin…) goes in with the inputs: one label ("Succinyl-CoA + B6"), or one blank while either is.
+  // Shown short ("B6", not "B6 (pyridoxal phosphate)"), and only what the inputs don't already name (BH₄, ascorbate).
+  const nd = m.items['n:' + r.id], cin = r.cofactors?.in || [], ntext = (r.requires || []).filter((t, i) => !cin.includes(nd?.cofs.in[i])).map(t => t.replace(/\s*\([^)]*\)\s*$/, '')).join(', ');
+  const np = nd && { key: nd.key, side: 'in', st: statusOf(nd.key), text: ntext };
+  if (np && !ntext && !hidden(np.st)) np.st = 'hide';
+  if (np && np.st !== 'hide') {
+    const i = ps.findIndex(p => p.side === 'in');
+    if (i < 0 || ps[i].st === 'hide') ps = [np, ...ps.filter(p => p.side !== 'in')];
+    else { const pin = ps[i], both = [pin, np]; ps[i] = { key: pin.key, keys: [pin.key, np.key], side: 'in', st: cofCombined(both), text: both.some(p => hidden(p.st)) ? '' : pin.text + ' + ' + np.text }; }
+  }
   return ps.length && cofShapeHidden(r) && ps.some(p => hidden(p.st)) ? [{ key: ps[0].key, side: null, st: cofCombined(ps), text: '' }] : ps;
 };
 function cofCombined(parts) {
@@ -271,10 +276,12 @@ function cofCombined(parts) {
   return sts.includes('missed') ? 'missed' : sts.includes('right') ? 'right' : sts[0];
 }
 const cofSt = (m, statusOf, r) => cofCombined(cofParts(m, statusOf, r));
+const cofLine = (m, statusOf, r) => { const ps = cofParts(m, statusOf, r).filter(p => cofVisible(p.st)), i = ps.find(p => p.side === 'in')?.text, o = ps.find(p => p.side === 'out')?.text;
+  return i && o ? i + ' → ' + o : i ? i + ' →' : o ? '→ ' + o : ''; };
 const cofVisible = st => !hidden(st) && st !== 'none' && st !== 'hide';
 // With a blank on either side, the cofactors are laid out in a row: "cofactors in → out", "ATP → out", "cofactors in → ADP".
 const cofWord = (p, two) => (!two ? 'cofactors' : p.side === 'in' ? 'cofactors in' : 'out');
-const isLive = p => p.st === 'target' && INLINE && (!INLINE.q?.statKey || INLINE.q.statKey === p.key);
+const isLive = p => p.st === 'target' && INLINE && (!INLINE.q?.statKey || INLINE.q.statKey === p.key || !!p.keys?.includes(INLINE.q.statKey));
 function cofRow(x, y, anchor, parts) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
   const two = parts.length > 1, gap = 6, aw = 14, cw = 7;
@@ -340,15 +347,34 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = [];
-  if (m.p.stitch) return m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts);
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = [];
+  if (m.p.stitch) return rlStrip(m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts), m, statusOf);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
   if (grps.length && !outer) DRAW_POS = {};
   const svg = m.p.layout === 'grid' ? gridSVG(m, statusOf, opts) : m.p.circular ? cycleSVG(m, statusOf, opts) : linearSVG(m, statusOf, opts);
-  if (!grps.length) return svg;
+  if (!grps.length) return rlStrip(svg, m, statusOf);
   const pos = DRAW_POS; if (!outer) DRAW_POS = null;
-  return withGroups(svg, m, statusOf, grps, pos);
+  return rlStrip(withGroups(svg, m, statusOf, grps, pos), m, statusOf);
+}
+/* Rate-limiting, while it's being quizzed: the steps lose their RATE-LIMITING tag and a strip above the drawing asks
+   for the enzyme ('k:<step>', one blank per rate-limiting step). Shown or hidden, there's no strip. */
+function rlStrip(svg, m, statusOf) {
+  const ks = Object.values(m.items).filter(it => it.kind === 'rl').map(it => [it, statusOf(it.key) || 'shown']);
+  if (!ks.length || ks.every(([, st]) => st === 'shown' || st === 'hide')) return svg;
+  const vb = svg.match(/viewBox="([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)"/);
+  if (!vb) return svg;
+  // The drawing moves down to make room (the canvas reads diagram units from the top-left, so no negative viewBox),
+  // and so does any answer slot in it.
+  const [x0, y0, w, h] = vb.slice(1).map(Number), D = 52, y = y0 + 26;
+  let g = `<text class="zonet" x="${x0 + 16}" y="${y + 4}">RATE-LIMITING</text>`, x = x0 + 136;
+  for (const [it, st] of ks) {
+    const live = st === 'target' && INLINE, wd = live ? 210 : hidden(st) ? pillW(it.term) : it.name.length * 7.4 + 34;
+    g += enzLabel(x, y, it, st, 'start', 60, 'center'); x += wd + 18;
+  }
+  const open = svg.match(/<svg[^>]*>/)[0], inner = svg.slice(open.length, svg.lastIndexOf('</svg>')), slots = [];
+  const body = inner.replace(/<rect class="inl-slot" x="([-\d.]+)" y="([-\d.]+)"([^>]*)\/>/g, (_, sx, sy, rest) => { slots.push(`<rect class="inl-slot" x="${sx}" y="${+sy + D}"${rest}/>`); return ''; });
+  return open.replace(vb[0], `viewBox="${x0} ${y0} ${Math.max(w, x - x0 + 12)} ${h + D}"`) + `<g transform="translate(0,${D})">${body}</g><g class="rlstrip">${g}</g>${slots.join('')}</svg>`;
 }
 /* Groupings: a dashed frame around a group's boxes with its name above the top-left corner. A group inside another
    (granulocytes inside myeloid cells) gets the tighter frame, so the two never share a line. Frames sit behind the
@@ -410,15 +436,49 @@ function rxCls(r) {
 }
 const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ? 'ah inh' + (cls.includes('fx-inh') ? ' fx-inh' : '') : cls.includes('fx-act') ? 'ah fx-act' : 'ah');
 // A step's tags as its label shows them: never "irreversible" (the arrow says it), and "inhibits" only while its effect shows.
-const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)));
+const rlShown = (r, k = 'k:' + r.id) => { if (!DRAW_MODEL?.items[k] || !DRAW_STATUS) return true; const st = DRAW_STATUS(k) || 'shown'; return !hidden(st) && st !== 'hide'; };
+const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)) && (t !== 'rate-limiting' || rlShown(r)));
+const viaTags = r => (r.via_tags || []).filter(t => t !== 'rate-limiting' || rlShown(r));
+/* A step whose substrate first crosses a membrane (r.via): its carrier is a pill on that membrane, the enzyme's name on
+   the far side. VIA_X / VIA_Y: the membranes of the drawing being made (lane walls, a grid's bands). */
+let VIA_X = [], VIA_Y = [];
+function viaAt(pts) {
+  const segs = pts.slice(1).map((q, i) => [pts[i], q]);
+  for (let i = segs.length - 1; i >= 0; i--) {
+    const [[x0, y0], [x1, y1]] = segs[i];
+    const xm = [...VIA_X, ...GRID_MEMBRANES].filter(x => x > Math.min(x0, x1) + 2 && x < Math.max(x0, x1) - 2).sort((a, b) => Math.abs(a - x1) - Math.abs(b - x1))[0];
+    if (xm !== undefined) return [xm, y0 + (y1 - y0) * (xm - x0) / (x1 - x0 || 1)];
+    const ym = [...VIA_Y, ...GRID_MEMBRANES_Y].filter(y => y > Math.min(y0, y1) + 2 && y < Math.max(y0, y1) - 2).sort((a, b) => Math.abs(a - y1) - Math.abs(b - y1))[0];
+    if (ym !== undefined) return [x0 + (x1 - x0) * (ym - y0) / (y1 - y0 || 1), ym];
+  }
+  // No membrane drawn across it: on its longest leg (never a trunk it shares), near where that leg starts.
+  const [[x0, y0], [x1, y1]] = segs.reduce((a, b) => (Math.hypot(b[1][0] - b[0][0], b[1][1] - b[0][1]) > Math.hypot(a[1][0] - a[0][0], a[1][1] - a[0][1]) ? b : a));
+  // A straight step: clear of the box it leaves and of its name, which moves toward the far end.
+  const L = Math.hypot(x1 - x0, y1 - y0), f = segs.length === 1 ? Math.min(0.4, Math.max(0.22, (Math.abs(x1 - x0) > Math.abs(y1 - y0) ? 92 : 30) / (L || 1))) : 0.3;
+  return [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f];
+}
+function viaPill(m, statusOf, r, at) {
+  const it = m.items['t:' + r.id];
+  if (!it || !at) return '';
+  DRAW_LABELS.push(enzRect(at[0], at[1], 'middle', it, 22));
+  return enzLabel(at[0], at[1], it, statusOf('t:' + r.id), 'middle', 22, 'center');
+}
 
 // Steps that a connector lands on (grid): their name moves two-thirds along, clear of where the connector arrives.
 let CONN_STEPS = new Map();
 // Membrane lines of a grid with column bands (x positions): a transport step across one draws its carrier on it.
 let GRID_MEMBRANES = [], GRID_MEMBRANES_Y = []; // step id → how far along its line connectors land (0–1)
-const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get(r.id) < 0.5 ? 0.72 : 0.28) : (a + b) / 2);
+const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get(r.id) < 0.5 ? 0.72 : 0.28) : r.via ? a + (b - a) * 0.72 : (a + b) / 2);
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
+  VIA_PTS = null;
+  const out = drawEdge1(m, statusOf, r, a, b, wA, wB);
+  if (!r.via) return out;
+  const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
+  return out + viaPill(m, statusOf, r, viaAt(VIA_PTS || [p1, p2]));
+}
+let VIA_PTS = null; // the route drawEdge1 took, when it bent
+function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
   const isEnd = bx => [a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4);
   const crosses = (x, y0, y1) => DRAW_BOXES.some(bx => x > bx.x && x < bx.x + bx.w && Math.min(y0, y1) < bx.y + bx.h - 2 && Math.max(y0, y1) > bx.y + 2 && !isEnd(bx));
@@ -426,7 +486,7 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   // Straight up or down past another box (glucose in the ER up to glucose in the blood): swing out beside the column.
   if (Math.abs(p1[0] - p2[0]) < 4 && crosses(a.cx, a.cy, b.cy)) {
     const gx = a.cx + wA / 2 + 46, pts = [[a.cx + wA / 2 + 4, a.cy], [gx, a.cy], [gx, b.cy], [b.cx + wB / 2 + 4, b.cy]];
-    const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), mid = (a.cy + b.cy) / 2;
+    const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), mid = labAt(r, a.cy, b.cy); VIA_PTS = pts;
     DRAW_LABELS.push(enzRect(gx + 12, mid, 'start', it, 18));
     return elbow(pts, r.reversible, rxCls(r)) + enzLabel(gx + 12, mid, it, es, 'start', 18, 'center');
   }
@@ -451,7 +511,8 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     if (cs !== 'none' && cs !== 'hide') s += cofArcParts(p1[0], Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
     s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(mx - 14, my, 'end', it, 18));
-    if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
+    const q1 = r.via ? p1[1] + (p2[1] - p1[1]) * 0.4 : p1[1]; // below a carrier pill
+    if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(q1, p2[1]), Math.max(q1, p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
   } else {
     // Off-line: an L. Leave a box on the main line from its side (its bottom carries the main arrow), then turn into the
     // other box; otherwise drop straight down (or up) first, then turn into the other box's side.
@@ -466,15 +527,16 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
     const gx = b.cx + Math.sign(a.cx - b.cx) * (wB / 2 + 54);
     if (!hClear && !vClear && !crossesH(a.cy, a.cx, gx) && !crosses(gx, a.cy, b.cy)) {
       const pts = [[a.cx - Math.sign(a.cx - b.cx) * (wA / 2 + 4), a.cy], [gx, a.cy], [gx, b.cy], [b.cx + Math.sign(a.cx - b.cx) * (wB / 2 + 4), b.cy]];
+      VIA_PTS = pts;
       return elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[0], pts[1]], null);
     }
     if (fromSpine) {
       const x0 = a.cx + Math.sign(b.cx - a.cx) * (wA / 2 + 4), yb = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
-      const pts = [[x0, a.cy], [b.cx, a.cy], [b.cx, yb]];
+      const pts = [[x0, a.cy], [b.cx, a.cy], [b.cx, yb]]; VIA_PTS = pts;
       s += elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[0], pts[1]], [pts[1], pts[2]]);
     } else {
       const ya = down ? a.cy + BH / 2 + 4 : a.cy - BH / 2 - 4, x1 = b.cx - Math.sign(b.cx - a.cx) * (wB / 2 + 4);
-      const pts = [[a.cx, ya], [a.cx, b.cy], [x1, b.cy]];
+      const pts = [[a.cx, ya], [a.cx, b.cy], [x1, b.cy]]; VIA_PTS = pts;
       s += elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[1], pts[2]], [pts[0], pts[1]]);
     }
   }
@@ -549,11 +611,17 @@ function twinEdge(m, statusOf, r, a, b, forceSide = 0) {
   let s = arrow(x, y1, x, y2, r.reversible, rxCls(r)) + enzLabel(lx, mid, it, es, anchor, 22, 'center');
   DRAW_LABELS.push(enzRect(lx, mid, anchor, it, 22));
   if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x, y1], [x, y2], [side, 0], cofParts(m, statusOf, r));
+  if (r.via) s += viaPill(m, statusOf, r, viaAt([[x, y1], [x, y2]]));
   return s;
 }
 // One of two level steps between the same boxes: the first runs just above center with its label above it, the
 // second just below with its label (and cofactors) below.
 function pairEdge(m, statusOf, r, a, b, i) {
+  if (!r.via) return pairEdge1(m, statusOf, r, a, b, i);
+  const dir = Math.sign(b.cx - a.cx) || 1, y = a.cy + (i ? 10 : -10);
+  return pairEdge1(m, statusOf, r, a, b, i) + viaPill(m, statusOf, r, viaAt([[a.cx + dir * (BW / 2 + 4), y], [b.cx - dir * (BW / 2 + 4), y]]));
+}
+function pairEdge1(m, statusOf, r, a, b, i) {
   const dir = Math.sign(b.cx - a.cx) || 1, x1 = a.cx + dir * (BW / 2 + 4), x2 = b.cx - dir * (BW / 2 + 4), y = a.cy + (i ? 10 : -10);
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r);
   // Across a membrane: the carrier sits on it, named on the side the solute heads to (above for the first, below for the second).
@@ -605,7 +673,7 @@ function computeLanes(m) {
   spineMets.forEach(id => {
     const own = p.metabolites[id]?.loc;
     if (own) { where[id] = { loc: own, tissue: p.metabolites[id].tissue }; return; }
-    const made = spine.find(r => r.to === id && !r.transport), used = spine.find(r => r.from === id && !r.transport);
+    const made = spine.find(r => r.to === id && !r.transport), used = spine.find(r => r.from === id && !r.transport && !r.via); // a via step acts elsewhere
     const r = made || used;
     if (r) where[id] = { loc: r.loc, tissue: r.tissue };
   });
@@ -636,6 +704,7 @@ const LANE_W = 470;
 // On the canvas, compartment tints and membranes run past the drawing to the canvas edges (the SVG may paint outside
 // its box there); anywhere else the browser clips them to the drawing as before.
 const BLEED = 20000;
+const VIA_ROOM = 44; // a via step's extra height: its carrier pill above the enzyme
 const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
@@ -695,14 +764,16 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     for (let i = 1; i <= last; i++) laneXs[i] = laneXs[i - 1] + LANE_W + (cols[i - 1] || 0) * SIDE_STEP;
     sideX = laneX(lanesOn ? last : 0) + SIDE_STEP + (bypass.length ? 190 : 0);
     pos = {}; perRow = {}; const forks = {};
-    spineMets.forEach((id, i) => { pos[id] = { x: laneX(L.laneOf[id] || 0), y: top + i * (BH + GAP) }; });
+    let yy = top;
+    spineMets.forEach((id, i) => { if (i) yy += BH + GAP + (spine[i - 1]?.via ? VIA_ROOM : 0); pos[id] = { x: laneX(L.laneOf[id] || 0), y: yy }; });
     const place = (id, y, stack = 0) => {
       if (pos[id]) return;
       // Many extra inputs into one step (VOMIT → propionyl-CoA) stack in a column beside the line, not a long row.
       if (stack) { pos[id] = { x: sideX, y: y + (stack - 1) * (BH + GAP) }; return; }
       const li = sideLane(id), row = (li >= 0 ? li : 'side') + '|' + y, k = perRow[row] = (perRow[row] || 0) + 1;
-      if (li >= 0) { cols[li] = Math.max(cols[li] || 0, k); pos[id] = { x: laneX(li) + k * SIDE_STEP, y }; return; }
-      pos[id] = { x: sideX + (k - 1) * SIDE_STEP, y };
+      const vx = stepOf(id)?.via ? 170 : 0; // room for a carrier pill as well as the enzyme's name
+      if (li >= 0) { cols[li] = Math.max(cols[li] || 0, k); pos[id] = { x: laneX(li) + k * SIDE_STEP + vx, y }; return; }
+      pos[id] = { x: sideX + (k - 1) * SIDE_STEP + vx, y };
     };
     spine.forEach(r => { (r.also_to || []).forEach(x => place(x, pos[r.to].y)); (r.also_from || []).forEach((x, i, all) => place(x, pos[r.from].y, all.length >= 3 ? i + 1 : 0)); });
     // A second branch out of the same box (IMP → AMP and IMP → GMP) starts a row lower, so the two arms never cross.
@@ -726,6 +797,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   layout(); // counts the columns each lane needs
   if (Object.keys(cols).length) layout(); // then lays out again with the lanes widened
   const ctr = id => ({ cx: pos[id].x, cy: pos[id].y + BH / 2 });
+  if (lanesOn) for (let i = 1; i <= last; i++) VIA_X.push(laneLeft(i));
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.x - BW / 2, y: q.y, w: BW, h: BH })); DRAW_LABELS = [];
   const xs = Object.values(pos).map(q => q.x);
   let W = Math.max(Math.max(...xs) + BW / 2 + (Object.keys(perRow).some(k => k.startsWith('side|')) ? 12 : 190), bypass.length ? Math.max(...xs) + BW / 2 + 330 : 0);
@@ -844,15 +916,21 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const y1 = pos[r.from].y + BH, y2 = pos[r.to].y, xa = pos[r.from].x, xb = pos[r.to].x;
     if (xa === xb) {
       const X = xa;
-      s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r));
-      s += enzLabel(X - 34, (y1 + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
-      DRAW_LABELS.push(enzRect(X - 34, (y1 + y2) / 2, 'end', items['e:' + r.id], 24));
-      const cs = cofSt(m, statusOf, r), ym = (y1 + y2) / 2;
-      if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, y1, y2, cofParts(m, statusOf, r));
+      // A via step: its carrier just below the box it leaves, the enzyme (and cofactors) below that.
+      const ya = r.via ? y1 + VIA_ROOM : y1;
+      s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r)) + (r.via ? viaPill(m, statusOf, r, [X, y1 + 22]) : '');
+      s += enzLabel(X - 34, (ya + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
+      DRAW_LABELS.push(enzRect(X - 34, (ya + y2) / 2, 'end', items['e:' + r.id], 24));
+      const cs = cofSt(m, statusOf, r);
+      if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, ya, y2, cofParts(m, statusOf, r));
     } else {
       // Crosses a membrane: down, across into the other lane, down (a right angle, not a slant).
-      const ym = (y1 + y2) / 2, pts = [[xa, y1 + 4], [xa, ym], [xb, ym], [xb, y2 - 4]];
-      s += elbow(pts, r.reversible, rxCls(r)) + elbowLabels(m, statusOf, r, [pts[1], pts[2]], null);
+      // With a carrier (r.via): across just below the first box, the carrier on the membrane, then the enzyme
+      // beside the drop into the other compartment, where it acts.
+      const ym = r.via ? y1 + 24 : (y1 + y2) / 2, pts = [[xa, y1 + 4], [xa, ym], [xb, ym], [xb, y2 - 4]];
+      // A transport: its carrier pill on the membrane it crosses.
+      if (r.transport && !r.via) { const at = viaAt(pts), it = items['e:' + r.id]; DRAW_LABELS.push(enzRect(at[0], at[1], 'middle', it, 22)); s += elbow(pts, r.reversible, rxCls(r)) + enzLabel(at[0], at[1], it, statusOf('e:' + r.id), 'middle', 22, 'center'); }
+      else s += elbow(pts, r.reversible, rxCls(r)) + (r.via ? elbowLabels(m, statusOf, r, null, [[xb, ym + 16], [xb, y2 - 4]]) + viaPill(m, statusOf, r, viaAt(pts)) : elbowLabels(m, statusOf, r, [pts[1], pts[2]], null));
     }
     // Extra products/reactants leave from the box's lower-right corner, clear of the cofactor text beside the arrow.
     // Extra products leave the box's side and turn down into theirs (glycogen → limit dextrin).
@@ -880,7 +958,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     const curve = (dx, y0, y1) => `M${x0},${y0} C${xc + dx},${y0} ${xc + dx},${y1} ${x0 + 6},${y1}`;
     s += `<path class="${rxCls(r)}" d="${curve(0, a.cy - 6, b.cy + (b.cy > a.cy ? -6 : 6))}"/>` + head(x0, b.cy + (b.cy > a.cy ? -6 : 6), Math.PI);
     if (r.reversible) s += `<path class="${rxCls(r)}" d="${curve(10, a.cy + 6, b.cy)}"/>` + head(x0, a.cy + 6, Math.PI, 8);
-    const my = (a.cy + b.cy) / 2, cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
+    const my = (a.cy + b.cy) / 2, cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofLine(m, statusOf, r) : '';
     s += enzLabel(xc + 12, my, items['e:' + r.id], statusOf('e:' + r.id), 'start', 20, 'center', ct ? [ct] : []);
     if (hidden(cs)) s += cofRow(xc + 12, my + 36, 'start', cofParts(m, statusOf, r));
   });
@@ -888,7 +966,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.x - BW / 2, y: q.y, w: BW, h: BH }])), undefined, Object.values(clusters).flat());
   DRAW_BOXES = [];
-  s += lk.s; W = Math.max(W, lk.maxX + 12);
+  s += lk.s; W = Math.max(W, lk.maxX + 12, ...DRAW_LABELS.map(l => l.x + l.w + 12));
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}${fg}</svg>`;
 }
 
@@ -924,10 +1002,17 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     }
     const up = b.to === sp; // sd feeds sp: it goes above
     // Room for the step's label between them: name, tags and what it needs.
-    const lines = wrap(items['e:' + b.id]?.name || '', 18).length + (b.tags || []).filter(t => t !== 'irreversible').length + wrap(needsText(b), 18).length;
-    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24)), t: pos[sp].t, side: true };
+    const lines = wrap(items['e:' + b.id]?.name || '', 18).length + (b.tags || []).filter(t => t !== 'irreversible').length;
+    pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24) + (b.via ? VIA_ROOM + 30 : 0)), t: pos[sp].t, side: true };
   });
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
+  // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
+  const speed = t => Math.hypot(RX * Math.sin(t), RY * Math.cos(t));
+  // Along the ring's direction there, the box edge is as far as the nearer of its side and its top/bottom.
+  const ext = t => { const L = speed(t), ux = Math.abs(RX * Math.sin(t) / L), uy = Math.abs(RY * Math.cos(t) / L); return (Math.min(ux > 1e-6 ? w / 2 / ux : Infinity, uy > 1e-6 ? BH / 2 / uy : Infinity) + 10) / L; };
+  const tangent = t => Math.atan2(RY * Math.cos(t), -RX * Math.sin(t));
+  // Where a via step's carrier sits: a third of the way along its arrow from the box it leaves (the membrane crosses there).
+  const viaT = r => { const a = pos[r.from].t; let b = pos[r.to].t; if (b <= a) b += 2 * Math.PI; const s1 = a + ext(a), s2 = b - ext(b); return s1 + (s2 - s1) * 0.34; };
   const counts = {};
   spine.forEach(r => { const l = locLabel(m, r); if (l) counts[l] = (counts[l] || 0) + 1; });
   const main = Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0];
@@ -945,7 +1030,9 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     const wedgePt = (t, f, d = 0) => [cx + (RX * f + d) * Math.cos(t), cy + (RY * f + d) * Math.sin(t)];
     runs.forEach(run => {
       run.rs.forEach(r => inRegion.add(r));
-      let t1 = pos[run.rs[0].from].t, t2 = pos[run.rs[run.rs.length - 1].to].t; if (t2 <= t1) t2 += 2 * Math.PI;
+      // A run entered or left through a carrier starts or ends at it, not at the box beyond.
+      const nx = spine[(run.end + 1) % spine.length], lastTo = run.rs[run.rs.length - 1].to;
+      let t1 = run.rs[0].via ? viaT(run.rs[0]) : pos[run.rs[0].from].t, t2 = nx?.via && nx.from === lastTo ? viaT(nx) : pos[lastTo].t; if (t2 <= t1) t2 += 2 * Math.PI;
       const OUT = 150, f = 0.42, large = t2 - t1 > Math.PI ? 1 : 0;
       const [ax, ay] = wedgePt(t1, 1, OUT), [bx, by] = wedgePt(t2, 1, OUT), [cx2, cy2] = wedgePt(t2, f), [dx, dy] = wedgePt(t1, f);
       s += `<path class="zone t-${zoneTone(run.k)}" d="M${ax},${ay} A${RX + OUT},${RY + OUT} 0 ${large} 1 ${bx},${by} L${cx2},${cy2} A${RX * f},${RY * f} 0 ${large} 0 ${dx},${dy} Z"/>`;
@@ -954,11 +1041,6 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
       s += zoneLabel(m, statusOf, run.k, lx, ly + 4, co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle');
     });
   }
-  // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
-  const speed = t => Math.hypot(RX * Math.sin(t), RY * Math.cos(t));
-  // Along the ring's direction there, the box edge is as far as the nearer of its side and its top/bottom.
-  const ext = t => { const L = speed(t), ux = Math.abs(RX * Math.sin(t) / L), uy = Math.abs(RY * Math.cos(t) / L); return (Math.min(ux > 1e-6 ? w / 2 / ux : Infinity, uy > 1e-6 ? BH / 2 / uy : Infinity) + 10) / L; };
-  const tangent = t => Math.atan2(RY * Math.cos(t), -RX * Math.sin(t));
   // A side box in another compartment than the ring's (cytosolic pyruvate beside the TCA cycle): its own patch.
   if (zones && mainKey) for (const [id, q] of Object.entries(pos)) {
     const own = p.metabolites[id]?.loc, k = own && zoneKey(m, own, p.metabolites[id].tissue);
@@ -966,6 +1048,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     s += `<rect class="zone t-${zoneTone(k)}" x="${q.cx - w / 2 - 22}" y="${q.cy - BH / 2 - 34}" width="${w + 44}" height="${BH + 56}" rx="16"/>`
       + `<text class="zonet" x="${q.cx}" y="${q.cy - BH / 2 - 14}" text-anchor="middle">${esc(own)}</text>`;
   }
+  let vias = ''; // carrier pills go over the arrows
   const arc = (d, t1, t2, cls) => { const [x1, y1] = pt(t1, d), [x2, y2] = pt(t2, d); return `<path class="${cls}" d="M${x1},${y1} A${RX + d},${RY + d} 0 ${t2 - t1 > Math.PI ? 1 : 0} 1 ${x2},${y2}"/>`; };
   spine.forEach(r => {
     const a = pos[r.from], b = pos[r.to];
@@ -977,8 +1060,9 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
       s += arc(-4, s1, s2 - h2, rxCls(r)) + head(...pt(s2, -4), tangent(s2), 8);
       s += arc(4, s1 + h1, s2, rxCls(r)) + head(...pt(s1, 4), tangent(s1) + Math.PI, 8);
     }
-    const tm = (s1 + s2) / 2, co = Math.cos(tm);
+    const tv = r.via ? viaT(r) : s1, tm = (tv + s2) / 2, co = Math.cos(tm);
     const anchor = co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle';
+    if (r.via) vias += viaPill(m, statusOf, r, pt(tv));
     const [lx, ly0] = pt(tm, 28 + (anchor === 'middle' ? 16 : 0));
     const here = locLabel(m, r), zst = m.items['z:' + keyOfR(r)] ? statusOf('z:' + keyOfR(r)) : 'shown';
     const loc = zones && here && here !== main && zst !== 'hide' && !inRegion.has(r) ? [hidden(zst) ? '(compartment?)' : here] : [];
@@ -987,24 +1071,25 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     DRAW_LABELS.push(enzRect(lx, ly0, anchor, it, 20));
     const cs = cofSt(m, statusOf, r);
     if (cs !== 'none' && cs !== 'hide') {
-      const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + wrap(needsText(r), 20).filter(Boolean).length + loc.length;
+      const lines = es === 'hide' ? 0 : hidden(es) ? 1.8 : wrap(it.name, 20).length + (r.tags || []).filter(t => t !== 'irreversible').length + loc.length;
       const ly = ly0 + Math.max(lines * 7.5, 0) + 14;
       if (hidden(cs)) s += cofRow(lx, ly + 6, anchor, cofParts(m, statusOf, r));
       else {
-        const ct = cofText(m, r.cofactors);
+        const ct = cofLine(m, statusOf, r);
         s += `<text class="coft" x="${lx}" y="${ly + 4}" text-anchor="${anchor}">${esc(ct)}</text>`;
         DRAW_LABELS.push(labelRect(lx, ly, anchor, ct, 99));
         s += cofMark(anchor === 'end' ? lx + 12 : anchor === 'start' ? lx - 12 : lx - ct.length * 3.3 - 12, ly, cs);
       }
     }
   });
+  s += vias;
   branches.forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, pos[r.from], pos[r.to], w, w); });
   spine.forEach(r => (r.also_from || []).forEach(id => { if (pos[id] && pos[r.to]) { const a = edgePt(pos[id], pos[r.to].cx, pos[r.to].cy, w), b = edgePt(pos[r.to], pos[id].cx, pos[id].cy, w); s += arrow(a[0], a[1], b[0], b[1], false); } }));
   for (const [id, q] of Object.entries(pos)) s += metBox(q.cx, q.cy - BH / 2, items['m:' + id], statusOf('m:' + id), w);
   const xs = Object.values(pos).map(q => q.cx), ys = Object.values(pos).map(q => q.cy);
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH }])), id => (!pos[id].side && Math.abs(Math.sin(pos[id].t)) > 0.9 ? (Math.sin(pos[id].t) < 0 ? 'up' : 'down') : pos[id].cx < cx ? 'left' : 'right'));
   s += lk.s; DRAW_BOXES = [];
-  const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20, lk.maxX + 12), H = Math.max(...ys) + BH / 2 + 180;
+  const W = Math.max(cx * 2, Math.max(...xs) + w / 2 + 20, lk.maxX + 12, ...DRAW_LABELS.map(l => l.x + l.w + 12)), H = Math.max(...ys) + BH / 2 + 180;
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} cycle diagram">${s}</svg>`;
 }
 
@@ -1129,19 +1214,24 @@ function conn(m, item, st, horiz, statusOf) {
   const ic = st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '';
   const badge = st === 'start' ? '<span class="badge">START</span> ' : '';
   const name = st === 'target' && INLINE ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(st) ? `<span class="bk">${blankWord(item)}</span>` : esc(item.name);
-  const tags = hidden(st) ? [] : (r.tags || []).filter(t => t !== 'irreversible');
+  const rlOk = !m.items['k:' + r.id] || cofVisible(statusOf('k:' + r.id) || 'shown');
+  const tags = hidden(st) ? [] : (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'rate-limiting' || rlOk));
   const cs = cofSt(m, statusOf, r), parts = cofParts(m, statusOf, r).filter(p => p.st !== 'hide');
   const mk = st => (st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '');
+  // A carrier first (r.via): "across: SLC25A38", a blank, or the answer field.
+  const tv = m.items['t:' + r.id], tst = tv && (statusOf(tv.key) || 'shown');
+  const across = !tv || tst === 'hide' ? '' : tst === 'target' && INLINE ? `across: <form class="inl" data-q="0">${inlineInput()}</form>`
+    : hidden(tst) ? `across: <span class="ename ${tst}"><span class="bk">transporter</span></span>` : 'across: ' + esc(tv.name) + mk(tst);
   const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + mk(cs)
     : hidden(cs) ? parts.map(p => isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st)).join(' → ') : '';
-  const extra = [ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, needsPart(r, st, statusOf)].filter(Boolean).join(' · ');
+  const extra = [across, ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, needsPart(r, st, statusOf)].filter(Boolean).join(' · ');
   return `<div class="conn"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}">${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
 }
 function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
   let lastLoc = null;
   const parts = m.seq.map(k => {
     const it = m.items[k], st = statusOf(k);
-    if (it.kind === 'cof') return '';
+    if (it.kind === 'cof' || it.kind === 'rl' || it.via) return ''; // carriers ride on their step; rate-limiting goes on top
     let row = '';
     if (it.kind === 'loc') {
       const st = statusOf(k);
@@ -1152,6 +1242,9 @@ function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
     }
     return row + listPart(m, it, st, horiz, statusOf);
   });
+  // Rate-limiting, while quizzed: a row of its own at the top, as the drawing's strip.
+  const rl = Object.values(m.items).filter(it => it.kind === 'rl').map(it => [it, statusOf(it.key) || 'shown']);
+  if (rl.length && !rl.every(([, st]) => st === 'shown' || st === 'hide')) parts.unshift(`<div class="locrow">RATE-LIMITING ${rl.map(([it, st]) => chip(it, st)).join(' ')}</div>`);
   if (m.p.circular) parts.push(`<div class="conn"><span class="arr">↺</span><div class="meta"><span class="cofs">back to the start</span></div></div>`);
   return `<div class="list ${horiz ? 'h' : 'v'}">${parts.join('')}</div>`;
 }
@@ -1175,10 +1268,10 @@ function tileWhere(p) {
     const own = p.metabolites[id].loc;
     if (own) { where[id] = { loc: own, tissue: p.metabolites[id].tissue }; continue; }
     // The main line decides (glucose: hexokinase's cytosol, not glucose-6-phosphatase's ER), then side steps.
-    const r = [false, true].map(br => rx.find(r => !!r.branch === br && r.to === id && !r.transport && r.loc) || rx.find(r => !!r.branch === br && r.from === id && !r.transport && r.loc)).find(Boolean) || rx.find(r => has(r, id) && !r.transport && r.loc);
+    const r = [false, true].map(br => rx.find(r => !!r.branch === br && r.to === id && !r.transport && r.loc) || rx.find(r => !!r.branch === br && r.from === id && !r.transport && !r.via && r.loc)).find(Boolean) || rx.find(r => has(r, id) && !r.transport && !(r.via && r.from === id) && r.loc);
     if (r) where[id] = { loc: r.loc, tissue: r.tissue };
   }
-  for (let pass = 0; pass < 4; pass++) for (const r of rx) if (!r.transport) {
+  for (let pass = 0; pass < 4; pass++) for (const r of rx) if (!r.transport && !r.via) {
     if (where[r.from] && !where[r.to]) where[r.to] = where[r.from];
     if (where[r.to] && !where[r.from]) where[r.from] = where[r.to];
   }

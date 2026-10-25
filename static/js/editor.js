@@ -157,6 +157,7 @@ function stepCards() {
         <label>From<select data-path="reactions.${i}.from">${metOpts(r.from)}</select></label>
         <label>${r.transport ? 'Transporter' : 'Enzyme'}<select data-path="reactions.${i}.enzyme">${enzOpts(r.enzyme)}</select></label>
         <label>To<select data-path="reactions.${i}.to">${metOpts(r.to)}</select></label>
+        ${r.transport ? '' : `<label title="When the From metabolite starts in another compartment: the transporter that brings it across, drawn on the membrane before the enzyme.">Carried across by<select data-path="reactions.${i}.via">${enzOpts(r.via || '').replace('— choose —', '— none —')}</select></label>`}
         <label class="cb"><input type="checkbox" data-path="reactions.${i}.reversible" ${r.reversible ? 'checked' : ''}> Reversible</label>
         <label class="cb"><input type="checkbox" data-path="reactions.${i}.branch" ${r.branch ? 'checked' : ''}> Side step (off the main line)</label>
         <label class="cb"><input type="checkbox" data-path="reactions.${i}.transport" ${r.transport ? 'checked' : ''}> Transport (crosses a membrane)</label>

@@ -1,7 +1,7 @@
 {
  "id": "nephron-thin-ascending",
  "name": "Thin ascending limb",
- "group": "Renal",
+ "group": "Nephron",
  "systems": [
   "Renal"
  ],

@@ -18,22 +18,6 @@
  "summary": "Liver. Starts in mitochondria — carbamoyl phosphate synthetase I (rate-limiting; NH₃ + HCO₃⁻ + 2 ATP → carbamoyl phosphate; needs N-acetylglutamate) and ornithine transcarbamylase — then finishes in the cytosol. Urea's two nitrogens: one from NH₃ (via carbamoyl phosphate), one from aspartate. “Ordinarily, Careless Crappers Are Also Frivolous About Urination.”",
  "circular": true,
  "metabolites": {
-  "ornithine": {
-   "name": "Ornithine",
-   "short": "Orn",
-   "aliases": [],
-   "notes": "Carried back into the mitochondrion to take up the next carbamoyl phosphate.",
-   "loc": "cytosol"
-  },
-  "citrulline": {
-   "name": "Citrulline (mitochondria)",
-   "short": "Cit",
-   "aliases": [
-    "Citrulline"
-   ],
-   "notes": "Leaves the mitochondrion for the cytosolic steps.",
-   "loc": "mitochondria"
-  },
   "argsucc": {
    "name": "Argininosuccinate",
    "short": "ASA",
@@ -47,21 +31,21 @@
    "aliases": [],
    "notes": "Also the substrate for nitric oxide synthase (→ NO + citrulline)."
   },
-  "orn_m": {
-   "name": "Ornithine (mitochondria)",
-   "short": "",
-   "aliases": [
-    "ornithine"
-   ],
-   "loc": "mitochondria"
-  },
-  "cit_c": {
-   "name": "Citrulline",
-   "short": "",
-   "aliases": [
-    "citrulline"
-   ],
+  "ornithine": {
+   "name": "Ornithine",
+   "short": "Orn",
+   "aliases": [],
+   "notes": "Carried back into the mitochondrion to take up the next carbamoyl phosphate.",
    "loc": "cytosol"
+  },
+  "citrulline": {
+   "name": "Citrulline",
+   "short": "Cit",
+   "aliases": [
+    "Citrulline"
+   ],
+   "notes": "Leaves the mitochondrion for the cytosolic steps.",
+   "loc": "mitochondria"
   }
  },
  "enzymes": {
@@ -114,22 +98,9 @@
  },
  "reactions": [
   {
-   "id": "r0",
-   "enzyme": "ornt1",
-   "from": "ornithine",
-   "to": "orn_m",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
    "id": "r1",
    "enzyme": "otc",
-   "from": "orn_m",
+   "from": "ornithine",
    "to": "citrulline",
    "reversible": false,
    "cofactors": {
@@ -143,25 +114,13 @@
    "loc": "mitochondria",
    "tags": [
     "irreversible"
-   ]
-  },
-  {
-   "id": "r1b",
-   "enzyme": "ornt1",
-   "from": "citrulline",
-   "to": "cit_c",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
+   ],
+   "via": "ornt1"
   },
   {
    "id": "r2",
    "enzyme": "ass",
-   "from": "cit_c",
+   "from": "citrulline",
    "to": "argsucc",
    "reversible": false,
    "cofactors": {
@@ -177,7 +136,8 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "via": "ornt1"
   },
   {
    "id": "r3",

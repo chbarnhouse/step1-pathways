@@ -6,7 +6,7 @@
 'use strict';
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
-const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', cof: 'cofactors', loc: 'compartment', eff: 'effect', grp: 'group' };
+const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', rl: 'rate-limiting enzyme', cof: 'cofactors', loc: 'compartment', eff: 'effect', grp: 'group' };
 const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'needs' }[q.side]) : q.item?.term || KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
@@ -14,7 +14,7 @@ const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine�
 function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
 function elSpecFor(cfg) {
   return {
-    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']], ['grp', 'Groupings', ['show', 'quiz', 'place', 'hide']]],
+    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['rl', 'Rate-limiting enzyme', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']], ['grp', 'Groupings', ['show', 'quiz', 'place', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)].map(([k, l, a]) => (cfg.mode === 'review' ? [k, l, a.filter(v => v === 'show' || v === 'hide')] : [k, l, a])); // Review: nothing is asked
@@ -22,6 +22,7 @@ function elSpecFor(cfg) {
 function elOf(cfg, k) {
   const spec = elSpecFor(cfg).find(x => x[0] === k);
   if (!spec) return 'hide';
+  if (k === 'rl' && elOf(cfg, 'enz') === 'hide') return 'hide'; // no enzyme names, so nothing to call rate-limiting
   return spec[2].includes(cfg.el[k]) ? cfg.el[k] : spec[2][0];
 }
 const el = k => elOf(Q.cfg, k);
@@ -32,7 +33,7 @@ const placing = () => el('loc') === 'place' && !Q.placed;
 // Groupings set to Draw yourself: no frames until you've drawn them (a round of their own, first). Q.gplaced = done.
 const groupsOf = m => Object.values(m?.items || {}).filter(it => it.kind === 'grp');
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff', g: 'grp' }[key[0]]);
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', t: 'trn', k: 'rl', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff', g: 'grp' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
@@ -47,7 +48,7 @@ function quizSummary(cfg) {
 /* ---------- questions ---------- */
 function mcOptions(item, m) {
   const p = m.p;
-  const trnIds = new Set(p.reactions.filter(r => r.transport).map(r => r.enzyme));
+  const trnIds = new Set(p.reactions.flatMap(r => (r.transport ? [r.enzyme] : r.via ? [r.via] : [])));
   const inPath = item.kind === 'met' ? Object.values(p.metabolites).map(x => x.name)
     : Object.entries(p.enzymes).filter(([id]) => trnIds.has(id) === (item.kind === 'trn')).map(([, e]) => e.name);
   const extra = item.kind === 'met' ? (p.distractors?.metabolites || []) : item.kind === 'trn' ? TRANSPORTER_DISTRACTORS : (p.distractors?.enzymes || []);

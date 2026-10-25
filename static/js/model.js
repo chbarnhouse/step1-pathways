@@ -8,6 +8,8 @@
        reversible, multiplier, requires[], tags[]
      loc        compartment (cytosol, mitochondrial matrix, ER lumen…); tissue: organ/cell type when it differs within a pathway
      transport  the step moves a metabolite between compartments; its "enzyme" is the transporter
+     via        an enzyme step whose substrate comes in from another compartment first: the transporter's id. The
+                substrate box stays where it starts; the carrier sits on the membrane, the enzyme on the far side ('t:<step>').
    circular:true → the last spine reaction returns to the first metabolite. pathway.tissue = where the pathway runs.
    groups[] {id, name, aliases, members[], notes}: named sets of metabolites (cells) drawn inside one dashed frame.
    effects:true → every step activates, or inhibits (tag "inhibits"); quizzable. */
@@ -33,6 +35,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   const m0 = { cof };
   for (const r of rx) {
     const e = enzs[r.enzyme];
+    if (r.via && enzs[r.via]) { const t = enzs[r.via]; items['t:' + r.id] = { key: 't:' + r.id, kind: 'trn', id: r.via, rxn: r, via: true, name: t.name, short: t.short, aliases: t.aliases || [], nicknames: t.nicknames, notes: t.notes }; }
     items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes, term: r.transport ? undefined : e.term || p.terms?.enz };
     // A step's cofactors are quizzable, one blank per side: 'c:<step>' is what goes in (or the only side there is),
     // 'o:<step>' what comes out when both sides exist. (Before 3.9 'c:' was the whole set; its history stays with the inputs.)
@@ -42,6 +45,9 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     if (ci.length && co.length) items['o:' + r.id] = cofItem('o:' + r.id, { out: co });
     // What the step needs (B6, biotin, TPP…): quizzed with the cofactors, any order, as 'n:<step>'.
     if ((r.requires || []).length) items['n:' + r.id] = { key: 'n:' + r.id, kind: 'cof', side: 'need', rxn: r, cofs: { in: needIds(cof, r) }, name: r.requires.join(', '), aliases: [], notes: null };
+    // Rate-limiting (tag "rate-limiting"): which enzyme it is, asked on its own as 'k:<step>' (the answer is the enzyme).
+    if ((r.tags || []).includes('rate-limiting') && !r.transport)
+      items['k:' + r.id] = { key: 'k:' + r.id, kind: 'rl', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes, term: 'rate-limiting enzyme' };
     // Its effect, in a pathway that marks them ("effects": true): it activates, or it inhibits (tag "inhibits"), as 'f:<step>'.
     if (p.effects || r.fx) {
       const inh = (r.tags || []).includes('inhibits');
@@ -59,7 +65,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { push('e:' + r.id); for (const k of ['f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); };
+  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push('e:' + r.id); for (const k of ['k:', 'f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.

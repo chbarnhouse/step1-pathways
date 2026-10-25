@@ -345,6 +345,7 @@ function rxnPanel(id) {
       <div class="vx-two"><label>From<select data-path="reactions.${i}.from">${metOpts(r.from)}</select></label><label>To<select data-path="reactions.${i}.to">${metOpts(r.to)}</select></label></div>
       <button type="button" class="btn small ghost" data-vx="swap">${mi('swap_horiz', 'sm')} Swap direction</button>
       <label>${r.transport ? 'Transporter' : 'Enzyme'}<select data-path="reactions.${i}.enzyme" data-focus="pick">${enzOpts(r.enzyme)}</select></label>
+      ${r.transport ? '' : `<label title="When the From metabolite starts in another compartment: the transporter that brings it across, drawn on the membrane before the enzyme.">Carried across by<select data-path="reactions.${i}.via">${enzOpts(r.via || '').replace('— choose —', '— none —')}</select></label>`}
       ${e ? `<fieldset class="vx-enzf"><legend>${esc(e.name || r.enzyme)}${shared > 1 ? ` <span class="muted">· used by ${shared} steps</span>` : ''}</legend>
         <label>Name<input data-path="${eb}.name" value="${esc(e.name)}" data-focus="enz"></label>
         <label>Abbreviation<input data-path="${eb}.short" value="${esc(e.short)}"></label>

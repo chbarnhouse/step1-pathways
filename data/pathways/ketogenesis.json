@@ -43,14 +43,6 @@
    ],
    "notes": "Branch point: in the cytosol, HMG-CoA reductase turns it toward cholesterol."
   },
-  "acac": {
-   "name": "Acetoacetate",
-   "short": "AcAc",
-   "aliases": [
-    "acetoacetic acid"
-   ],
-   "notes": "Detected by the nitroprusside urine test."
-  },
   "bhb": {
    "name": "β-Hydroxybutyrate",
    "short": "β-HB",
@@ -82,14 +74,13 @@
    ],
    "loc": "blood"
   },
-  "acac_b": {
-   "name": "Acetoacetate (blood)",
-   "short": "",
+  "acac": {
+   "name": "Acetoacetate",
+   "short": "AcAc",
    "aliases": [
-    "acetoacetate",
     "acetoacetic acid"
    ],
-   "loc": "blood"
+   "notes": "Detected by the nitroprusside urine test."
   }
  },
  "enzymes": {
@@ -244,23 +235,9 @@
    "loc": "plasma membrane"
   },
   {
-   "id": "r7",
-   "enzyme": "mct1",
-   "from": "acac",
-   "to": "acac_b",
-   "reversible": false,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "plasma membrane",
-   "branch": true
-  },
-  {
    "id": "r5",
    "enzyme": "spont",
-   "from": "acac_b",
+   "from": "acac",
    "to": "acetone",
    "reversible": false,
    "cofactors": {
@@ -270,7 +247,8 @@
     ]
    },
    "branch": true,
-   "loc": "blood"
+   "loc": "blood",
+   "via": "mct1"
   }
  ],
  "distractors": {

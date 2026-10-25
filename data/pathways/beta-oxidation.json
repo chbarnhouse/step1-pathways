@@ -40,16 +40,6 @@
    ],
    "notes": "Can't cross the inner mitochondrial membrane on its own (short and medium chains can)."
   },
-  "acylcarn": {
-   "name": "Acylcarnitine",
-   "short": "",
-   "aliases": [
-    "fatty acylcarnitine",
-    "acyl-carnitine"
-   ],
-   "notes": "Crosses the inner membrane via carnitine-acylcarnitine translocase. Elevated acylcarnitines on newborn screening point to fatty acid oxidation defects.",
-   "loc": "intermembrane space"
-  },
   "acylcoam": {
    "name": "Fatty acyl-CoA (matrix)",
    "short": "acyl-CoA",
@@ -106,13 +96,15 @@
    ],
    "notes": "Goes to the TCA cycle, or to ketone bodies in the liver when OAA is scarce."
   },
-  "acylcarnm": {
-   "name": "Acylcarnitine (matrix)",
+  "acylcarn": {
+   "name": "Acylcarnitine",
    "short": "",
    "aliases": [
-    "acylcarnitine",
-    "fatty acylcarnitine"
-   ]
+    "fatty acylcarnitine",
+    "acyl-carnitine"
+   ],
+   "notes": "Crosses the inner membrane via carnitine-acylcarnitine translocase. Elevated acylcarnitines on newborn screening point to fatty acid oxidation defects.",
+   "loc": "intermembrane space"
   }
  },
  "enzymes": {
@@ -243,22 +235,9 @@
    ]
   },
   {
-   "id": "r2b",
-   "enzyme": "cact",
-   "from": "acylcarn",
-   "to": "acylcarnm",
-   "reversible": true,
-   "transport": true,
-   "cofactors": {
-    "in": [],
-    "out": []
-   },
-   "loc": "inner mitochondrial membrane"
-  },
-  {
    "id": "r3",
    "enzyme": "cpt2",
-   "from": "acylcarnm",
+   "from": "acylcarn",
    "to": "acylcoam",
    "reversible": false,
    "cofactors": {
@@ -269,7 +248,8 @@
      "carnitine"
     ]
    },
-   "loc": "mitochondrial matrix"
+   "loc": "mitochondrial matrix",
+   "via": "cact"
   },
   {
    "id": "r4",
