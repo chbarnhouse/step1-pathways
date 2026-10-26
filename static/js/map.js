@@ -22,7 +22,7 @@ const MAP_LAYERS = [
   ['enz', 'Enzymes', ['e:', 'f:']], ['trn', 'Transporters', ['t:']], ['cof', 'Cofactors', ['c:', 'o:']], ['need', 'What steps need (vitamins)', ['n:']],
   ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['bands', 'Group bands', []],
 ];
-const MAP_DEFAULT = { layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, bands: true }, reg: '', off: null, q: '', side: true };
+const MAP_DEFAULT = { merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, bands: true }, reg: '', off: null, q: '', side: true };
 const mapCfg = () => { const c = local.get('pathways.map') || {}; return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null }; };
 const mapSave = c => local.set('pathways.map', c);
 const MAPV = { tiles: [], hits: [] };
@@ -71,8 +71,50 @@ function mapStatus(c, found) {
   };
 }
 
+/* Merged: the pathways that are on joined into one drawing, each shared molecule drawn once with every pathway
+   meeting at it (the same engine that joins pathways for a quiz). A search hit's keys, which name each pathway's own
+   ids, become the joined drawing's ids. */
+const MAP_MERGED = { sig: '', svg: '' };
+function mapMergedKey(P, pid, k) {
+  const T = P.stitch.tiles.find(t => t.id === pid), i = k.indexOf(':'), pre = k.slice(0, i + 1), id = k.slice(i + 1);
+  return pre === 'm:' ? T && T.mid[id] && 'm:' + T.mid[id] : pre + pid + '.' + id;
+}
+function mapMergedSVG(c) {
+  const off = mapOff(c), ids = mapPathways().filter(p => !off.has(p.id)).map(p => p.id);
+  MAPV.tiles = []; MAPV.merged = true;
+  if (!ids.length) return '';
+  const sig = JSON.stringify([ids, c.layers, c.reg, c.q, Store.data.custom && Object.keys(Store.data.custom).length]);
+  if (MAP_MERGED.sig === sig) return MAP_MERGED.svg;
+  // Built the way New quiz builds a set, so a pair that has its own combined drawing (glycolysis + gluconeogenesis) uses it.
+  const d = { pathway: ids[0], extra: [], combine: false }; ids.slice(1).forEach(id => addPathway(d, id));
+  const P = Library.get(draftPathway(d)); if (!P?.stitch && ids.length > 1) return '';
+  const m = modelFor(P), found = mapSearch(c.q);
+  // Lit: every key a search found (a whole pathway: its own steps and boxes).
+  let lit = null;
+  if (found) { lit = new Set();
+    for (const [pid, f] of Object.entries(found)) {
+      if (!ids.includes(pid)) continue;
+      if (f.all) { for (const k of Object.keys(m.items)) { const r = m.items[k].rxn; if ((r && r.id.startsWith(pid + '.')) || (k.startsWith('m:') && (P.stitch.origin.m[k.slice(2)] || []).some(([q]) => q === pid))) lit.add(k); } }
+      else for (const k of f.keys) { const mk = mapMergedKey(P, pid, k); if (mk) lit.add(mk); }
+    } }
+  const hide = new Set(MAP_LAYERS.filter(([k]) => !c.layers[k]).flatMap(([, , pre]) => pre));
+  const st = k => { const pre = k.slice(0, 2);
+    if (lit && lit.has(k) && !/^[me]:/.test(k)) return 'shown';
+    if (pre === 'y:' || pre === 'x:') return (pre === 'y:' ? 'fed' : 'fasting') === c.reg ? 'shown' : 'hide';
+    if (hide.has(pre)) return 'hide';
+    if (!lit) return 'shown';
+    return lit.has(k) ? (/^[me]:/.test(k) ? 'focus' : 'shown') : /^[em]:/.test(k) ? 'dim' : 'shown'; };
+  let svg;
+  try { LINK_NAV = true; svg = flowSVG(m, st, { zones: !!c.layers.loc }); } catch { return ''; } finally { LINK_NAV = false; }
+  if (!c.layers.links) svg = svg.replace(/<(a|g) class="xlink[\s\S]*?<\/\1>/g, '');
+  MAP_MERGED.sig = sig; MAP_MERGED.svg = svg.replace('class="flow', 'class="flow mapfull merged');
+  MAP_MERGED.P = P;
+  return MAP_MERGED.svg;
+}
 // Every pathway that's on, drawn and packed into its group's band: rows left to right, wrapping at the map's width.
 function mapSVG(c) {
+  if (c.merge) return mapMergedSVG(c);
+  MAPV.merged = false;
   const off = mapOff(c), found = mapSearch(c.q), st = mapStatus(c, found), GAP = 90, TITLE = 54;
   const drawn = mapGroups().map(([g, ps]) => [g, ps.filter(p => !off.has(p.id)).map(p => {
     let svg; DRAW_POS = {};
@@ -124,6 +166,8 @@ function mapSidebarHTML(c) {
   return `<div class="map-side-in">
     <label class="search">${mi('search', 'sm')}<input type="search" data-mapq placeholder="Find a pathway, molecule, enzyme, drug" value="${esc(c.q)}" aria-label="Find on the map"></label>
     ${results}
+    <h3 class="glabel">Layout</h3>
+    <div class="seg" role="group" aria-label="Layout">${[[false, 'Each pathway whole'], [true, 'Merge shared molecules']].map(([v, l]) => `<button type="button" data-mapmerge="${v}" aria-pressed="${!!c.merge === v}" data-tip="${v ? 'One drawing: each molecule once, with every pathway that uses it meeting there' : 'Each pathway on its own, grouped in bands; hover a molecule to see its other copies'}">${l}</button>`).join('')}</div>
     <h3 class="glabel">Show</h3>
     <div class="map-sw">${MAP_LAYERS.map(([k, l]) => sw('data-maplayer', k, !!c.layers[k], l)).join('')}</div>
     <h3 class="glabel">Fed or fasting</h3>
@@ -155,7 +199,19 @@ function mapRefresh(side = true) {
   if (side) $('#mapSide').innerHTML = mapSidebarHTML(c);
 }
 // Fly to a pathway (and its found item): centered, zoomed so the pathway fits (closer for one item).
+// On the merged drawing, where things are is read off the drawing itself: the found item's box or label, or else
+// everything of that pathway.
+function mapGoMerged(pid, keys) {
+  const st = $('#mapStage'), w = st?.querySelector('.world'), P = MAP_MERGED.P; if (!w || !P) return;
+  const want = keys.length ? keys.map(k => mapMergedKey(P, pid, k)).filter(Boolean) : Object.keys(modelFor(P).items).filter(k => modelFor(P).items[k].rxn?.id.startsWith(pid + '.'));
+  const els = want.flatMap(k => [...w.querySelectorAll(`[data-key="${CSS.escape(k)}"]`)]); if (!els.length) return;
+  const wr = w.getBoundingClientRect(), k0 = st._v?.k || 1, rs = els.map(e => e.getBoundingClientRect());
+  const x0 = (Math.min(...rs.map(r => r.left)) - wr.left) / k0, x1 = (Math.max(...rs.map(r => r.right)) - wr.left) / k0, y0 = (Math.min(...rs.map(r => r.top)) - wr.top) / k0, y1 = (Math.max(...rs.map(r => r.bottom)) - wr.top) / k0;
+  const k = Math.min(1.1, Math.max(0.3, Math.min((st.clientWidth - 80) / (x1 - x0 || 1), (st.clientHeight - 80) / (y1 - y0 || 1))));
+  setView(st, { k, x: st.clientWidth / 2 - (x0 + x1) / 2 * k, y: st.clientHeight / 2 - (y0 + y1) / 2 * k }, true);
+}
 function mapGo(pid, keys = []) {
+  if (MAPV.merged) return mapGoMerged(pid, keys);
   const st = $('#mapStage'), t = MAPV.tiles.find(x => x.id === pid); if (!st || !t) return;
   let px = t.x + t.w / 2, py = t.y + t.h / 2, k = Math.min(1.1, Math.max(0.3, Math.min((st.clientWidth - 60) / t.w, (st.clientHeight - 60) / t.h)));
   const at = keys.map(key => (key[0] === 'm' ? t.pos[key] && [t.pos[key].x + t.pos[key].w / 2, t.pos[key].y + t.pos[key].h / 2] : key[0] === 'e' ? t.steps[key.slice(2)] : null)).find(Boolean);
@@ -168,6 +224,8 @@ document.addEventListener('click', e => {
   const lay = t.closest('[data-maplayer]'), reg = t.closest('[data-mapreg]'), path = t.closest('[data-mappath]'), grp = t.closest('[data-mapgrp]'), all = t.closest('[data-mapall]'), go = t.closest('[data-mapgo]'), side = t.closest('[data-mapside]');
   if (lay) { c.layers[lay.dataset.maplayer] = !c.layers[lay.dataset.maplayer]; mapSave(c); return mapRefresh(); }
   if (reg) { c.reg = reg.dataset.mapreg; mapSave(c); return mapRefresh(); }
+  const mg = t.closest('[data-mapmerge]');
+  if (mg) { c.merge = mg.dataset.mapmerge === 'true'; mapSave(c); const st = $('#mapStage'); if (st) st._v = null; mapRefresh(); return applyZoom($('#view')); }
   if (path) { const id = path.dataset.mappath; off.has(id) ? off.delete(id) : off.add(id); c.off = [...off]; mapSave(c); return mapRefresh(); }
   if (grp) { const ps = mapGroups().find(([g]) => g === grp.dataset.mapgrp)?.[1] || [], allOn = ps.every(p => !off.has(p.id)); ps.forEach(p => (allOn ? off.add(p.id) : off.delete(p.id))); c.off = [...off]; mapSave(c); return mapRefresh(); }
   if (all) { c.off = all.dataset.mapall === '1' ? [] : mapPathways().map(p => p.id); mapSave(c); return mapRefresh(); }

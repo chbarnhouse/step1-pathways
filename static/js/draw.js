@@ -1664,7 +1664,7 @@ function stitchSVG(m, statusOf) {
     const onSteps = onStepsNow();
     // The arrow that will join them needs a clear right-angled path (either way round) past every other box.
     for (const [, dx, dy] of cands) {
-      const rs = rectsOf(R, dx, dy); if (clash(rs) || onSteps(rs)) continue;
+      const rs = rectsOf(R, dx, dy); if (clash(rs) || onSteps(rs) || overBoxes(R, dx, dy)) continue;
       if (route(shift(b, dx, dy), target, [...occ, ...rs].filter(r => r.box))) return [dx, dy];
     }
     for (const [, dx, dy] of cands) if (!clash(rectsOf(R, dx, dy))) return [dx, dy];
