@@ -90,6 +90,36 @@ function elbowLabels(m, statusOf, r, h, v) {
   }
   return s;
 }
+/* A step drawn between the parts of a joined drawing can put its name and cofactors on any leg of its route. Every
+   layout on every long-enough leg is scored by what it would cover (boxes and labels alike); the first that covers
+   nothing wins (longest legs first), else the one that covers least. */
+function routeStepLabels(m, statusOf, r, P) {
+  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), cof = cs !== 'none' && cs !== 'hide';
+  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.filter(q => q && hitsBox(q)).length;
+  const legs = P.slice(1).map((q, i) => [P[i], q]).map(([p, q]) => ({ p, q, h: Math.abs(p[1] - q[1]) < 1, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }))
+    .filter(l => l.len >= (l.h ? 150 : 80)).sort((a, b) => b.len - a.len);
+  const plans = [];
+  for (const { p, q, h, len } of legs) {
+    if (h) {
+      const y = p[1], dir = Math.sign(q[0] - p[0]);
+      for (const f of [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]) for (const up of cof ? [false, true] : [false]) {
+        const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = up ? y - 62 : y - 8;
+        const name = enzRect(mx, ly, 'middle', it, 22, 'bottom'), cb = cof && { x: a0, y: up ? y - 60 : y + 8, w: a1 - a0, h: 52 };
+        plans.push({ n: count([name, cb]), go: () => { DRAW_LABELS.push(name); return enzLabel(mx, ly, it, es, 'middle', 22, 'bottom') + (cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''); } });
+      }
+    } else {
+      const x = p[0], y0 = Math.min(p[1], q[1]), y1 = Math.max(p[1], q[1]), cw = cof ? Math.max(0, ...parts.map(t => (hidden(t.st) ? 110 : t.text.length * 7))) + 64 : 14;
+      const stretches = y1 - y0 > 150 ? [0.5, 0.35, 0.65, 0.22, 0.78].map(f => { const c = y0 + (y1 - y0) * f; return [Math.max(y0, c - 55), Math.min(y1, c + 55)]; }) : [[y0, y1]];
+      for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1]]) {
+        const c = (a0 + a1) / 2, name = enzRect(x + dx, c, an, it, 18), cb = cof && { x: sx > 0 ? x + 40 : x - cw, y: a0, w: cw - 30, h: a1 - a0 };
+        if (dx === 14 && cof) continue; // name right with cofactors left is the mirrored layout above
+        plans.push({ n: count([name, cb]), go: () => { DRAW_LABELS.push(name); return enzLabel(x + dx, c, it, es, an, 18, 'center') + (cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''); } });
+      }
+    }
+  }
+  if (!plans.length) return '';
+  return (plans.find(pl => !pl.n) || plans.slice().sort((a, b) => a.n - b.n)[0]).go();
+}
 function arrow(x1, y1, x2, y2, rev, cls = 'ln') {
   const ang = Math.atan2(y2 - y1, x2 - x1);
   const back = (x, y, d) => [x - Math.cos(ang) * d, y - Math.sin(ang) * d];
@@ -180,6 +210,11 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   const regs = regLines(item), drugs = drugLines(item);
   const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t]), ...regs.map(([it, st]) => (hidden(st) ? ['regblank', it, st] : ['reg', `${it.state === 'fed' ? 'FED' : 'FASTING'}: ${it.name === 'On' ? '▲ ON' : '▽ OFF'}`])),
     ...drugs.map(([it, st]) => (hidden(st) ? ['regblank', it, st] : ['drug', `${it.drug.effect === 'activates' ? '⊕' : '⊣'} ${it.name}${it.drug.kind === 'toxin' ? ' (toxin)' : ''}`]))];
+  // A carrier's pill sits centered on a crossing (its arrow one way, the membrane the other): its drugs and fed/fasting
+  // lines go under the pill, right-aligned just left of center, clear of both lines.
+  const besidePill = item.kind === 'trn' && anchor === 'middle' && all.length > lines.length + tags.length;
+  const side = besidePill ? all.slice(lines.length + tags.length) : [];
+  if (besidePill) all.length = lines.length + tags.length;
   const lh = 15, y0 = valign === 'bottom' ? y - (all.length - 1) * lh - 6 : y - (all.length - 1) * lh / 2;
   let s = `<g class="elab ${cls}${item.kind === 'trn' ? ' trn' : ''}" data-key="${item.key}">`;
   // A transporter's name sits in a pill, so it never reads as an enzyme.
@@ -187,12 +222,13 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
     const own = all.slice(0, lines.length + tags.length); // its name and tags, not the drugs listed under it
     const pw = Math.max(...own.map(([, l]) => l.length)) * 6.9 + 18, px = anchor === 'end' ? x - pw + 8 : anchor === 'start' ? x - 8 : x - pw / 2;
     s += `<rect class="trnpill" x="${px}" y="${y0 - 11}" width="${pw}" height="${(own.length - 1) * lh + 22}" rx="11"/>`;
+    if (side.length) { const sx = x - 8, sy = y0 + (own.length - 1) * lh + 11 + 12; side.forEach(([c, l, st], i) => { if (c !== 'regblank') s += `<text class="${c}" x="${sx}" y="${sy + i * lh}" text-anchor="end" dominant-baseline="central">${esc(l)}</text>`; else all.push([c, l, st, sx - pillW(l.kind === 'drug' ? l.term + '?' : 'fasting: on/off?'), sy + i * lh]); }); }
   }
   let pill = '';
-  all.forEach(([c, l, st], i) => {
-    const ly = y0 + i * lh + (c === 'regblank' ? 4 : 0); // a pill needs a little more room than a line of text
+  all.forEach(([c, l, st, ax, ay], i) => {
+    const ly = ay ?? y0 + i * lh + (c === 'regblank' ? 4 : 0); // a pill needs a little more room than a line of text
     if (c !== 'regblank') { s += `<text class="${c}" x="${x}" y="${ly}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; return; }
-    const word = l.kind === 'drug' ? l.term + '?' : l.state === 'fed' ? 'fed: on/off?' : 'fasting: on/off?', live = st === 'target' && INLINE, w = live ? 170 : pillW(word), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+    const word = l.kind === 'drug' ? l.term + '?' : l.state === 'fed' ? 'fed: on/off?' : 'fasting: on/off?', live = st === 'target' && INLINE, w = live ? 170 : pillW(word), rx = ax !== undefined ? ax : anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
     pill += live ? `<g class="elab target"><rect x="${rx}" y="${ly - 12}" width="${w}" height="24" rx="12"/></g>` + inlineField(rx + 4, ly - 10, w - 8, 20)
       : `<g class="elab regq ${st}" data-key="${l.key}"><rect x="${rx}" y="${ly - 11}" width="${w}" height="22" rx="11"/>${blankText(rx + w / 2, ly, word)}</g>`;
   });
@@ -248,6 +284,11 @@ const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b 
 const enzRect = (x, y, anchor, item, max = 18, valign = 'center') => {
   const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? (item.via ? viaTags(r) : shownTags(r)) : []), ...regLines(item).map(() => 'FASTING: ▽ OFF'), ...drugLines(item).map(([it]) => '⊣ ' + it.name + (it.drug?.kind === 'toxin' ? ' (toxin)' : ''))];
   const pill = item?.kind === 'trn', w = pill ? Math.max(1, ...lines.map(l => l.length)) * 6.9 + 18 : Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15 + (pill ? 8 : 0); // a transporter's pill
+  // A centered carrier pill with drugs or fed/fasting lines under it, left of center (enzLabel).
+  const own = r ? wrap(item?.name || '', max).length + (item.via ? viaTags(r) : shownTags(r)).length : 1, extra = lines.slice(own);
+  if (pill && anchor === 'middle' && extra.length) { const pw = Math.max(1, ...lines.slice(0, own).map(l => l.length)) * 6.9 + 18, ew = Math.max(...extra.map(l => l.length)) * 6.6, ph = own * 15 + 8, eh = extra.length * 15;
+    const top = valign === 'bottom' ? y - ph : y - ph / 2, x0 = Math.min(x - pw / 2, x - 8 - ew);
+    return { x: x0, y: top, w: x + pw / 2 - x0, h: ph + 6 + eh, rid: r?.id }; }
   return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h, rid: r?.id };
 };
 const labelRect = (x, y, anchor, text, max = 18, valign = 'center') => {
@@ -520,7 +561,14 @@ function withGroups(svg, m, statusOf, grps, pos) {
     if (!r) return;
     GROUP_RECTS[g.id] = r;
     if (st === 'hide') return;
-    const tone = g.tone || GROUP_TONES[i % GROUP_TONES.length], lx = r.x + 2, ly = r.y - 8;
+    // Its name above the top-left corner, or the top-right one when a step crosses the top edge where the name would be.
+    const crossX = (m.p.reactions || []).flatMap(x => [[x.from, x.to], [x.to, x.from]]).filter(([o, i2]) => g.members.includes(i2) && !g.members.includes(o) && pos['m:' + o] && pos['m:' + i2] && pos['m:' + o].y + pos['m:' + o].h < r.y)
+      .map(([, i2]) => pos['m:' + i2].x + pos['m:' + i2].w / 2);
+    // ...and clear of labels and of the other groups' frames.
+    const tw = g.name.length * 8.2 + 8, ty = r.y - 24, frames = grps.filter(o => o !== g).map(o => groupRect(o, pos, grps, DRAW_LABELS)).filter(Boolean);
+    const clear = x0 => !crossX.some(cx => cx > x0 - 10 && cx < x0 + tw + 10) && !DRAW_LABELS.some(l => overlaps(l, { x: x0, y: ty, w: tw, h: 20 }))
+      && !frames.some(f => ty + 20 > f.y && ty < f.y + f.h && ((f.x > x0 - 6 && f.x < x0 + tw + 6) || (f.x + f.w > x0 - 6 && f.x + f.w < x0 + tw + 6)));
+    const tone = g.tone || GROUP_TONES[i % GROUP_TONES.length], lx = [r.x + 2, r.x + r.w - 2 - tw, ...crossX.flatMap(cx => [cx + 12, cx - 12 - tw])].find(clear) ?? r.x + 2, ly = r.y - 8; // (beside the step when neither end is clear)
     back += `<rect class="gframe tone-${tone}${st === 'target' ? ' target' : ''}" x="${r.x}" y="${r.y}" width="${r.w}" height="${r.h}" rx="14"/>`;
     let label;
     if (st === 'target' && INLINE && !GROUP_INLINE_DONE) {
@@ -615,7 +663,14 @@ function viaPill(m, statusOf, r, at) {
 let CONN_STEPS = new Map();
 // Membrane lines of a grid with column bands (x positions): a transport step across one draws its carrier on it.
 let GRID_MEMBRANES = [], GRID_MEMBRANES_Y = []; // step id → how far along its line connectors land (0–1)
-const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get(r.id) < 0.5 ? 0.72 : 0.28) : r.via ? a + (b - a) * 0.72 : (a + b) / 2);
+// w: how wide the label is along the line; with it, a label on a step a connector lands on keeps clear of the landing.
+const labAt = (r, a, b, w = 0) => {
+  if (!CONN_STEPS.has(r.id)) return r.via ? a + (b - a) * 0.72 : (a + b) / 2;
+  const f = CONN_STEPS.get(r.id), def = a + (b - a) * (f < 0.5 ? 0.72 : 0.28); if (!w) return def;
+  const land = a + (b - a) * f, lo = Math.min(a, b), hi = Math.max(a, b), ok = c => c - w / 2 >= lo - 20 && c + w / 2 <= hi + 20;
+  const cs = [land - w / 2 - 14, land + w / 2 + 14].filter(ok).sort((p, q) => Math.abs(p - def) - Math.abs(q - def));
+  return cs[0] ?? def;
+};
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   VIA_PTS = null;
@@ -642,7 +697,7 @@ function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
     return elbow(pts, r.reversible, rxCls(r)) + enzLabel(gx + 12, mid, it, es, 'start', 18, 'center');
   }
   let s = arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r));
-  const mx = labAt(r, p1[0], p2[0]), my = labAt(r, p1[1], p2[1]);
+  const lw = enzRect(0, 0, 'middle', m.items['e:' + r.id], 16, 'bottom').w, mx = labAt(r, p1[0], p2[0], lw), my = labAt(r, p1[1], p2[1]);
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
   const xm = r.transport && !r.paracellular && Math.abs(p1[1] - p2[1]) < 4 ? GRID_MEMBRANES.find(x => x > Math.min(p1[0], p2[0]) && x < Math.max(p1[0], p2[0])) : undefined;
@@ -993,7 +1048,10 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     sideX = laneX(lanesOn ? last : 0) + SIDE_STEP + (bypass.length ? 190 : 0);
     pos = {}; perRow = {}; const forks = {};
     let yy = top;
-    spineMets.forEach((id, i) => { if (i) yy += BH + GAP + (spine[i - 1]?.via ? VIA_ROOM : 0); pos[id] = { x: laneX(L.laneOf[id] || 0), y: yy }; });
+    // A step drawn straight down (both boxes in one lane) whose label is taller than the gap (a carrier's pill with its
+    // drugs under it) gets the extra room it needs.
+    const tall = r => { const it = r && items['e:' + r.id]; if (!it || (lanesOn && (L.laneOf[r.from] || 0) !== (L.laneOf[r.to] || 0))) return 0; return Math.max(0, enzRect(0, 0, 'end', it, 24).h + 16 - GAP); };
+    spineMets.forEach((id, i) => { if (i) yy += BH + GAP + (spine[i - 1]?.via ? VIA_ROOM : 0) + tall(spine[i - 1]); pos[id] = { x: laneX(L.laneOf[id] || 0), y: yy }; });
     const place = (id, y, stack = 0) => {
       if (pos[id]) return;
       // Many extra inputs into one step (VOMIT → propionyl-CoA) stack in a column beside the line, not a long row.
@@ -1564,7 +1622,11 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   if (keep) { const at = svg.indexOf(`data-key="m:${keep}"`), g0 = svg.lastIndexOf('<g', at), g1 = svg.indexOf('</g>', at); if (at > 0) svg = svg.slice(0, g0) + svg.slice(g1 + 4); }
   const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
   const keptAt = keep && pos['m:' + keep]; if (keep) delete pos['m:' + keep];
-  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, steps, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
+  // Where its lines actually run (arrows, elbows, curls), sampled every 12 px: a joined drawing keeps other parts off them.
+  const pts = [], probe = pathProbe();
+  for (const pm of svg.matchAll(/<path class="([^"]*)" d="([^"]+)"/g)) { if (/\b(ah|region|xline)\b/.test(pm[1])) continue; probe.setAttribute('d', pm[2]); const L = probe.getTotalLength(); for (let l = 0; l <= L; l += 12) { const q = probe.getPointAtLength(l); pts.push([q.x, q.y]); } }
+  for (const lm of svg.matchAll(/<line class="ln[^"]*" x1="([-\d.]+)" y1="([-\d.]+)" x2="([-\d.]+)" y2="([-\d.]+)"/g)) { const [x1, y1, x2, y2] = lm.slice(1).map(Number), L = Math.hypot(x2 - x1, y2 - y1); for (let l = 0; l <= L; l += 12) pts.push([x1 + (x2 - x1) * l / (L || 1), y1 + (y2 - y1) * l / (L || 1)]); }
+  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, steps, pts, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
 }
 /* ---------- the nephron ----------
    Nephron segments studied together draw as a textbook nephron: one continuous tube (the tubular lumen) from the
@@ -1628,6 +1690,57 @@ function nephronSVG(m, statusOf) {
   }
   return `<svg class="flow stitched nephron" viewBox="0 0 ${x1 - x0} ${y1 - y0}" role="img" aria-label="${esc(m.p.name)}: nephron diagram"><g transform="translate(${-x0},${-y0})">${s}</g>${slots.join('')}</svg>`;
 }
+/* Routing on a grid, for the steps and joins between the parts of a joined drawing: the cheapest right-angled path on
+   a 20 px grid around the two ends (widening if it must). Boxes are walls; a label can be crossed but costs about a
+   long detour, so only when there's no other way; each bend costs a little; running along a line already drawn costs
+   more (crossing one is fine). The grid starts on a's center, so the path leaves a straight out of its middle.
+   Returns center-to-center points (the last inside b), or null. */
+function gridRoute(a, b, boxes, labels, drawnSegs = []) {
+  const S = 20, BEND = 3, LABEL = 40, ALONG = 6, ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
+  const touches = (l, q) => l.x < q.x + q.w + 8 && q.x < l.x + l.w + 8 && l.y < q.y + q.h + 8 && q.y < l.y + l.h + 8; // its own step's labels sit against its ends
+  for (const pad of [300, 900, 2400]) {
+    const X0 = Math.min(a.x, b.x) - pad, Y0 = Math.min(a.y, b.y) - pad, X1 = Math.max(a.x + a.w, b.x + b.w) + pad, Y1 = Math.max(a.y + a.h, b.y + b.h) + pad;
+    const ox = ac.x - Math.ceil((ac.x - X0) / S) * S, oy = ac.y - Math.ceil((ac.y - Y0) / S) * S, W = Math.ceil((X1 - ox) / S) + 1, H = Math.ceil((Y1 - oy) / S) + 1;
+    if (W * H > 600000) return null;
+    const cost = new Float32Array(W * H).fill(1), lineH = new Uint8Array(W * H), lineV = new Uint8Array(W * H);
+    const cells = (r, infl, f) => { const i0 = Math.max(0, Math.ceil((r.x - infl - ox) / S)), i1 = Math.min(W - 1, Math.floor((r.x + r.w + infl - ox) / S)), j0 = Math.max(0, Math.ceil((r.y - infl - oy) / S)), j1 = Math.min(H - 1, Math.floor((r.y + r.h + infl - oy) / S));
+      for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) f(j * W + i); };
+    for (const r of labels) if (!touches(r, a) && !touches(r, b)) cells(r, 4, n => { cost[n] += LABEL; });
+    for (const r of boxes) if (!same(r, a) && !same(r, b)) cells(r, 10, n => { cost[n] = Infinity; });
+    const inA = new Uint8Array(W * H); cells(a, 0, n => { cost[n] = 1; inA[n] = 1; }); const goal = new Uint8Array(W * H); cells(b, -2, n => { cost[n] = 1; goal[n] = 1; });
+    for (const [p, q] of drawnSegs) { const h = Math.abs(p[1] - q[1]) < 1; cells({ x: Math.min(p[0], q[0]), y: Math.min(p[1], q[1]), w: Math.abs(q[0] - p[0]), h: Math.abs(q[1] - p[1]) }, 6, n => { (h ? lineH : lineV)[n] = 1; }); }
+    const start = Math.round((ac.y - oy) / S) * W + Math.round((ac.x - ox) / S), bc = { i: (b.x + b.w / 2 - ox) / S, j: (b.y + b.h / 2 - oy) / S };
+    // A* over (cell, direction); a small binary heap.
+    const N = W * H * 4, g = new Float32Array(N).fill(Infinity), from = new Int32Array(N).fill(-1), heap = [], hp = [];
+    const push = (s, f) => { heap.push(s); hp.push(f); let i = heap.length - 1; while (i) { const p = (i - 1) >> 1; if (hp[p] <= hp[i]) break; [heap[p], heap[i]] = [heap[i], heap[p]]; [hp[p], hp[i]] = [hp[i], hp[p]]; i = p; } };
+    const pop = () => { const s = heap[0], ls = heap.pop(), lf = hp.pop(); if (heap.length) { heap[0] = ls; hp[0] = lf; let i = 0; for (;;) { const l = 2 * i + 1, r = l + 1; let m = i; if (l < heap.length && hp[l] < hp[m]) m = l; if (r < heap.length && hp[r] < hp[m]) m = r; if (m === i) break; [heap[m], heap[i]] = [heap[i], heap[m]]; [hp[m], hp[i]] = [hp[i], hp[m]]; i = m; } } return s; };
+    const hf = n => Math.abs(n % W - bc.i) + Math.abs(Math.floor(n / W) - bc.j);
+    for (let d = 0; d < 4; d++) { g[start * 4 + d] = 0; push(start * 4 + d, hf(start)); }
+    const DI = [1, -1, 0, 0], DJ = [0, 0, 1, -1];
+    let end = -1, guard = 0;
+    while (heap.length && guard++ < 2e6) {
+      const s = pop(), n = s >> 2, d = s & 3, gs = g[s];
+      if (goal[n] && n !== start) { end = s; break; }
+      const i = n % W, j = (n - i) / W;
+      for (let e = 0; e < 4; e++) {
+        if ((d ^ 1) === e && d >> 1 === e >> 1) continue; // no turning back
+        if (inA[n] && n !== start && e !== d) continue; // straight out of its own box (no turning under its name)
+        const ni = i + DI[e], nj = j + DJ[e]; if (ni < 0 || nj < 0 || ni >= W || nj >= H) continue;
+        const nn = nj * W + ni, c = cost[nn]; if (c === Infinity) continue;
+        const ng = gs + c + (e === d ? 0 : BEND) + ((e < 2 ? lineH : lineV)[nn] ? ALONG : 0), t = nn * 4 + e;
+        if (ng < g[t]) { g[t] = ng; from[t] = s; push(t, ng + hf(nn)); }
+      }
+    }
+    if (end < 0) continue;
+    const path = []; for (let s = end; s >= 0; s = from[s]) path.push(s >> 2); path.reverse();
+    const pt = n => [ox + (n % W) * S, oy + Math.floor(n / W) * S], pts = [pt(path[0])];
+    for (let k = 1; k < path.length; k++) { const p = pts[pts.length - 1], q = pt(path[k]), r = pts.length > 1 ? pts[pts.length - 2] : null;
+      if (r && ((r[0] === p[0] && p[0] === q[0]) || (r[1] === p[1] && p[1] === q[1]))) pts[pts.length - 1] = q; else pts.push(q); }
+    pts[0] = [ac.x, ac.y];
+    return pts.length > 1 ? pts : null;
+  }
+  return null;
+}
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
   const owner = {}; tiles.forEach((t, i) => t.ids.forEach(id => { if (!(id in owner)) owner[id] = i; }));
@@ -1636,7 +1749,21 @@ function stitchSVG(m, statusOf) {
   const shift = (r, dx, dy) => ({ x: r.x + dx, y: r.y + dy, w: r.w, h: r.h });
   // Boxes keep a wide berth from everything; two labels only need not to touch.
   const rectsOf = (R, dx, dy) => [...Object.values(R.pos).map(r => ({ ...r, box: true })), ...R.labels].map(r => ({ ...shift(r, dx, dy), box: r.box }));
-  const clash = (rs, skip) => rs.some(r => occ.some(o => { if (skip && o.x === skip.x && o.y === skip.y && o.box) return false; const g = r.box || o.box ? M : 3; return r.x < o.x + o.w + g && r.x + r.w > o.x - g && r.y < o.y + o.h + g && r.y + r.h > o.y - g; }));
+  // (Through the bucket index below: only the things near each rectangle are compared.)
+  const clash = (rs, skip) => { index(); return rs.some(r => { for (let i = Math.floor((r.x - M) / B); i <= Math.floor((r.x + r.w + M) / B); i++) for (let j = Math.floor((r.y - M) / B); j <= Math.floor((r.y + r.h + M) / B); j++) {
+    const os = XI.rects.get(bucketKey(i, j)); if (os && os.some(o => { if (skip && o.x === skip.x && o.y === skip.y && o.box) return false; const g = r.box || o.box ? M : 3; return r.x < o.x + o.w + g && r.x + r.w > o.x - g && r.y < o.y + o.h + g && r.y + r.h > o.y - g; })) return true; } return false; }); };
+  /* Lines against things, both ways, with the drawn geometry: a new part's lines may not run through anything placed,
+     and the placed parts' lines may not run through the new part's boxes and labels. A 64-px bucket grid keeps it quick. */
+  const B = 64, bucketKey = (i, j) => i * 100003 + j, XI = { rects: new Map(), pts: new Map(), n: -1 };
+  const addRect = r => { for (let i = Math.floor(r.x / B); i <= Math.floor((r.x + r.w) / B); i++) for (let j = Math.floor(r.y / B); j <= Math.floor((r.y + r.h) / B); j++) { const k = bucketKey(i, j); (XI.rects.get(k) || XI.rects.set(k, []).get(k)).push(r); } };
+  const index = () => { const sig = occ.length * 1000 + placed.length + (occ[0]?.x || 0) + (occ[occ.length - 1]?.y || 0); if (XI.n === sig) return; XI.rects.clear(); XI.pts.clear(); occ.forEach(addRect);
+    for (const P of placed) for (const [x, y] of P.pts || []) { const k = bucketKey(Math.floor((x + P.dx) / B), Math.floor((y + P.dy) / B)); (XI.pts.get(k) || XI.pts.set(k, []).get(k)).push([x + P.dx, y + P.dy]); }
+    XI.n = sig; };
+  const inside = (x, y, r, g) => x > r.x - g && x < r.x + r.w + g && y > r.y - g && y < r.y + r.h + g;
+  const crosses = (R, dx, dy, skip) => { index();
+    for (const [x0, y0] of R.pts || []) { const x = x0 + dx, y = y0 + dy, rs = XI.rects.get(bucketKey(Math.floor(x / B), Math.floor(y / B))); if (rs && rs.some(r => !(skip && r.box && same(r, skip)) && inside(x, y, r, r.box ? 6 : 2))) return true; }
+    for (const r of rectsOf(R, dx, dy)) for (let i = Math.floor(r.x / B); i <= Math.floor((r.x + r.w) / B); i++) for (let j = Math.floor(r.y / B); j <= Math.floor((r.y + r.h) / B); j++) { const ps = XI.pts.get(bucketKey(i, j)); if (ps && ps.some(([x, y]) => inside(x, y, r, r.box ? 6 : 2))) return true; }
+    return false; };
   const place = (R, dx, dy) => {
     R.dx = dx; R.dy = dy; placed.push(R); occ.push(...rectsOf(R, dx, dy));
     for (const [k, r] of Object.entries(R.pos)) if (!G[k]) G[k] = { ...shift(r, dx, dy), R, id: k.slice(2) };
@@ -1664,7 +1791,7 @@ function stitchSVG(m, statusOf) {
     const onSteps = onStepsNow();
     // The arrow that will join them needs a clear right-angled path (either way round) past every other box.
     for (const [, dx, dy] of cands) {
-      const rs = rectsOf(R, dx, dy); if (clash(rs) || onSteps(rs) || overBoxes(R, dx, dy)) continue;
+      const rs = rectsOf(R, dx, dy); if (clash(rs) || onSteps(rs) || overBoxes(R, dx, dy) || crosses(R, dx, dy)) continue;
       if (route(shift(b, dx, dy), target, [...occ, ...rs].filter(r => r.box))) return [dx, dy];
     }
     for (const [, dx, dy] of cands) if (!clash(rectsOf(R, dx, dy))) return [dx, dy];
@@ -1700,8 +1827,10 @@ function stitchSVG(m, statusOf) {
     if (Math.abs(A.cx - B.cx) < 4 || Math.abs(A.cy - B.cy) < 4) cands.push([[A.cx, A.cy], [B.cx, B.cy]]);
     cands.push([[A.cx, A.cy], [B.cx, A.cy], [B.cx, B.cy]], [[A.cx, A.cy], [A.cx, B.cy], [B.cx, B.cy]]);
     const lo = Math.min(a.x, b.x) - 50, hi = Math.max(a.x + a.w, b.x + b.w) + 50, top = Math.min(a.y, b.y) - 50, bot = Math.max(a.y + a.h, b.y + b.h) + 50;
-    for (const xm of [(A.cx + B.cx) / 2, lo, hi, lo - 120, hi + 120, lo - 300, hi + 300]) cands.push([[A.cx, A.cy], [xm, A.cy], [xm, B.cy], [B.cx, B.cy]]);
-    for (const ym of [(A.cy + B.cy) / 2, top, bot, top - 120, bot + 120, top - 300, bot + 300]) cands.push([[A.cx, A.cy], [A.cx, ym], [B.cx, ym], [B.cx, B.cy]]);
+    // The gap between them at a few points, and around both, further out each time (a big joined drawing needs room).
+    const midX = [0.25, 0.5, 0.75].map(f => A.cx + (B.cx - A.cx) * f), midY = [0.25, 0.5, 0.75].map(f => A.cy + (B.cy - A.cy) * f), out = [0, 120, 300, 500, 800];
+    for (const xm of [...midX, ...out.flatMap(o => [lo - o, hi + o])]) cands.push([[A.cx, A.cy], [xm, A.cy], [xm, B.cy], [B.cx, B.cy]]);
+    for (const ym of [...midY, ...out.flatMap(o => [top - o, bot + o])]) cands.push([[A.cx, A.cy], [A.cx, ym], [B.cx, ym], [B.cx, B.cy]]);
     const len = pts => pts.slice(1).reduce((n, q, i) => n + Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1]), 0) + 80 * (pts.length - 2);
     // When drawing (not while placing parts), each route may also enter or leave its boxes off-center.
     const all = spread ? cands.flatMap(c => [0, 50, -50].flatMap(o1 => [0, 50, -50].map(o2 => nudge(nudge(c, false, o1), true, o2)))) : cands;
@@ -1710,7 +1839,9 @@ function stitchSVG(m, statusOf) {
       for (let i = 1; i < pts.length; i++) if (others.some(r => segHits(pts[i - 1], pts[i], r)) || alongside(pts[i - 1], pts[i])) return false;
       return true;
     }).sort((x, y) => cost(x) - cost(y));
-    return ok[0] || null;
+    // A route that crosses no label at all wins, however much longer; only when there's none does it graze the fewest.
+    const clean = ok.filter(pts => !pts.slice(1).some((q, i) => softs.some(l => segHits(pts[i], q, l))));
+    return clean[0] || ok[0] || null;
   };
   // A route's ends moved out to the box edges.
   const trim = (pts, a, b) => {
@@ -1720,7 +1851,7 @@ function stitchSVG(m, statusOf) {
     return P;
   };
   const drawRoute = (r, a, b, cls, labels = true) => {
-    const pts = route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
@@ -1730,7 +1861,7 @@ function stitchSVG(m, statusOf) {
     const ti = r?.via && m.items['t:' + r.id], at = ti && viaAt(P, ti), hold = ti && enzRect(at[0], at[1], 'middle', ti, 22);
     const routeLabels = (hh, vv) => {
       if (hold) DRAW_LABELS.push(hold);
-      const lab = (hh || vv) ? elbowLabels(m, statusOf, r, hh, vv) : '';
+      const lab = (hh || vv) ? routeStepLabels(m, statusOf, r, P) || elbowLabels(m, statusOf, r, hh, vv) : '';
       if (hold) DRAW_LABELS.splice(DRAW_LABELS.indexOf(hold), 1);
       return lab + (ti ? viaPill(m, statusOf, r, at) : '');
     };
@@ -1762,7 +1893,7 @@ function stitchSVG(m, statusOf) {
           const Rc = renderTile(T, statusOf, oth, sh, rot), a = G['m:' + sh], b = Rc.keptAt;
           if (!b) continue;
           const dx = ctr(a).cx - ctr(b).cx, dy = ctr(a).cy - ctr(b).cy;
-          if (!clash(rectsOf(Rc, dx, dy), a)) { best = { R: Rc, dx, dy, oth, dups }; break; }
+          if (!clash(rectsOf(Rc, dx, dy), a) && !crosses(Rc, dx, dy, a)) { best = { R: Rc, dx, dy, oth, dups }; break; }
         }
         if (best && !best.dups) break;
       }
@@ -1823,7 +1954,7 @@ function stitchSVG(m, statusOf) {
           for (const d of [150, 200, 260, 330, 420, 520, 640, 780]) for (const sl of [0, 60, -60, 130, -130, 260, -260, 400, -400, 550, -550]) {
             const cost = d + 0.6 * Math.abs(sl); if (cost >= best) continue;
             const dx = mx + nx * d + ux * sl - qx, dy = my + ny * d + uy * sl - qy, rs = rectsOf(R, dx, dy);
-            if (!clash(rs) && !onSteps(rs) && !overBoxes(R, dx, dy)) { got = [R, dx, dy]; best = cost; }
+            if (!clash(rs) && !onSteps(rs) && !overBoxes(R, dx, dy) && !crosses(R, dx, dy)) { got = [R, dx, dy]; best = cost; }
           }
         }
       }
@@ -1913,7 +2044,7 @@ function stitchSVG(m, statusOf) {
     if (intoCof) {
       // Box → the cofactor label it becomes an input to: an arrowhead into the label.
       const dst = intoCof === 'a' ? a : b, near = l => !(l.x < dst.x + dst.w + 6 && dst.x < l.x + l.w + 6 && l.y < dst.y + dst.h + 6 && dst.y < l.y + l.h + 6);
-      const pts = route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = gridRoute(a, b, [...DRAW_BOXES, ...(d.sib || [])], DRAW_LABELS.filter(near), drawn) || route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (intoCof === 'a') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += elbow(P, false, 'xline xhand');
@@ -1921,21 +2052,22 @@ function stitchSVG(m, statusOf) {
     }
     if (fromCof) {
       const src = fromCof === 'a' ? a : b, near = l => !(l.x < src.x + src.w + 6 && src.x < l.x + l.w + 6 && l.y < src.y + src.h + 6 && src.y < l.y + l.h + 6);
-      const pts = route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = gridRoute(a, b, [...DRAW_BOXES, ...(d.sib || [])], DRAW_LABELS.filter(near), drawn) || route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (fromCof === 'b') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += `<circle class="xdot" cx="${P[0][0]}" cy="${P[0][1]}" r="3"/>` + elbow(P, false, 'xline xhand');
       continue;
     }
     // Routed like the arrows (clear of boxes and labels, never along another line), its name on the longest leg.
-    const pts = route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
+    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
     const P = trim(pts, a, b); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     between += elbow(P, false, 'xline').replace(/<path class="ah"[^>]*\/>/, ''); // rounded corners, no arrowhead
     if (d.label) {
       // On a stretch of the line where it covers nothing; the middle of the longest leg if there's none.
       const w = d.label.length * 6.4 + 20, segs = P.slice(1).map((q, i) => [P[i], q]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
-      const spots = segs.flatMap(([u, v]) => [0.5, 0.3, 0.7, 0.15, 0.85].map(f => [u[0] + (v[0] - u[0]) * f, u[1] + (v[1] - u[1]) * f]));
-      const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots[0];
+      const spots = segs.flatMap(([u, v]) => [0.5, 0.3, 0.7, 0.4, 0.6, 0.2, 0.8, 0.12, 0.88].map(f => [u[0] + (v[0] - u[0]) * f, u[1] + (v[1] - u[1]) * f]));
+      const area = (x, y) => [...DRAW_BOXES, ...DRAW_LABELS].reduce((n, r) => n + Math.max(0, Math.min(x + w / 2, r.x + r.w) - Math.max(x - w / 2, r.x)) * Math.max(0, Math.min(y + 11, r.y + r.h) - Math.max(y - 11, r.y)), 0);
+      const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots.slice().sort((p, q) => area(...p) - area(...q))[0];
       DRAW_LABELS.push({ x: tx - w / 2, y: ty - 11, w, h: 22 });
       between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${esc(d.label)}</text>`;
     }
@@ -1966,7 +2098,8 @@ function stitchSVG(m, statusOf) {
     between += elbow(P, false, 'xline xhand couple').replace(/<path class="ah"[^>]*\/>/, '') + `<circle class="xdot" cx="${p[0]}" cy="${p[1]}" r="3"/><circle class="xdot" cx="${q[0]}" cy="${q[1]}" r="3"/>`;
     if (far) {
       const segs = P.slice(1).map((v, i) => [P[i], v]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
-      const label = 'same step', w = label.length * 6.4 + 20, [[u0, u1], [v0, v1]] = segs[0], tx = (u0 + v0) / 2, ty = (u1 + v1) / 2;
+      const label = 'same step', w = label.length * 6.4 + 20, spots = segs.flatMap(([[u0, u1], [v0, v1]]) => [0.5, 0.3, 0.7, 0.2, 0.8].map(f => [u0 + (v0 - u0) * f, u1 + (v1 - u1) * f]));
+      const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots[0]; DRAW_LABELS.push({ x: tx - w / 2, y: ty - 11, w, h: 22 });
       between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${label}</text>`;
     }
   }
@@ -1998,6 +2131,11 @@ function stitchSVG(m, statusOf) {
   let bg = '', fg = '';
   ZONE_INLINE_DONE = false;
   const regions = [], tabs = [];
+  // The lines drawn between parts, as thin rectangles: a name tab never sits on one.
+  // ...nor on any part's own lines (their sampled points, in the bucket index).
+  const onLine = r => { index(); for (let i = Math.floor((r.x - 3) / B); i <= Math.floor((r.x + r.w + 3) / B); i++) for (let j = Math.floor((r.y - 3) / B); j <= Math.floor((r.y + r.h + 3) / B); j++) { const ps = XI.pts.get(bucketKey(i, j)); if (ps && ps.some(([x, y]) => inside(x, y, r, 3))) return true; } return false; };
+  const onBox = r => Object.values(G).some(b => hit(r, { x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 }));
+  const lineRects = drawn.map(([p, q]) => ({ x: Math.min(p[0], q[0]) - 2, y: Math.min(p[1], q[1]) - 2, w: Math.abs(q[0] - p[0]) + 4, h: Math.abs(q[1] - p[1]) + 4 }));
   // Each connected piece is one shape: a plain rounded rectangle when the corner it would leave out is empty anyway,
   // else its own outline, fitting around the other compartment like a puzzle piece.
   const pieces = {};
@@ -2008,6 +2146,17 @@ function stitchSVG(m, statusOf) {
     pieces[z] = Object.values(groups);
   }
   const boxOf = g => g.reduce(bbox);
+  // A piece too narrow for its name tab (one box in "kidney, colon, salivary glands, placenta · smooth ER") widens along
+  // its top to fit it, when that runs into no other compartment; else the tab goes just outside it.
+  for (const [z, gs] of Object.entries(pieces)) {
+    const tw = (m.items['z:' + z]?.name || '').length * 8.1 + 16, need = tw + 32;
+    for (const g of gs) {
+      const b = boxOf(g); if (Math.max(...g.map(r => r.w)) >= need) continue;
+      const wide = { x: b.x + b.w / 2 - need / 2, y: b.y, w: need, h: Math.min(b.h, 64) };
+      const others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
+      if (!others.some(o => hit(wide, o)) && !Object.entries(G).some(([k, r]) => zoneOf[k] !== z && hit(wide, r))) g.push(wide);
+    }
+  }
   // Its own boxes (padded) are never cut; the filler between them (joins, a ring's middle) may be.
   const ownBoxes = z => Object.entries(zoneOf).filter(([, z2]) => z2 === z).map(([k]) => pad(G[k]));
   for (const [z, gs] of Object.entries(pieces)) {
@@ -2016,21 +2165,28 @@ function stitchSVG(m, statusOf) {
       return g.length === 1 || !others.some(o => hit(b, o)) ? `<rect class="t-${zoneTone(z)}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${REGION_R}"/>` : `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${unionPath(boxMinus(b, ownBoxes(z).filter(o => hit(b, o)), others.filter(o => hit(b, o))))}"/>`; }).join('')}</g>`;
   }
   for (const [z, gs] of Object.entries(pieces)) {
-    for (const g0 of gs) {
+    // Named once per neighborhood, as a wall chart does: the biggest piece first; a piece within 600 px of one already
+    // named (the cytosol either side of a vesicle) goes without.
+    const named = [], near = (a, b) => a.x - 600 < b.x + b.w && b.x - 600 < a.x + a.w && a.y - 600 < b.y + b.h && b.y - 600 < a.y + a.h;
+    for (const g0 of gs.slice().sort((p, q) => { const a = boxOf(p), b = boxOf(q); return b.w * b.h - a.w * a.h; })) {
       const b0 = boxOf(g0), others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
+      if (named.some(n => near(n, b0))) { regions.push(b0); continue; }
+      named.push(b0);
       const g = g0.length === 1 || !others.some(o => hit(b0, o)) ? [b0] : [b0, ...g0]; // where its name can go: its corners first
       // On a top edge, left or right end, wherever it doesn't cover a label or box (topmost edge first).
-      const name = m.items['z:' + z]?.name || '', tw = name.length * 8.1 + 16, free = r => ![...occ, ...DRAW_LABELS].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o));
+      const name = m.items['z:' + z]?.name || '', tw = name.length * 8.1 + 16, free = r => ![...occ, ...DRAW_LABELS, ...lineRects].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o)) && !onLine(r);
       const spots = g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - 22 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - 22 },
         { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - 22 }, { x: r.x + 12, y: r.y - 9 }, { x: r.x + r.w - 12 - tw, y: r.y - 9 }, { x: r.x + 12, y: r.y + r.h - 9 }]); // on the edge itself, last
       // Then anywhere along each edge, a step at a time, inside the shape or on its border.
       g.forEach(r => { for (const y of [r.y + 4, r.y + r.h - 22, r.y - 9, r.y + r.h - 9]) for (let x = r.x + 12; x <= r.x + r.w - 12 - tw; x += 20) spots.push({ x, y }); });
       // Nowhere fully free: the spot it covers least of (labels count most), just outside the shape too.
       g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - 22 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - 9 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - 9 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - 9 }, { x: r.x - tw - 6, y: r.y + 4 }));
-      const cost = q => { const t = { ...q, w: tw, h: 18 }; return [...occ, ...DRAW_LABELS].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
-      const at = spots.find(q => free({ ...q, w: tw, h: 18 }) && !others.some(o => hit({ ...q, w: tw, h: 18 }, o))) || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
+      // Further out still: a cramped compartment's name may sit a little away from it, never on a box.
+      g.forEach(r => [30, 60, 100].forEach(o => spots.push({ x: r.x + 12, y: r.y - 22 - o }, { x: r.x + 12, y: r.y + r.h + 3 + o }, { x: r.x + r.w + 6 + o, y: r.y + 4 }, { x: r.x - tw - 6 - o, y: r.y + 4 })));
+      const cost = q => { const t = { ...q, w: tw, h: 18 }; return (onLine(t) ? 4 : 0) + [...occ, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
+      const at = spots.find(q => free({ ...q, w: tw, h: 18 }) && !others.some(o => hit({ ...q, w: tw, h: 18 }, o))) || spots.filter(q => !onBox({ ...q, w: tw, h: 18 })).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
       tabs.push({ ...at, w: tw, h: 18 });
-      fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start');
+      fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="18" rx="5" data-room="${Math.round(Math.max(...g.map(r => r.w)))}"/>` + zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start'); // data-room: the widest stretch of its shape, for the layout audit
       regions.push(...g);
     }
   }
@@ -2044,6 +2200,6 @@ function stitchSVG(m, statusOf) {
   const body = placed.map(R => `<g transform="translate(${R.dx},${R.dy})">${slotAt(R, R.body)}</g>`).join('');
   const slots = [];
   const flat = body.replace(/<rect class="inl-slot"[^>]*data-moved="1"[^>]*\/>/g, t => { slots.push(t); return ''; });
-  return `<svg class="flow stitched" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.p.name)} flow diagram"><g transform="translate(${P - x0},${P - y0})">${bg}${flat}${between}${fg}</g>${slots.join('')}</svg>`;
+  return `<svg class="flow stitched" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.p.name)} flow diagram"><g transform="translate(${P - x0},${P - y0})">${bg}${flat}<g class="between">${between}</g>${fg}</g>${slots.join('')}</svg>`;
 }
 
