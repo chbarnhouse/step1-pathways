@@ -6,20 +6,68 @@
 'use strict';
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
-const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', rl: 'rate-limiting enzyme', cof: 'cofactors', loc: 'compartment', eff: 'effect', grp: 'group' };
+const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', rl: 'rate-limiting enzyme', regfed: 'fed: on or off', regfast: 'fasting: on or off', drug: 'drug or toxin', cof: 'cofactors', loc: 'compartment', eff: 'effect', grp: 'group' };
 const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'needs' }[q.side]) : q.item?.term || KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
+/* ---------- classic mix-ups ----------
+   Two names that get swapped, and the line that tells them apart. A wrong answer that is one side, on a question whose
+   answer is the other, shows the line right away. Each side: its name, then other ways it's written. */
+const CONFUSIONS = [
+  [['Glucokinase'], ['Hexokinase'], 'Glucokinase: liver and pancreatic β-cells, high Km (only works when glucose is high), induced by insulin, not inhibited by glucose-6-phosphate. Hexokinase: most tissues, low Km, inhibited by glucose-6-phosphate.'],
+  [['Carbamoyl phosphate synthetase I', 'CPS I', 'CPS1'], ['Carbamoyl phosphate synthetase II', 'CPS II', 'CPS2'], 'CPS I: urea cycle, mitochondria, uses NH₃, needs N-acetylglutamate. CPS II: pyrimidine synthesis, cytosol, uses glutamine.'],
+  [['Pyruvate carboxylase', 'PC'], ['Pyruvate dehydrogenase complex', 'Pyruvate dehydrogenase', 'PDH'], 'Pyruvate carboxylase makes oxaloacetate (gluconeogenesis; biotin; activated by acetyl-CoA). Pyruvate dehydrogenase makes acetyl-CoA (into the TCA cycle; B1, B2, B3, B5, lipoic acid).'],
+  [['Pyruvate kinase', 'PK'], ['PEP carboxykinase', 'PEPCK'], 'Pyruvate kinase: glycolysis, PEP → pyruvate, makes ATP. PEP carboxykinase: gluconeogenesis, oxaloacetate → PEP, uses GTP.'],
+  [['Glucose-6-phosphatase', 'G6Pase'], ['Glucose-6-phosphate dehydrogenase', 'G6PD'], 'Glucose-6-phosphatase frees glucose (ER, liver; von Gierke). Glucose-6-phosphate dehydrogenase starts the pentose phosphate pathway and makes NADPH (G6PD deficiency: hemolysis).'],
+  [['Glycogen phosphorylase', 'GP'], ['Debranching enzyme'], 'Phosphorylase cuts glucose-1-phosphate off the straight α-1,4 chains (B6). Debranching enzyme moves the last few and frees the α-1,6 branch glucose (Cori disease).'],
+  [['Glycogen synthase'], ['Branching enzyme'], 'Glycogen synthase adds α-1,4 links (rate-limiting). Branching enzyme makes the α-1,6 branches (Andersen disease).'],
+  [['HMG-CoA synthase'], ['HMG-CoA reductase'], 'HMG-CoA synthase makes HMG-CoA (ketogenesis in mitochondria, cholesterol in cytosol). HMG-CoA reductase makes mevalonate: cholesterol’s rate-limiting step, the statin target.'],
+  [['HMG-CoA lyase'], ['HMG-CoA reductase'], 'HMG-CoA lyase makes acetoacetate (ketogenesis). HMG-CoA reductase makes mevalonate (cholesterol; statins).'],
+  [['ALA synthase', 'ALAS'], ['ALA dehydratase', 'ALAD'], 'ALA synthase: mitochondria, B6, rate-limiting, repressed by heme. ALA dehydratase: cytosol, joins two ALA, blocked by lead.'],
+  [['Galactokinase'], ['Galactose-1-phosphate uridyltransferase', 'GALT'], 'Galactokinase deficiency: cataracts only. GALT deficiency (classic galactosemia): liver failure, cataracts, E. coli sepsis.'],
+  [['Ornithine transcarbamylase', 'OTC'], ['Aspartate transcarbamoylase', 'ATCase'], 'Ornithine transcarbamylase: urea cycle (ornithine + carbamoyl phosphate → citrulline). Aspartate transcarbamoylase: pyrimidine synthesis (aspartate + carbamoyl phosphate).'],
+  [['Argininosuccinate synthetase'], ['Argininosuccinate lyase'], 'Synthetase joins citrulline and aspartate (ATP → AMP + PPi). Lyase splits argininosuccinate into arginine and fumarate.'],
+  [['Thymidylate synthase'], ['Dihydrofolate reductase', 'DHFR'], 'Thymidylate synthase makes dTMP from dUMP (5-FU). Dihydrofolate reductase regenerates THF from DHF (methotrexate, trimethoprim).'],
+  [['Methionine synthase'], ['Methylmalonyl-CoA mutase'], 'Both need B12. Methionine synthase: homocysteine → methionine (with methyl-THF; folate too). Methylmalonyl-CoA mutase: → succinyl-CoA (only B12; methylmalonic acid rises).'],
+  [['Propionyl-CoA carboxylase'], ['Acetyl-CoA carboxylase', 'ACC'], 'Both biotin. Propionyl-CoA carboxylase: odd-chain fats and VOMIT amino acids → methylmalonyl-CoA. Acetyl-CoA carboxylase: malonyl-CoA for fatty acid synthesis (rate-limiting).'],
+  [['Malate dehydrogenase', 'MDH'], ['Malic enzyme'], 'Malate dehydrogenase: malate ⇌ oxaloacetate, NAD⁺/NADH. Malic enzyme: malate → pyruvate + CO₂, makes NADPH for fatty acid synthesis.'],
+  [['17α-Hydroxylase'], ['17,20-Lyase'], 'Both CYP17. 17α-Hydroxylase adds the OH (on the way to cortisol); 17,20-lyase cuts the side chain to make androgens.'],
+  [['11β-Hydroxylase'], ['21-Hydroxylase'], '21-Hydroxylase deficiency: salt wasting, virilization, high 17-OH-progesterone. 11β-Hydroxylase deficiency: virilization with hypertension (11-deoxycorticosterone).'],
+  [['Tyrosine hydroxylase'], ['Phenylalanine hydroxylase', 'PAH'], 'Phenylalanine hydroxylase: liver, phenylalanine → tyrosine (PKU). Tyrosine hydroxylase: tyrosine → L-DOPA, the catecholamines’ rate-limiting step. Both need BH₄.'],
+  [['Carnitine palmitoyltransferase I', 'CPT I', 'CPT-I', 'CPT1'], ['Carnitine palmitoyltransferase II', 'CPT II', 'CPT-II', 'CPT2'], 'CPT I: outer mitochondrial membrane, rate-limiting, inhibited by malonyl-CoA. CPT II: inner membrane, hands the acyl group back to CoA.'],
+  [['Isocitrate dehydrogenase'], ['α-Ketoglutarate dehydrogenase', 'alpha-ketoglutarate dehydrogenase'], 'Isocitrate dehydrogenase: rate-limiting, NAD⁺ → NADH + CO₂. α-Ketoglutarate dehydrogenase: like PDH (B1, B2, B3, B5, lipoic acid), makes succinyl-CoA.'],
+  [['Succinate dehydrogenase'], ['Succinyl-CoA synthetase'], 'Succinyl-CoA synthetase makes GTP (succinyl-CoA → succinate). Succinate dehydrogenase makes FADH₂ and is complex II of the electron transport chain.'],
+  [['β-Glucocerebrosidase', 'Glucocerebrosidase'], ['Sphingomyelinase'], 'Glucocerebrosidase: Gaucher (bone, hepatosplenomegaly, no neuro in type 1). Sphingomyelinase: Niemann–Pick (neurodegeneration, cherry-red spot, foam cells).'],
+  [['Hexosaminidase A'], ['Hexosaminidase A and B'], 'Hexosaminidase A alone: Tay–Sachs (no hepatosplenomegaly). A and B: Sandhoff (with hepatosplenomegaly).'],
+];
+// The line that tells a wrong answer apart from the right one, if they're a classic pair.
+function confusionNote(rightName, wrong) {
+  const n = norm(wrong), r = norm(rightName), has = (side, x) => side.some(s => norm(s) === x);
+  for (const [a, b, why] of CONFUSIONS) if ((has(a, n) && has(b, r)) || (has(b, n) && has(a, r))) return why;
+  return '';
+}
+// A wrong answer that names something else in this pathway (or a classic partner): a mix-up worth remembering.
+function noteMixup(q, wrong) {
+  const name = q.answerText || q.item?.name; if (!name || !q.statKey || !String(wrong).trim()) return;
+  const why = confusionNote(name, wrong), other = Object.values(Q.m?.items || {}).find(it => it.name && norm(it.name) === norm(wrong) && it.kind === q.item?.kind);
+  q.mixup = why ? { name: other?.name || wrong, why } : other ? { name: other.name, why: '' } : null;
+  if (q.mixup) Stats.mix(q.pid, q.statKey, q.mixup.name);
+}
+const mixupHTML = q => (q?.mixup ? `<div class="mixup">${mi('help', 'sm')}<span>${q.mixup.why ? `Easy to mix up: <b>${esc(q.mixup.name)}</b> and <b>${esc(q.answerText || q.item?.name || '')}</b>. ${esc(q.mixup.why)}` : `<b>${esc(q.mixup.name)}</b> is another one in this pathway.`}${(() => { const n = Stats.mixes(q.pid, q.statKey).find(x => norm(x.name) === norm(q.mixup.name))?.n || 0; return n > 1 ? ` <span class="muted">You’ve mixed these up ${n} times.</span>` : ''; })()}</span></div>` : '');
+
 /* ---------- elements: show / quiz / hide ---------- */
-function modeKeyOf(cfg) { return cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
+function modeKeyOf(cfg) { return cfg.mode === 'where' ? 'where' : cfg.mode === 'step' ? (cfg.given === 'enz' ? 'stepE' : 'stepM') : 'occ'; }
 function elSpecFor(cfg) {
   return {
-    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['rl', 'Rate-limiting enzyme', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']], ['grp', 'Groupings', ['show', 'quiz', 'place', 'hide']]],
+    occ: [['met', 'Metabolites', ['show', 'quiz']], ['enz', 'Enzymes', ['show', 'quiz', 'hide']], ['trn', 'Transporters', ['show', 'quiz', 'hide']], ['rl', 'Rate-limiting enzyme', ['show', 'quiz', 'hide']], ['reg', 'Fed vs fasting', ['hide', 'show', 'quiz']], ['drug', 'Drugs & toxins', ['hide', 'show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['eff', 'Effects', ['show', 'quiz', 'hide']], ['loc', 'Compartments', ['show', 'quiz', 'place', 'hide']], ['grp', 'Groupings', ['show', 'quiz', 'place', 'hide']]],
     stepM: [['enz', 'Enzyme or transporter', ['show', 'quiz', 'hide']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['dir', 'Direction', ['show', 'quiz']], ['loc', 'Location', ['show', 'quiz', 'hide']]],
+    where: [['enz', 'Enzyme names', ['show', 'hide']], ['cof', 'Cofactors', ['show', 'hide']], ['loc', 'Compartments', ['show', 'hide']]],
     stepE: [['met', 'Reactants & products', ['show', 'quiz']], ['cof', 'Cofactors', ['show', 'quiz', 'hide']], ['loc', 'Location', ['show', 'quiz', 'hide']], ['path', 'Pathway', ['show', 'quiz', 'hide']]],
   }[modeKeyOf(cfg)].map(([k, l, a]) => (cfg.mode === 'review' ? [k, l, a.filter(v => v === 'show' || v === 'hide')] : [k, l, a])); // Review: nothing is asked
 }
 function elOf(cfg, k) {
+  // Fed vs fasting is one row; its state choice (cfg.regState) says which of the two is shown or asked.
+  if (k === 'regfed' || k === 'regfast') return (k === 'regfast') === (cfg.regState === 'fasting') ? elOf(cfg, 'reg') : 'hide';
   const spec = elSpecFor(cfg).find(x => x[0] === k);
   if (!spec) return 'hide';
   if (k === 'rl' && elOf(cfg, 'enz') === 'hide') return 'hide'; // no enzyme names, so nothing to call rate-limiting
@@ -33,7 +81,7 @@ const placing = () => el('loc') === 'place' && !Q.placed;
 // Groupings set to Draw yourself: no frames until you've drawn them (a round of their own, first). Q.gplaced = done.
 const groupsOf = m => Object.values(m?.items || {}).filter(it => it.kind === 'grp');
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
-const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', t: 'trn', k: 'rl', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff', g: 'grp' }[key[0]]);
+const kindOf = (key, m = Q.m) => (key[0] === 'e' ? m?.items[key]?.kind || 'enz' : { m: 'met', t: 'trn', k: 'rl', y: 'regfed', x: 'regfast', q: 'drug', c: 'cof', o: 'cof', n: 'cof', z: 'loc', f: 'eff', g: 'grp' }[key[0]]);
 // Building blocks is typed only (typing or typing along).
 const answerStyle = () => { const a = Q.cfg.answer || Store.settings.answer; return Q.cfg.mode === 'build' && !['type', 'along'].includes(a) ? 'type' : a; };
 const viewStyle = () => Q.cfg.view || Store.settings.view;
@@ -47,6 +95,10 @@ function quizSummary(cfg) {
 
 /* ---------- questions ---------- */
 function mcOptions(item, m) {
+  if (item.kind === 'regfed' || item.kind === 'regfast') return ['On', 'Off']; // fed vs fasting: on or off
+  // A drug: three others from this pathway first, then from anywhere.
+  if (item.kind === 'drug') { const mine = item.drugs.map(d => d.name), here = uniq(m.p.reactions.flatMap(r => (r.drugs || []).map(d => d.name))).filter(n => !mine.includes(n)), all = uniq(Object.values(Library.builtin()).flatMap(p => (p.reactions || []).flatMap(r => (r.drugs || []).map(d => d.name)))).filter(n => !mine.includes(n) && !here.includes(n));
+    return shuffle([item.name, ...[...shuffle(here), ...shuffle(all)].slice(0, 3)]); }
   const p = m.p;
   const trnIds = new Set(p.reactions.flatMap(r => (r.transport ? [r.enzyme] : r.via ? [r.via] : [])));
   const inPath = item.kind === 'met' ? Object.values(p.metabolites).map(x => x.name)
@@ -246,6 +298,7 @@ function newRound() {
   Q.fact = null; Q.placed = false;
   // Review: the whole pathway (or connected pathways) with every answer showing; nothing is asked.
   if (Q.cfg.mode === 'review') { Q.round = { type: 'review' }; Q.placed = true; Q.gplaced = true; return; }
+  if (Q.cfg.mode === 'where') { Q.placed = true; Q.gplaced = true; return startWhere(); }
   Q.gplaced = !(el('grp') === 'place' && groupsOf(Q.models[0]).length && Q.models.length === 1 && !Q.models[0].p.stitch);
   if (!Q.gplaced) return startGroups();
   restOfRound();
@@ -261,6 +314,60 @@ function restOfRound() {
   else if (Q.cfg.given === 'enz') { Q.round = { type: 'stepE', deck: [], qs: [] }; nextStepE(); }
   else { Q.round = { type: 'step', deck: [], pair: null, qs: [] }; nextStep(); }
 }
+/* ---------- Where does it break? ----------
+   A disease (and the clue an exam would give); click the step that fails on the drawing. Right: it's checked and
+   explained. Wrong: your pick is crossed and the right step outlined. Weakest diseases come back first. */
+function startWhere() {
+  const all = Q.models.flatMap(m => Object.values(m.items).filter(it => it.kind === 'dis').map(it => ({ m, it })));
+  if (!all.length) { Q.round = { type: 'none', msg: 'None of these pathways has a disease to place yet. Try the urea cycle, heme synthesis, glycogenolysis or the sphingolipids.' }; return; }
+  Q.round = { type: 'where', all, deck: [], cur: null, pick: null, ok: null };
+  nextWhere();
+}
+function nextWhere() {
+  const R = Q.round;
+  if (!R.deck.length) R.deck = weightedDeck(R.all, x => Stats.rate(x.m.p.id, x.it.key));
+  let next = R.deck.pop();
+  if (R.cur && next.it.key === R.cur.it.key && R.deck.length) { R.deck.unshift(next); next = R.deck.pop(); } // never the same one twice running
+  R.cur = next; R.pick = null; R.ok = null; Q.m = next.m; Q.fact = null;
+}
+function whereClick(rid) {
+  const R = Q.round, c = R.cur;
+  if (R.ok !== null || !c) return;
+  R.pick = rid; R.ok = c.it.rids.includes(rid);
+  Stats.record(c.m.p.id, c.it.key, R.ok); Q.score.total++; if (R.ok) Q.score.right++; else noteMiss({ item: c.it, pid: c.m.p.id, statKey: c.it.key, answerText: c.it.name });
+  logAnswer();
+  const fi = c.m.items['e:' + (R.ok ? rid : c.it.rids[0])];
+  if (fi) { Q.focus = { item: fi, m: c.m }; Q.drawer = true; }
+  renderQuiz();
+}
+// What the drawing shows: every box; enzyme names (or a blank pill on each step to click); your pick and the answer.
+function whereStatus(k) {
+  const R = Q.round, c = R.cur;
+  if (k.startsWith('m:') || k.startsWith('g:')) return 'shown';
+  if (k.startsWith('e:') || k.startsWith('t:')) {
+    const rid = k.slice(2);
+    // Answered: your pick crossed if wrong, the step that fails named and checked.
+    if (R.ok !== null && rid === R.pick && !R.ok) return 'missed';
+    if (R.ok !== null && c.it.rids.includes(rid)) return 'right';
+    return el('enz') === 'hide' && k.startsWith('e:') ? 'blank' : 'shown';
+  }
+  if (/^[con]:/.test(k)) return el('cof') === 'hide' ? 'hide' : 'shown';
+  if (k.startsWith('z:')) return el('loc') === 'hide' ? 'hide' : 'shown';
+  return 'hide'; // rate-limiting, fed/fasting, drugs and effects stay out of it: they'd give answers away
+}
+function whereDock() {
+  const R = Q.round, c = R.cur, it = c.it, en = rid => c.m.items['e:' + rid]?.name || '';
+  const fb = R.ok === null ? `<p class="muted small">Click the step that fails (its enzyme${el('enz') === 'hide' ? ' pill' : ' name'}).</p>`
+    : R.ok ? `<p class="where-fb ok">${mi('task_alt', 'sm')} Right: <b>${esc(en(R.pick))}</b>.</p>`
+    : `<p class="where-fb no">${mi('close', 'sm')} ${R.pick ? `That’s ${esc(en(R.pick)) || 'not it'}. ` : ''}It’s <b>${esc(it.rids.map(en).filter(Boolean).join(' or '))}</b> (checked on the drawing).</p>`;
+  return `<div class="dock where-dock"><div class="where-q"><span class="glabel">Where does it break?</span><b class="where-name">${esc(it.name)}</b><span class="where-clue">${esc(it.clue)}</span>${fb}</div>
+    <div class="dock-btns">${R.ok === null ? '<button class="btn ghost" data-act="wreveal">Show me</button>' : ''}<button class="btn${R.ok === null ? ' ghost' : ' primary'}" data-act="wnext">${R.ok === null ? 'Skip' : 'Next'} ${mi('arrow_forward', 'sm')}</button></div></div>`;
+}
+document.addEventListener('click', e => {
+  if (Q.round?.type !== 'where' || !e.target.closest('#stage')) return;
+  const k = e.target.closest('[data-key]')?.dataset.key;
+  if (k && /^[et]:/.test(k) && Q.round.ok === null) { e.whereAnswer = true; whereClick(k.slice(2)); }
+});
 function weightedDeck(list, rateOf) {
   return Q.cfg.weak
     ? list.map(x => ({ x, r: Math.pow(Math.random(), 1 / (0.15 + 4 * rateOf(x))) })).sort((a, b) => a.r - b.r).map(o => o.x)
@@ -789,7 +896,7 @@ function submit(q, v) {
     q.tries++; q.wrong.push(v); q.draft = ''; q.locked = []; q.justWrong = true; q.alongErrs = 0; q.lastErrs = 0; if (q.kind === 'cof') withAlong(q, q.model); return renderQuiz();
   }
   if (q.check(v)) { q.status = 'right'; q.given = v; noteInlineRight(q); flash(true, rect); tally(q, q.tries === 0); resolved(q); }
-  else { flash(false, rect); q.tries++; q.wrong.push(v); q.draft = typed; q.justWrong = true; renderQuiz(); }
+  else { flash(false, rect); q.tries++; q.wrong.push(v); q.draft = typed; q.justWrong = true; noteMixup(q, typed); renderQuiz(); }
 }
 function reveal(q) {
   if (q.status !== 'open') return;
@@ -1060,13 +1167,13 @@ function answerWidgetHTML(q, idx, compact) {
   if (q.inline && q.along) return `<div class="hint-line">Type what you see in the highlighted box${q.alongErrs ? ` <span class="bad-note">${q.alongErrs} slip${q.alongErrs > 1 ? 's' : ''}</span>` : ''}${hintBtn}</div>`;
   if (q.along) return `<form class="ansform" data-q="${idx}">${alongWidget(q.along, q.draft)}</form>${hintBtn}`;
   if (!q.inline && Q.cfg.letterCheck && style === 'type' && q.targets) return `<form class="ansform" data-q="${idx}">${withLocked(q, checkWidget(q.targets, q.draft, q.hintLen || 0, q))}<button class="btn">Check</button></form>${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}${hintBtn}`;
-  if (q.inline) return `<div class="hint-line">${q.justWrong ? `<span class="bad-note">${icon('no')} Not quite. Try again or reveal.</span>` : inlineHintShown() ? `Type in the highlighted box, then ${mi('keyboard_return', 'sm')} Enter` : ''}${hintBtn}</div>`;
+  if (q.inline) return `${q.justWrong ? mixupHTML(q) : ''}<div class="hint-line">${q.justWrong ? `<span class="bad-note">${icon('no')} Not quite. Try again or reveal.</span>` : inlineHintShown() ? `Type in the highlighted box, then ${mi('keyboard_return', 'sm')} Enter` : ''}${hintBtn}</div>`;
   if (optsFor) return `<div class="opts${compact ? ' row' : ''}">${optsFor.map((o, i) => {
     const bad = q.wrong.includes(o.v);
     return `<button class="opt${bad ? ' wrong' : ''}" data-act="pick" data-q="${idx}" data-v="${esc(o.v)}" ${bad ? 'disabled' : ''}><kbd>${i + 1}</kbd><span>${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</span>${bad ? icon('no') : ''}</button>`;
-  }).join('')}</div>`;
+  }).join('')}</div>${q.justWrong ? mixupHTML(q) : ''}`;
   return `<form class="ansform" data-q="${idx}">${withLocked(q, `<input class="ans${q.justWrong ? ' bad' : ''}" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(q.locked?.length ? '' : q.placeholder || 'Type the name')}" value="${esc(q.draft)}" aria-label="${q.label}">`)}<button class="btn">Check</button></form>
-    ${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>` : ''}`;
+    ${q.justWrong ? `<div class="bad-note">${icon('no')} Not quite. Try again or reveal.</div>${mixupHTML(q)}` : ''}`;
 }
 /* ---------- page ---------- */
 // Toolbar buttons carry a text label (hidden on narrow screens) as well as the icon.
@@ -1115,12 +1222,36 @@ function updateCofCounts() {
     c.setAttribute('aria-label', `${got} of ${total} cofactors entered`);
   });
 }
+/* The key: what each shape on a drawing means, with a small sample of each drawn the way the drawings draw it. */
+function legendHTML() {
+  const sv = (w, body) => `<svg class="flow lg" viewBox="0 0 ${w} 34" width="${w}" height="34" aria-hidden="true">${body}</svg>`;
+  const ah = (x, y, a = Math.PI / 2) => head(x, y, a, 8);
+  const rows = [
+    [sv(110, '<g class="mbox"><rect x="4" y="5" width="100" height="24" rx="8"/><text x="54" y="17" style="font-size:12px">Pyruvate</text></g>'), 'A molecule (metabolite). Dashed, it’s a blank to fill in.'],
+    [sv(110, '<g class="elab"><text x="6" y="17" dominant-baseline="central">Hexokinase</text></g>'), 'Enzyme (italic): the step it sits beside.'],
+    [sv(110, '<g class="elab trn"><rect class="trnpill" x="6" y="6" width="70" height="22" rx="11"/><text x="41" y="17" text-anchor="middle" dominant-baseline="central">GLUT2</text></g>'), 'Transporter: carries the molecule across the membrane it sits on.'],
+    [sv(110, `<path class="ln" d="M10,17H92"/>${ah(100, 17, 0)}`), 'A one-way step.'],
+    [sv(110, `<path class="ln" d="M10,13H94"/>${ah(102, 13, 0)}<path class="ln" d="M18,21H102"/>${ah(10, 21, Math.PI)}`), 'A reversible step.'],
+    [sv(110, `<path class="ln trn" d="M10,17H92"/>${ah(100, 17, 0)}`), 'Transport only (a molecule moving, no enzyme).'],
+    [sv(110, `<path class="ln" d="M14,2V32"/><path class="cof" d="M60,6Q22,17 58,28"/>${head(62, 28, 0.3, 7, 'cofh')}<text class="coft" x="66" y="10" style="font-size:11px">ATP</text><text class="coft" x="66" y="31" style="font-size:11px">ADP</text>`), 'Cofactors: what goes in joins the arrow, what comes out leaves it.'],
+    [sv(110, '<g class="elab"><text class="tag" x="6" y="17" dominant-baseline="central">RATE-LIMITING</text></g>'), 'The rate-limiting (committed) step.'],
+    [sv(110, '<rect class="zone t-orange" x="2" y="2" width="106" height="30" rx="10"/><text class="zonet" x="55" y="20" text-anchor="middle">MITOCHONDRIA</text>'), 'Compartment: where it happens. A dashed line between two is a membrane.'],
+    [sv(110, `<path class="ln fx-act" d="M10,11H92"/>${head(100, 11, 0, 9, 'ah fx-act')}<path class="ln inh fx-inh" d="M10,25H96"/><path class="ln inh-bar fx-inh" d="M100,19V31"/>`), 'Effects, where marked: an arrow activates, a flat bar ⊣ inhibits.'],
+    [sv(110, '<path class="xline" d="M4,17H40"/><rect class="xtag" x="34" y="7" width="76" height="20" rx="10"/><text class="xtagt" x="72" y="17" text-anchor="middle" dominant-baseline="central">→ TCA cycle</text>'), 'Leads to another pathway (on a pathway page, click to go there).'],
+    [sv(110, `<circle class="xdot" cx="8" cy="17" r="3"/><path class="xline" d="M8,17H92"/>${ah(100, 17, 0)}`), 'Connected pathways: the same molecule passed from one to the other.'],
+    [sv(110, '<rect x="4" y="4" width="102" height="26" rx="8" fill="none" stroke="currentColor" stroke-dasharray="5 4" opacity=".7"/><text class="zonet" x="10" y="12">GROUP</text>'), 'A group (a family of boxes), named at its corner.'],
+  ];
+  return `<details class="qopts keypop"><summary class="tbtn icon" data-tip="What the shapes mean" aria-label="Key: what the shapes mean">${mi('help')}</summary>
+    <div class="pop legend"><b class="lg-h">Key</b>${rows.map(([pic, txt]) => `<div class="lg-row">${pic}<span>${txt}</span></div>`).join('')}
+      <p class="muted small">In a quiz, the blank you’re on is outlined thick; ${mi('task_alt', 'sm')} marks a right answer, a cross a missed one.</p></div></details>`;
+}
 function zoomBarHTML(floating = false) {
   return `<div class="zoombar" role="group" aria-label="Diagram zoom">
     <span class="zgroup"><button class="tbtn icon" data-zoom="out" data-tip="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><button type="button" class="zpct" id="zoomPct" data-zoom="actual" data-tip="Actual size (100%)" aria-label="Zoom level; set to 100%">100%</button><button class="tbtn icon" data-zoom="in" data-tip="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
     ${tbtn('data-zoom="width"', 'fit_width', 'Fit width', 'Fit to width')}
     ${tbtn('data-zoom="height"', 'fit_height', 'Fit height', 'Fit to height')}
     ${tbtn('data-zoom="fit"', 'fit_screen', 'Fit all', 'Fit the whole diagram (turns off Follow)')}
+    ${legendHTML()}
     ${floating ? `<span class="follow-wrap"><button type="button" class="tbtn icon peekbtn" data-peek ${Store.settings.follow ? '' : 'hidden'} data-tip="Hold to see the whole pathway" aria-label="Hold to see the whole pathway">${mi('visibility')}</button>` : ''}${tbtn('data-flag="follow"', 'center_focus_strong', 'Follow', 'Follow: keep the current blank centered')}${floating ? '</span>' : ''}
   </div>`;
 }
@@ -1149,7 +1280,7 @@ function renderQuiz() {
   const V = $('#view');
   if (!Q.cfg) { location.hash = '#/'; return; }
   const R = Q.round;
-  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones' || R.type === 'review' || R.type === 'groups';
+  const occ = R.type === 'single' || R.type === 'total' || R.type === 'build' || R.type === 'zones' || R.type === 'review' || R.type === 'groups' || R.type === 'where';
   const cq = occ && R.q;
   INLINE = cq && cq.kind !== 'eff' && ['type', 'along'].includes(answerStyle()) && cq.status === 'open' && !shapePending(cq)
     ? { draft: cq.draft, bad: cq.justWrong, along: cq.along, check: answerStyle() === 'type' && Q.cfg.letterCheck ? cq.targets : null, hinted: cq.hintLen || 0, kind: kindLabel(cq) || '', q: cq } : null;
@@ -1170,6 +1301,9 @@ function renderQuiz() {
   } else if (R.type === 'groups') {
     stage = flow ? flowSVG(Q.m, statusOf, { zones: el('loc') !== 'hide' && !placing() }) : `<div class="empty">${mi('tune')}<p>Drawing groups works in the diagram view. Switch View to Diagram in the options.</p></div>`;
     dock = groupsDock();
+  } else if (R.type === 'where') {
+    stage = flowSVG(Q.m, whereStatus, { zones: el('loc') !== 'hide' });
+    dock = whereDock();
   } else if (occ) {
     const zones = el('loc') !== 'hide' && !placing();
     stage = flow ? flowSVG(Q.m, statusOf, { zones }) : listHTML(Q.m, statusOf, { horiz, zones });
@@ -1267,6 +1401,10 @@ function factsCard(item, m) {
       const ct = !ins && !outs ? 'None' : cofShapeHidden(r) && (open('c:') || open('o:')) ? spoiler(esc(cofText(m, c))) : !ins ? '→ ' + cout : !outs ? cin + ' →' : cin + ' → ' + cout;
       extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Needs ${maybeSpoil(open('n:'), esc(r.requires.join(', ')))}` : ''}</p>`;
     }
+    // Fed vs fasting, drugs and diseases: in the facts too (spoilered while they're still being asked).
+    if (r.reg) extra += `<p>Fed: ${maybeSpoil(stillOpen(m, 'y:' + r.id), r.reg.fed.toUpperCase())} · Fasting: ${maybeSpoil(stillOpen(m, 'x:' + r.id), r.reg.fasting.toUpperCase())}. ${maybeSpoil(stillOpen(m, 'y:' + r.id) || stillOpen(m, 'x:' + r.id), esc(r.reg.why))}</p>`;
+    if ((r.drugs || []).length) extra += `<p>${maybeSpoil(stillOpen(m, 'q:' + r.id), r.drugs.map(d => `<b>${esc(d.name)}</b> ${d.effect === 'activates' ? 'drives it' : 'blocks it'}${d.kind === 'toxin' ? ' (toxin)' : ''}`).join(' · '))}</p>`;
+    if ((r.diseases || []).length && Q.round?.type !== 'where') extra += `<p>When it fails: ${r.diseases.map(d => `<b>${esc(d.name)}</b>`).join(' · ')}</p>`;
     if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${maybeSpoil(stillOpen(m, 'w:' + r.id), esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · ')))}</p>`;
   }
   if (item.kind === 'grp') extra = `<p>${item.members.map(id => maybeSpoil(stillOpen(m, 'm:' + id), esc(m.items['m:' + id]?.name || id))).join(' · ')}</p>`;
@@ -1388,7 +1526,7 @@ document.addEventListener('click', e => {
     return;
   }
   // Click anything showing on the diagram to read its facts (never a blank: that would give it away).
-  const k = e.target.closest('#stage [data-key]');
+  const k = e.whereAnswer ? null : e.target.closest('#stage [data-key]'); // a click that answers a Where question isn't a facts click
   if (k && !e.target.closest('form')) {
     const st = ['single', 'total', 'build'].includes(Q.round.type) ? statusOf(k.dataset.key) : 'shown';
     if (!['blank', 'target', 'hide'].includes(st) && Q.m.items[k.dataset.key]) { Q.focus = { item: Q.m.items[k.dataset.key], m: Q.m }; Q.drawer = true; renderQuiz(); }
@@ -1404,6 +1542,8 @@ document.addEventListener('click', e => {
       if (!elSpecFor(d).some(([k]) => elOf(d, k) === 'quiz')) Object.assign(d.el, { met: 'quiz', enz: 'quiz' });
       local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), clone(d)); break; }
     case 'pick': submit(q, b.dataset.v); break;
+    case 'wnext': if (R.ok === null && R.cur) { Stats.record(R.cur.m.p.id, R.cur.it.key, false); Q.score.total++; logAnswer(); } nextWhere(); renderQuiz(); break;
+    case 'wreveal': { const c = R.cur; R.ok = false; R.pick = null; Stats.record(c.m.p.id, c.it.key, false); Q.score.total++; noteMiss({ item: c.it, pid: c.m.p.id, statKey: c.it.key, answerText: c.it.name }); logAnswer(); const fi = c.m.items['e:' + c.it.rids[0]]; if (fi) { Q.focus = { item: fi, m: c.m }; Q.drawer = true; } renderQuiz(); break; }
     case 'hint': hintLetter(q); break;
     case 'fav': toggleFav(Q.draft, renderQuiz); break;
     case 'facts': Q.drawer = !Q.drawer; Q.focus = null; renderQuiz(); break;

@@ -329,7 +329,12 @@
    "requires": [
     "Biotin (B7)"
    ],
-   "via": "mpc"
+   "via": "mpc",
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Acetyl-CoA from fatty acid oxidation (fasting) activates pyruvate carboxylase."
+   }
   },
   {
    "id": "r1c",
@@ -383,7 +388,12 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
-   ]
+   ],
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Glucagon and cortisol induce PEP carboxykinase; insulin represses it."
+   }
   },
   {
    "id": "r3",
@@ -494,7 +504,12 @@
    "tags": [
     "rate-limiting",
     "irreversible"
-   ]
+   ],
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Fructose-2,6-bisphosphate (high when fed, insulin) inhibits it; glucagon lowers F-2,6-BP. AMP inhibits too."
+   }
   },
   {
    "id": "r10",
@@ -526,7 +541,12 @@
    "tags": [
     "irreversible"
    ],
-   "via": "g6pt"
+   "via": "g6pt",
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Glucagon and cortisol induce glucose-6-phosphatase (liver, kidney); the last step before glucose leaves the cell."
+   }
   },
   {
    "id": "r12",

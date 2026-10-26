@@ -204,7 +204,13 @@
     "irreversible"
    ],
    "tissue": "liver",
-   "via": "glut2"
+   "via": "glut2",
+   "diseases": [
+    {
+     "name": "Galactokinase deficiency",
+     "clue": "Infantile cataracts (galactitol) in an otherwise well baby who has trouble tracking objects; galactose in blood and urine."
+    }
+   ]
   },
   {
    "id": "r2",
@@ -221,7 +227,13 @@
     ]
    },
    "loc": "cytosol",
-   "tissue": "liver"
+   "tissue": "liver",
+   "diseases": [
+    {
+     "name": "Classic galactosemia",
+     "clue": "Infant vomiting, jaundice, hepatomegaly, cataracts and E. coli sepsis after starting breast milk; galactitol and galactose-1-phosphate build up."
+    }
+   ]
   },
   {
    "id": "r3",

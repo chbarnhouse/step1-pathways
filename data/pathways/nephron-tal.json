@@ -308,7 +308,27 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Loop diuretics",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block NKCC2: furosemide, bumetanide, torsemide, ethacrynic acid. Edema; hypokalemia, ototoxicity; they make you lose calcium.",
+     "aliases": [
+      "furosemide",
+      "bumetanide",
+      "torsemide",
+      "ethacrynic acid"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Bartter syndrome",
+     "clue": "Hypokalemic metabolic alkalosis with high urinary calcium in a child: looks like taking a loop diuretic."
+    }
+   ]
   },
   {
    "id": "r2",
@@ -339,7 +359,27 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Loop diuretics",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block NKCC2: furosemide, bumetanide, torsemide, ethacrynic acid. Edema; hypokalemia, ototoxicity; they make you lose calcium.",
+     "aliases": [
+      "furosemide",
+      "bumetanide",
+      "torsemide",
+      "ethacrynic acid"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Bartter syndrome",
+     "clue": "Hypokalemic metabolic alkalosis with high urinary calcium in a child: looks like taking a loop diuretic."
+    }
+   ]
   },
   {
    "id": "r4",
@@ -365,7 +405,27 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Loop diuretics",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block NKCC2: furosemide, bumetanide, torsemide, ethacrynic acid. Edema; hypokalemia, ototoxicity; they make you lose calcium.",
+     "aliases": [
+      "furosemide",
+      "bumetanide",
+      "torsemide",
+      "ethacrynic acid"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Bartter syndrome",
+     "clue": "Hypokalemic metabolic alkalosis with high urinary calcium in a child: looks like taking a loop diuretic."
+    }
+   ]
   },
   {
    "id": "r6",

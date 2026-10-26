@@ -794,6 +794,23 @@
    "loc": "tubular lumen",
    "also_from": [
     "hco3_l"
+   ],
+   "drugs": [
+    {
+     "name": "Acetazolamide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks carbonic anhydrase, so bicarbonate is lost in the urine: glaucoma, altitude sickness, IIH; hyperchloremic metabolic acidosis.",
+     "aliases": [
+      "carbonic anhydrase inhibitors"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Proximal (type 2) renal tubular acidosis",
+     "clue": "Non-anion gap acidosis with hypokalemia; urine can still acidify (below 5.5) once serum bicarbonate falls; often with Fanconi syndrome."
+    }
    ]
   },
   {
@@ -823,7 +840,24 @@
      "h"
     ]
    },
-   "loc": "cytosol (PCT cell)"
+   "loc": "cytosol (PCT cell)",
+   "drugs": [
+    {
+     "name": "Acetazolamide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks carbonic anhydrase, so bicarbonate is lost in the urine: glaucoma, altitude sickness, IIH; hyperchloremic metabolic acidosis.",
+     "aliases": [
+      "carbonic anhydrase inhibitors"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Proximal (type 2) renal tubular acidosis",
+     "clue": "Non-anion gap acidosis with hypokalemia; urine can still acidify (below 5.5) once serum bicarbonate falls; often with Fanconi syndrome."
+    }
+   ]
   },
   {
    "id": "r8",
@@ -836,7 +870,13 @@
     "out": []
    },
    "transport": true,
-   "loc": "basolateral membrane"
+   "loc": "basolateral membrane",
+   "diseases": [
+    {
+     "name": "Proximal (type 2) renal tubular acidosis",
+     "clue": "Non-anion gap acidosis with hypokalemia; urine can still acidify (below 5.5) once serum bicarbonate falls; often with Fanconi syndrome."
+    }
+   ]
   },
   {
    "id": "r9",
@@ -849,7 +889,21 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "SGLT2 inhibitors",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The -gliflozins: glucose stays in the urine. Type 2 diabetes, heart failure, CKD; genital infections, euglycemic DKA.",
+     "aliases": [
+      "empagliflozin",
+      "dapagliflozin",
+      "canagliflozin",
+      "gliflozins"
+     ]
+    }
+   ]
   },
   {
    "id": "r10",

@@ -136,7 +136,12 @@
    "tags": [
     "rate-limiting",
     "irreversible"
-   ]
+   ],
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Insulin → protein phosphatase 1 dephosphorylates (activates) it; glucose-6-phosphate activates. Glucagon/epinephrine → PKA phosphorylates (inactivates) it."
+   }
   },
   {
    "id": "r4",
@@ -149,7 +154,13 @@
     "out": []
    },
    "branch": true,
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "diseases": [
+    {
+     "name": "Andersen disease (GSD IV)",
+     "clue": "Failure to thrive and liver cirrhosis in infancy from abnormal, unbranched glycogen."
+    }
+   ]
   }
  ],
  "distractors": {

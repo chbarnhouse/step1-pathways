@@ -231,7 +231,13 @@
      "galnac"
     ]
    },
-   "loc": "lysosome"
+   "loc": "lysosome",
+   "diseases": [
+    {
+     "name": "Tay–Sachs disease",
+     "clue": "Progressive neurodegeneration with an exaggerated startle and a cherry-red macula, but no hepatosplenomegaly; onion-skin lysosomes."
+    }
+   ]
   },
   {
    "id": "r3",
@@ -279,7 +285,13 @@
      "glc"
     ]
    },
-   "loc": "lysosome"
+   "loc": "lysosome",
+   "diseases": [
+    {
+     "name": "Gaucher disease",
+     "clue": "Hepatosplenomegaly, pancytopenia and bone pain or avascular necrosis; “crumpled tissue paper” macrophages. Most common lysosomal storage disease."
+    }
+   ]
   },
   {
    "id": "r6",
@@ -296,7 +308,13 @@
     ]
    },
    "loc": "lysosome",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Sandhoff disease",
+     "clue": "Like Tay–Sachs (cherry-red macula, neurodegeneration) but with hepatosplenomegaly."
+    }
+   ]
   },
   {
    "id": "r7",
@@ -313,7 +331,13 @@
     ]
    },
    "loc": "lysosome",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Fabry disease",
+     "clue": "Burning pain in hands and feet, angiokeratomas, hypohidrosis, then kidney and heart failure; X-linked."
+    }
+   ]
   },
   {
    "id": "r8",
@@ -330,7 +354,13 @@
     ]
    },
    "loc": "lysosome",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Metachromatic leukodystrophy",
+     "clue": "Central and peripheral demyelination: ataxia and dementia."
+    }
+   ]
   },
   {
    "id": "r9",
@@ -347,7 +377,13 @@
     ]
    },
    "loc": "lysosome",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Krabbe disease",
+     "clue": "Peripheral neuropathy, developmental delay and optic atrophy with globoid cells."
+    }
+   ]
   },
   {
    "id": "r10",
@@ -364,7 +400,13 @@
     ]
    },
    "loc": "lysosome",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Niemann–Pick disease",
+     "clue": "Progressive neurodegeneration, hepatosplenomegaly, cherry-red macula and foam cells."
+    }
+   ]
   }
  ],
  "distractors": {

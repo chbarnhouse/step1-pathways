@@ -284,7 +284,20 @@
     ],
     "out": []
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Glucocorticoids",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block phospholipase A₂ (via annexin A1) and cut COX-2 production: every eicosanoid falls.",
+     "aliases": [
+      "corticosteroids",
+      "prednisone",
+      "dexamethasone"
+     ]
+    }
+   ]
   },
   {
    "id": "r2",
@@ -298,7 +311,16 @@
     ],
     "out": []
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Zileuton",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks 5-lipoxygenase, so no leukotrienes: asthma.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r3",
@@ -312,7 +334,16 @@
      "h2o"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Zileuton",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks 5-lipoxygenase, so no leukotrienes: asthma.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r4",
@@ -386,7 +417,41 @@
     "out": []
    },
    "loc": "cytosol",
-   "branch": true
+   "branch": true,
+   "drugs": [
+    {
+     "name": "Aspirin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Irreversibly acetylates COX-1 and COX-2: platelets (no nucleus) lose thromboxane for their whole life.",
+     "aliases": [
+      "acetylsalicylic acid",
+      "ASA"
+     ]
+    },
+    {
+     "name": "NSAIDs",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Reversibly block COX-1 and COX-2: ibuprofen, naproxen, indomethacin (closes a PDA).",
+     "aliases": [
+      "ibuprofen",
+      "naproxen",
+      "indomethacin",
+      "ketorolac",
+      "diclofenac"
+     ]
+    },
+    {
+     "name": "Celecoxib",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks COX-2 only: spares the stomach and platelets; raises thrombosis risk.",
+     "aliases": [
+      "COX-2 inhibitor"
+     ]
+    }
+   ]
   },
   {
    "id": "r9",

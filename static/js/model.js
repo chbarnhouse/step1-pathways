@@ -48,6 +48,16 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     // Rate-limiting (tag "rate-limiting"): which enzyme it is, asked on its own as 'k:<step>' (the answer is the enzyme).
     if ((r.tags || []).includes('rate-limiting') && !r.transport)
       items['k:' + r.id] = { key: 'k:' + r.id, kind: 'rl', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes, term: 'rate-limiting enzyme' };
+    // Fed vs fasting (r.reg): is this step on or off in each state? 'y:<step>' fed, 'x:<step>' fasting.
+    if (r.reg) for (const [pre, st, kind, label] of [['y:', 'fed', 'regfed', 'fed'], ['x:', 'fasting', 'regfast', 'fasting']]) {
+      const on = r.reg[st] === 'on';
+      items[pre + r.id] = { key: pre + r.id, kind, id: r.id, rxn: r, state: st, name: on ? 'On' : 'Off', short: '', notes: r.reg.why, term: `${label}: on or off?`,
+        aliases: on ? ['on', 'active', 'activated', 'turned on', 'up', 'upregulated', 'induced', 'yes'] : ['off', 'inactive', 'inactivated', 'turned off', 'down', 'downregulated', 'inhibited', 'no'] };
+    }
+    // Drugs and toxins that act on this step (r.drugs), asked once as 'q:<step>': name any of them.
+    if ((r.drugs || []).length) { const ds = r.drugs, toxin = ds.every(d => d.kind === 'toxin');
+      items['q:' + r.id] = { key: 'q:' + r.id, kind: 'drug', id: r.id, rxn: r, drugs: ds, name: ds[0].name, short: '', aliases: uniq(ds.flatMap((d, i) => [...(i ? [d.name] : []), ...(d.aliases || [])])),
+        notes: ds.map(d => `${d.name}: ${d.note}`).join(' '), term: toxin ? 'toxin' : ds.some(d => d.kind === 'toxin') ? 'drug or toxin' : 'drug' }; }
     // Its effect, in a pathway that marks them ("effects": true): it activates, or it inhibits (tag "inhibits"), as 'f:<step>'.
     if (p.effects || r.fx) {
       const inh = (r.tags || []).includes('inhibits');
@@ -58,6 +68,11 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
 
   // The main line's boxes in order. A gap (a connected drawing hands a box to another part, taking its steps with it)
   // still places the box the next step starts from.
+  // Where does it break? (r.diseases): each disease once, with every step it can be clicked on, as 'v:<name>'.
+  for (const r of rx) for (const d of r.diseases || []) {
+    const key = 'v:' + norm(d.name), it = items[key] = items[key] || { key, kind: 'dis', id: d.name, name: d.name, clue: d.clue, rids: [], rxn: r, short: '', aliases: [], notes: d.clue };
+    it.rids.push(r.id);
+  }
   const spineMets = p.circular ? spine.map(r => r.from) : spine.reduce((out, r) => (out[out.length - 1] !== r.from ? [...out, r.from, r.to] : [...out, r.to]), []);
   const onSpine = new Set(spineMets);
   const branches = rx.filter(r => r.branch);
@@ -67,7 +82,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push('e:' + r.id); for (const k of ['k:', 'f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); };
+  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push('e:' + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.

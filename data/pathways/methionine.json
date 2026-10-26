@@ -179,6 +179,12 @@
    "loc": "cytosol",
    "requires": [
     "Vitamin B12 (methylcobalamin)"
+   ],
+   "diseases": [
+    {
+     "name": "Homocystinuria (methionine synthase / B12)",
+     "clue": "High homocysteine with low methionine; with B12 deficiency, megaloblastic anemia."
+    }
    ]
   },
   {
@@ -199,6 +205,12 @@
    "branch": true,
    "requires": [
     "Vitamin B6 (PLP)"
+   ],
+   "diseases": [
+    {
+     "name": "Homocystinuria (cystathionine β-synthase)",
+     "clue": "Tall, marfanoid habitus with downward-and-inward lens dislocation, intellectual disability and blood clots; homocysteine in urine."
+    }
    ]
   },
   {

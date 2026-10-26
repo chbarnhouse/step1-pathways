@@ -232,6 +232,17 @@
    "loc": "outer mitochondrial membrane",
    "tags": [
     "rate-limiting"
+   ],
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Malonyl-CoA (made by acetyl-CoA carboxylase when fed) inhibits CPT-I; fasting lets malonyl-CoA fall, so fatty acids enter the mitochondria."
+   },
+   "diseases": [
+    {
+     "name": "CPT-I deficiency",
+     "clue": "Hypoketotic hypoglycemia with hepatomegaly in fasting (liver form)."
+    }
    ]
   },
   {
@@ -249,7 +260,13 @@
     ]
    },
    "loc": "mitochondrial matrix",
-   "via": "cact"
+   "via": "cact",
+   "diseases": [
+    {
+     "name": "CPT-II deficiency",
+     "clue": "Muscle pain, weakness and myoglobinuria after prolonged exercise or fasting; high acylcarnitines."
+    }
+   ]
   },
   {
    "id": "r4",
@@ -268,6 +285,24 @@
    "loc": "mitochondrial matrix",
    "requires": [
     "B2 (FAD)"
+   ],
+   "drugs": [
+    {
+     "name": "Hypoglycin A",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "From unripe ackee fruit: blocks acyl-CoA dehydrogenase, so severe hypoglycemia (Jamaican vomiting sickness).",
+     "aliases": [
+      "hypoglycin",
+      "ackee"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "MCAD deficiency",
+     "clue": "Hypoketotic hypoglycemia, vomiting and lethargy after fasting or illness in an infant; can cause sudden death. Avoid fasting."
+    }
    ]
   },
   {

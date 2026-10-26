@@ -8,6 +8,18 @@
 const APP_VERSION = '3.13.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
+  { v: 'next', items: [
+    'Connected drawings are tidier: nothing of one pathway lands on another’s labels, compartment names find a free spot, a step both pathways share is drawn (and asked) once, and steps between pathways show their transporter and keep their names and cofactors on a clear stretch of the line.',
+    'Where one pathway’s molecule is another’s cofactor, the two are joined directly: the TCA cycle’s succinyl-CoA runs into “Succinyl-CoA + B6” at ALA synthase, folate’s N⁵-methyl-THF into methionine synthase.',
+    'New in the Library: a Map of metabolism. Every metabolic pathway as a card, joined through the molecules they hand each other (glucose-6-phosphate, pyruvate, acetyl-CoA, succinyl-CoA…), arrows showing which way each goes. Hover a pathway to light up its connections; click to open it. Group chips narrow it down.',
+    'A key on every drawing (the ? by the zoom buttons): what boxes, italic names, pills, curls, dashed lines, tags and tinted areas mean.',
+    'Fed vs fasting: on a pathway page, Fed or Fasting marks each hormonally switched step ▲ ON or ▽ OFF (with why, in its facts) and fades what’s off: PFK-1, pyruvate kinase, PDH, pyruvate carboxylase, PEPCK, fructose-1,6-bisphosphatase, glucose-6-phosphatase, glycogen synthase and phosphorylase, acetyl-CoA carboxylase, CPT-I, HMG-CoA synthase and reductase. New quiz has a matching row (Show / Quiz / Hide, Fed or Fasting).',
+    'Drugs & toxins: a toggle on pathway pages and a quiz row show the drugs and toxins that act on each step (⊣ blocks, ⊕ drives), from methotrexate and statins to lead, arsenic and loop diuretics, about fifty in all, and a new Library tab gives each its own page.',
+    'Single drawings: ketogenesis puts acetone in the blood lane (no more crowding beside acetoacetate), nephron carrier names sit clear of the arrows and boxes, and cofactor labels never land on each other.',
+    'New quiz mode, Where does it break?: a clinical vignette (an infant with lactic acidosis, a boy biting his lips…), and you click the step on the drawing that fails. About fifty classic deficiencies and poisonings, from von Gierke and OTC deficiency to lead and 21-hydroxylase.',
+    'Mix-ups: answer one enzyme with another that’s easy to confuse (PEPCK and pyruvate kinase, CPS I and CPS II, glucokinase and hexokinase…) and the answer explains the difference. The app remembers the names you mix up and brings those questions back sooner.',
+    'Weak spots by kind: the Home page shows which kinds of question you miss most (enzymes, cofactors, compartments, where it breaks…), each with a Drill that asks only that kind where you missed it, and lists the names you mix up most.',
+  ] },
   { v: '3.13.0', date: '2026-10-25', items: [
     'A molecule now appears once, in the compartment where it starts: no more “Glycine (mitochondria)” copies. When a step’s substrate crosses a membrane first, its transporter sits on the membrane as a pill, and the enzyme is named on the side where it acts (SLC25A38 then ALA synthase; the ALA exporter then ALA dehydratase; ORNT1 into and out of the urea cycle’s mitochondria). Terminal exports and absorption journeys (glucose out through GLUT2, galactose across the gut, the nephron) still show each place.',
     'Cycles show cofactors as a small curl on each step, inside the ring (inputs join, outputs leave), like the straight steps; rings with cofactors are drawn a little wider so the short top and bottom steps have room. Labels on crowded side steps move until they clear their neighbors.',

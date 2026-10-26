@@ -129,6 +129,12 @@
    "tags": [
     "rate-limiting",
     "irreversible"
+   ],
+   "diseases": [
+    {
+     "name": "G6PD deficiency",
+     "clue": "Hemolysis with Heinz bodies and bite cells after fava beans, sulfa drugs, primaquine or infection; X-linked."
+    }
    ]
   },
   {

@@ -371,7 +371,13 @@
     ]
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "diseases": [
+    {
+     "name": "Distal (type 1) renal tubular acidosis",
+     "clue": "Non-anion gap acidosis with urine pH above 5.5, hypokalemia and calcium phosphate kidney stones."
+    }
+   ]
   },
   {
    "id": "r4",

@@ -244,7 +244,31 @@
    },
    "loc": "smooth ER",
    "tissue": "liver",
-   "via": "alb"
+   "via": "alb",
+   "drugs": [
+    {
+     "name": "Phenobarbital",
+     "kind": "drug",
+     "effect": "activates",
+     "note": "Induces UGT1A1: lowers unconjugated bilirubin in Crigler–Najjar type II (not type I).",
+     "aliases": []
+    },
+    {
+     "name": "Atazanavir",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Inhibits UGT1A1: harmless unconjugated hyperbilirubinemia (indinavir too).",
+     "aliases": [
+      "indinavir"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Crigler–Najjar syndrome type I",
+     "clue": "Severe unconjugated hyperbilirubinemia and kernicterus in a newborn; phenobarbital does not help. (Gilbert syndrome: the same enzyme, mildly low; jaundice with fasting or stress.)"
+    }
+   ]
   },
   {
    "id": "r6",

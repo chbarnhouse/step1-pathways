@@ -1214,3 +1214,50 @@ button.mgap.on .gt { border: 1.5px solid var(--ink); }
 .flow .neph-frame { fill: none; stroke: var(--ink-2); stroke-width: 2; }
 .flow .neph-name { fill: var(--ink); font-size: 15px; font-weight: 800; }
 .flow .neph-missing { fill: var(--muted); font-size: 16px; font-weight: 700; }
+
+/* Metabolism map (#/map) */
+.map-chips { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin: 4px 0 12px; }
+.map-dot { display: inline-block; width: 10px; height: 10px; border-radius: 3px; margin-right: 6px; border: 1px solid var(--ink-2); }
+.map-dot.t-blue { background: var(--blue-bg); } .map-dot.t-orange { background: var(--orange-bg); } .map-dot.t-gold { background: var(--gold-bg); }
+.map-dot.t-teal { background: var(--teal-bg); } .map-dot.t-pink { background: var(--pink-bg); } .map-dot.t-slate { background: var(--slate-bg); }
+.map-wrap { background: var(--card); border: 1px solid var(--line); border-radius: var(--radius); overflow: auto; }
+.mapsvg { display: block; width: 100%; min-width: 900px; height: auto; font-family: var(--display); }
+.mapsvg text { text-anchor: middle; dominant-baseline: central; }
+.map-card rect { stroke: var(--ink-2); stroke-width: 1.4; }
+.map-card.t-blue rect { fill: var(--blue-bg); } .map-card.t-orange rect { fill: var(--orange-bg); } .map-card.t-gold rect { fill: var(--gold-bg); }
+.map-card.t-teal rect { fill: var(--teal-bg); } .map-card.t-pink rect { fill: var(--pink-bg); } .map-card.t-slate rect { fill: var(--slate-bg); }
+.map-card .map-name { fill: var(--ink); font-size: 14px; font-weight: 700; } .map-card .map-name.long { font-size: 12.5px; }
+.map-card .map-grp { fill: var(--muted); font-size: 9.5px; font-weight: 700; letter-spacing: .08em; }
+.map-card:hover rect, .map-card:focus-visible rect, .map-card.focus rect { stroke: var(--blue); stroke-width: 3; }
+.map-card:focus { outline: none; }
+.map-hub rect { fill: var(--card); stroke: var(--blue); stroke-width: 1.4; }
+.map-hub text { fill: var(--ink); font-size: 12px; font-weight: 600; }
+.map-hub:hover rect, .map-hub:focus-visible rect { stroke-width: 2.6; }
+.map-edge path { stroke: var(--ink-2); stroke-width: 1.6; fill: none; opacity: .55; }
+.map-edge .map-ah { fill: var(--ink-2); opacity: .7; }
+.map-edge.on path { opacity: 1; stroke-width: 2.4; } .map-edge.on .map-ah { opacity: 1; }
+.map-card.off, .map-hub.off { opacity: .28; } .map-edge.off { opacity: .15; }
+.map-edge.dashed path { stroke-dasharray: 6 5; }
+.map-via { fill: var(--card); stroke: var(--line); } .map-viat { fill: var(--ink-2); font-size: 11px; font-weight: 600; }
+.keypop .pop.legend { width: min(440px, 86vw); display: grid; gap: 6px; max-height: 70vh; overflow: auto; right: 0; left: auto; }
+.lg-h { font-size: var(--fs-md); }
+.lg-row { display: grid; grid-template-columns: 112px minmax(0, 1fr); gap: 10px; align-items: center; font-size: var(--fs-sm); }
+.lg-row svg { display: block; overflow: visible; }
+.zoomfloat .keypop .pop.legend { top: auto; bottom: calc(100% + 6px); } /* the floating bar sits low: open upward */
+.flow .elab .reg { font-style: normal; font-size: var(--fs-xs); font-weight: 700; letter-spacing: .06em; fill: var(--ink-2); }
+.flow .ln.regoff, .flow .ah.regoff { opacity: .35; } /* off in the state shown (its badge says OFF too) */
+.flow .elab.regq text { font-size: 11px; font-weight: 700; } /* a fed/fasting blank stays small, even as the current one */
+.flow .elab .drug { font-style: normal; font-size: var(--fs-xs); font-weight: 700; fill: var(--ink); }
+.btn[aria-pressed="true"] { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); }
+/* Where does it break? */
+.quiz .where-dock { display: flex; gap: 14px; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; }
+.where-q { display: grid; gap: 4px; max-width: 75ch; min-width: 0; }
+.where-name { font-size: var(--fs-lg); } .where-clue { color: var(--ink-2); }
+.where-fb { margin: 4px 0 0; display: flex; gap: 6px; align-items: center; } .where-fb.ok .mi { fill: var(--teal); } .where-fb.no .mi { fill: var(--pink); }
+.quiz .stage .flow g.elab[data-key] { cursor: pointer; }
+.mixup { display: flex; gap: 6px; align-items: flex-start; margin-top: 6px; padding: 8px 10px; border-left: 3px solid var(--orange); background: var(--orange-bg); border-radius: 6px; font-size: var(--fs-sm); max-width: 70ch; }
+.mixup .mi { flex: none; margin-top: 2px; }
+.weakkinds { display: grid; gap: 6px; margin-bottom: 12px; }
+.wk { display: grid; grid-template-columns: minmax(0, 9em) minmax(60px, 1fr) 3.5em auto; gap: 10px; align-items: center; font-size: var(--fs-sm); }
+.wk.mix { grid-template-columns: minmax(0, 1fr) auto; }
+.wk .pct { color: var(--muted); text-align: right; white-space: nowrap; font-variant-numeric: tabular-nums; }

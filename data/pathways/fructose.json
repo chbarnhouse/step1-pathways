@@ -106,6 +106,12 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
+   ],
+   "diseases": [
+    {
+     "name": "Essential fructosuria",
+     "clue": "Fructose in the urine found by chance; no symptoms."
+    }
    ]
   },
   {
@@ -121,7 +127,13 @@
    "also_to": [
     "dhap"
    ],
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "diseases": [
+    {
+     "name": "Hereditary fructose intolerance",
+     "clue": "Hypoglycemia, vomiting, jaundice and liver damage after fruit, juice or honey; fructose-1-phosphate traps phosphate."
+    }
+   ]
   },
   {
    "id": "r3",

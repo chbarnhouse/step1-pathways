@@ -670,6 +670,12 @@
    "by": [
     "f9a",
     "f8a"
+   ],
+   "diseases": [
+    {
+     "name": "Hemophilia A and B",
+     "clue": "Deep bleeding into joints and muscles in a boy; long PTT, normal PT and platelets (factor VIII in A, IX in B)."
+    }
    ]
   },
   {
@@ -709,6 +715,32 @@
    "by": [
     "f10a",
     "f5a"
+   ],
+   "drugs": [
+    {
+     "name": "Direct factor Xa inhibitors",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Rivaroxaban, apixaban, edoxaban: block factor Xa in the prothrombinase.",
+     "aliases": [
+      "rivaroxaban",
+      "apixaban",
+      "edoxaban",
+      "factor Xa inhibitors"
+     ]
+    },
+    {
+     "name": "Heparin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Activates antithrombin, which shuts down factor Xa and thrombin (LMWH acts mostly on Xa).",
+     "aliases": [
+      "unfractionated heparin",
+      "UFH",
+      "enoxaparin",
+      "LMWH"
+     ]
+    }
    ]
   },
   {
@@ -726,6 +758,31 @@
    "loc": "blood plasma",
    "by": [
     "f2a"
+   ],
+   "drugs": [
+    {
+     "name": "Heparin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Activates antithrombin, which shuts down factor Xa and thrombin (LMWH acts mostly on Xa).",
+     "aliases": [
+      "unfractionated heparin",
+      "UFH",
+      "enoxaparin",
+      "LMWH"
+     ]
+    },
+    {
+     "name": "Direct thrombin inhibitors",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Dabigatran (oral), argatroban and bivalirudin (IV): block thrombin.",
+     "aliases": [
+      "dabigatran",
+      "argatroban",
+      "bivalirudin"
+     ]
+    }
    ]
   },
   {
@@ -810,7 +867,31 @@
     "in": [],
     "out": []
    },
-   "loc": "blood plasma"
+   "loc": "blood plasma",
+   "drugs": [
+    {
+     "name": "Alteplase",
+     "kind": "drug",
+     "effect": "activates",
+     "note": "Recombinant tPA: turns plasminogen into plasmin to dissolve clots (stroke, MI, PE).",
+     "aliases": [
+      "tPA",
+      "tenecteplase",
+      "reteplase",
+      "thrombolytics"
+     ]
+    },
+    {
+     "name": "Tranexamic acid",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Stops plasminogen activation (blocks its lysine binding sites): bleeding, heavy menstrual bleeding.",
+     "aliases": [
+      "TXA",
+      "aminocaproic acid"
+     ]
+    }
+   ]
   },
   {
    "id": "r15",

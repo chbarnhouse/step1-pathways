@@ -89,7 +89,7 @@ function renderDashboard() {
     <div class="dash-cols">
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
-        <div class="dash-scroll">${statsTableHTML(worst, { showPathway: true })}</div>
+        <div class="dash-scroll">${weakKindsHTML()}${statsTableHTML(worst, { showPathway: true })}</div>
       </section>
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('history', 'h-ic')} Activity</h2><span class="muted">${(Store.data.log || []).length ? `${(Store.data.log || []).length} session${(Store.data.log || []).length > 1 ? 's' : ''}` : ''}</span></div>
@@ -152,8 +152,19 @@ document.addEventListener('click', e => {
       .catch(() => { FB.err = 'Couldn’t reach your server.'; }).finally(() => { if (el()) el().innerHTML = feedbackHTML(); });
   }
 });
+/* Weak spots by kind: which kind of question you miss most (enzymes, cofactors, compartments…), each with a drill that
+   quizzes only that kind on the pathways where you missed it; then the names you keep mixing up. */
+const KIND_DRILL = { Metabolite: 'met', Enzyme: 'enz', Transporter: 'trn', Cofactors: 'cof', Compartment: 'loc', Effect: 'eff', Group: 'grp', 'Rate-limiting': 'rl', 'Fed vs fasting': 'reg', 'Drugs & toxins': 'drug' };
+function weakKindsHTML() {
+  const kinds = Stats.byKind().filter(k => k.miss).slice(0, 6), mixes = Stats.topMixes();
+  if (!kinds.length && !mixes.length) return '';
+  return `${kinds.length ? `<div class="weakkinds"><span class="glabel">By kind</span>${kinds.map(k => `<div class="wk"><span class="wk-name">${esc(k.kind)}</span>
+      <span class="meter" role="img" aria-label="${Math.round(100 * k.rate)} percent missed"><span style="width:${Math.round(100 * k.rate)}%"></span></span><span class="pct">${Math.round(100 * k.rate)}%</span>
+      ${KIND_DRILL[k.kind] || k.kind === 'Where it breaks' ? `<button class="btn small ghost" data-dash="drillkind" data-kind="${esc(k.kind)}" data-tip="Quiz only ${esc(k.kind.toLowerCase())} where you missed them">Drill</button>` : '<span></span>'}</div>`).join('')}</div>` : ''}
+    ${mixes.length ? `<div class="weakkinds"><span class="glabel">Mix-ups</span>${mixes.map(x => `<div class="wk mix"><span class="wk-name"><b>${esc(x.wrong)}</b> for <b>${esc(x.label)}</b> <span class="muted small">${esc(x.pname)}</span></span><span class="pct">${x.n}×</span></div>`).join('')}</div>` : ''}`;
+}
 // What you studied, when, how, and how it went — newest first, grouped by day.
-const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step', review: 'Review' };
+const MODE_NAMES = { single: 'Fill the blanks', total: 'Full recall', build: 'Building blocks', step: 'Single step', review: 'Review', where: 'Where it breaks' };
 const ANSWER_NAMES = { type: 'typing', along: 'typing along', choice: 'choice', self: 'self-check' };
 // Every session can be run again (▶) or kept as a favorite (☆) right from your history. Newer sessions remember their
 // exact quiz; older ones (and weak-spot drills) are rebuilt from what the log kept: pathway, mode, how you answered.
@@ -182,7 +193,7 @@ function activityHTML() {
     const p = Library.get(e.pathways?.[0]), pct = e.total ? Math.round(100 * e.right / e.total) : 0;
     const mins = Math.max(1, Math.round((e.last - e.t) / 60000));
     const what = e.pathways?.length > 1 ? `${e.pathways.length} pathways` : p?.name || e.name;
-    const how = MODE_NAMES[e.mode] + (e.mode === 'step' ? (e.given === 'enz' ? ' (enzyme)' : ' (metabolites)') : '') + (e.mode === 'review' ? '' : ' · ' + (ANSWER_NAMES[e.answer] || e.answer));
+    const how = MODE_NAMES[e.mode] + (e.mode === 'step' ? (e.given === 'enz' ? ' (enzyme)' : ' (metabolites)') : '') + (e.mode === 'review' || e.mode === 'where' ? '' : ' · ' + (ANSWER_NAMES[e.answer] || e.answer));
     out += `<li class="act">${p ? tileArt(p, 'xs') : `<span class="tile-art xs tone-slate">${mi('route')}</span>`}
       <span class="act-main"><b>${esc(what)}</b><span class="muted small">${esc(how)}${e.done ? ' · finished' : ''}</span></span>
       <span class="act-score">${e.mode === 'review' ? `<b>Reviewed</b><span class="muted small">no questions</span>` : `<b>${e.right}/${e.total}</b><span class="muted small">${pct}% · ${mins} min</span>`}</span>
@@ -218,6 +229,12 @@ document.addEventListener('click', e => {
   if (b.dataset.dash === 'favstart') { const f = favorites().find(x => x.id === b.dataset.id); if (f) { const d = normalizeDraft(f.d); local.set(LAST_QUIZ, { cfg: d }); launchQuiz(quizFromDraft(d), d); } }
   if (b.dataset.dash === 'favrename') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: 'Rename favorite', input: true, value: f.name, ok: 'Rename' }).then(name => { if (name && name.trim()) { f.name = name.trim(); Store.save(); renderDashboard(); } }); }
   if (b.dataset.dash === 'unfav') { const f = favorites().find(x => x.id === b.dataset.id); ask({ title: `Remove “${f.name}” from favorites?`, ok: 'Remove' }).then(y => { if (y) { Store.data.favorites = favorites().filter(x => x !== f); Store.save(); renderDashboard(); } }); }
+  if (b.dataset.dash === 'drillkind') {
+    const k = Stats.byKind().find(x => x.kind === b.dataset.kind); if (!k) return;
+    if (k.kind === 'Where it breaks') return launchQuiz({ ...QUIZ_DEFAULTS, name: 'Where it breaks', pathways: k.pids, mode: 'where', el: { enz: 'hide', cof: 'show', loc: 'show' } });
+    const el = { met: 'show', enz: 'show', trn: 'show', cof: 'show', loc: 'show', [KIND_DRILL[k.kind]]: 'quiz' };
+    return launchQuiz({ ...QUIZ_DEFAULTS, name: `Weak spots: ${k.kind.toLowerCase()}`, pathways: k.pids, mode: 'single', weak: true, el });
+  }
   if (b.dataset.dash === 'drill') {
     const pids = uniq(Stats.worst(50).map(r => r.pid));
     launchQuiz({ ...QUIZ_DEFAULTS, name: 'Weak spots', pathways: pids, mode: 'single', weak: true, el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'quiz', loc: 'show' } });
@@ -283,6 +300,7 @@ const MODES = [
   ['total', 'Full recall', 'Everything starts hidden (or with one anchor shown) and you fill it in, in order, step by step.', 'Proving you can rebuild a pathway end to end before an exam.'],
   ['build', 'Building blocks', 'Round 1 asks the first blank, round 2 the first two, and so on, always from the top. A slip clears that blank and asks again.', 'Learning a new pathway’s order from scratch.'],
   ['step', 'Single step', 'One reaction at a time: given two metabolites, name the enzyme, cofactors and direction; or given an enzyme, say what it does.', 'Fast drilling of enzymes and cofactors, across pathways too.'],
+  ['where', 'Where does it break?', 'A disease and its classic clue; click the step that fails on the drawing. Hide enzyme names to test where it is, not just what it’s called.', 'Turning pathways into exam vignettes.'],
   ['review', 'Review', 'Every answer is shown on the diagram, connected pathways together; nothing is asked. Click anything for its facts.', 'Reading a pathway, or several connected ones, before you quiz yourself.'],
 ];
 /* ---------- pathway browser (New quiz + Pathways) ----------
@@ -454,7 +472,9 @@ document.addEventListener('click', e => {
   if (open) { const d = document.querySelector(`details.fdd[data-f="${open}"]`); if (d) d.open = true; }
 });
 // The pathway page's diagram: its links to other pathways are clickable there (and only there).
-function pageFlowSVG(m) { LINK_NAV = true; try { return flowSVG(m, () => 'shown'); } finally { LINK_NAV = false; } }
+// Fed vs fasting on a pathway page: off by default; Fed or Fasting shows that state's ON/OFF badges and fades what's off.
+const pageStatus = k => (k[1] !== ':' ? 'shown' : k[0] === 'q' ? (Store.settings.drugView ? 'shown' : 'hide') : k[0] !== 'y' && k[0] !== 'x' ? 'shown' : (k[0] === 'y' ? 'fed' : 'fasting') === Store.settings.regView ? 'shown' : 'hide');
+function pageFlowSVG(m) { LINK_NAV = true; try { return flowSVG(m, pageStatus); } finally { LINK_NAV = false; } }
 function editTags(id) {
   const p = Library.get(id);
   const fixed = [...(p.systems || []), ...(p.tags || [])];
@@ -474,12 +494,12 @@ function renderCreate() {
   const allE = d.mode === 'step' && d.given === 'enz' && d.allPathways;
   let ans = d.answer || Store.settings.answer;
   if (d.mode === 'build' && !['type', 'along'].includes(ans)) ans = 'type';
-  const hasQuiz = d.mode === 'review' || elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place'), picked = allE || !!d.pathway;
+  const hasQuiz = d.mode === 'review' || d.mode === 'where' || elSpecFor({ ...d }).some(([k]) => elOf(d, k) === 'quiz' || elOf(d, k) === 'place'), picked = allE || !!d.pathway;
   // Compartments: none recorded → no row; all in one place → say it's asked once.
   let zonesHere = null;
   // Effects (activates / inhibits): a row only when a chosen pathway marks them.
-  let effectsHere = false, groupsHere = [], stitched = false, transportsHere = true, rlHere = true;
-  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); transportsHere = its.some(it => it.kind === 'trn'); rlHere = its.some(it => it.kind === 'rl'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
+  let effectsHere = false, groupsHere = [], stitched = false, transportsHere = true, rlHere = true, regHere = false, drugHere = false;
+  try { const qp = Library.get(draftPathway(d)); if (qp && !allE) { const its = Object.values(modelFor(qp).items); zonesHere = its.filter(it => it.kind === 'loc'); effectsHere = its.some(it => it.kind === 'eff'); transportsHere = its.some(it => it.kind === 'trn'); rlHere = its.some(it => it.kind === 'rl'); regHere = its.some(it => it.kind === 'regfed'); drugHere = its.some(it => it.kind === 'drug'); groupsHere = its.filter(it => it.kind === 'grp'); stitched = !!qp.stitch; } } catch {}
   const placeNote = () => {
     const qp = Library.get(draftPathway(d));
     if (qp?.stitch) return `<span class="el-note muted small">${mi('help', 'sm')} Place works on one pathway at a time; with connected pathways, compartments just show.</span>`;
@@ -489,10 +509,12 @@ function renderCreate() {
   };
   const groupNote = () => `<span class="el-note muted small">${mi('help', 'sm')} ${stitched ? 'Draw yourself works on one pathway at a time; with connected pathways, groups just show.' : `No frames at first: you drag a frame around the boxes of each group (${groupsHere.length}), then name it. ${d.mode === 'review' ? '' : 'Before the rest of the quiz.'}`}</span>`;
   const elNote = k => (k === 'grp' && elOf(d, 'grp') === 'place' ? groupNote() : k === 'loc' && elOf(d, 'loc') === 'place' ? placeNote() : k === 'loc' && zonesHere?.length === 1 ? `<span class="el-note muted small">${mi('help', 'sm')} All of it happens in one place (${esc(zonesHere[0].name)})${d.mode === 'step' ? ', so every step has the same answer.' : ', so Quiz asks it once.'}</span>` : '');
-  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'trn' || transportsHere) && (k !== 'rl' || (rlHere && elOf(d, 'enz') !== 'hide')) && (k !== 'grp' || groupsHere.length))
+  const els = elSpecFor(d).filter(([k]) => !(k === 'loc' && zonesHere && !zonesHere.length) && (k !== 'eff' || effectsHere) && (k !== 'trn' || transportsHere) && (k !== 'rl' || (rlHere && elOf(d, 'enz') !== 'hide')) && (k !== 'reg' || regHere) && (k !== 'drug' || drugHere) && (k !== 'grp' || groupsHere.length))
     .map(([k, label, allowed]) => {
       // Show / Quiz / Hide; where it can also be drawn (compartments), Quiz then asks how: fill in the blanks, or draw it yourself.
       const v = elOf(d, k), draw = allowed.includes('place'), top = v === 'place' ? 'quiz' : v;
+      // Fed vs fasting: which state the badges show (or the quiz asks about).
+      if (k === 'reg' && v !== 'hide') return `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.map(x => [x, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[x], elTip(x, d.mode)]), v)}<div class="el-sub"><span class="muted small">State</span>${seg('data-cregst', 'reg', [['fed', 'Fed (insulin)', 'After a meal: insulin high'], ['fasting', 'Fasting (glucagon)', 'Between meals: glucagon high']], d.regState === 'fasting' ? 'fasting' : 'fed')}</div></div>`;
       const how = draw && top === 'quiz' ? `<div class="el-sub"><span class="muted small">How</span>${seg('data-celhow', k, [['quiz', 'Fill in the blank', elTip('quiz', d.mode)], ['place', 'Draw yourself', elTip('place', d.mode, k)]], v)}</div>` : '';
       return `<div class="el-row"><span class="el-name">${label}</span>${seg('data-cel', k, allowed.filter(x => x !== 'place').map(x => [x, { show: 'Show', quiz: 'Quiz', hide: 'Hide' }[x], elTip(x, d.mode)]), top)}${how}${elNote(k)}</div>`;
     }).join('');
@@ -516,7 +538,8 @@ function renderCreate() {
         <div class="field"><span>How</span><div class="modes">${MODES.map(([v, t, how, best]) => `<button class="mode${d.mode === v ? ' on' : ''}" data-cs="mode" data-v="${v}" aria-pressed="${d.mode === v}"><b>${d.mode === v ? mi('check', 'sm') : ''}${t}</b><span>${how}</span><span class="best"><b>Best for</b> ${best}</span></button>`).join('')}</div></div>
         ${modeOpts}
         <div class="field"><span>${d.mode === 'review' ? 'What to show or hide' : 'What to show, quiz or hide'}</span><div class="el-grid">${els}</div>
-          ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}</div>
+          ${hasQuiz ? '' : `<p class="bad-note">${icon('no')} Set at least one to Quiz.</p>`}${d.mode === 'where' && picked ? (() => { const n = draftParts(d).flatMap(id => { try { return Object.values(modelFor(Library.get(id)).items).filter(it => it.kind === 'dis'); } catch { return []; } }).length;
+            return `<p class="${n ? 'muted small' : 'bad-note'}">${n ? `${plural(n, 'disease')} to place.` : `${icon('no')} No diseases on these pathways yet: try the urea cycle, heme synthesis, glycogenolysis or the sphingolipids.`}</p>`; })() : ''}</div>
         ${d.mode === 'review' ? '' : `<details class="adv"${C.advOpen ? ' open' : ''}><summary>${mi('tune', 'sm')} Advanced: answering, hints and more${mi('expand_more', 'chev')}</summary>
         <div class="field" data-tour="answer"><span>Answer by</span>${seg('data-cs', 'answer', d.mode === 'build' ? [['type', 'Typing'], ['along', 'Typing along']] : [['type', 'Typing'], ['along', 'Typing along'], ['choice', 'Choice'], ['self', 'Self-check']], ans)}
           <p class="muted small">${{ type: 'Type the name; abbreviations count, and a/alpha work for α.', along: 'The answer is shown faintly; type it to fill it in.', choice: 'Pick from four options of the same kind.', self: 'Reveal it and mark yourself right or wrong.' }[ans]}</p>
@@ -528,7 +551,7 @@ function renderCreate() {
           ${d.mode !== 'total' ? `<label class="cb"><input type="checkbox" data-cflag="weak" ${d.weak ? 'checked' : ''}> Weak spots first</label>` : ''}
         </details>`}
         <div class="side-foot">
-          <button class="btn primary big" data-c="start" ${hasQuiz && picked ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
+          <button class="btn primary big" data-c="start" ${hasQuiz && picked && !(d.mode === 'where' && !draftParts(d).some(id => (Library.get(id)?.reactions || []).some(r => (r.diseases || []).length))) ? '' : 'disabled'}>${mi('play_arrow')} Start quiz</button>
           <span class="btnrow tight"><button class="btn ghost" data-c="fav" aria-pressed="${!!findFav(d)}" ${picked ? '' : 'disabled'}>${mi(findFav(d) ? 'star_fill1' : 'star', 'sm')} ${findFav(d) ? 'Favorited' : 'Favorite'}</button>
           <button class="btn ghost" data-c="savepreset">${mi('bookmark_add', 'sm')} Save as preset</button></span>
         </div>
@@ -641,6 +664,8 @@ document.addEventListener('click', e => {
   if (pill) { removePathway(d, pill.dataset.cpill); return renderCreate(); }
   if (e.target.closest('[data-cclear]')) { clearPathways(d); return renderCreate(); }
   if (e.target.closest('[data-cmore]')) { C.allSugg = !C.allSugg; return renderCreate(); }
+  const rs = e.target.closest('[data-cregst]');
+  if (rs) { d.regState = rs.dataset.v; C.presetId = ''; return renderCreate(); }
   const sb = e.target.closest('[data-cs]');
   if (sb) { d[sb.dataset.cs] = sb.dataset.v; if (sb.dataset.cs === 'ahead') d.aheadChosen = true; if (sb.dataset.cs === 'names') delete d.fullNames; C.presetId = ''; return renderCreate(); }
   const nb = e.target.closest('[data-cname]');
@@ -729,7 +754,8 @@ function renderPathway(id) {
     <div class="tagrow">${mi('sell', 'sm')} ${sysChips(id)}${tagsOf(id).length ? tagsOf(id).map(t => `<span class="tagchip">${esc(t)}</span>`).join('') : systemsOf(id).length ? '' : '<span class="muted">No tags</span>'} <button class="linkbtn" data-lib="tags" data-id="${esc(id)}">Edit tags</button></div>
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">
-      <div class="sec-h"><div class="seg">${['flow', 'list'].map(v => `<button data-pwview="${v}" aria-pressed="${Store.settings.view === v}">${v === 'flow' ? 'Flow' : 'List'}</button>`).join('')}</div>${flow ? zoomBarHTML() : ''}</div>
+      <div class="sec-h"><div class="seg">${['flow', 'list'].map(v => `<button data-pwview="${v}" aria-pressed="${Store.settings.view === v}">${v === 'flow' ? 'Flow' : 'List'}</button>`).join('')}</div>
+        ${flow && Object.values(m.items).some(it => it.kind === 'regfed') ? `<div class="seg" role="group" aria-label="Fed or fasting">${[['', 'Any state'], ['fed', 'Fed'], ['fasting', 'Fasting']].map(([v, l]) => `<button data-pwreg="${v}" aria-pressed="${(Store.settings.regView || '') === v}" data-tip="${v ? `Which steps are on (▲) or off (▽) ${v === 'fed' ? 'after a meal (insulin high)' : 'between meals (glucagon high)'}` : 'No fed/fasting badges'}">${l}</button>`).join('')}</div>` : ''}${flow && Object.values(m.items).some(it => it.kind === 'drug') ? `<button class="btn small${Store.settings.drugView ? ' on' : ''}" data-pwdrug aria-pressed="${!!Store.settings.drugView}" data-tip="Show the drugs and toxins that act on these steps">${mi('medication', 'sm')} Drugs & toxins</button>` : ''}${flow ? zoomBarHTML() : ''}</div>
       ${flow ? `<div class="stage canvas" data-view="page:${esc(id)}">${canvasHTML(pageFlowSVG(m))}</div>` : `<div class="stage">${listHTML(m, () => 'shown', { horiz: Store.settings.dir === 'h' })}</div>`}
     </section>
     <section class="card pad"><h2>Steps</h2><div class="tablewrap"><table class="steps"><thead><tr><th class="num">#</th><th>Reaction</th><th>Enzyme</th><th>Cofactors</th><th>Where</th><th>Notes</th></tr></thead><tbody>${steps}</tbody></table></div></section>
@@ -742,6 +768,9 @@ document.addEventListener('click', e => {
   const id = location.hash.split('/')[2];
   const v = e.target.closest('[data-pwview]');
   if (v) { Store.settings.view = v.dataset.pwview; Store.save(); return renderPathway(id); }
+  if (e.target.closest('[data-pwdrug]')) { Store.settings.drugView = !Store.settings.drugView; Store.save(); return renderPathway(id); }
+  const rg = e.target.closest('[data-pwreg]');
+  if (rg) { Store.settings.regView = rg.dataset.pwreg; Store.save(); return renderPathway(id); }
   const b = e.target.closest('[data-pw]');
   if (!b) return;
   if (b.dataset.pw === 'study') studyPathway(id);
@@ -1001,7 +1030,7 @@ const TRAIL_KEY = 'pathways.trail';
 const trail = () => { try { return JSON.parse(sessionStorage.getItem(TRAIL_KEY)) || []; } catch { return []; } };
 const saveTrail = t => { try { sessionStorage.setItem(TRAIL_KEY, JSON.stringify(t)); } catch {} };
 function trailVisit(h) {
-  const tab = h === '#/pathways' || /^#\/library\/[a-z]+$/.test(h), page = /^#\/library\/[a-z]+\/.+/.test(h) || /^#\/pathways\/[^/]+$/.test(h);
+  const tab = h === '#/pathways' || h === '#/map' || /^#\/library\/[a-z]+$/.test(h), page = /^#\/library\/[a-z]+\/.+/.test(h) || /^#\/pathways\/[^/]+$/.test(h);
   if (!tab && !page) return;
   if (tab) return saveTrail([{ h }]);
   const t = trail(), i = t.findIndex(x => x.h === h);
@@ -1011,7 +1040,7 @@ function trailLabel(h) {
   const t = trail(), last = t[t.length - 1];
   if (!last || last.h !== h) return;
   const tab = CAT_TABS.find(x => h === '#/library/' + x[0]);
-  last.t = h === '#/pathways' ? 'Library' : tab ? tab[1] : ($('#view h1')?.textContent || '').trim();
+  last.t = h === '#/pathways' ? 'Library' : h === '#/map' ? 'Map' : tab ? tab[1] : ($('#view h1')?.textContent || '').trim();
   saveTrail(t);
 }
 // Where you came from, ending just before this page; with no trail (a link from elsewhere), the usual way in.
@@ -1034,6 +1063,7 @@ function router() {
     if (Q.cfg) renderQuiz(); else { location.replace('#/'); return; }
   }
   else if (h === '#/pathways') { page = 'pathways'; renderLibrary(); }
+  else if (h === '#/map') { page = 'pathways'; renderMap(); }
   else if (h === '#/pathways/new') { page = 'pathways'; openEditor(null); }
   else if (h === '#/pathways/new-combined') { page = 'pathways'; openEditor(null, { id: '', name: 'Combined pathway', group: 'Combined', summary: '', compose: [] }); }
   else if (h === '#/pathways/import') { page = 'pathways'; if (E.pending) openEditor(null, E.pending); else location.replace('#/pathways'); }

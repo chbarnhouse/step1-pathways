@@ -241,7 +241,25 @@
    "requires": [
     "B6 (pyridoxal phosphate)"
    ],
-   "via": "slc25a38"
+   "via": "slc25a38",
+   "drugs": [
+    {
+     "name": "Hemin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Represses ALA synthase (as does glucose): acute porphyria attacks.",
+     "aliases": [
+      "heme arginate",
+      "panhematin"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "X-linked sideroblastic anemia",
+     "clue": "Microcytic anemia with ringed sideroblasts and iron overload; may respond to B6 (pyridoxine)."
+    }
+   ]
   },
   {
    "id": "r2",
@@ -260,7 +278,24 @@
     "irreversible"
    ],
    "notes": "2 ALA → PBG",
-   "via": "alaexp"
+   "via": "alaexp",
+   "drugs": [
+    {
+     "name": "Lead",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Blocks ALA dehydratase and ferrochelatase: microcytic anemia with basophilic stippling; ALA and protoporphyrin build up.",
+     "aliases": [
+      "lead poisoning"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Lead poisoning",
+     "clue": "Microcytic anemia with basophilic stippling, abdominal colic, wrist or foot drop, lead lines on gums and bones; raised ALA and protoporphyrin."
+    }
+   ]
   },
   {
    "id": "r3",
@@ -277,6 +312,12 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
+   ],
+   "diseases": [
+    {
+     "name": "Acute intermittent porphyria",
+     "clue": "Painful abdomen, port-wine urine, polyneuropathy and psychiatric symptoms, triggered by alcohol, fasting or drugs that induce CYP450; no photosensitivity."
+    }
    ]
   },
   {
@@ -311,6 +352,12 @@
    "loc": "cytosol",
    "tags": [
     "irreversible"
+   ],
+   "diseases": [
+    {
+     "name": "Porphyria cutanea tarda",
+     "clue": "Blistering, fragile skin on sun-exposed hands, tea-colored urine; linked to hepatitis C and alcohol."
+    }
    ]
   },
   {
@@ -365,6 +412,23 @@
    "loc": "mitochondria",
    "tags": [
     "irreversible"
+   ],
+   "drugs": [
+    {
+     "name": "Lead",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Blocks ALA dehydratase and ferrochelatase: microcytic anemia with basophilic stippling; ALA and protoporphyrin build up.",
+     "aliases": [
+      "lead poisoning"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Lead poisoning",
+     "clue": "Microcytic anemia with basophilic stippling, abdominal colic, wrist or foot drop, lead lines on gums and bones; raised ALA and protoporphyrin."
+    }
    ]
   }
  ],

@@ -65,9 +65,28 @@ function elbowLabels(m, statusOf, r, h, v) {
     s += enzLabel(mx, ly, it, es, 'middle', 22, 'bottom'); DRAW_LABELS.push(enzRect(mx, ly, 'middle', it, 22, 'bottom'));
     if (cof) s += cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], cofParts(m, statusOf, r));
   } else if (v) {
-    const x = v[0][0], y0 = Math.min(v[0][1], v[1][1]), y1 = Math.max(v[0][1], v[1][1]);
-    s += enzLabel(x - 14, (y0 + y1) / 2, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(x - 14, (y0 + y1) / 2, 'end', it, 18));
-    if (cof) s += cofArcParts(x, y0, y1, cofParts(m, statusOf, r), v[1][1] < v[0][1]);
+    let x = v[0][0], y0 = Math.min(v[0][1], v[1][1]), y1 = Math.max(v[0][1], v[1][1]);
+    // Something already sitting on the run (a carrier pill) is skipped: the labels use the stretch past it.
+    for (const l of DRAW_LABELS) if (l.x < x && l.x + l.w > x && l.y < y1 && l.y + l.h > y0) { if (l.y + l.h / 2 < (y0 + y1) / 2) y0 = Math.max(y0, l.y + l.h + 4); else y1 = Math.min(y1, l.y - 4); }
+    if (y1 - y0 < 40) { y0 = Math.min(v[0][1], v[1][1]); y1 = Math.max(v[0][1], v[1][1]); }
+    const ym = (y0 + y1) / 2;
+    // Name left of the run and cofactors right, unless the left is taken (a box beside the run) and the right isn't.
+    // Three ways to lay it out: name left, cofactors right (usual); both right, the name beyond the cofactors; both left,
+    // mirrored. The first that lands on nothing, else the one that lands on least.
+    const cw = cof ? Math.max(0, ...cofParts(m, statusOf, r).map(q => (hidden(q.st) ? 110 : q.text.length * 7))) + 64 : 14;
+    const count = rs => rs.filter(q => q && hitsBox(q)).length;
+    // A long run: its labels take a 110-px stretch of it, the middle if that's clear, else wherever along it is.
+    const stretches = y1 - y0 > 150 ? [0.5, 0.35, 0.65, 0.22, 0.78].map(f => { const c = y0 + (y1 - y0) * f; return [Math.max(y0, c - 55), Math.min(y1, c + 55)]; }) : [[y0, y1]];
+    let o = null;
+    for (const [a0, a1] of stretches) {
+      const cofBox = sx => ({ x: sx > 0 ? x + 40 : x - cw, y: a0, w: cw - 30, h: a1 - a0 }), c = (a0 + a1) / 2;
+      const opts = [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1]].map(([dx, an, sx]) => ({ dx, an, sx, a0, a1, c, n: count([enzRect(x + dx, c, an, it, 18), cof && cofBox(sx)]) }));
+      const best = opts.find(q => !q.n) || opts.slice().sort((p, q) => p.n - q.n)[0];
+      if (!o || best.n < o.n) o = best;
+      if (!o.n) break;
+    }
+    s += enzLabel(x + o.dx, o.c, it, es, o.an, 18, 'center'); DRAW_LABELS.push(enzRect(x + o.dx, o.c, o.an, it, 18));
+    if (cof) s += cofArcParts(x, o.a0, o.a1, cofParts(m, statusOf, r), v[1][1] < v[0][1], o.sx < 0);
   }
   return s;
 }
@@ -142,20 +161,31 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
   if (hidden(st)) {
     const word = blankWord(item), w = pillW(word), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
     const ry = valign === 'bottom' ? y - 26 : y - 13;
-    return `<g class="elab ${cls}"><rect x="${rx}" y="${ry}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, ry + 13, word)}</g>`;
+    return `<g class="elab ${cls}" data-key="${item.key}"><rect x="${rx}" y="${ry}" width="${w}" height="26" rx="13"/>${blankText(rx + w / 2, ry + 13, word)}</g>`;
   }
   const lines = wrap(item.name, max);
   const tags = item.kind === 'rl' ? [] : item.via ? viaTags(item.rxn) : shownTags(item.rxn);
-  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t])];
+  // Fed vs fasting, when shown: "▲ ON" (filled, up) or "▽ OFF" (hollow, down) under the name, or a blank to fill.
+  const regs = regLines(item), drugs = drugLines(item);
+  const all = [...lines.map(l => ['', l]), ...tags.map(t => ['tag', t]), ...extra.map(t => ['cofl', t]), ...regs.map(([it, st]) => (hidden(st) ? ['regblank', it, st] : ['reg', `${it.state === 'fed' ? 'FED' : 'FASTING'}: ${it.name === 'On' ? '▲ ON' : '▽ OFF'}`])),
+    ...drugs.map(([it, st]) => (hidden(st) ? ['regblank', it, st] : ['drug', `${it.drug.effect === 'activates' ? '⊕' : '⊣'} ${it.name}${it.drug.kind === 'toxin' ? ' (toxin)' : ''}`]))];
   const lh = 15, y0 = valign === 'bottom' ? y - (all.length - 1) * lh - 6 : y - (all.length - 1) * lh / 2;
   let s = `<g class="elab ${cls}${item.kind === 'trn' ? ' trn' : ''}" data-key="${item.key}">`;
   // A transporter's name sits in a pill, so it never reads as an enzyme.
   if (item.kind === 'trn') {
-    const pw = Math.max(...all.map(([, l]) => l.length)) * 6.9 + 18, px = anchor === 'end' ? x - pw + 8 : anchor === 'start' ? x - 8 : x - pw / 2;
-    s += `<rect class="trnpill" x="${px}" y="${y0 - 11}" width="${pw}" height="${(all.length - 1) * lh + 22}" rx="11"/>`;
+    const own = all.slice(0, lines.length + tags.length); // its name and tags, not the drugs listed under it
+    const pw = Math.max(...own.map(([, l]) => l.length)) * 6.9 + 18, px = anchor === 'end' ? x - pw + 8 : anchor === 'start' ? x - 8 : x - pw / 2;
+    s += `<rect class="trnpill" x="${px}" y="${y0 - 11}" width="${pw}" height="${(own.length - 1) * lh + 22}" rx="11"/>`;
   }
-  all.forEach(([c, l], i) => { s += `<text class="${c}" x="${x}" y="${y0 + i * lh}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; });
-  s += '</g>';
+  let pill = '';
+  all.forEach(([c, l, st], i) => {
+    const ly = y0 + i * lh + (c === 'regblank' ? 4 : 0); // a pill needs a little more room than a line of text
+    if (c !== 'regblank') { s += `<text class="${c}" x="${x}" y="${ly}" text-anchor="${anchor}" dominant-baseline="central">${esc(l)}</text>`; return; }
+    const word = l.kind === 'drug' ? l.term + '?' : l.state === 'fed' ? 'fed: on/off?' : 'fasting: on/off?', live = st === 'target' && INLINE, w = live ? 170 : pillW(word), rx = anchor === 'end' ? x - w : anchor === 'start' ? x : x - w / 2;
+    pill += live ? `<g class="elab target"><rect x="${rx}" y="${ly - 12}" width="${w}" height="24" rx="12"/></g>` + inlineField(rx + 4, ly - 10, w - 8, 20)
+      : `<g class="elab regq ${st}" data-key="${l.key}"><rect x="${rx}" y="${ly - 11}" width="${w}" height="22" rx="11"/>${blankText(rx + w / 2, ly, word)}</g>`;
+  });
+  s += '</g>' + pill;
   const ix = anchor === 'end' ? x + 14 : anchor === 'start' ? x - 14 : x;
   const iy = anchor === 'middle' ? y0 - 18 : y0;
   if (st === 'right') s += svgIcon(ix, iy, 'ok');
@@ -165,31 +195,34 @@ function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
 }
 // The curved side arrow with each side shown, blank or being typed: inputs at the top, outputs at the bottom,
 // a side's mark just after its text (never on the curve). parts: from cofParts (or the step quiz's questions).
-function cofArcParts(x, y1, y2, parts, up = false) {
+// left: the mirror image, the curve and its labels on the step's left (when the right is crowded).
+function cofArcParts(x, y1, y2, parts, up = false, left = false) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
-  if (parts.length === 1 && !parts[0].side) return cofRow(x + 22, (y1 + y2) / 2, 'start', parts); // arrow not chosen yet: no arc
+  const sx = left ? -1 : 1, X = dx => x + sx * dx;
+  if (parts.length === 1 && !parts[0].side) return cofRow(X(22), (y1 + y2) / 2, left ? 'end' : 'start', parts); // arrow not chosen yet: no arc
   const pin = parts.find(p => p.side === 'in'), pout = parts.find(p => p.side === 'out');
   if (!pin && !pout) return '';
   const d = up ? -1 : 1, yF = up ? y2 : y1, yT = up ? y1 : y2, mid = (y1 + y2) / 2;
   // A blank (a pill) needs more room than a line of text: keep it inside the gap between the two boxes.
   const off = p => (p && hidden(p.st) ? 15 : 12);
-  const a = [x + 44, yF + off(pin) * d], b = [x + 44, yT - off(pout) * d];
+  const a = [X(44), yF + off(pin) * d], b = [X(44), yT - off(pout) * d];
   // A label that would land on another (a side step's, beside a short arrow) slides along the step, its curl end with it.
-  const lw = p => (hidden(p.st) ? 160 : p.text.length * 7 + 24), free = (p, y) => !hitsBox({ x: x + 50, y: y - 14, w: lw(p), h: 28 });
+  const lw = p => (hidden(p.st) ? 160 : p.text.length * 7 + 24), rect = (p, y) => ({ x: left ? X(50) - lw(p) : X(50), y: y - 14, w: lw(p), h: 28 }), free = (p, y) => !hitsBox(rect(p, y));
   if (pin && !free(pin, a[1])) for (let k = 1; k < 8; k++) { const y = a[1] + d * k * 8; if (Math.abs(y - b[1]) < 26) break; if (free(pin, y)) { a[1] = y; break; } }
   if (pout && !free(pout, b[1])) for (let k = 1; k < 8; k++) { const y = b[1] - d * k * 8; if (Math.abs(y - a[1]) < 26) break; if (free(pout, y)) { b[1] = y; break; } }
-  const start = pin ? a : [x + 3, mid], end = pout ? b : [x + 3, mid];
-  const ctrl = pin && pout ? [x + 2, mid] : pin ? [x + 12, yF + 20 * d] : [x + 12, yT - 20 * d];
+  const start = pin ? a : [X(3), mid], end = pout ? b : [X(3), mid];
+  const ctrl = pin && pout ? [X(2), mid] : pin ? [X(12), yF + 20 * d] : [X(12), yT - 20 * d];
   const ang = Math.atan2(end[1] - ctrl[1], end[0] - ctrl[0]);
   let s = `<path class="cof" d="M${start[0]},${start[1]}Q${ctrl[0]},${ctrl[1]} ${end[0] - Math.cos(ang) * 4},${end[1] - Math.sin(ang) * 4}"/>` + head(end[0], end[1], ang, 7, 'cofh');
   const two = !!(pin && pout), cw = 7;
   for (const [p, y] of [[pin, a[1]], [pout, b[1]]]) {
     if (!p) continue;
-    const x0 = x + 50;
-    DRAW_LABELS.push({ x: x0, y: y - 14, w: hidden(p.st) ? 160 : p.text.length * cw + 24, h: 28 });
-    if (isLive(p)) { const w = Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64); s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24); }
-    else if (hidden(p.st)) { const w = pillW(cofWord(p, two)); s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`; }
-    else s += cofSpot(p, x0, y, p.text.length * cw) + `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(x0 + p.text.length * cw + 14, y, p.st);
+    const live = isLive(p), w = live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw;
+    const x0 = left ? X(50) - w : X(50); // where the label starts (its left edge)
+    DRAW_LABELS.push({ x: left ? X(50) - w - 24 : x0, y: y - 14, w: w + 24, h: 28 });
+    if (live) s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24);
+    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`;
+    else s += cofSpot(p, x0, y, w) + `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(left ? x0 - 14 : x0 + w + 14, y, p.st);
   }
   return s;
 }
@@ -202,7 +235,7 @@ const overlaps = (r, b) => r.x < b.x + b.w + 4 && r.x + r.w > b.x - 4 && r.y < b
 const hitsBox = r => DRAW_BOXES.some(b => overlaps(r, b)) || DRAW_LABELS.some(b => overlaps(r, b));
 // An enzyme's whole label: its name, tags (RATE-LIMITING) and what it needs, as enzLabel stacks them.
 const enzRect = (x, y, anchor, item, max = 18, valign = 'center') => {
-  const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? (item.via ? viaTags(r) : shownTags(r)) : []), ];
+  const r = item?.rxn, lines = [...wrap(item?.name || '', max), ...(r ? (item.via ? viaTags(r) : shownTags(r)) : []), ...regLines(item).map(() => 'FASTING: ▽ OFF'), ...drugLines(item).map(([it]) => '⊣ ' + it.name + (it.drug?.kind === 'toxin' ? ' (toxin)' : ''))];
   const pill = item?.kind === 'trn', w = pill ? Math.max(1, ...lines.map(l => l.length)) * 6.9 + 18 : Math.min(Math.max(1, ...lines.map(l => l.length)), max + 2) * 6.6, h = Math.max(1, lines.length) * 15 + (pill ? 8 : 0); // a transporter's pill
   return { x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: valign === 'bottom' ? y - h : y - h / 2, w, h, rid: r?.id };
 };
@@ -292,11 +325,16 @@ function cofCurl(M, u, n, parts, cx0 = M[0]) { // cx0: the ring's middle
   }
   const ang = Math.atan2(E[1] - C[1], E[0] - C[0]);
   let s = `<path class="cof" d="M${S[0]},${S[1]}Q${C[0]},${C[1]} ${E[0] - Math.cos(ang) * 4},${E[1] - Math.sin(ang) * 4}"/>` + head(E[0], E[1], ang, 7, 'cofh');
+  // Beside the curl, inputs and outputs stay at least a line apart (a diagonal step would put them nearly level).
+  const besideAt = (P, first) => { const q = [P[0] + n[0] * 8, P[1] + n[1] * 8];
+    if (pin && pout) { const a = [S[0] + n[0] * 8, S[1] + n[1] * 8], b = [E[0] + n[0] * 8, E[1] + n[1] * 8], mid = (a[1] + b[1]) / 2, sg = b[1] >= a[1] ? 1 : -1;
+      if (Math.abs(b[1] - a[1]) < 22) q[1] = mid + (first ? -11 : 11) * sg; }
+    return q; };
   for (const [p, P, first] of [[pin, S, true], [pout, E, false]]) {
     if (!p) continue;
     const live = isLive(p), w = wOf(p);
     // Beside the curl's end, away from the arrow; on the top and bottom, centered in their stack.
-    const Q = side && !stack ? [P[0] + n[0] * 8, P[1] + n[1] * 8] : first ? inAt : outAt, lx = Q[0], ly = Q[1];
+    const Q = side && !stack ? besideAt(P, first) : first ? inAt : outAt, lx = Q[0], ly = Q[1];
     const anchor = stack ? (stack > 0 ? 'start' : 'end') : side ? (n[0] > 0 ? 'start' : 'end') : (first === (fw > 0) ? 'end' : 'start');
     const x0 = anchor === 'end' ? lx - w : anchor === 'middle' ? lx - w / 2 : lx;
     DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
@@ -359,7 +397,7 @@ function cofRow(x, y, anchor, parts) {
 // Where each shown cofactor label went (its text and box), so a link to another pathway can start at it (fumarate leaving
 // argininosuccinate lyase, on to the TCA cycle). Reset with each drawing.
 let COF_SPOTS = [];
-const cofSpot = (p, x, y, w) => { COF_SPOTS.push({ text: p.text, x: x - 2, y: y - 10, w: w + 4, h: 20 }); return ''; };
+const cofSpot = (p, x, y, w) => { COF_SPOTS.push({ text: p.text, side: p.side === 'out' ? 'out' : 'in', names: p.text.split(/\s*\+\s*|,\s*/).map(t => t.trim().toLowerCase()).filter(Boolean), x: x - 2, y: y - 10, w: w + 4, h: 20 }); return ''; };
 const cofMark = (x, y, st) => (st === 'right' ? svgIcon(x, y, 'ok') : st === 'missed' ? svgIcon(x, y, 'no') : '');
 
 /* Connections to other pathways (p.links): a dotted line from a box to a small tag naming where it leads ("→ TCA cycle")
@@ -393,10 +431,18 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
       } else {
         const cy = yb + (i - (ls.length - 1) / 2) * (h + 6);
         const R = { x: b.x + b.w + 36, y: cy - h / 2, w, h }, L = { x: b.x - 36 - w, y: cy - h / 2, w, h };
-        const down = k => ({ ...R, y: R.y + k * (h + 6) }); // both sides taken (a region, another tag): step down beside the box
-        r = [...(pref === 'left' ? [L, R] : [R, L]), down(1), down(2), down(3)].find(c => c.x >= 0 && !hits(c)) || (R.x >= 0 ? R : L);
-        const right = r !== L, x1 = right ? b.x + b.w + 2 : b.x - 2, x2 = right ? r.x : r.x + r.w, mx = (x1 + x2) / 2, ty = r.y + h / 2;
-        line = `M${x1},${yb} C${mx},${yb} ${mx},${ty} ${x2},${ty}`;
+        const step = (c, k) => ({ ...c, y: c.y + k * (h + 6) }); // both sides taken (a region, another tag): step down or up beside the box
+        // Still nothing free (a box close beside it, labels on the other side): straight above or below the box.
+        const U = { x: bx - w / 2, y: b.y - 30 - h, w, h, d: -1 }, D = { x: bx - w / 2, y: b.y + b.h + 30, w, h, d: 1 };
+        const [A, B] = pref === 'left' ? [L, R] : [R, L];
+        r = [A, B, step(A, 1), step(A, -1), step(A, 2), step(A, -2), step(B, 1), step(B, -1), D, U, step(A, 3)].find(c => c.x >= 0 && !hits(c)) || (R.x >= 0 ? R : L);
+        if (r.d) {
+          const ex = r.d < 0 ? b.y - 2 : b.y + b.h + 2, ey = r.d < 0 ? r.y + h : r.y;
+          line = `M${bx},${ex} L${bx},${ey}`;
+        } else {
+          const right = r.x > b.x, x1 = right ? b.x + b.w + 2 : b.x - 2, x2 = right ? r.x : r.x + r.w, mx = (x1 + x2) / 2, ty = r.y + h / 2;
+          line = `M${x1},${yb} C${mx},${yb} ${mx},${ty} ${x2},${ty}`;
+        }
       }
       taken.push(r);
       const g = `<path class="xline" d="${line}"/><rect class="xtag" x="${r.x}" y="${r.y}" width="${w}" height="${h}" rx="11"/><text class="xtagt" x="${r.x + w / 2}" y="${r.y + h / 2}" text-anchor="middle" dominant-baseline="central">${esc(label)}</text>`;
@@ -490,30 +536,56 @@ function withGroups(svg, m, statusOf, grps, pos) {
 const effSt = r => (DRAW_MODEL?.items['f:' + r.id] ? (DRAW_STATUS ? DRAW_STATUS('f:' + r.id) || 'shown' : 'shown') : null);
 const effShown = r => { const st = effSt(r); return st === null || !(hidden(st) || st === 'hide'); };
 function rxCls(r) {
-  const base = r.transport ? 'ln trn' : 'ln', inh = (r.tags || []).some(t => t === 'inhibits' || t === 'blocked'), st = effSt(r);
+  const base = (r.transport ? 'ln trn' : 'ln') + (regOff(r) ? ' regoff' : ''), inh = (r.tags || []).some(t => t === 'inhibits' || t === 'blocked'), st = effSt(r);
   if (st === null) return base + (inh ? ' inh' : '');
   if (st === 'hide') return base;
   if (hidden(st)) return base + ' effq' + (st === 'target' ? ' eff-target' : '');
   return base + (inh ? ' inh fx-inh' : ' fx-act');
 }
-const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ? 'ah inh' + (cls.includes('fx-inh') ? ' fx-inh' : '') : cls.includes('fx-act') ? 'ah fx-act' : 'ah');
+const headCls = cls => (cls.includes('effq') ? 'ah effq' : cls.includes('inh') ? 'ah inh' + (cls.includes('fx-inh') ? ' fx-inh' : '') : cls.includes('fx-act') ? 'ah fx-act' : 'ah') + (cls.includes('regoff') ? ' regoff' : '');
 // A step's tags as its label shows them: never "irreversible" (the arrow says it), and "inhibits" only while its effect shows.
 const rlShown = (r, k = 'k:' + r.id) => { if (!DRAW_MODEL?.items[k] || !DRAW_STATUS) return true; const st = DRAW_STATUS(k) || 'shown'; return !hidden(st) && st !== 'hide'; };
 const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)) && (t !== 'rate-limiting' || rlShown(r)));
+// The drugs and toxins on a step that are in view (shown, or blanks).
+const drugLines = item => { const it = (item?.kind === 'enz' || item?.kind === 'trn') && !item.via && DRAW_MODEL?.items['q:' + item.rxn?.id], st = it && (DRAW_STATUS ? DRAW_STATUS(it.key) || 'shown' : 'shown');
+  return !it || st === 'hide' ? [] : hidden(st) ? [[it, st]] : it.drugs.map(d => [{ ...it, name: d.name, drug: d }, st]); };
+// Only when one state is in view (a quiz's choice, a page's Fed/Fasting): with both or neither, no badges at all.
+const regLines = item => { if (item?.kind !== 'enz' || !item.rxn?.reg || !DRAW_MODEL) return [];
+  const v = ['y:', 'x:'].map(p => DRAW_MODEL.items[p + item.rxn.id]).filter(Boolean).map(it => [it, DRAW_STATUS ? DRAW_STATUS(it.key) || 'shown' : 'shown']).filter(([, st]) => st !== 'hide');
+  return v.length === 1 ? v : []; };
+// A step that is OFF in the state being shown fades (never while that's still a blank: it would give the answer away).
+const regOff = r => { const v = r?.reg && DRAW_MODEL ? regLines(DRAW_MODEL.items['e:' + r.id]) : []; return v.length === 1 && !hidden(v[0][1]) && v[0][0].name === 'Off'; };
 const viaTags = r => (r.via_tags || []).filter(t => t !== 'rate-limiting' || rlShown(r));
 /* A step whose substrate first crosses a membrane (r.via): its carrier is a pill on that membrane, the enzyme's name on
    the far side. VIA_X / VIA_Y: the membranes of the drawing being made (lane walls, a grid's bands). */
 let VIA_X = [], VIA_Y = [];
-function viaAt(pts) {
+// A pill on a vertical line, slid sideways (its line still well inside it) to the nearest spot where it covers nothing.
+function slide(q, it) {
+  const half = enzRect(0, 0, 'middle', it, 22).w / 2 - 22;
+  for (let d = 8; d <= half; d += 8) for (const sx of [-d, d]) if (!hitsBox(enzRect(q[0] + sx, q[1], 'middle', it, 22))) return [q[0] + sx, q[1]];
+  return null;
+}
+function viaAt(pts, it = null) { // it: the carrier's item, to find a spot where its pill lands on nothing
   const segs = pts.slice(1).map((q, i) => [pts[i], q]);
   for (let i = segs.length - 1; i >= 0; i--) {
     const [[x0, y0], [x1, y1]] = segs[i];
     const xm = [...VIA_X, ...GRID_MEMBRANES].filter(x => x > Math.min(x0, x1) + 2 && x < Math.max(x0, x1) - 2).sort((a, b) => Math.abs(a - x1) - Math.abs(b - x1))[0];
     if (xm !== undefined) return [xm, y0 + (y1 - y0) * (xm - x0) / (x1 - x0 || 1)];
     const ym = [...VIA_Y, ...GRID_MEMBRANES_Y].filter(y => y > Math.min(y0, y1) + 2 && y < Math.max(y0, y1) - 2).sort((a, b) => Math.abs(a - y1) - Math.abs(b - y1))[0];
-    if (ym !== undefined) return [x0 + (x1 - x0) * (ym - y0) / (y1 - y0 || 1), ym];
+    if (ym !== undefined) { const q = [x0 + (x1 - x0) * (ym - y0) / (y1 - y0 || 1), ym]; return (it && slide(q, it)) || q; } // can't move along the line
   }
-  // No membrane drawn across it: on its longest leg (never a trunk it shares), near where that leg starts.
+  // No membrane drawn across it: along its legs (longest first), the first spot where the pill covers no box or label.
+  if (it) for (const [[x0, y0], [x1, y1]] of segs.slice().sort((p, q) => Math.hypot(q[1][0] - q[0][0], q[1][1] - q[0][1]) - Math.hypot(p[1][0] - p[0][0], p[1][1] - p[0][1])))
+    for (const f of [0.3, 0.5, 0.7, 0.2, 0.8, 0.4, 0.6]) { const q = [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f]; if (!hitsBox(enzRect(q[0], q[1], 'middle', it, 22))) return q; }
+  // Nowhere fully clear (a short climb between labels): the spot along it that covers least, boxes counting most.
+  if (it) {
+    const area = (a, b) => Math.max(0, Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x)) * Math.max(0, Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y));
+    const cost = q => { const r = enzRect(q[0], q[1], 'middle', it, 22); return DRAW_BOXES.reduce((c, b) => c + 4 * area(r, b), 0) + DRAW_LABELS.reduce((c, b) => c + area(r, b), 0); };
+    let best = null, bc = Infinity;
+    for (const [[x0, y0], [x1, y1]] of segs) if (Math.hypot(x1 - x0, y1 - y0) > 30) for (let f = 0.15; f <= 0.851; f += 0.05) { const q = [x0 + (x1 - x0) * f, y0 + (y1 - y0) * f], c = cost(q); if (c < bc) { bc = c; best = q; } }
+    if (best) return best;
+  }
+  // Else on its longest leg (never a trunk it shares), near where that leg starts.
   const [[x0, y0], [x1, y1]] = segs.reduce((a, b) => (Math.hypot(b[1][0] - b[0][0], b[1][1] - b[0][1]) > Math.hypot(a[1][0] - a[0][0], a[1][1] - a[0][1]) ? b : a));
   // A straight step: clear of the box it leaves and of its name, which moves toward the far end.
   const L = Math.hypot(x1 - x0, y1 - y0), f = segs.length === 1 ? Math.min(0.4, Math.max(0.22, (Math.abs(x1 - x0) > Math.abs(y1 - y0) ? 96 : 56) / (L || 1))) : 0.3; // clear of the box and its compartment's edge
@@ -534,10 +606,14 @@ const labAt = (r, a, b) => (CONN_STEPS.has(r.id) ? a + (b - a) * (CONN_STEPS.get
 // Any connection between two boxes that isn't on the straight spine: side steps, grid steps.
 function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   VIA_PTS = null;
+  const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB), ti = r.via && m.items['t:' + r.id];
+  // The carrier's pill is reserved first (where a straight step puts it), so the step's own labels keep clear of it.
+  const hold = ti && enzRect(...viaAt([p1, p2]), 'middle', ti, 22);
+  if (hold) DRAW_LABELS.push(hold);
   const out = drawEdge1(m, statusOf, r, a, b, wA, wB);
   if (!r.via) return out;
-  const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
-  return out + viaPill(m, statusOf, r, viaAt(VIA_PTS || [p1, p2]));
+  if (hold) DRAW_LABELS.splice(DRAW_LABELS.indexOf(hold), 1);
+  return out + viaPill(m, statusOf, r, VIA_PTS ? viaAt(VIA_PTS, ti) : viaAt([p1, p2]));
 }
 let VIA_PTS = null; // the route drawEdge1 took, when it bent
 function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
@@ -561,10 +637,17 @@ function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
     // A carrier in a membrane (a tubular cell): a small circle on the membrane, its name beside it, toward where the solute goes.
     const right = p2[0] > p1[0], lx = xm + (right ? 16 : -16), anchor = right ? 'start' : 'end';
     s += `<circle class="carrier" cx="${xm}" cy="${my}" r="9"/>`;
-    s += enzLabel(lx, my - 8, it, es, anchor, 20, 'bottom'); DRAW_LABELS.push(enzRect(lx, my - 8, anchor, it, 20, 'bottom'));
+    s += enzLabel(lx, my - 16, it, es, anchor, 16, 'bottom'); DRAW_LABELS.push(enzRect(lx, my - 16, anchor, it, 16, 'bottom')); // its pill clear of the arrow
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r));
   } else if (Math.abs(p1[1] - p2[1]) < 4) {
-    s += enzLabel(mx, my - 8, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(enzRect(mx, my - 8, 'middle', it, 16, 'bottom'));
+    // A carrier on the way: the name goes between the pill and the far box if it fits there, else just above the pill.
+    let lx = mx, ly = my - 8;
+    if (r.via && m.items['t:' + r.id]) {
+      const pv = viaAt([p1, p2]), pr = enzRect(pv[0], pv[1], 'middle', m.items['t:' + r.id], 22), er = enzRect(0, 0, 'middle', it, 16, 'bottom');
+      const far = p2[0] > p1[0] ? pr.x + pr.w : pr.x, room = Math.abs(p2[0] - far) - 16;
+      if (room >= er.w) lx = (far + p2[0]) / 2; else { lx = pv[0]; ly = pr.y - 4; }
+    }
+    s += enzLabel(lx, ly, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(enzRect(lx, ly, 'middle', it, 16, 'bottom'));
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
   } else if (Math.abs(p1[0] - p2[0]) < 4 && r.transport && !r.paracellular && GRID_MEMBRANES_Y.some(y => y > Math.min(p1[1], p2[1]) && y < Math.max(p1[1], p2[1]))) {
     // Across a horizontal membrane (a cell on its side): the carrier on the line, its name beside it toward where the solute goes.
@@ -572,9 +655,16 @@ function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
     s += `<circle class="carrier" cx="${p1[0]}" cy="${ym}" r="9"/>` + enzLabel(p1[0] - 16, ly, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(p1[0] - 16, ly, 'end', it, 18));
     if (cs !== 'none' && cs !== 'hide') s += cofArcParts(p1[0], Math.min(p1[1], p2[1]), Math.max(p1[1], p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
   } else if (Math.abs(p1[0] - p2[0]) < 4) {
-    s += enzLabel(mx - 14, my, it, es, 'end', 18, 'center'); DRAW_LABELS.push(enzRect(mx - 14, my, 'end', it, 18));
-    const q1 = r.via ? p1[1] + (p2[1] - p1[1]) * 0.4 : p1[1]; // below a carrier pill
-    if (cs !== 'none' && cs !== 'hide') s += cofArcParts(mx, Math.min(q1, p2[1]), Math.max(q1, p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1]);
+    // Past a carrier pill (its far edge, plus a little), so the cofactors never start under it.
+    const ti = r.via && m.items['t:' + r.id], pv = ti && viaAt([p1, p2]), pr = ti && enzRect(pv[0], pv[1], 'middle', ti, 22);
+    const q1 = ti ? (p2[1] > p1[1] ? Math.max(p1[1], pr.y + pr.h + 4) : Math.min(p1[1], pr.y - 4)) : p1[1];
+    const parts = cofParts(m, statusOf, r).filter(p => p.st !== 'hide' && p.st !== 'none'), cofOn = cs !== 'none' && cs !== 'hide';
+    // Cofactors go right of the arrow and the name left, unless the right is crowded (another step's labels) and the left is free.
+    const span = side => parts.some(p => { const w = hidden(p.st) ? 160 : p.text.length * 7 + 24, y0 = Math.min(q1, p2[1]), y1 = Math.max(q1, p2[1]);
+      return hitsBox({ x: side > 0 ? mx + 50 : mx - 50 - w, y: y0, w, h: y1 - y0 }); });
+    const flip = cofOn && span(1) && !span(-1) && !hitsBox(enzRect(mx + 14, my, 'start', it, 18));
+    s += enzLabel(mx + (flip ? 14 : -14), my, it, es, flip ? 'start' : 'end', 18, 'center'); DRAW_LABELS.push(enzRect(mx + (flip ? 14 : -14), my, flip ? 'start' : 'end', it, 18));
+    if (cofOn) s += cofArcParts(mx, Math.min(q1, p2[1]), Math.max(q1, p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1], flip);
   } else {
     // Off-line: an L. Leave a box on the main line from its side (its bottom carries the main arrow), then turn into the
     // other box; otherwise drop straight down (or up) first, then turn into the other box's side.
@@ -691,8 +781,8 @@ function pairEdge1(m, statusOf, r, a, b, i) {
   const mx = xm !== undefined ? xm + dir * 16 + (dir > 0 ? 0 : 0) : labAt(r, x1, x2), anchor = xm !== undefined ? (dir > 0 ? 'start' : 'end') : 'middle';
   let s = arrow(x1, y, x2, y, r.reversible, rxCls(r)) + (xm !== undefined ? `<circle class="carrier" cx="${xm}" cy="${y}" r="8"/>` : '');
   if (anchor !== 'middle') {
-    const ly = i ? y + 12 + enzRect(mx, 0, anchor, it, 22).h / 2 : y - 8;
-    s += enzLabel(mx, ly, it, es, anchor, 22, i ? 'center' : 'bottom'); DRAW_LABELS.push(enzRect(mx, ly, anchor, it, 22, i ? 'center' : 'bottom'));
+    const ly = i ? y + 20 + enzRect(mx, 0, anchor, it, 16).h / 2 : y - 16; // the pill clear of the arrow
+    s += enzLabel(mx, ly, it, es, anchor, 16, i ? 'center' : 'bottom'); DRAW_LABELS.push(enzRect(mx, ly, anchor, it, 16, i ? 'center' : 'bottom'));
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x1, y], [x2, y], [0, i ? 1 : -1], cofParts(m, statusOf, r));
     return s;
   }
@@ -897,6 +987,9 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       if (stack) { pos[id] = { x: sideX, y: y + (stack - 1) * (BH + GAP) }; return; }
       const li = sideLane(id), row = (li >= 0 ? li : 'side') + '|' + y, k = perRow[row] = (perRow[row] || 0) + 1;
       const vx = stepOf(id)?.via ? 170 : 0; // room for a carrier pill as well as the enzyme's name
+      // In a lane left of the box it's joined to (acetone in the blood, beside the mitochondria): the lane's own middle.
+      const r0 = stepOf(id), mate = r0 && (r0.from === id ? r0.to : r0.from);
+      if (li >= 0 && mate in L.laneOf && li < L.laneOf[mate] && !Object.values(pos).some(q => Math.abs(q.y - y) < BH + 8 && Math.abs(q.x - laneX(li)) < BW + 40)) { pos[id] = { x: laneX(li), y }; return; }
       if (li >= 0) { cols[li] = Math.max(cols[li] || 0, k); pos[id] = { x: laneX(li) + k * SIDE_STEP + vx, y }; return; }
       pos[id] = { x: sideX + (k - 1) * SIDE_STEP + vx, y };
     };
@@ -949,6 +1042,8 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     addRect(ownZone(id, r), { x: pt.x - BW / 2 - 12, y: pt.y - 22, w: BW + 24, h: BH + 42 });
     // The step's own label (its enzyme) is in that compartment too.
     const other = r && pos[r.from === id ? r.to : r.from];
+    // With lanes on, a step out to a box in its own compartment's lane needs no patch: the lane already says where.
+    if (lanesOn && r && laneKeyAt(pt.x) === zoneOfR(r)) continue;
     if (other && Math.abs(other.y - pt.y) < 4) { const g0 = Math.min(pt.x, other.x) + BW / 2, g1 = Math.max(pt.x, other.x) - BW / 2; addRect(zoneOfR(r), { x: g0 + 40, y: pt.y - 22, w: g1 - g0 - 40, h: BH + 42 }); }
   }
   bypass.forEach((r, k) => {
@@ -1003,11 +1098,15 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     drawn.add(k);
   }
   // A region's name sits on its top border, on a small tab at the right end, so the dashed line never runs through it.
-  const legend = (c, k) => {
-    const name = zoneName(k), tw = name.length * 8.1 + 16;
-    const x0 = c.x + c.w - 14 - tw; // right end: arrows and enzyme names crowd the left
-    return `<rect class="legend" x="${x0}" y="${c.y - 9}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, k, x0 + 7, c.y + 4, 'start', name);
-  };
+  // Placed once everything else is drawn (see the end): on the region's border, at the first corner that covers no label.
+  const legendJobs = [], legend = (c, k) => { legendJobs.push([c, k]); return ''; };
+  const placeLegends = extra => legendJobs.map(([c, k]) => {
+    const name = zoneName(k), tw = name.length * 8.1 + 16, taken = [...DRAW_LABELS, ...DRAW_BOXES, ...extra];
+    const spots = [[c.x + c.w - 14 - tw, c.y - 9], [c.x + 14, c.y - 9], [c.x + c.w - 14 - tw, c.y + c.h - 9], [c.x + 14, c.y + c.h - 9], [c.x + (c.w - tw) / 2, c.y - 9]]; // right end first: arrows crowd the left
+    const [x0, y0] = spots.find(([x, y]) => !taken.some(o => overlaps({ x, y, w: tw, h: 18 }, o))) || spots[0];
+    DRAW_LABELS.push({ x: x0, y: y0, w: tw, h: 18 });
+    return `<rect class="legend" x="${x0}" y="${y0}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, k, x0 + 7, y0 + 13, 'start', name);
+  }).join('');
   if (zones) {
     for (const [k, cs] of Object.entries(clusters)) {
       cs.forEach(c => { bg += `<rect class="region t-${zoneTone(k)}" x="${c.x}" y="${c.y}" width="${c.w}" height="${c.h}" rx="14"/>`; fg += legend(c, k); });
@@ -1029,7 +1128,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       drawn.add(mb.k);
     });
     // Anything left (a compartment with nothing of its own to draw around) is listed in the top-right corner.
-    Object.values(items).filter(it => it.kind === 'loc' && !drawn.has(it.id)).forEach((it, i) => { bg += zoneLabel(m, statusOf, it.id, W - 8, 18 + i * 30, 'end'); });
+    Object.values(items).filter(it => it.kind === 'loc' && !drawn.has(it.id)).forEach((it, i) => { bg += zoneLabel(m, statusOf, it.id, W - 8, (lanesOn ? 42 : 18) + i * 30, 'end'); }); // below the lane names
   }
   const mult = spine.map((r, i) => (r.multiplier > 1 ? i : -1)).filter(i => i >= 0);
   if (mult.length) {
@@ -1090,6 +1189,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   branches.filter(b => !bypass.includes(b)).forEach(r => { if (pos[r.from] && pos[r.to]) s += drawEdge(m, statusOf, r, ctr(r.from), ctr(r.to)); });
   for (const [id, pt] of Object.entries(pos)) s += metBox(pt.x, pt.y, items['m:' + id], statusOf('m:' + id));
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.x - BW / 2, y: q.y, w: BW, h: BH }])), undefined, Object.values(clusters).flat());
+  fg += placeLegends([...lk.s.matchAll(/<rect class="xtag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)].map(t => ({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] })));
   DRAW_BOXES = [];
   s += lk.s; W = Math.max(W, lk.maxX + 12, ...DRAW_LABELS.map(l => l.x + l.w + 12));
   return `<svg class="flow" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(p.name)} flow diagram">${bg}${s}${fg}</svg>`;
@@ -1104,7 +1204,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
   const cofs = spine.some(r => (r.cofactors?.in || []).length || (r.cofactors?.out || []).length || (r.requires || []).length);
   const RY = Math.max(170, n * (cofs ? 34 : 30)), RX = Math.round(RY * (cofs ? 1.85 : 1.5));
   // An extra input outside the ring (acetyl-CoA into citrate synthase) and whatever feeds it need room above.
-  const extraIn = spine.some(r => (r.also_from || []).length), cx = RX + w / 2 + 300, cy = RY + 190 + (extraIn ? 150 : 0);
+  const extraIn = spine.some(r => (r.also_from || []).length), sideCof = branches.some(b => (b.cofactors?.in || []).length + (b.cofactors?.out || []).length + (b.requires || []).length), cx = RX + w / 2 + 300 + (sideCof ? 110 : 0), cy = RY + 190 + (extraIn ? 150 : 0);
   const pt = (t, d = 0) => [cx + (RX + d) * Math.cos(t), cy + (RY + d) * Math.sin(t)];
   const pos = {};
   spineMets.forEach((id, i) => { const t = -Math.PI / 2 + rot + 2 * Math.PI * i / n; const [x, y] = pt(t); pos[id] = { cx: x, cy: y, t }; });
@@ -1124,7 +1224,7 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     if (!pos[sp].side) {
       // Off a box at the side of the ring: straight sideways, a full box-width clear. Off the top or bottom: straight out.
       const t = pos[sp].t, c = Math.cos(t);
-      if (Math.abs(c) > 0.7) { pos[sd] = { cx: pos[sp].cx + Math.sign(c) * (w + 110), cy: pos[sp].cy, t, side: true }; return; }
+      if (Math.abs(c) > 0.7) { const cof = (b.cofactors?.in || []).length + (b.cofactors?.out || []).length + (b.requires || []).length; pos[sd] = { cx: pos[sp].cx + Math.sign(c) * (w + 110 + (cof ? 90 : 0)), cy: pos[sp].cy, t, side: true }; return; } // cofactors need the room under the arrow
       const [x, y] = pt(t, 170); pos[sd] = { cx: x, cy: y, t, side: true }; return;
     }
     const up = b.to === sp; // sd feeds sp: it goes above
@@ -1221,7 +1321,10 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
 
 // Grids (steroidogenesis): every metabolite sets pos: [column, row]; optional grid_columns headers.
 function gridSVG(m, statusOf, opts = {}) {
-  const { p, items } = m, rowBands = p.column_zones?.axis === 'y', COLW = p.grid_colw || BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + (rowBands ? 190 : 130), Y0 = TOP + (rowBands ? 30 : p.column_zones ? 78 : p.grid_columns ? 34 : 0);
+  const { p, items } = m, rowBands = p.column_zones?.axis === 'y';
+  // Carrier names sit above their arrows and grow upward with the drugs or fed/fasting lines under them: room for those under the band names.
+  const extra = p.column_zones && !rowBands ? 15 * Math.max(0, ...p.reactions.filter(r => r.transport && items['e:' + r.id]).map(r => regLines(items['e:' + r.id]).length + drugLines(items['e:' + r.id]).length)) : 0;
+  const COLW = p.grid_colw || BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + (rowBands ? 190 : 130), Y0 = TOP + extra + (rowBands ? 30 : p.column_zones ? 78 : p.grid_columns ? 34 : 0);
   const pos = {};
   for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
@@ -1403,18 +1506,39 @@ function tileWhere(p) {
   }
   return where;
 }
+/* Every line of text a drawing put down (compartment and group names, column headers, notes), as rough rectangles, so a
+   connected drawing keeps its other parts, tags and name tabs off them, not just off boxes and step labels. */
+const SMALL_TEXT = /\b(zonet|tag|startt|multt|xtagt|cofl|bk)\b/;
+function textRects(svg) {
+  const out = [];
+  for (const t of svg.matchAll(/<text\b([^>]*)>([\s\S]*?)<\/text>/g)) {
+    if (/<tspan/.test(t[2])) continue; // a box's two-line name: the box is already there
+    const a = t[1], num = k => +((a.match(new RegExp(`\\b${k}="([-\\d.]+)"`)) || [])[1]), x = num('x'), y = num('y');
+    const txt = t[2].replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/g, 'x').trim();
+    if (!txt || Number.isNaN(x) || Number.isNaN(y)) continue;
+    const small = SMALL_TEXT.test(a), w = txt.length * (small ? 7.4 : 7.2), h = small ? 13 : 16;
+    const anchor = (a.match(/text-anchor="(\w+)"/) || [])[1] || 'start', central = /dominant-baseline="central"/.test(a);
+    out.push({ x: anchor === 'end' ? x - w : anchor === 'middle' ? x - w / 2 : x, y: central ? y - h / 2 : y - h + 3, w, h });
+  }
+  return out;
+}
 function renderTile(T, statusOf, drop, keep, rot = 0) {
   const vkey = [...drop].sort().join(',');
   const p = (T.variants = T.variants || {})[vkey] = T.variants[vkey] || (drop.size ? { ...T.p, id: T.p.id + '~' + vkey,
     metabolites: Object.fromEntries(Object.entries(T.p.metabolites).filter(([k]) => !drop.has(k))),
     reactions: T.p.reactions.filter(r => !drop.has(r.from) && !drop.has(r.to)).map(r => (r.also_to || r.also_from || []).some(x => drop.has(x))
       ? { ...r, also_to: (r.also_to || []).filter(x => !drop.has(x)), also_from: (r.also_from || []).filter(x => !drop.has(x)) } : r), links: (T.p.links || []).filter(l => !drop.has(l.at)) } : T.p);
-  const sm = modelFor(p);
+  // Letting go of a box can take the main line's steps with it: then its first side step leads (or, with nothing left,
+  // the part is drawn whole).
+  if (p !== T.p && !p.reactions.some(r => !r.branch)) T.variants[vkey] = p.reactions.length ? { ...p, reactions: p.reactions.map((r, i) => (i ? r : { ...r, branch: false })) } : T.p;
+  const sm = modelFor(T.variants[vkey] || p);
   DRAW_POS = {};
   let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false, rot });
   const pos = DRAW_POS, labels = DRAW_LABELS.slice(), cofs = COF_SPOTS.slice(); DRAW_POS = null;
   // Its tags to other pathways ("from β-Oxidation") take room too.
   for (const t of svg.matchAll(/<rect class="xtag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) labels.push({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] });
+  labels.push(...textRects(svg));
+  for (const t of svg.matchAll(/<rect class="trnpill" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) labels.push({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] }); // carrier pills, outline and all
   if (keep) { const at = svg.indexOf(`data-key="m:${keep}"`), g0 = svg.lastIndexOf('<g', at), g1 = svg.indexOf('</g>', at); if (at > 0) svg = svg.slice(0, g0) + svg.slice(g1 + 4); }
   const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
   const keptAt = keep && pos['m:' + keep]; if (keep) delete pos['m:' + keep];
@@ -1538,8 +1662,11 @@ function stitchSVG(m, statusOf) {
   const nudge = (pts, end, o) => { const P = pts.map(q => [...q]), i = end ? P.length - 1 : 0, j = end ? P.length - 2 : 1, vert = Math.abs(P[i][0] - P[j][0]) < 1;
     if (P.length === 2) { if (vert) { P[0][0] += o; P[1][0] += o; } else { P[0][1] += o / 4; P[1][1] += o / 4; } return P; }
     if (vert) { P[i][0] += o; P[j][0] += o; } else { P[i][1] += o / 4; P[j][1] += o / 4; } return P; };
-  const route = (a, b, boxes, spread = false) => {
+  // soft: things a route may cross at a cost (labels): a short route that grazes one beats a long way round.
+  const route = (a, b, boxes, spread = false, soft = []) => {
     const A = ctr(a), B = ctr(b), others = boxes.filter(r => !same(r, a) && !same(r, b)), cands = [];
+    const near = q => soft.filter(l => !(l.x < q.x + q.w + 6 && q.x < l.x + l.w + 6 && l.y < q.y + q.h + 6 && q.y < l.y + l.h + 6)); // not its own ends' labels
+    const softs = [...near(a)].filter(l => near(b).includes(l));
     if (Math.abs(A.cx - B.cx) < 4 || Math.abs(A.cy - B.cy) < 4) cands.push([[A.cx, A.cy], [B.cx, B.cy]]);
     cands.push([[A.cx, A.cy], [B.cx, A.cy], [B.cx, B.cy]], [[A.cx, A.cy], [A.cx, B.cy], [B.cx, B.cy]]);
     const lo = Math.min(a.x, b.x) - 50, hi = Math.max(a.x + a.w, b.x + b.w) + 50, top = Math.min(a.y, b.y) - 50, bot = Math.max(a.y + a.h, b.y + b.h) + 50;
@@ -1548,10 +1675,11 @@ function stitchSVG(m, statusOf) {
     const len = pts => pts.slice(1).reduce((n, q, i) => n + Math.abs(q[0] - pts[i][0]) + Math.abs(q[1] - pts[i][1]), 0) + 80 * (pts.length - 2);
     // When drawing (not while placing parts), each route may also enter or leave its boxes off-center.
     const all = spread ? cands.flatMap(c => [0, 50, -50].flatMap(o1 => [0, 50, -50].map(o2 => nudge(nudge(c, false, o1), true, o2)))) : cands;
+    const cost = pts => len(pts) + 260 * pts.slice(1).reduce((n, q, i) => n + softs.filter(l => segHits(pts[i], q, l)).length, 0);
     const ok = all.filter(pts => {
       for (let i = 1; i < pts.length; i++) if (others.some(r => segHits(pts[i - 1], pts[i], r)) || alongside(pts[i - 1], pts[i])) return false;
       return true;
-    }).sort((x, y) => len(x) - len(y));
+    }).sort((x, y) => cost(x) - cost(y));
     return ok[0] || null;
   };
   // A route's ends moved out to the box edges.
@@ -1562,13 +1690,24 @@ function stitchSVG(m, statusOf) {
     return P;
   };
   const drawRoute = (r, a, b, cls, labels = true) => {
-    const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS], true) || route(a, b, DRAW_BOXES, true) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+    const pts = route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
     // A long vertical run keeps its labels to a short stretch in the middle, as on any other step.
-    const v = v0 && Math.abs(v0[1][1] - v0[0][1]) > 130 ? (() => { const mid = (v0[0][1] + v0[1][1]) / 2, d = Math.sign(v0[1][1] - v0[0][1]); return [[v0[0][0], mid - d * 55], [v0[0][0], mid + d * 55]]; })() : v0;
-    return elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? elbowLabels(m, statusOf, r, h, v) : '');
+    const v = v0; // elbowLabels keeps the labels to a short, clear stretch of a long run
+    // A step between parts that brings its substrate across first shows its carrier too (GLUT into glycolysis).
+    const ti = r?.via && m.items['t:' + r.id], at = ti && viaAt(P, ti), hold = ti && enzRect(at[0], at[1], 'middle', ti, 22);
+    const routeLabels = (hh, vv) => {
+      if (hold) DRAW_LABELS.push(hold);
+      const lab = (hh || vv) ? elbowLabels(m, statusOf, r, hh, vv) : '';
+      if (hold) DRAW_LABELS.splice(DRAW_LABELS.indexOf(hold), 1);
+      return lab + (ti ? viaPill(m, statusOf, r, at) : '');
+    };
+    // The labels go on the longer kind of run: a long climb beats a short sideways stub out of a box.
+    const hl = h ? Math.abs(h[1][0] - h[0][0]) : 0, vl = v ? Math.abs(v[1][1] - v[0][1]) : 0;
+    if (h && v && vl > hl * 1.5 && hl < 260) return elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? routeLabels(null, v) : '');
+    return elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? routeLabels(h, v) : routeLabels(null, null));
   };
   const sideOf = (T, id) => T.p.reactions.filter(r => (r.also_to || []).includes(id) || (r.also_from || []).includes(id));
   const sides = []; // [from box id, to box id, reaction]: a side product or input that lives in another part
@@ -1687,18 +1826,39 @@ function stitchSVG(m, statusOf) {
         d.label = ''; fromCof = end; break;
       }
     }
+    // A box in one part that is a cofactor in the other (the TCA cycle's succinyl-CoA going into ALA synthase with B6):
+    // join the box to that cofactor label, an arrow into it if it goes in, out of it if it comes out. No tag needed.
+    let intoCof = '';
+    if (!fromCof && d.b) for (const [end, other] of [['a', 'b'], ['b', 'a']]) {
+      const box = end === 'a' ? a : b, far = other === 'a' ? a : b, name = baseMetName(m.p.metabolites[box.id]?.name || '');
+      const sp = name && (far.R?.cofs || []).find(c => c.names.some(n => norm(n) === name));
+      if (!sp) continue;
+      const at = { ...shift(sp, far.R.dx, far.R.dy), R: far.R };
+      if (other === 'a') a = at; else b = at;
+      d.label = ''; if (sp.side === 'out') fromCof = other; else intoCof = other;
+      break;
+    }
     // From a cofactor's label: straight out of the middle of its label (not off to one side), rounded corners, and an
     // arrowhead into the box it becomes, with a dot where it leaves, so the two read as one hand-off.
+    if (intoCof) {
+      // Box → the cofactor label it becomes an input to: an arrowhead into the label.
+      const dst = intoCof === 'a' ? a : b, near = l => !(l.x < dst.x + dst.w + 6 && dst.x < l.x + l.w + 6 && l.y < dst.y + dst.h + 6 && dst.y < l.y + l.h + 6);
+      const pts = route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      let P = trim(pts, a, b); if (intoCof === 'a') P = P.reverse();
+      drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
+      between += elbow(P, false, 'xline xhand');
+      continue;
+    }
     if (fromCof) {
       const src = fromCof === 'a' ? a : b, near = l => !(l.x < src.x + src.w + 6 && src.x < l.x + l.w + 6 && l.y < src.y + src.h + 6 && src.y < l.y + l.h + 6);
-      const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS.filter(near)], false) || route(a, b, DRAW_BOXES, false) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (fromCof === 'b') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += `<circle class="xdot" cx="${P[0][0]}" cy="${P[0][1]}" r="3"/>` + elbow(P, false, 'xline xhand');
       continue;
     }
     // Routed like the arrows (clear of boxes and labels, never along another line), its name on the longest leg.
-    const pts = route(a, b, [...DRAW_BOXES, ...DRAW_LABELS], true) || route(a, b, DRAW_BOXES, true) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
+    const pts = route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
     const P = trim(pts, a, b); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     between += elbow(P, false, 'xline').replace(/<path class="ah"[^>]*\/>/, ''); // rounded corners, no arrowhead
     if (d.label) {
@@ -1760,12 +1920,14 @@ function stitchSVG(m, statusOf) {
       const b0 = boxOf(g0), others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
       const g = g0.length === 1 || !others.some(o => hit(b0, o)) ? [b0] : [b0, ...g0]; // where its name can go: its corners first
       // On a top edge, left or right end, wherever it doesn't cover a label or box (topmost edge first).
-      const name = m.items['z:' + z]?.name || '', tw = name.length * 8.1 + 16, free = r => !occ.some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o));
+      const name = m.items['z:' + z]?.name || '', tw = name.length * 8.1 + 16, free = r => ![...occ, ...DRAW_LABELS].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o));
       const spots = g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - 22 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - 22 },
         { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - 22 }, { x: r.x + 12, y: r.y - 9 }, { x: r.x + r.w - 12 - tw, y: r.y - 9 }, { x: r.x + 12, y: r.y + r.h - 9 }]); // on the edge itself, last
+      // Then anywhere along each edge, a step at a time, inside the shape or on its border.
+      g.forEach(r => { for (const y of [r.y + 4, r.y + r.h - 22, r.y - 9, r.y + r.h - 9]) for (let x = r.x + 12; x <= r.x + r.w - 12 - tw; x += 20) spots.push({ x, y }); });
       // Nowhere fully free: the spot it covers least of (labels count most), just outside the shape too.
-      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - 22 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - 9 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - 9 }));
-      const cost = q => { const t = { ...q, w: tw, h: 18 }; return occ.filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
+      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - 22 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - 9 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - 9 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - 9 }, { x: r.x - tw - 6, y: r.y + 4 }));
+      const cost = q => { const t = { ...q, w: tw, h: 18 }; return [...occ, ...DRAW_LABELS].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
       const at = spots.find(q => free({ ...q, w: tw, h: 18 }) && !others.some(o => hit({ ...q, w: tw, h: 18 }, o))) || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
       tabs.push({ ...at, w: tw, h: 18 });
       fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="18" rx="5"/>` + zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start');
@@ -1775,7 +1937,7 @@ function stitchSVG(m, statusOf) {
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   const grow = r => { x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y); x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h); };
   placed.forEach(R => grow({ x: R.vb[0] + R.dx, y: R.vb[1] + R.dy, w: R.vb[2], h: R.vb[3] }));
-  regions.forEach(grow);
+  regions.forEach(grow); tabs.forEach(grow); DRAW_LABELS.forEach(grow); // a name tab outside its shape still shows
   const P = 16, W = x1 - x0 + 2 * P, H = y1 - y0 + 2 * P;
   // The answer field floats over its slot in drawing units (placeInline), so the slot carries its part's offset itself.
   const slotAt = (R, b) => b.replace(/class="inl-slot" x="([-\d.]+)" y="([-\d.]+)"/, (_, x, y) => `class="inl-slot" x="${+x + R.dx + P - x0}" y="${+y + R.dy + P - y0}" data-moved="1"`);

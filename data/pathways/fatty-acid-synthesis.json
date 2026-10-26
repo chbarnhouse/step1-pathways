@@ -225,7 +225,12 @@
    ],
    "requires": [
     "Biotin (B7)"
-   ]
+   ],
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Insulin dephosphorylates (activates) acetyl-CoA carboxylase and citrate activates it; glucagon (PKA) and AMPK phosphorylate it, and palmitoyl-CoA inhibits."
+   }
   },
   {
    "id": "r5",
@@ -248,7 +253,12 @@
    "loc": "cytosol",
    "requires": [
     "Pantothenic acid (B5)"
-   ]
+   ],
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Insulin induces fatty acid synthase (SREBP-1c); fasting lowers it."
+   }
   }
  ],
  "distractors": {

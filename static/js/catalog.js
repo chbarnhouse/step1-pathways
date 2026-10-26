@@ -5,7 +5,7 @@
    Routes: #/library/<tab> and #/library/<tab>/<key>; the Pathways tab is #/pathways. */
 'use strict';
 
-const CAT_TABS = [['metabolites', 'Metabolites', 'met'], ['enzymes', 'Enzymes', 'enz'], ['cofactors', 'Cofactors', 'cof'], ['cells', 'Cells', 'cell'], ['cytokines', 'Cytokines', 'sig']];
+const CAT_TABS = [['metabolites', 'Metabolites', 'met'], ['enzymes', 'Enzymes', 'enz'], ['cofactors', 'Cofactors', 'cof'], ['drugs', 'Drugs & toxins', 'drug'], ['cells', 'Cells', 'cell'], ['cytokines', 'Cytokines', 'sig']];
 const CAT_KINDS = CAT_TABS.map(t => t[2]);
 const CAT = { built: null, sig: null, q: {} };
 const catKey = name => norm(String(name)) || String(name);
@@ -59,6 +59,9 @@ function catalog() {
       const e = entry('enz', catKey(x.name), x.name);
       e.names.push(x.name); if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p);
       e.pathways.add(p.id); e.steps.push({ p, m, r }); e.keys.push([p.id, 'e:' + r.id]);
+      // Each drug or toxin that acts here has a page: what it acts on, how, and why it matters.
+      for (const d of r.drugs || []) { const g = entry('drug', catKey(d.name), d.name); g.names.push(d.name); (d.aliases || []).forEach(a => g.aliases.add(a)); note(g, d.note, p);
+        g.pathways.add(p.id); g.steps.push({ p, m, r, drug: d }); g.keys.push([p.id, 'q:' + r.id]); }
       // The carrier that brings a via step's substrate across has its own page too.
       const v = r.via && p.enzymes[r.via];
       if (v) { const t = entry('enz', catKey(v.name), v.name); t.names.push(v.name); if (v.short) t.short.add(v.short); (v.aliases || []).forEach(a => t.aliases.add(a)); note(t, v.notes, p);
@@ -138,8 +141,8 @@ const pathwayCell = p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc
 /* ---------- the tabs ---------- */
 function libTabs(active) {
   const c = catalog(), n = { pathways: Library.atomic().length, ...Object.fromEntries(CAT_TABS.map(([t, , k]) => [t, Object.keys(c[k]).length])) };
-  return `<nav class="libtabs" aria-label="Library">${[['pathways', 'Pathways'], ...CAT_TABS].map(([t, l]) =>
-    `<a href="${t === 'pathways' ? '#/pathways' : `#/library/${t}`}"${t === active ? ' aria-current="page"' : ''}>${l} <span class="n">${n[t]}</span></a>`).join('')}</nav>`;
+  return `<nav class="libtabs" aria-label="Library">${[['pathways', 'Pathways'], ['map', 'Map'], ...CAT_TABS].map(([t, l]) =>
+    `<a href="${t === 'pathways' ? '#/pathways' : t === 'map' ? '#/map' : `#/library/${t}`}"${t === active ? ' aria-current="page"' : ''}>${l}${n[t] !== undefined ? ` <span class="n">${n[t]}</span>` : ''}</a>`).join('')}</nav>`;
 }
 /* ---------- browsing a tab: like the Pathways tab (search, sort, filter menus with chips, rows by section) ----------
    Sections: enzymes by what kind of enzyme they are, metabolites by their pathways' group, cofactors by what they do.
@@ -156,6 +159,8 @@ const SECTIONS = {
     ['Amino acids & nitrogen', 'genetics', 'teal', e => /glutam|aspart|glycine|serine|methionine|homocysteine|carbamoyl|urea|ketobutyrate|fumarate/i.test(e.name)],
     ['Sugars & activated sugars', 'nutrition', 'gold', e => /glucose|galactose|udp-|prpp|ribose|sialic|galactosamine|phosphocholine/i.test(e.name)],
     ['Water, gases & ions', 'opacity', 'slate', e => /^(h2o|co2|o2|nh3|nh4|hco3|h|co|h2o2|fe2|so4)$/i.test(e.key)], ['Other', 'science', 'slate', () => true]],
+  drug: [['Drugs that block a step', 'medication', 'blue', e => e.steps.some(s => s.drug.kind === 'drug' && s.drug.effect === 'inhibits')],
+    ['Drugs that drive a step', 'medication', 'teal', e => e.steps.some(s => s.drug.kind === 'drug')], ['Toxins', 'skull', 'orange', () => true]],
   cell: [['Stem cells & progenitors', 'source_environment', 'gold', e => /stem|progenitor|blast/i.test(e.name)],
     ['Myeloid cells', 'bloodtype', 'pink', e => /erythro|megakaryo|platelet|neutro|eosino|baso|monocyte|macrophage|mast|dendritic/i.test(e.name)],
     ['Lymphocytes', 'shield', 'blue', e => /\bT cell|B cell|NK|plasma|Th\d|helper|regulatory|cytotoxic|lymph/i.test(e.name)],
@@ -301,9 +306,10 @@ function focusStatus(e, p) {
   if (e.kind === 'enz' || e.kind === 'sig') mine.forEach(({ r, via }) => { focus.add((via ? 't:' : 'e:') + r.id); touch(r); });
   else if (e.kind === 'met' || e.kind === 'cell') { e.keys.filter(([pid]) => pid === p.id).forEach(([, k]) => focus.add(k)); mine.forEach(({ r }) => { near.add('e:' + r.id); touch(r); }); }
   else mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
-  return k => (focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
+  return k => (/^q:/.test(k) ? (e.kind === 'drug' && focus.has('e:' + k.slice(2)) ? 'shown' : 'hide') : focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
 }
 function stepLine(e, s) {
+  if (e.kind === 'drug') { const en = s.p.enzymes[s.r.enzyme]?.name; return `<li>${s.drug.effect === 'activates' ? 'drives' : 'blocks'} ${catLink('enz', catKey(en), en)} · ${reactionCell(s.p, s.r)} · ${whereCell(s.r)}</li>`; }
   if (s.p.terms && !s.p.nephron) return immunoLine(e, s);
   const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name, needs = cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []);
   const role = e.kind === 'met' ? (s.role === 'made' ? 'made by ' : s.role === 'used' ? 'used by ' : '') : e.kind === 'cof' ? ({ in: 'goes in at ', out: 'comes out of ', need: 'needed by ' }[s.role] || '') : '';
@@ -362,6 +368,12 @@ function glanceHTML(e, ps) {
     if (cofs.length) rows.push(['Cofactors', linkList('cof', cofs)]);
     const dir = uniq(own.map(s => (s.r.reversible ? 'reversible' : 'one-way')));
     if (dir.length) rows.push(['Direction', esc(dir.join(' or '))]);
+  } else if (e.kind === 'drug') {
+    rows.push(['Is', esc(uniq(e.steps.map(s => (s.drug.kind === 'toxin' ? 'a toxin' : 'a drug'))).join(' and '))]);
+    for (const [eff, label] of [['inhibits', 'Blocks'], ['activates', 'Drives']]) {
+      const on = e.steps.filter(s => s.drug.effect === eff).map(s => catKey(s.p.enzymes[s.r.enzyme]?.name)).filter(Boolean);
+      if (on.length) rows.push([label, linkList('enz', on)]);
+    }
   } else if (e.kind === 'met') {
     const en = s => catKey(s.p.enzymes[s.r.enzyme]?.name);
     const made = e.steps.filter(s => s.role !== 'used').map(en), used = e.steps.filter(s => s.role !== 'made').map(en);
@@ -413,7 +425,7 @@ function renderCatItem(tab, key) {
   const notes = e.notes.length ? `<section class="card pad"><h2>Notes</h2>${e.notes.map(n => `<p>${esc(n.text)}${e.notes.length > 1 ? ` <span class="muted small">(${esc(Library.get(n.pid)?.name || n.pid)})</span>` : ''}</p>`).join('')}</section>` : '';
   $('#view').innerHTML = `<div class="page catitem">
     ${crumbsHTML([{ h: '#/pathways', t: 'Library' }, { h: `#/library/${tab}`, t: label }])}
-    ${pageHead(`${facets(e).art} ${esc(e.name)}${short}`, `${label.replace(/s$/, '')} · ${esc(facets(e).section)} · in ${plural(ps.length, 'pathway')}`)}
+    ${pageHead(`${facets(e).art} ${esc(e.name)}${short}`, `${e.kind === 'drug' ? (e.steps.every(x => x.drug.kind === 'toxin') ? 'Toxin' : 'Drug') : label.replace(/s$/, '')} · ${esc(facets(e).section)} · in ${plural(ps.length, 'pathway')}`)}
     <div class="cat-top">${glanceHTML(e, ps)}${notes}</div>
     <h2 class="glabel ctx-label">In ${ps.length > 1 ? 'its pathways' : 'its pathway'}</h2>
     ${ps.slice(0, 4).map(p => contextHTML(e, p)).join('')}

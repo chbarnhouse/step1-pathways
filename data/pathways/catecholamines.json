@@ -189,7 +189,13 @@
    "requires": [
     "BH₄ (tetrahydrobiopterin)"
    ],
-   "tissue": "liver"
+   "tissue": "liver",
+   "diseases": [
+    {
+     "name": "Phenylketonuria",
+     "clue": "Intellectual disability, seizures, musty body odor, fair skin and eczema in an untreated child; avoid aspartame, supplement tyrosine."
+    }
+   ]
   },
   {
    "id": "r2",
@@ -215,7 +221,19 @@
     "BH₄ (tetrahydrobiopterin)"
    ],
    "tissue": "adrenal medulla, neurons",
-   "via": "lat1"
+   "via": "lat1",
+   "drugs": [
+    {
+     "name": "Metyrosine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks tyrosine hydroxylase: pheochromocytoma (before surgery, or when it can’t be removed).",
+     "aliases": [
+      "α-methyltyrosine",
+      "alpha-methyltyrosine"
+     ]
+    }
+   ]
   },
   {
    "id": "r3",
@@ -236,7 +254,18 @@
    "requires": [
     "B6 (pyridoxal phosphate)"
    ],
-   "tissue": "adrenal medulla, neurons"
+   "tissue": "adrenal medulla, neurons",
+   "drugs": [
+    {
+     "name": "Carbidopa",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks DOPA decarboxylase outside the brain, so more levodopa reaches it and fewer peripheral side effects (Parkinson disease).",
+     "aliases": [
+      "benserazide"
+     ]
+    }
+   ]
   },
   {
    "id": "r4",
@@ -262,7 +291,13 @@
     "Copper"
    ],
    "tissue": "adrenal medulla, neurons",
-   "via": "vmat"
+   "via": "vmat",
+   "diseases": [
+    {
+     "name": "Dopamine β-hydroxylase deficiency",
+     "clue": "Severe orthostatic hypotension from birth, ptosis; no norepinephrine, high dopamine."
+    }
+   ]
   },
   {
    "id": "r5",
@@ -297,7 +332,26 @@
     "out": []
    },
    "loc": "vesicle membrane",
-   "tissue": "adrenal medulla, neurons"
+   "tissue": "adrenal medulla, neurons",
+   "drugs": [
+    {
+     "name": "Reserpine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks VMAT, so monoamines aren’t stored and get broken down: hypertension (old); depression is a side effect.",
+     "aliases": []
+    },
+    {
+     "name": "Tetrabenazine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks VMAT2: Huntington chorea, tardive dyskinesia (deutetrabenazine, valbenazine likewise).",
+     "aliases": [
+      "deutetrabenazine",
+      "valbenazine"
+     ]
+    }
+   ]
   }
  ],
  "distractors": {

@@ -401,6 +401,15 @@
    "via": "star",
    "via_tags": [
     "rate-limiting"
+   ],
+   "drugs": [
+    {
+     "name": "Ketoconazole",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks desmolase (and 17,20-lyase): Cushing syndrome; also an antifungal.",
+     "aliases": []
+    }
    ]
   },
   {
@@ -421,7 +430,22 @@
    },
    "loc": "smooth ER",
    "tissue": "zona fasciculata / reticularis",
-   "via": "diffusion"
+   "via": "diffusion",
+   "drugs": [
+    {
+     "name": "Abiraterone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks CYP17 (17α-hydroxylase and 17,20-lyase), so no androgens from the adrenals: metastatic prostate cancer (given with prednisone).",
+     "aliases": []
+    }
+   ],
+   "diseases": [
+    {
+     "name": "17α-Hydroxylase deficiency",
+     "clue": "Hypertension and low potassium with no sex steroids: a phenotypic female with no puberty, or an XY person with female-appearing genitalia."
+    }
+   ]
   },
   {
    "id": "r4",
@@ -440,7 +464,16 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "zona reticularis"
+   "tissue": "zona reticularis",
+   "drugs": [
+    {
+     "name": "Abiraterone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks CYP17 (17α-hydroxylase and 17,20-lyase), so no androgens from the adrenals: metastatic prostate cancer (given with prednisone).",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r5",
@@ -507,7 +540,22 @@
      "h2o"
     ]
    },
-   "loc": "smooth ER"
+   "loc": "smooth ER",
+   "drugs": [
+    {
+     "name": "Abiraterone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks CYP17 (17α-hydroxylase and 17,20-lyase), so no androgens from the adrenals: metastatic prostate cancer (given with prednisone).",
+     "aliases": []
+    }
+   ],
+   "diseases": [
+    {
+     "name": "17α-Hydroxylase deficiency",
+     "clue": "Hypertension and low potassium with no sex steroids: a phenotypic female with no puberty, or an XY person with female-appearing genitalia."
+    }
+   ]
   },
   {
    "id": "r9",
@@ -525,7 +573,16 @@
      "h2o"
     ]
    },
-   "loc": "smooth ER"
+   "loc": "smooth ER",
+   "drugs": [
+    {
+     "name": "Abiraterone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks CYP17 (17α-hydroxylase and 17,20-lyase), so no androgens from the adrenals: metastatic prostate cancer (given with prednisone).",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r10",
@@ -544,7 +601,13 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "zona glomerulosa"
+   "tissue": "zona glomerulosa",
+   "diseases": [
+    {
+     "name": "21-Hydroxylase deficiency",
+     "clue": "Salt-wasting crisis (low Na⁺, high K⁺, hypotension) and ambiguous genitalia in a female newborn; raised 17-hydroxyprogesterone."
+    }
+   ]
   },
   {
    "id": "r11",
@@ -563,7 +626,13 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "zona fasciculata"
+   "tissue": "zona fasciculata",
+   "diseases": [
+    {
+     "name": "21-Hydroxylase deficiency",
+     "clue": "Salt-wasting crisis (low Na⁺, high K⁺, hypotension) and ambiguous genitalia in a female newborn; raised 17-hydroxyprogesterone."
+    }
+   ]
   },
   {
    "id": "r12",
@@ -583,7 +652,22 @@
    },
    "loc": "mitochondria",
    "tissue": "zona glomerulosa",
-   "via": "diffusion"
+   "via": "diffusion",
+   "drugs": [
+    {
+     "name": "Metyrapone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks 11β-hydroxylase: Cushing syndrome; the metyrapone test of ACTH reserve.",
+     "aliases": []
+    }
+   ],
+   "diseases": [
+    {
+     "name": "11β-Hydroxylase deficiency",
+     "clue": "Virilization with hypertension and low potassium; raised 11-deoxycorticosterone and 11-deoxycortisol, low renin."
+    }
+   ]
   },
   {
    "id": "r13",
@@ -603,7 +687,22 @@
    },
    "loc": "mitochondria",
    "tissue": "zona fasciculata",
-   "via": "diffusion"
+   "via": "diffusion",
+   "drugs": [
+    {
+     "name": "Metyrapone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks 11β-hydroxylase: Cushing syndrome; the metyrapone test of ACTH reserve.",
+     "aliases": []
+    }
+   ],
+   "diseases": [
+    {
+     "name": "11β-Hydroxylase deficiency",
+     "clue": "Virilization with hypertension and low potassium; raised 11-deoxycorticosterone and 11-deoxycortisol, low renin."
+    }
+   ]
   },
   {
    "id": "r14",
@@ -658,7 +757,20 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "adipose, ovary"
+   "tissue": "adipose, ovary",
+   "drugs": [
+    {
+     "name": "Aromatase inhibitors",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Anastrozole, letrozole, exemestane: ER-positive breast cancer after menopause.",
+     "aliases": [
+      "anastrozole",
+      "letrozole",
+      "exemestane"
+     ]
+    }
+   ]
   },
   {
    "id": "r17",
@@ -677,7 +789,20 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "ovary (granulosa), adipose"
+   "tissue": "ovary (granulosa), adipose",
+   "drugs": [
+    {
+     "name": "Aromatase inhibitors",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Anastrozole, letrozole, exemestane: ER-positive breast cancer after menopause.",
+     "aliases": [
+      "anastrozole",
+      "letrozole",
+      "exemestane"
+     ]
+    }
+   ]
   },
   {
    "id": "r18",
@@ -694,7 +819,24 @@
     ]
    },
    "loc": "ER",
-   "tissue": "prostate, skin, hair follicles"
+   "tissue": "prostate, skin, hair follicles",
+   "drugs": [
+    {
+     "name": "Finasteride",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks 5α-reductase (type 2), so less DHT: BPH, male-pattern hair loss (dutasteride blocks types 1 and 2).",
+     "aliases": [
+      "dutasteride"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "5α-Reductase deficiency",
+     "clue": "XY child with ambiguous or female-appearing genitalia who virilizes at puberty; normal testosterone, low DHT."
+    }
+   ]
   },
   {
    "id": "r19",
@@ -711,7 +853,19 @@
     ]
    },
    "loc": "smooth ER",
-   "tissue": "kidney, colon, salivary glands, placenta"
+   "tissue": "kidney, colon, salivary glands, placenta",
+   "drugs": [
+    {
+     "name": "Licorice",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Glycyrrhetinic acid blocks 11β-HSD2, so cortisol acts on mineralocorticoid receptors: hypertension, hypokalemia (apparent mineralocorticoid excess).",
+     "aliases": [
+      "glycyrrhetinic acid",
+      "glycyrrhizin"
+     ]
+    }
+   ]
   },
   {
    "id": "r20",

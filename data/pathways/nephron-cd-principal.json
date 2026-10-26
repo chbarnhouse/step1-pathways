@@ -326,7 +326,24 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Amiloride",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks ENaC (triamterene too): a potassium-sparing diuretic; Liddle syndrome, lithium-induced nephrogenic DI.",
+     "aliases": [
+      "triamterene"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Liddle syndrome",
+     "clue": "Early hypertension, hypokalemia and metabolic alkalosis with low renin and low aldosterone (ENaC stuck open); treat with amiloride."
+    }
+   ]
   },
   {
    "id": "r2",
@@ -383,7 +400,35 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Vaptans",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block the V2 receptor, so no aquaporin-2 in the membrane: SIADH, hyponatremia (tolvaptan, conivaptan).",
+     "aliases": [
+      "tolvaptan",
+      "conivaptan",
+      "V2 antagonists"
+     ]
+    },
+    {
+     "name": "Lithium",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blunts ADH’s effect on aquaporin-2 insertion: nephrogenic diabetes insipidus (demeclocycline likewise).",
+     "aliases": [
+      "demeclocycline"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Nephrogenic diabetes insipidus",
+     "clue": "Large volumes of dilute urine that desmopressin does not concentrate (V2 receptor or aquaporin-2 defect; lithium)."
+    }
+   ]
   },
   {
    "id": "r6",

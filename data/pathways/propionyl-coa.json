@@ -191,7 +191,13 @@
    "tags": [
     "irreversible"
    ],
-   "loc": "mitochondria"
+   "loc": "mitochondria",
+   "diseases": [
+    {
+     "name": "Propionic acidemia",
+     "clue": "Infant with vomiting, poor feeding and lethargy, anion gap metabolic acidosis, hyperammonemia and hypoglycemia; no methylmalonic acid."
+    }
+   ]
   },
   {
    "id": "r3",
@@ -218,7 +224,13 @@
    "requires": [
     "Vitamin B12 (adenosylcobalamin)"
    ],
-   "loc": "mitochondria"
+   "loc": "mitochondria",
+   "diseases": [
+    {
+     "name": "Methylmalonic acidemia",
+     "clue": "Anion gap metabolic acidosis, vomiting and hyperammonemia in an infant, with methylmalonic acid in urine; B12 deficiency gives a milder version."
+    }
+   ]
   }
  ],
  "distractors": {

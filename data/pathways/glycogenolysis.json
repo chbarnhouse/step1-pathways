@@ -156,6 +156,17 @@
    ],
    "requires": [
     "B6 (pyridoxal phosphate)"
+   ],
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Glucagon (liver) and epinephrine (liver, muscle) → PKA → phosphorylase kinase activates it; insulin dephosphorylates it. In muscle, AMP and Ca²⁺ activate it too."
+   },
+   "diseases": [
+    {
+     "name": "McArdle disease (GSD V)",
+     "clue": "Painful cramps and myoglobinuria (red urine) with exercise, no rise in lactate; a “second wind” after a few minutes. (Hers disease is the liver form.)"
+    }
    ]
   },
   {
@@ -171,7 +182,13 @@
     "out": []
    },
    "branch": true,
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "diseases": [
+    {
+     "name": "Cori disease (GSD III)",
+     "clue": "Milder fasting hypoglycemia and hepatomegaly, normal lactate; limit dextrin–like structures pile up in the liver."
+    }
+   ]
   },
   {
    "id": "r3",
@@ -203,7 +220,13 @@
    "tags": [
     "irreversible"
    ],
-   "via": "g6pt"
+   "via": "g6pt",
+   "diseases": [
+    {
+     "name": "Von Gierke disease (GSD I)",
+     "clue": "Severe fasting hypoglycemia, lactic acidosis, hyperuricemia, hypertriglyceridemia and a big liver and kidneys; glucagon does not raise glucose."
+    }
+   ]
   },
   {
    "id": "r5",

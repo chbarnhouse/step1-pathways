@@ -186,7 +186,12 @@
    "tags": [
     "rate-limiting",
     "irreversible"
-   ]
+   ],
+   "reg": {
+    "fed": "off",
+    "fasting": "on",
+    "why": "Glucagon induces mitochondrial HMG-CoA synthase, and acetyl-CoA builds up from fatty acid oxidation; insulin suppresses it."
+   }
   },
   {
    "id": "r3",

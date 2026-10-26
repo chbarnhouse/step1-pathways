@@ -228,7 +228,29 @@
    "tags": [
     "irreversible"
    ],
-   "via": "mpc"
+   "via": "mpc",
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Insulin activates PDH phosphatase (PDH on). When fasting, acetyl-CoA and NADH from fatty acid oxidation switch on PDH kinase (PDH off)."
+   },
+   "drugs": [
+    {
+     "name": "Arsenic",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Binds lipoic acid, so pyruvate dehydrogenase and α-ketoglutarate dehydrogenase stop: vomiting, rice-water stools, garlic breath, QT prolongation.",
+     "aliases": [
+      "arsenite"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Pyruvate dehydrogenase deficiency",
+     "clue": "Lactic acidosis and neurologic defects in infancy, worse with carbohydrates; treat with a ketogenic diet (lysine and leucine)."
+    }
+   ]
   },
   {
    "id": "r1",
@@ -262,7 +284,19 @@
     "in": [],
     "out": []
    },
-   "loc": "mitochondrial matrix"
+   "loc": "mitochondrial matrix",
+   "drugs": [
+    {
+     "name": "Fluoroacetate",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Rat poison: becomes fluorocitrate, which blocks aconitase.",
+     "aliases": [
+      "fluorocitrate",
+      "sodium fluoroacetate"
+     ]
+    }
+   ]
   },
   {
    "id": "r3",
@@ -309,6 +343,17 @@
     "TPP (B1)",
     "Lipoic acid",
     "FAD (B2)"
+   ],
+   "drugs": [
+    {
+     "name": "Arsenic",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Binds lipoic acid, so pyruvate dehydrogenase and α-ketoglutarate dehydrogenase stop: vomiting, rice-water stools, garlic breath, QT prolongation.",
+     "aliases": [
+      "arsenite"
+     ]
+    }
    ]
   },
   {

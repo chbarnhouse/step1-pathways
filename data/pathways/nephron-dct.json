@@ -352,7 +352,27 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Thiazides",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block NCC: hydrochlorothiazide, chlorthalidone. Hypertension; hypokalemia, hypercalcemia, hyperglycemia, hyperuricemia.",
+     "aliases": [
+      "hydrochlorothiazide",
+      "chlorthalidone",
+      "HCTZ",
+      "thiazide diuretics"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Gitelman syndrome",
+     "clue": "Hypokalemic metabolic alkalosis with low magnesium and low urinary calcium: looks like taking a thiazide."
+    }
+   ]
   },
   {
    "id": "r2",
@@ -396,7 +416,27 @@
     "out": []
    },
    "transport": true,
-   "loc": "apical membrane"
+   "loc": "apical membrane",
+   "drugs": [
+    {
+     "name": "Thiazides",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block NCC: hydrochlorothiazide, chlorthalidone. Hypertension; hypokalemia, hypercalcemia, hyperglycemia, hyperuricemia.",
+     "aliases": [
+      "hydrochlorothiazide",
+      "chlorthalidone",
+      "HCTZ",
+      "thiazide diuretics"
+     ]
+    }
+   ],
+   "diseases": [
+    {
+     "name": "Gitelman syndrome",
+     "clue": "Hypokalemic metabolic alkalosis with low magnesium and low urinary calcium: looks like taking a thiazide."
+    }
+   ]
   },
   {
    "id": "r5",

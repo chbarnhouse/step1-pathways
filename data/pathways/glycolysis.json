@@ -257,7 +257,12 @@
     "irreversible"
    ],
    "loc": "cytosol",
-   "via": "glut"
+   "via": "glut",
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Liver glucokinase: insulin induces it; when fasting it is held in the nucleus (GKRP). Hexokinase in other tissues stays on."
+   }
   },
   {
    "id": "r2",
@@ -289,7 +294,12 @@
     "rate-limiting",
     "irreversible"
    ],
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Insulin raises fructose-2,6-bisphosphate, which activates PFK-1; glucagon lowers it. ATP and citrate inhibit, AMP activates."
+   }
   },
   {
    "id": "r4",
@@ -335,7 +345,16 @@
      "nadh"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Arsenate",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Takes phosphate’s place at GAPDH: no 1,3-bisphosphoglycerate, so glycolysis runs but makes no ATP at the next step.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r7",
@@ -380,7 +399,18 @@
      "h2o"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Fluoride",
+     "kind": "toxin",
+     "effect": "inhibits",
+     "note": "Blocks enolase: why blood-glucose tubes contain sodium fluoride (cells stop using up the glucose).",
+     "aliases": [
+      "sodium fluoride"
+     ]
+    }
+   ]
   },
   {
    "id": "r10",
@@ -400,7 +430,18 @@
    "tags": [
     "irreversible"
    ],
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Liver pyruvate kinase: insulin keeps it dephosphorylated (active); glucagon → PKA phosphorylates it (inactive). Fructose-1,6-bisphosphate feeds forward."
+   },
+   "diseases": [
+    {
+     "name": "Pyruvate kinase deficiency",
+     "clue": "Hemolytic anemia with echinocytes (burr cells) and raised 2,3-BPG, in a newborn."
+    }
+   ]
   }
  ],
  "distractors": {

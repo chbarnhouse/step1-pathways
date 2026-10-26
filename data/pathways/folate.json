@@ -139,7 +139,20 @@
      "dtmp"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "5-Fluorouracil",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Becomes 5-FdUMP, which locks thymidylate synthase with methylene-THF: no dTMP (\"thymineless death\"). Leucovorin strengthens it.",
+     "aliases": [
+      "5-FU",
+      "fluorouracil",
+      "capecitabine"
+     ]
+    }
+   ]
   },
   {
    "id": "r3",
@@ -155,7 +168,34 @@
      "nadp"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Methotrexate",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Folate antagonist (human DHFR): cancers, rheumatoid arthritis, psoriasis, ectopic pregnancy. Leucovorin (folinic acid) rescues normal cells.",
+     "aliases": [
+      "MTX"
+     ]
+    },
+    {
+     "name": "Trimethoprim",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Bacterial DHFR, far more than human; given with sulfamethoxazole (TMP-SMX).",
+     "aliases": [
+      "TMP"
+     ]
+    },
+    {
+     "name": "Pyrimethamine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Protozoal DHFR: toxoplasmosis (with sulfadiazine), malaria.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r4",
@@ -175,6 +215,12 @@
    "branch": true,
    "requires": [
     "Vitamin B2 (FAD)"
+   ],
+   "diseases": [
+    {
+     "name": "MTHFR deficiency",
+     "clue": "High homocysteine (raised clot risk) that improves with folate."
+    }
    ]
   },
   {

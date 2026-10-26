@@ -654,6 +654,17 @@
    },
    "by": [
     "c4b2a3b"
+   ],
+   "drugs": [
+    {
+     "name": "Eculizumab",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Antibody against C5: no C5 cleavage, no MAC. PNH, atypical HUS; vaccinate against Neisseria first.",
+     "aliases": [
+      "ravulizumab"
+     ]
+    }
    ]
   },
   {
@@ -670,6 +681,17 @@
    },
    "by": [
     "c3bbb3b"
+   ],
+   "drugs": [
+    {
+     "name": "Eculizumab",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Antibody against C5: no C5 cleavage, no MAC. PNH, atypical HUS; vaccinate against Neisseria first.",
+     "aliases": [
+      "ravulizumab"
+     ]
+    }
    ]
   },
   {
@@ -686,7 +708,13 @@
      "c9"
     ],
     "out": []
-   }
+   },
+   "diseases": [
+    {
+     "name": "Terminal complement (C5–C9) deficiency",
+     "clue": "Recurrent Neisseria infections (meningococcus, gonococcus)."
+    }
+   ]
   }
  ],
  "groups": [

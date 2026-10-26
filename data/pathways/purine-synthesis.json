@@ -363,6 +363,19 @@
    "tags": [
     "rate-limiting",
     "irreversible"
+   ],
+   "drugs": [
+    {
+     "name": "6-Mercaptopurine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Purine analog (azathioprine is its prodrug) that shuts down de novo purine synthesis at PRPP amidotransferase. Broken down by xanthine oxidase (so allopurinol raises it) and TPMT.",
+     "aliases": [
+      "6-MP",
+      "azathioprine",
+      "mercaptopurine"
+     ]
+    }
    ]
   },
   {
@@ -568,7 +581,27 @@
     ]
    },
    "branch": true,
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Mycophenolate",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks IMP dehydrogenase, so lymphocytes run out of GMP: transplant rejection, lupus nephritis.",
+     "aliases": [
+      "mycophenolate mofetil",
+      "MMF",
+      "mycophenolic acid"
+     ]
+    },
+    {
+     "name": "Ribavirin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks IMP dehydrogenase (depletes GTP): RSV, hepatitis C. Hemolytic anemia; teratogen.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r15",

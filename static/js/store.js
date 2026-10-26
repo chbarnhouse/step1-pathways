@@ -31,7 +31,7 @@ const MIGRATIONS = [
 function normalizeData(raw) {
   const obj = x => (x && typeof x === 'object' && !Array.isArray(x) ? x : {}), arr = x => (Array.isArray(x) ? x : []);
   const d = Object.assign({}, obj(raw));
-  d.custom = obj(d.custom); d.stats = obj(d.stats); d.tags = obj(d.tags);
+  d.custom = obj(d.custom); d.stats = obj(d.stats); d.tags = obj(d.tags); d.mixups = obj(d.mixups); // mixups: { pid: { key: { wrong: { name, n, last } } } }
   d.presets = arr(d.presets).filter(x => x && typeof x === 'object');
   d.favorites = arr(d.favorites).filter(x => x && typeof x === 'object' && x.d);
   d.log = arr(d.log).filter(x => x && typeof x === 'object');
@@ -263,6 +263,11 @@ function stitchPathway(ids) {
       if (r.also_from) nr.also_from = r.also_from.map(x => mid[x]);
       out.stitch.origin.r[nr.id] = [t.id, r.id];
       return nr;
+    }).filter(nr => {
+      // A step both parts have between the same two shared boxes (triose phosphate isomerase in fructose and
+      // glycolysis) is drawn and asked once, by the part that came first.
+      const name = out.enzymes[nr.enzyme]?.name;
+      return !out.reactions.some(o => out.enzymes[o.enzyme]?.name === name && ((o.from === nr.from && o.to === nr.to) || ((o.reversible || nr.reversible) && o.from === nr.to && o.to === nr.from)));
     });
     out.reactions.push(...rx);
     Object.assign(out.cofactors, t.cofactors || {});

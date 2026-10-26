@@ -332,6 +332,27 @@
    "tags": [
     "rate-limiting",
     "irreversible"
+   ],
+   "reg": {
+    "fed": "on",
+    "fasting": "off",
+    "why": "Insulin dephosphorylates (activates) HMG-CoA reductase; glucagon and AMPK phosphorylate (inactivate) it. Cholesterol itself represses it (SREBP-2)."
+   },
+   "drugs": [
+    {
+     "name": "Statins",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block HMG-CoA reductase, so liver cells make more LDL receptors and LDL falls. Myopathy, raised liver enzymes.",
+     "aliases": [
+      "statin",
+      "atorvastatin",
+      "simvastatin",
+      "rosuvastatin",
+      "pravastatin",
+      "lovastatin"
+     ]
+    }
    ]
   },
   {
@@ -488,7 +509,22 @@
     "in": [],
     "out": []
    },
-   "loc": "ER membrane"
+   "loc": "ER membrane",
+   "drugs": [
+    {
+     "name": "Azole antifungals",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Block fungal lanosterol 14α-demethylase (CYP51), so no ergosterol; ketoconazole also blocks human steroid synthesis.",
+     "aliases": [
+      "azoles",
+      "ketoconazole",
+      "fluconazole",
+      "itraconazole",
+      "voriconazole"
+     ]
+    }
+   ]
   },
   {
    "id": "r14",
@@ -504,7 +540,13 @@
      "nadp"
     ]
    },
-   "loc": "ER membrane"
+   "loc": "ER membrane",
+   "diseases": [
+    {
+     "name": "Smith–Lemli–Opitz syndrome",
+     "clue": "Microcephaly, syndactyly of toes 2–3, cleft palate, ambiguous genitalia and intellectual disability; high 7-dehydrocholesterol."
+    }
+   ]
   }
  ],
  "distractors": {

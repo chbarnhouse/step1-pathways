@@ -217,7 +217,13 @@
      "nh3"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "diseases": [
+    {
+     "name": "Adenosine deaminase deficiency",
+     "clue": "Severe combined immunodeficiency (SCID): recurrent infections from birth, no thymic shadow; dATP poisons lymphocytes."
+    }
+   ]
   },
   {
    "id": "r3",
@@ -250,7 +256,23 @@
      "h2o2"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Allopurinol",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks xanthine oxidase: gout, prevents tumor lysis syndrome. Raises azathioprine and 6-MP levels.",
+     "aliases": []
+    },
+    {
+     "name": "Febuxostat",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks xanthine oxidase (not a purine analog): gout.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r5",
@@ -267,7 +289,23 @@
      "h2o2"
     ]
    },
-   "loc": "cytosol"
+   "loc": "cytosol",
+   "drugs": [
+    {
+     "name": "Allopurinol",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks xanthine oxidase: gout, prevents tumor lysis syndrome. Raises azathioprine and 6-MP levels.",
+     "aliases": []
+    },
+    {
+     "name": "Febuxostat",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks xanthine oxidase (not a purine analog): gout.",
+     "aliases": []
+    }
+   ]
   },
   {
    "id": "r6",
@@ -335,7 +373,13 @@
     ]
    },
    "loc": "cytosol",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Lesch–Nyhan syndrome",
+     "clue": "Self-mutilation (lip and finger biting), intellectual disability, dystonia and gout (orange “sand” in diapers); X-linked."
+    }
+   ]
   },
   {
    "id": "r10",
@@ -352,7 +396,13 @@
     ]
    },
    "loc": "cytosol",
-   "branch": true
+   "branch": true,
+   "diseases": [
+    {
+     "name": "Lesch–Nyhan syndrome",
+     "clue": "Self-mutilation (lip and finger biting), intellectual disability, dystonia and gout (orange “sand” in diapers); X-linked."
+    }
+   ]
   },
   {
    "id": "r11",
