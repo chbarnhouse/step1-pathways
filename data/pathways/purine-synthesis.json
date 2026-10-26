@@ -369,12 +369,22 @@
      "name": "6-Mercaptopurine",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Purine analog (azathioprine is its prodrug) that shuts down de novo purine synthesis at PRPP amidotransferase. Broken down by xanthine oxidase (so allopurinol raises it) and TPMT.",
+     "note": "Acute lymphoblastic leukemia (maintenance), inflammatory bowel disease.",
      "aliases": [
       "6-MP",
-      "azathioprine",
       "mercaptopurine"
-     ]
+     ],
+     "cls": "Thiopurines"
+    },
+    {
+     "name": "Azathioprine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Prodrug of 6-MP: transplant rejection, autoimmune disease (lupus, IBD, autoimmune hepatitis).",
+     "aliases": [
+      "AZA"
+     ],
+     "cls": "Thiopurines"
     }
    ]
   },
@@ -587,19 +597,21 @@
      "name": "Mycophenolate",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks IMP dehydrogenase, so lymphocytes run out of GMP: transplant rejection, lupus nephritis.",
+     "note": "Transplant rejection, lupus nephritis. GI upset, myelosuppression; teratogen.",
      "aliases": [
       "mycophenolate mofetil",
       "MMF",
       "mycophenolic acid"
-     ]
+     ],
+     "cls": "IMP dehydrogenase inhibitors"
     },
     {
      "name": "Ribavirin",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks IMP dehydrogenase (depletes GTP): RSV, hepatitis C. Hemolytic anemia; teratogen.",
-     "aliases": []
+     "note": "Antiviral (depletes GTP): RSV, chronic hepatitis C. Hemolytic anemia; teratogen.",
+     "aliases": [],
+     "cls": "IMP dehydrogenase inhibitors"
     }
    ]
   },

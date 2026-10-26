@@ -234,6 +234,12 @@
     "fasting": "off",
     "why": "Insulin activates PDH phosphatase (PDH on). When fasting, acetyl-CoA and NADH from fatty acid oxidation switch on PDH kinase (PDH off)."
    },
+   "diseases": [
+    {
+     "name": "Pyruvate dehydrogenase deficiency",
+     "clue": "Lactic acidosis and neurologic defects in infancy, worse with carbohydrates; treat with a ketogenic diet (lysine and leucine)."
+    }
+   ],
    "drugs": [
     {
      "name": "Arsenic",
@@ -243,12 +249,6 @@
      "aliases": [
       "arsenite"
      ]
-    }
-   ],
-   "diseases": [
-    {
-     "name": "Pyruvate dehydrogenase deficiency",
-     "clue": "Lactic acidosis and neurologic defects in infancy, worse with carbohydrates; treat with a ketogenic diet (lysine and leucine)."
     }
    ]
   },

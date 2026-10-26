@@ -332,10 +332,17 @@
      "name": "Leflunomide",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks dihydroorotate dehydrogenase: rheumatoid arthritis, psoriatic arthritis (teriflunomide: MS).",
-     "aliases": [
-      "teriflunomide"
-     ]
+     "note": "Rheumatoid arthritis, psoriatic arthritis.",
+     "aliases": [],
+     "cls": "DHODH inhibitors"
+    },
+    {
+     "name": "Teriflunomide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Leflunomide’s active metabolite: relapsing multiple sclerosis.",
+     "aliases": [],
+     "cls": "DHODH inhibitors"
     }
    ]
   },
@@ -423,7 +430,7 @@
      "name": "Hydroxyurea",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks ribonucleotide reductase: sickle cell disease (raises HbF), CML, polycythemia vera.",
+     "note": "Blocks ribonucleotide reductase: sickle cell disease (raises HbF), CML, polycythemia vera, essential thrombocythemia.",
      "aliases": [
       "hydroxycarbamide"
      ]
@@ -488,12 +495,20 @@
      "name": "5-Fluorouracil",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Becomes 5-FdUMP, which locks thymidylate synthase: no dTMP.",
+     "note": "IV: colorectal, pancreatic and other GI cancers; topical for actinic keratosis. Myelosuppression, mucositis.",
      "aliases": [
       "5-FU",
-      "fluorouracil",
-      "capecitabine"
-     ]
+      "fluorouracil"
+     ],
+     "cls": "Thymidylate synthase inhibitors"
+    },
+    {
+     "name": "Capecitabine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Oral prodrug of 5-FU: colorectal and breast cancer. Hand-foot syndrome.",
+     "aliases": [],
+     "cls": "Thymidylate synthase inhibitors"
     }
    ]
   },

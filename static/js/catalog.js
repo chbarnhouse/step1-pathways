@@ -5,7 +5,7 @@
    Routes: #/library/<tab> and #/library/<tab>/<key>; the Pathways tab is #/pathways. */
 'use strict';
 
-const CAT_TABS = [['metabolites', 'Metabolites', 'met'], ['enzymes', 'Enzymes', 'enz'], ['cofactors', 'Cofactors', 'cof'], ['drugs', 'Drugs & toxins', 'drug'], ['cells', 'Cells', 'cell'], ['cytokines', 'Cytokines', 'sig']];
+const CAT_TABS = [['metabolites', 'Metabolites', 'met'], ['enzymes', 'Enzymes', 'enz'], ['cofactors', 'Cofactors', 'cof'], ['drugs', 'Drugs', 'drug'], ['toxins', 'Toxins', 'tox'], ['cells', 'Cells', 'cell'], ['cytokines', 'Cytokines', 'sig']];
 const CAT_KINDS = CAT_TABS.map(t => t[2]);
 const CAT = { built: null, sig: null, q: {} };
 const catKey = name => norm(String(name)) || String(name);
@@ -39,7 +39,7 @@ const metBase = (p, name) => (p.nephron ? String(name).replace(/\s*\([^)]*\)\s*$
 function catalog() {
   const ps = Library.atomic().filter(p => (p.reactions || []).length);
   if (CAT.built && CAT.sig.length === ps.length && CAT.sig.every((p, i) => p === ps[i])) return CAT.built;
-  const out = Object.fromEntries(CAT_KINDS.map(k => [k, {}]));
+  const out = Object.fromEntries([...CAT_KINDS, 'dcls'].map(k => [k, {}])); // dcls: drug classes, whose pages sit under Drugs
   const entry = (kind, key, name) => (out[kind][key] = out[kind][key] || { kind, key, names: [], short: new Set(), aliases: new Set(), notes: [], steps: [], pathways: new Set(), keys: [] }); // keys: [pathway, answer-history key]
   const note = (e, text, p) => { if (text && !e.notes.some(n => n.text === text)) e.notes.push({ text, pid: p.id }); };
   for (const p of ps) {
@@ -60,8 +60,12 @@ function catalog() {
       e.names.push(x.name); if (x.short) e.short.add(x.short); (x.aliases || []).forEach(a => e.aliases.add(a)); note(e, x.notes, p);
       e.pathways.add(p.id); e.steps.push({ p, m, r }); e.keys.push([p.id, 'e:' + r.id]);
       // Each drug or toxin that acts here has a page: what it acts on, how, and why it matters.
-      for (const d of r.drugs || []) { const g = entry('drug', catKey(d.name), d.name); g.names.push(d.name); (d.aliases || []).forEach(a => g.aliases.add(a)); note(g, d.note, p);
-        g.pathways.add(p.id); g.steps.push({ p, m, r, drug: d }); g.keys.push([p.id, 'q:' + r.id]); }
+      // Toxins have a tab of their own; a drug in a class also counts toward its class's page (one line per step there).
+      for (const d of r.drugs || []) { const g = entry(d.kind === 'toxin' ? 'tox' : 'drug', catKey(d.name), d.name); g.names.push(d.name); (d.aliases || []).forEach(a => g.aliases.add(a)); note(g, d.note, p);
+        g.pathways.add(p.id); g.steps.push({ p, m, r, drug: d }); g.keys.push([p.id, 'q:' + r.id]); if (d.cls) g.cls = d.cls;
+        if (d.cls) { const c = entry('dcls', 'class-' + catKey(d.cls), d.cls), have = c.steps.find(s => s.p === p && s.r === r);
+          c.names.push(d.cls); c.pathways.add(p.id); c.cls = d.cls; (Library.drugClasses()[d.cls]?.aliases || []).forEach(a => c.aliases.add(a));
+          if (have) have.members.push(d); else { c.steps.push({ p, m, r, drug: d, members: [d] }); c.keys.push([p.id, 'q:' + r.id]); } } }
       // The carrier that brings a via step's substrate across has its own page too.
       const v = r.via && p.enzymes[r.via];
       if (v) { const t = entry('enz', catKey(v.name), v.name); t.names.push(v.name); if (v.short) t.short.add(v.short); (v.aliases || []).forEach(a => t.aliases.add(a)); note(t, v.notes, p);
@@ -108,7 +112,7 @@ function immunoEntries(p, m, entry, note) {
 }
 const catList = kind => Object.values(catalog()[kind]).sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 const catHref = (tab, key) => `#/library/${tab}/${encodeURIComponent(key)}`;
-const tabOf = kind => CAT_TABS.find(t => t[2] === kind)[0];
+const tabOf = kind => (kind === 'dcls' ? 'drugs' : CAT_TABS.find(t => t[2] === kind)[0]);
 // A name in a table, linked to its own page when it has one.
 function catLink(kind, key, label) {
   const e = catalog()[kind][key];
@@ -159,8 +163,9 @@ const SECTIONS = {
     ['Amino acids & nitrogen', 'genetics', 'teal', e => /glutam|aspart|glycine|serine|methionine|homocysteine|carbamoyl|urea|ketobutyrate|fumarate/i.test(e.name)],
     ['Sugars & activated sugars', 'nutrition', 'gold', e => /glucose|galactose|udp-|prpp|ribose|sialic|galactosamine|phosphocholine/i.test(e.name)],
     ['Water, gases & ions', 'opacity', 'slate', e => /^(h2o|co2|o2|nh3|nh4|hco3|h|co|h2o2|fe2|so4)$/i.test(e.key)], ['Other', 'science', 'slate', () => true]],
-  drug: [['Drugs that block a step', 'medication', 'blue', e => e.steps.some(s => s.drug.kind === 'drug' && s.drug.effect === 'inhibits')],
-    ['Drugs that drive a step', 'medication', 'teal', e => e.steps.some(s => s.drug.kind === 'drug')], ['Toxins', 'skull', 'orange', () => true]],
+  // Drugs are sectioned by their class (facets), each class's header opening its own page; drugs with none come last.
+  tox: [['Toxins', 'skull', 'orange', () => true]],
+  dcls: [['Drug classes', 'category', 'blue', () => true]],
   cell: [['Stem cells & progenitors', 'source_environment', 'gold', e => /stem|progenitor|blast/i.test(e.name)],
     ['Myeloid cells', 'bloodtype', 'pink', e => /erythro|megakaryo|platelet|neutro|eosino|baso|monocyte|macrophage|mast|dendritic/i.test(e.name)],
     ['Lymphocytes', 'shield', 'blue', e => /\bT cell|B cell|NK|plasma|Th\d|helper|regulatory|cytotoxic|lymph/i.test(e.name)],
@@ -173,10 +178,12 @@ function facets(e) {
   if (e.f) return e.f;
   const ids = [...e.pathways], f = { systems: uniq(ids.flatMap(systemsOf)), tags: uniq(ids.flatMap(tagsOf)) };
   if (e.kind === 'met') { const lead = ids.map(id => Library.get(id)).filter(Boolean).sort((a, b) => groupRank(a.group) - groupRank(b.group))[0]; f.section = groupOfPathways(ids); f.art = lead ? tileArt(lead) : ''; }
+  else if (e.kind === 'drug') { f.section = e.cls || OTHER_DRUGS; f.art = `<span class="tile-art tone-${e.steps.every(s => s.drug.effect === 'activates') ? 'teal' : 'blue'}">${mi('medication')}</span>`; }
   else { const [name, icon, tone] = SECTIONS[e.kind].find(([, , , test]) => test(e)); f.section = name; f.art = `<span class="tile-art tone-${tone}">${mi(icon)}</span>`; }
   return (e.f = f);
 }
-const sectionOrder = kind => (kind === 'met' ? g => groupRank(g) : g => SECTIONS[kind].findIndex(s => s[0] === g));
+const OTHER_DRUGS = 'Drugs without a class here';
+const sectionOrder = kind => (kind === 'met' ? g => groupRank(g) : kind === 'drug' ? (() => { const cs = Object.keys(Library.drugClasses()).sort((a, b) => a.localeCompare(b)); return g => (g === OTHER_DRUGS ? 999 : cs.indexOf(g)); })() : g => SECTIONS[kind].findIndex(s => s[0] === g));
 // Your answers about it, across every pathway it's in.
 function itemStat(e) {
   let n = 0, miss = 0, last = 0;
@@ -198,9 +205,9 @@ function catFiltered(kind, st) {
   const q = norm(st.q || ''), ord = sectionOrder(kind);
   return catList(kind).map(e => [e, catRank(e, q), facets(e), itemStat(e)]).filter(([e, r, f, s]) => (!q || r)
     && (!st.sections.length || st.sections.includes(f.section))
-    && (!st.systems.length || st.systems.some(t => f.systems.includes(t)))
+    && (!st.systems.length || st.systems[st.all?.systems ? 'every' : 'some'](t => f.systems.includes(t)))
     && (!st.paths.length || st.paths.some(id => e.pathways.has(id)))
-    && (!st.tags.length || st.tags.some(t => f.tags.includes(t)))
+    && (!st.tags.length || st.tags[st.all?.tags ? 'every' : 'some'](t => f.tags.includes(t)))
     && (!st.status || (st.status === 'new' ? !s.n : st.status === 'studied' ? !!s.n : s.miss > 0)))
     .sort((a, b) => (q ? a[1] - b[1] : 0)
       || (st.sort === 'name' ? 0 : st.sort === 'most' ? b[0].pathways.size - a[0].pathways.size || b[0].steps.length - a[0].steps.length
@@ -213,7 +220,7 @@ function catToolbar(tab, kind, st) {
   const tags = uniq(all.flatMap(f => f.tags)).sort((a, b) => a.localeCompare(b)), paths = Library.atomic().sort((a, b) => a.name.localeCompare(b.name));
   const item = (attr, v, on, label) => `<button type="button" class="chip-tg small fitem" ${attr}="${esc(v)}" aria-pressed="${on}">${esc(label)}</button>`;
   const menu = (key, label, n, body) => `<details class="fdd" data-f="${key}"><summary class="fdd-btn${n ? ' on' : ''}" aria-label="${label}${n ? `, ${n} on` : ''}">${label}${n ? `<span class="fdd-n">${n}</span>` : ''}${mi('expand_more', 'sm')}</summary><div class="pop fmenu">${body}</div></details>`;
-  const secLabel = kind === 'met' ? 'Group' : 'Kind';
+  const secLabel = kind === 'met' ? 'Group' : kind === 'drug' ? 'Class' : 'Kind';
   const menus = menu('section', secLabel, st.sections.length, sections.map(g => item('data-ksec', g, st.sections.includes(g), g)).join(''))
     + menu('system', 'System', st.systems.length, systems.map(t => item('data-ksys', t, st.systems.includes(t), t)).join(''))
     + menu('path', 'Pathway', st.paths.length, paths.map(p => item('data-kpath', p.id, st.paths.includes(p.id), p.name)).join(''))
@@ -221,11 +228,11 @@ function catToolbar(tab, kind, st) {
     + (tags.length ? menu('tags', 'Tags', st.tags.length, tags.map(t => item('data-ktag', t, st.tags.includes(t), t)).join('')) : '');
   const on = [...st.sections.map(g => ['data-ksec', g, secLabel, g]), ...st.systems.map(t => ['data-ksys', t, 'System', t]), ...st.paths.map(id => ['data-kpath', id, 'Pathway', Library.get(id)?.name || id]),
     ...(st.status ? [['data-kstatus', st.status, 'Status', STATUS_LABELS[st.status]]] : []), ...st.tags.map(t => ['data-ktag', t, 'Tag', t])];
-  const chips = on.map(([attr, v, k, l]) => `<button type="button" class="fchip" ${attr}="${esc(v)}" aria-label="Remove filter ${esc(k)}: ${esc(l)}"><span class="muted">${k}:</span> ${esc(l)}${mi('close', 'sm')}</button>`).join('');
+  const chips = filterChips(on, { System: ['systems', 'systems'], Tag: ['tags', 'tags'] }, st, 'data-kjoin');
   const label = CAT_TABS.find(t => t[0] === tab)[1].toLowerCase();
   return `<div class="browsebar" data-kpage="${tab}">
     <label class="search">${mi('search', 'sm')}<input type="search" data-kq placeholder="Search ${label} by any name" value="${esc(st.q)}" aria-label="Search ${label}"></label>
-    <label class="sortsel">${mi('sort', 'sm')}<select data-ksort aria-label="Sort">${[['group', kind === 'met' ? 'By group' : 'By kind'], ['name', 'A–Z'], ['most', 'In most pathways'], ['weak', 'Weakest first'], ['recent', 'Recently studied']].map(([v, l]) => `<option value="${v}"${st.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
+    <label class="sortsel">${mi('sort', 'sm')}<select data-ksort aria-label="Sort">${[['group', kind === 'met' ? 'By group' : kind === 'drug' ? 'By class' : 'By kind'], ['name', 'A–Z'], ['most', 'In most pathways'], ['weak', 'Weakest first'], ['recent', 'Recently studied']].map(([v, l]) => `<option value="${v}"${st.sort === v ? ' selected' : ''}>${l}</option>`).join('')}</select></label>
     <div class="filters">${menus}${chips}${on.length || st.q ? '<button class="linkbtn" data-kclear>Clear</button>' : ''}</div>
   </div>`;
 }
@@ -243,7 +250,9 @@ function catTilesHTML(tab, kind, st) {
   if (st.sort !== 'group' || st.q) return count + `<div class="tiles-grid">${rows.map(([e]) => catTile(tab, e)).join('')}</div>`;
   const groups = {};
   for (const [e, , f] of rows) (groups[f.section] = groups[f.section] || []).push(e);
-  return count + Object.entries(groups).map(([g, es]) => `<div class="tgroup"><h2 class="glabel">${esc(g)} <span class="muted small">${es.length}</span></h2>
+  // A drug class's row is headed by a link to the class's own page (what its members share, and how they differ).
+  const head = g => (kind === 'drug' && g !== OTHER_DRUGS ? `<a class="glink" href="${catHref('drugs', 'class-' + catKey(g))}">${esc(g)}${mi('chevron_right', 'sm')}</a>` : esc(g));
+  return count + Object.entries(groups).map(([g, es]) => `<div class="tgroup"><h2 class="glabel">${head(g)} <span class="muted small">${es.length}</span></h2>
     <div class="rowwrap"><button class="rowbtn prev" data-rowscroll="-1" aria-label="Scroll ${esc(g)} left" tabindex="-1">${mi('chevron_left')}</button>
       <div class="tiles-row">${es.map(e => catTile(tab, e)).join('')}</div>
       <button class="rowbtn next" data-rowscroll="1" aria-label="Scroll ${esc(g)} right" tabindex="-1">${mi('chevron_right')}</button></div></div>`).join('');
@@ -251,6 +260,7 @@ function catTilesHTML(tab, kind, st) {
 function renderCatalog(tab) {
   const [, , kind] = CAT_TABS.find(t => t[0] === tab) || CAT_TABS[0];
   const blurb = { met: 'Every metabolite in every pathway. Open one to see what makes it and what uses it.', enz: 'Every enzyme and transporter. Open one to see its steps, cofactors, what it needs, and where it works.', cof: 'Everything that goes in or comes out beside a step, and the vitamins steps need. Open one to see every step that uses it.',
+    drug: 'Every drug that acts on a step, grouped by class. Open a class for what its members share, or a drug for what sets it apart.', tox: 'Poisons and the steps they jam.',
     cell: 'Every cell (and target organ) in the immunology pathways. Open one to see what it comes from, what it becomes, the cytokines it makes and the ones that act on it.', sig: 'Every cytokine and growth factor in the immunology pathways. Open one to see which cells make it, what it acts on, and what it drives.' }[kind];
   const st = catState(tab);
   for (const k of CAT_KINDS) catList(k).forEach(e => delete e.f); // tags may have changed since
@@ -280,16 +290,17 @@ document.addEventListener('change', e => {
   const st = catState(tab); st.sort = e.target.value; catSave(tab, st); catRefresh();
 });
 document.addEventListener('click', e => {
-  const t = e.target.closest('[data-ksec],[data-ksys],[data-kpath],[data-ktag],[data-kstatus],[data-kclear]');
+  const t = e.target.closest('[data-ksec],[data-ksys],[data-kpath],[data-ktag],[data-kstatus],[data-kclear],[data-kjoin]');
   if (!t) return;
   const [tab] = catTab(); if (!tab) return;
   const st = catState(tab), flip = (k, v) => { st[k] = st[k].includes(v) ? st[k].filter(x => x !== v) : [...st[k], v]; };
-  if (t.dataset.ksec) flip('sections', t.dataset.ksec);
+  if (t.dataset.kjoin) st.all = { ...(st.all || {}), [t.dataset.kjoin]: !st.all?.[t.dataset.kjoin] };
+  else if (t.dataset.ksec) flip('sections', t.dataset.ksec);
   else if (t.dataset.ksys) flip('systems', t.dataset.ksys);
   else if (t.dataset.kpath) flip('paths', t.dataset.kpath);
   else if (t.dataset.ktag) flip('tags', t.dataset.ktag);
   else if (t.dataset.kstatus) st.status = st.status === t.dataset.kstatus ? '' : t.dataset.kstatus;
-  else Object.assign(st, { q: '', sections: [], systems: [], paths: [], tags: [], status: '' });
+  else Object.assign(st, { q: '', sections: [], systems: [], paths: [], tags: [], status: '', all: {} });
   catSave(tab, st);
   catRefresh(true);
   if (t.hasAttribute('data-kclear')) { const q = document.querySelector('[data-kq]'); if (q) q.value = ''; }
@@ -306,10 +317,11 @@ function focusStatus(e, p) {
   if (e.kind === 'enz' || e.kind === 'sig') mine.forEach(({ r, via }) => { focus.add((via ? 't:' : 'e:') + r.id); touch(r); });
   else if (e.kind === 'met' || e.kind === 'cell') { e.keys.filter(([pid]) => pid === p.id).forEach(([, k]) => focus.add(k)); mine.forEach(({ r }) => { near.add('e:' + r.id); touch(r); }); }
   else mine.forEach(({ r }) => { focus.add('e:' + r.id); touch(r); });
-  return k => (/^q:/.test(k) ? (e.kind === 'drug' && focus.has('e:' + k.slice(2)) ? 'shown' : 'hide') : focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
+  return k => (/^q:/.test(k) ? (['drug', 'tox', 'dcls'].includes(e.kind) && focus.has('e:' + k.slice(2)) ? 'shown' : 'hide') : focus.has(k) ? 'focus' : near.has(k) ? 'shown' : /^[em]:/.test(k) ? 'dim' : 'shown');
 }
 function stepLine(e, s) {
-  if (e.kind === 'drug') { const en = s.p.enzymes[s.r.enzyme]?.name; return `<li>${s.drug.effect === 'activates' ? 'drives' : 'blocks'} ${catLink('enz', catKey(en), en)} · ${reactionCell(s.p, s.r)} · ${whereCell(s.r)}</li>`; }
+  if (e.kind === 'drug' || e.kind === 'tox') { const en = s.p.enzymes[s.r.enzyme]?.name; return `<li>${s.drug.effect === 'activates' ? 'drives' : 'blocks'} ${catLink('enz', catKey(en), en)} · ${reactionCell(s.p, s.r)} · ${whereCell(s.r)}</li>`; }
+  if (e.kind === 'dcls') { const en = s.p.enzymes[s.r.enzyme]?.name; return `<li>${s.members.map(d => catLink('drug', catKey(d.name), d.name)).join(', ')} ${s.drug.effect === 'activates' ? 'drive' : 'block'} ${catLink('enz', catKey(en), en)} · ${reactionCell(s.p, s.r)} · ${whereCell(s.r)}</li>`; }
   if (s.p.terms && !s.p.nephron) return immunoLine(e, s);
   const { p, m, r } = s, en = p.enzymes[r.enzyme]?.name, needs = cofsLinked(m, m.items['n:' + r.id]?.cofs.in || []);
   const role = e.kind === 'met' ? (s.role === 'made' ? 'made by ' : s.role === 'used' ? 'used by ' : '') : e.kind === 'cof' ? ({ in: 'goes in at ', out: 'comes out of ', need: 'needed by ' }[s.role] || '') : '';
@@ -351,7 +363,7 @@ function glanceHTML(e, ps) {
   const rows = [], linkList = (kind, keys) => uniq(keys).map(k => catLink(kind, k)).join(', ');
   if (e.short.size) rows.push(['Abbreviation', esc([...e.short].join(', '))]);
   if (e.others.length) rows.push(['Also called', esc(e.others.join(' · '))]);
-  rows.push([e.kind === 'met' ? 'Group' : 'Kind', esc(facets(e).section)]);
+  if (e.kind !== 'dcls' && e.kind !== 'drug' && e.kind !== 'tox') rows.push([e.kind === 'met' ? 'Group' : 'Kind', esc(facets(e).section)]);
   if (e.kind === 'cell' || e.kind === 'sig') rows.push(...immunoRows(e));
   rows.push(['In', ps.map(p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc(p.name)}</a>`).join(', ')]);
   // A carrier (via) works on a membrane: say which, by the two compartments it joins.
@@ -368,8 +380,9 @@ function glanceHTML(e, ps) {
     if (cofs.length) rows.push(['Cofactors', linkList('cof', cofs)]);
     const dir = uniq(own.map(s => (s.r.reversible ? 'reversible' : 'one-way')));
     if (dir.length) rows.push(['Direction', esc(dir.join(' or '))]);
-  } else if (e.kind === 'drug') {
-    rows.push(['Is', esc(uniq(e.steps.map(s => (s.drug.kind === 'toxin' ? 'a toxin' : 'a drug'))).join(' and '))]);
+  } else if (e.kind === 'drug' || e.kind === 'tox' || e.kind === 'dcls') {
+    if (e.kind === 'dcls') rows.push(['Members', uniq(e.steps.flatMap(s => s.members.map(d => d.name))).map(n => catLink('drug', catKey(n), n)).join(', ')]);
+    if (e.cls && e.kind === 'drug') rows.push(['Class', catLink('dcls', 'class-' + catKey(e.cls), e.cls)]);
     for (const [eff, label] of [['inhibits', 'Blocks'], ['activates', 'Drives']]) {
       const on = e.steps.filter(s => s.drug.effect === eff).map(s => catKey(s.p.enzymes[s.r.enzyme]?.name)).filter(Boolean);
       if (on.length) rows.push([label, linkList('enz', on)]);
@@ -415,17 +428,21 @@ function contextHTML(e, p) {
   </section>`;
 }
 function renderCatItem(tab, key) {
-  const [, label, kind] = CAT_TABS.find(t => t[0] === tab) || [];
+  let [, label, kind] = CAT_TABS.find(t => t[0] === tab) || [];
+  if (tab === 'drugs' && key.startsWith('class-')) kind = 'dcls'; // a drug class's page
   const e = kind && catalog()[kind][key];
   if (!e) { $('#view').innerHTML = `<div class="page">${pageHead('Not found', 'Nothing by that name in any pathway.')}<a class="btn" href="#/library/${esc(tab || 'enzymes')}">Back to the library</a></div>`; return; }
   delete e.f;
   const ps = [...e.pathways].map(id => Library.get(id)).filter(Boolean).sort((a, b) => groupRank(a.group) - groupRank(b.group) || a.name.localeCompare(b.name));
   const short = e.short.size ? ` <span class="muted">(${esc([...e.short].join(', '))})</span>` : '';
   // Notes as written in each pathway; where pathways say different things, each says which pathway it's from.
-  const notes = e.notes.length ? `<section class="card pad"><h2>Notes</h2>${e.notes.map(n => `<p>${esc(n.text)}${e.notes.length > 1 ? ` <span class="muted small">(${esc(Library.get(n.pid)?.name || n.pid)})</span>` : ''}</p>`).join('')}</section>` : '';
+  // A class's page leads with what its members share (their own notes are on their pages).
+  const cn = e.kind === 'dcls' ? Library.drugClasses()[e.cls]?.note : '';
+  if (cn && !e.notes.some(n => n.text === cn)) e.notes.unshift({ text: cn, pid: '' });
+  const notes = e.notes.length ? `<section class="card pad"><h2>Notes</h2>${e.notes.map(n => `<p>${esc(n.text)}${e.notes.length > 1 && n.pid ? ` <span class="muted small">(${esc(Library.get(n.pid)?.name || n.pid)})</span>` : ''}</p>`).join('')}</section>` : '';
   $('#view').innerHTML = `<div class="page catitem">
     ${crumbsHTML([{ h: '#/pathways', t: 'Library' }, { h: `#/library/${tab}`, t: label }])}
-    ${pageHead(`${facets(e).art} ${esc(e.name)}${short}`, `${e.kind === 'drug' ? (e.steps.every(x => x.drug.kind === 'toxin') ? 'Toxin' : 'Drug') : label.replace(/s$/, '')} · ${esc(facets(e).section)} · in ${plural(ps.length, 'pathway')}`)}
+    ${pageHead(`${facets(e).art} ${esc(e.name)}${short}`, `${e.kind === 'dcls' ? 'Drug class' : e.kind === 'tox' ? 'Toxin' : label.replace(/s$/, '')}${e.kind === 'drug' && e.cls ? ` · ${esc(e.cls)}` : e.kind === 'dcls' || e.kind === 'tox' ? '' : ` · ${esc(facets(e).section)}`} · in ${plural(ps.length, 'pathway')}`)}
     <div class="cat-top">${glanceHTML(e, ps)}${notes}</div>
     <h2 class="glabel ctx-label">In ${ps.length > 1 ? 'its pathways' : 'its pathway'}</h2>
     ${ps.slice(0, 4).map(p => contextHTML(e, p)).join('')}

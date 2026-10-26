@@ -41,7 +41,8 @@ def bundle():
         p = json.loads(f.read_text())
         pathways[p["id"]] = p
     renames = json.loads((DATA / "renames.json").read_text()) if (DATA / "renames.json").exists() else {}
-    return {"cofactors": json.loads((DATA / "cofactors.json").read_text()), "pathways": pathways, "renames": renames}
+    classes = json.loads((DATA / "drug-classes.json").read_text()) if (DATA / "drug-classes.json").exists() else {}
+    return {"cofactors": json.loads((DATA / "cofactors.json").read_text()), "pathways": pathways, "renames": renames, "drugClasses": classes}
 
 
 def bundle_js():

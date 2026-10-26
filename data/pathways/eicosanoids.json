@@ -287,15 +287,40 @@
    "loc": "cytosol",
    "drugs": [
     {
-     "name": "Glucocorticoids",
+     "name": "Prednisone",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Block phospholipase A₂ (via annexin A1) and cut COX-2 production: every eicosanoid falls.",
+     "note": "Oral; a prodrug the liver turns into prednisolone. The everyday steroid for flares.",
      "aliases": [
-      "corticosteroids",
-      "prednisone",
-      "dexamethasone"
-     ]
+      "prednisolone"
+     ],
+     "cls": "Glucocorticoids"
+    },
+    {
+     "name": "Dexamethasone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Long-acting, no mineralocorticoid effect: cerebral edema, croup, the dexamethasone suppression test.",
+     "aliases": [],
+     "cls": "Glucocorticoids"
+    },
+    {
+     "name": "Hydrocortisone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The same molecule as cortisol, with mineralocorticoid effect: adrenal insufficiency.",
+     "aliases": [
+      "cortisol"
+     ],
+     "cls": "Glucocorticoids"
+    },
+    {
+     "name": "Methylprednisolone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "IV pulses: MS relapses, transplant rejection, severe flares.",
+     "aliases": [],
+     "cls": "Glucocorticoids"
     }
    ]
   },
@@ -317,7 +342,7 @@
      "name": "Zileuton",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks 5-lipoxygenase, so no leukotrienes: asthma.",
+     "note": "Blocks 5-lipoxygenase, so no leukotrienes: asthma. Hepatotoxic.",
      "aliases": []
     }
    ]
@@ -340,7 +365,7 @@
      "name": "Zileuton",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks 5-lipoxygenase, so no leukotrienes: asthma.",
+     "note": "Blocks 5-lipoxygenase, so no leukotrienes: asthma. Hepatotoxic.",
      "aliases": []
     }
    ]
@@ -423,33 +448,54 @@
      "name": "Aspirin",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Irreversibly acetylates COX-1 and COX-2: platelets (no nucleus) lose thromboxane for their whole life.",
+     "note": "Irreversibly acetylates COX-1 and COX-2: platelets (no nucleus) lose thromboxane for their whole life. Reye syndrome in children; salicylate toxicity (tinnitus, mixed respiratory alkalosis and metabolic acidosis).",
      "aliases": [
       "acetylsalicylic acid",
       "ASA"
-     ]
+     ],
+     "cls": "NSAIDs"
     },
     {
-     "name": "NSAIDs",
+     "name": "Ibuprofen",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Reversibly block COX-1 and COX-2: ibuprofen, naproxen, indomethacin (closes a PDA).",
-     "aliases": [
-      "ibuprofen",
-      "naproxen",
-      "indomethacin",
-      "ketorolac",
-      "diclofenac"
-     ]
+     "note": "Reversible, short-acting.",
+     "aliases": [],
+     "cls": "NSAIDs"
+    },
+    {
+     "name": "Naproxen",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Reversible, longer-acting (twice daily).",
+     "aliases": [],
+     "cls": "NSAIDs"
+    },
+    {
+     "name": "Indomethacin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Closes a patent ductus arteriosus; acute gout.",
+     "aliases": [],
+     "cls": "NSAIDs"
+    },
+    {
+     "name": "Ketorolac",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "IV or IM, for short-term moderate to severe pain.",
+     "aliases": [],
+     "cls": "NSAIDs"
     },
     {
      "name": "Celecoxib",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks COX-2 only: spares the stomach and platelets; raises thrombosis risk.",
+     "note": "COX-2 only: spares the stomach lining and platelets; raises thrombosis risk. A sulfonamide.",
      "aliases": [
       "COX-2 inhibitor"
-     ]
+     ],
+     "cls": "NSAIDs"
     }
    ]
   },

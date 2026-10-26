@@ -242,6 +242,12 @@
     "B6 (pyridoxal phosphate)"
    ],
    "via": "slc25a38",
+   "diseases": [
+    {
+     "name": "X-linked sideroblastic anemia",
+     "clue": "Microcytic anemia with ringed sideroblasts and iron overload; may respond to B6 (pyridoxine)."
+    }
+   ],
    "drugs": [
     {
      "name": "Hemin",
@@ -252,12 +258,6 @@
       "heme arginate",
       "panhematin"
      ]
-    }
-   ],
-   "diseases": [
-    {
-     "name": "X-linked sideroblastic anemia",
-     "clue": "Microcytic anemia with ringed sideroblasts and iron overload; may respond to B6 (pyridoxine)."
     }
    ]
   },
@@ -279,6 +279,12 @@
    ],
    "notes": "2 ALA → PBG",
    "via": "alaexp",
+   "diseases": [
+    {
+     "name": "Lead poisoning",
+     "clue": "Microcytic anemia with basophilic stippling, abdominal colic, wrist or foot drop, lead lines on gums and bones; raised ALA and protoporphyrin."
+    }
+   ],
    "drugs": [
     {
      "name": "Lead",
@@ -288,12 +294,6 @@
      "aliases": [
       "lead poisoning"
      ]
-    }
-   ],
-   "diseases": [
-    {
-     "name": "Lead poisoning",
-     "clue": "Microcytic anemia with basophilic stippling, abdominal colic, wrist or foot drop, lead lines on gums and bones; raised ALA and protoporphyrin."
     }
    ]
   },
@@ -413,6 +413,12 @@
    "tags": [
     "irreversible"
    ],
+   "diseases": [
+    {
+     "name": "Lead poisoning",
+     "clue": "Microcytic anemia with basophilic stippling, abdominal colic, wrist or foot drop, lead lines on gums and bones; raised ALA and protoporphyrin."
+    }
+   ],
    "drugs": [
     {
      "name": "Lead",
@@ -422,12 +428,6 @@
      "aliases": [
       "lead poisoning"
      ]
-    }
-   ],
-   "diseases": [
-    {
-     "name": "Lead poisoning",
-     "clue": "Microcytic anemia with basophilic stippling, abdominal colic, wrist or foot drop, lead lines on gums and bones; raised ALA and protoporphyrin."
     }
    ]
   }

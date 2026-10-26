@@ -340,18 +340,44 @@
    },
    "drugs": [
     {
-     "name": "Statins",
+     "name": "Atorvastatin",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Block HMG-CoA reductase, so liver cells make more LDL receptors and LDL falls. Myopathy, raised liver enzymes.",
-     "aliases": [
-      "statin",
-      "atorvastatin",
-      "simvastatin",
-      "rosuvastatin",
-      "pravastatin",
-      "lovastatin"
-     ]
+     "note": "High-intensity at 40–80 mg; metabolized by CYP3A4.",
+     "aliases": [],
+     "cls": "Statins"
+    },
+    {
+     "name": "Rosuvastatin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The most potent (high-intensity at 20–40 mg); few CYP interactions.",
+     "aliases": [],
+     "cls": "Statins"
+    },
+    {
+     "name": "Simvastatin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "CYP3A4: macrolides, azoles, protease inhibitors and grapefruit raise its levels and the myopathy risk.",
+     "aliases": [],
+     "cls": "Statins"
+    },
+    {
+     "name": "Pravastatin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Water-soluble and not a CYP3A4 substrate: the fewest drug interactions.",
+     "aliases": [],
+     "cls": "Statins"
+    },
+    {
+     "name": "Lovastatin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The first statin (from a fungus); CYP3A4.",
+     "aliases": [],
+     "cls": "Statins"
     }
    ]
   },
@@ -512,17 +538,36 @@
    "loc": "ER membrane",
    "drugs": [
     {
-     "name": "Azole antifungals",
+     "name": "Ketoconazole",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Block fungal lanosterol 14α-demethylase (CYP51), so no ergosterol; ketoconazole also blocks human steroid synthesis.",
-     "aliases": [
-      "azoles",
-      "ketoconazole",
-      "fluconazole",
-      "itraconazole",
-      "voriconazole"
-     ]
+     "note": "Rarely used as an antifungal now (liver toxicity); also blocks human steroid synthesis: gynecomastia, Cushing syndrome treatment.",
+     "aliases": [],
+     "cls": "Azole antifungals"
+    },
+    {
+     "name": "Fluconazole",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Gets into the CSF: cryptococcal meningitis (maintenance), Candida infections.",
+     "aliases": [],
+     "cls": "Azole antifungals"
+    },
+    {
+     "name": "Itraconazole",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Dimorphic fungi (histoplasmosis, blastomycosis), sporotrichosis. Avoid in heart failure.",
+     "aliases": [],
+     "cls": "Azole antifungals"
+    },
+    {
+     "name": "Voriconazole",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Invasive aspergillosis. Visual disturbances, photosensitivity, hallucinations.",
+     "aliases": [],
+     "cls": "Azole antifungals"
     }
    ]
   },

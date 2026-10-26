@@ -260,10 +260,17 @@
      "name": "Carbidopa",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks DOPA decarboxylase outside the brain, so more levodopa reaches it and fewer peripheral side effects (Parkinson disease).",
-     "aliases": [
-      "benserazide"
-     ]
+     "note": "Given with levodopa (Parkinson disease).",
+     "aliases": [],
+     "cls": "DOPA decarboxylase inhibitors"
+    },
+    {
+     "name": "Benserazide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Carbidopa’s counterpart outside the US, with levodopa.",
+     "aliases": [],
+     "cls": "DOPA decarboxylase inhibitors"
     }
    ]
   },
@@ -338,18 +345,33 @@
      "name": "Reserpine",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks VMAT, so monoamines aren’t stored and get broken down: hypertension (old); depression is a side effect.",
-     "aliases": []
+     "note": "Irreversibly blocks VMAT1 and VMAT2: hypertension (old); depression is a side effect.",
+     "aliases": [],
+     "cls": "VMAT inhibitors"
     },
     {
      "name": "Tetrabenazine",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks VMAT2: Huntington chorea, tardive dyskinesia (deutetrabenazine, valbenazine likewise).",
-     "aliases": [
-      "deutetrabenazine",
-      "valbenazine"
-     ]
+     "note": "Reversibly blocks VMAT2: Huntington chorea. Depression, suicidality.",
+     "aliases": [],
+     "cls": "VMAT inhibitors"
+    },
+    {
+     "name": "Deutetrabenazine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Longer-acting VMAT2 blocker: Huntington chorea, tardive dyskinesia.",
+     "aliases": [],
+     "cls": "VMAT inhibitors"
+    },
+    {
+     "name": "Valbenazine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "VMAT2 blocker for tardive dyskinesia.",
+     "aliases": [],
+     "cls": "VMAT inhibitors"
     }
    ]
   }

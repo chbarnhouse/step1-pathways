@@ -145,12 +145,20 @@
      "name": "5-Fluorouracil",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Becomes 5-FdUMP, which locks thymidylate synthase with methylene-THF: no dTMP (\"thymineless death\"). Leucovorin strengthens it.",
+     "note": "IV: colorectal, pancreatic and other GI cancers; topical for actinic keratosis. Myelosuppression, mucositis.",
      "aliases": [
       "5-FU",
-      "fluorouracil",
-      "capecitabine"
-     ]
+      "fluorouracil"
+     ],
+     "cls": "Thymidylate synthase inhibitors"
+    },
+    {
+     "name": "Capecitabine",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Oral prodrug of 5-FU: colorectal and breast cancer. Hand-foot syndrome.",
+     "aliases": [],
+     "cls": "Thymidylate synthase inhibitors"
     }
    ]
   },
@@ -174,26 +182,29 @@
      "name": "Methotrexate",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Folate antagonist (human DHFR): cancers, rheumatoid arthritis, psoriasis, ectopic pregnancy. Leucovorin (folinic acid) rescues normal cells.",
+     "note": "Human DHFR: cancers, rheumatoid arthritis, psoriasis, ectopic pregnancy. Leucovorin (folinic acid) rescues normal cells.",
      "aliases": [
       "MTX"
-     ]
+     ],
+     "cls": "Antifolates"
     },
     {
      "name": "Trimethoprim",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Bacterial DHFR, far more than human; given with sulfamethoxazole (TMP-SMX).",
+     "note": "Bacterial DHFR, far more than human; given with sulfamethoxazole (TMP-SMX). Hyperkalemia (blocks ENaC).",
      "aliases": [
       "TMP"
-     ]
+     ],
+     "cls": "Antifolates"
     },
     {
      "name": "Pyrimethamine",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Protozoal DHFR: toxoplasmosis (with sulfadiazine), malaria.",
-     "aliases": []
+     "note": "Protozoal DHFR: toxoplasmosis (with sulfadiazine and leucovorin), malaria.",
+     "aliases": [],
+     "cls": "Antifolates"
     }
    ]
   },

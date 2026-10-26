@@ -245,6 +245,12 @@
    "loc": "smooth ER",
    "tissue": "liver",
    "via": "alb",
+   "diseases": [
+    {
+     "name": "Crigler–Najjar syndrome type I",
+     "clue": "Severe unconjugated hyperbilirubinemia and kernicterus in a newborn; phenobarbital does not help. (Gilbert syndrome: the same enzyme, mildly low; jaundice with fasting or stress.)"
+    }
+   ],
    "drugs": [
     {
      "name": "Phenobarbital",
@@ -257,16 +263,17 @@
      "name": "Atazanavir",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Inhibits UGT1A1: harmless unconjugated hyperbilirubinemia (indinavir too).",
-     "aliases": [
-      "indinavir"
-     ]
-    }
-   ],
-   "diseases": [
+     "note": "HIV (boosted with ritonavir or cobicistat). Inhibits UGT1A1: harmless jaundice; kidney stones.",
+     "aliases": [],
+     "cls": "HIV protease inhibitors"
+    },
     {
-     "name": "Crigler–Najjar syndrome type I",
-     "clue": "Severe unconjugated hyperbilirubinemia and kernicterus in a newborn; phenobarbital does not help. (Gilbert syndrome: the same enzyme, mildly low; jaundice with fasting or stress.)"
+     "name": "Indinavir",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "HIV (old). Inhibits UGT1A1; crystal nephropathy and kidney stones (drink water).",
+     "aliases": [],
+     "cls": "HIV protease inhibitors"
     }
    ]
   },

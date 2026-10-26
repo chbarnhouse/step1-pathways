@@ -262,15 +262,17 @@
      "name": "Allopurinol",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks xanthine oxidase: gout, prevents tumor lysis syndrome. Raises azathioprine and 6-MP levels.",
-     "aliases": []
+     "note": "A purine analog (becomes oxypurinol): gout, tumor lysis prevention. Rash, rarely SJS/DRESS (HLA-B*58:01).",
+     "aliases": [],
+     "cls": "Xanthine oxidase inhibitors"
     },
     {
      "name": "Febuxostat",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks xanthine oxidase (not a purine analog): gout.",
-     "aliases": []
+     "note": "Not a purine analog: gout when allopurinol can’t be used. Raised cardiovascular death in one trial.",
+     "aliases": [],
+     "cls": "Xanthine oxidase inhibitors"
     }
    ]
   },
@@ -295,15 +297,17 @@
      "name": "Allopurinol",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks xanthine oxidase: gout, prevents tumor lysis syndrome. Raises azathioprine and 6-MP levels.",
-     "aliases": []
+     "note": "A purine analog (becomes oxypurinol): gout, tumor lysis prevention. Rash, rarely SJS/DRESS (HLA-B*58:01).",
+     "aliases": [],
+     "cls": "Xanthine oxidase inhibitors"
     },
     {
      "name": "Febuxostat",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks xanthine oxidase (not a purine analog): gout.",
-     "aliases": []
+     "note": "Not a purine analog: gout when allopurinol can’t be used. Raised cardiovascular death in one trial.",
+     "aliases": [],
+     "cls": "Xanthine oxidase inhibitors"
     }
    ]
   },

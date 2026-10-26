@@ -309,24 +309,44 @@
    },
    "transport": true,
    "loc": "apical membrane",
-   "drugs": [
-    {
-     "name": "Loop diuretics",
-     "kind": "drug",
-     "effect": "inhibits",
-     "note": "Block NKCC2: furosemide, bumetanide, torsemide, ethacrynic acid. Edema; hypokalemia, ototoxicity; they make you lose calcium.",
-     "aliases": [
-      "furosemide",
-      "bumetanide",
-      "torsemide",
-      "ethacrynic acid"
-     ]
-    }
-   ],
    "diseases": [
     {
      "name": "Bartter syndrome",
      "clue": "Hypokalemic metabolic alkalosis with high urinary calcium in a child: looks like taking a loop diuretic."
+    }
+   ],
+   "drugs": [
+    {
+     "name": "Furosemide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The most used; oral or IV. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Bumetanide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "About 40 times as potent as furosemide by weight; reliably absorbed. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Torsemide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Long-acting, reliably absorbed. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Ethacrynic acid",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Not a sulfonamide (for sulfa allergy); the most ototoxic.",
+     "aliases": [],
+     "cls": "Loop diuretics"
     }
    ]
   },
@@ -360,24 +380,44 @@
    },
    "transport": true,
    "loc": "apical membrane",
-   "drugs": [
-    {
-     "name": "Loop diuretics",
-     "kind": "drug",
-     "effect": "inhibits",
-     "note": "Block NKCC2: furosemide, bumetanide, torsemide, ethacrynic acid. Edema; hypokalemia, ototoxicity; they make you lose calcium.",
-     "aliases": [
-      "furosemide",
-      "bumetanide",
-      "torsemide",
-      "ethacrynic acid"
-     ]
-    }
-   ],
    "diseases": [
     {
      "name": "Bartter syndrome",
      "clue": "Hypokalemic metabolic alkalosis with high urinary calcium in a child: looks like taking a loop diuretic."
+    }
+   ],
+   "drugs": [
+    {
+     "name": "Furosemide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The most used; oral or IV. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Bumetanide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "About 40 times as potent as furosemide by weight; reliably absorbed. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Torsemide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Long-acting, reliably absorbed. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Ethacrynic acid",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Not a sulfonamide (for sulfa allergy); the most ototoxic.",
+     "aliases": [],
+     "cls": "Loop diuretics"
     }
    ]
   },
@@ -406,24 +446,44 @@
    },
    "transport": true,
    "loc": "apical membrane",
-   "drugs": [
-    {
-     "name": "Loop diuretics",
-     "kind": "drug",
-     "effect": "inhibits",
-     "note": "Block NKCC2: furosemide, bumetanide, torsemide, ethacrynic acid. Edema; hypokalemia, ototoxicity; they make you lose calcium.",
-     "aliases": [
-      "furosemide",
-      "bumetanide",
-      "torsemide",
-      "ethacrynic acid"
-     ]
-    }
-   ],
    "diseases": [
     {
      "name": "Bartter syndrome",
      "clue": "Hypokalemic metabolic alkalosis with high urinary calcium in a child: looks like taking a loop diuretic."
+    }
+   ],
+   "drugs": [
+    {
+     "name": "Furosemide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The most used; oral or IV. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Bumetanide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "About 40 times as potent as furosemide by weight; reliably absorbed. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Torsemide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Long-acting, reliably absorbed. A sulfonamide.",
+     "aliases": [],
+     "cls": "Loop diuretics"
+    },
+    {
+     "name": "Ethacrynic acid",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Not a sulfonamide (for sulfa allergy); the most ototoxic.",
+     "aliases": [],
+     "cls": "Loop diuretics"
     }
    ]
   },

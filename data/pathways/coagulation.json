@@ -718,28 +718,58 @@
    ],
    "drugs": [
     {
-     "name": "Direct factor Xa inhibitors",
+     "name": "Rivaroxaban",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Rivaroxaban, apixaban, edoxaban: block factor Xa in the prothrombinase.",
-     "aliases": [
-      "rivaroxaban",
-      "apixaban",
-      "edoxaban",
-      "factor Xa inhibitors"
-     ]
+     "note": "Once daily, with food.",
+     "aliases": [],
+     "cls": "Direct factor Xa inhibitors"
+    },
+    {
+     "name": "Apixaban",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Twice daily; the least bleeding of the group, usable in kidney disease.",
+     "aliases": [],
+     "cls": "Direct factor Xa inhibitors"
+    },
+    {
+     "name": "Edoxaban",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Once daily.",
+     "aliases": [],
+     "cls": "Direct factor Xa inhibitors"
     },
     {
      "name": "Heparin",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Activates antithrombin, which shuts down factor Xa and thrombin (LMWH acts mostly on Xa).",
+     "note": "Unfractionated: Xa and thrombin. IV, monitored by PTT, reversed by protamine; HIT.",
      "aliases": [
       "unfractionated heparin",
-      "UFH",
-      "enoxaparin",
-      "LMWH"
-     ]
+      "UFH"
+     ],
+     "cls": "Heparins"
+    },
+    {
+     "name": "Enoxaparin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Low-molecular-weight heparin: mostly Xa. Subcutaneous, no routine monitoring (anti-Xa if needed); cleared by the kidney.",
+     "aliases": [
+      "LMWH",
+      "low-molecular-weight heparin"
+     ],
+     "cls": "Heparins"
+    },
+    {
+     "name": "Fondaparinux",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Synthetic pentasaccharide: Xa only, through antithrombin. No HIT.",
+     "aliases": [],
+     "cls": "Heparins"
     }
    ]
   },
@@ -764,24 +794,36 @@
      "name": "Heparin",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Activates antithrombin, which shuts down factor Xa and thrombin (LMWH acts mostly on Xa).",
+     "note": "Unfractionated: Xa and thrombin. IV, monitored by PTT, reversed by protamine; HIT.",
      "aliases": [
       "unfractionated heparin",
-      "UFH",
-      "enoxaparin",
-      "LMWH"
-     ]
+      "UFH"
+     ],
+     "cls": "Heparins"
     },
     {
-     "name": "Direct thrombin inhibitors",
+     "name": "Dabigatran",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Dabigatran (oral), argatroban and bivalirudin (IV): block thrombin.",
-     "aliases": [
-      "dabigatran",
-      "argatroban",
-      "bivalirudin"
-     ]
+     "note": "Oral; idarucizumab reverses it.",
+     "aliases": [],
+     "cls": "Direct thrombin inhibitors"
+    },
+    {
+     "name": "Argatroban",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "IV, cleared by the liver: HIT.",
+     "aliases": [],
+     "cls": "Direct thrombin inhibitors"
+    },
+    {
+     "name": "Bivalirudin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "IV, short-acting: during PCI.",
+     "aliases": [],
+     "cls": "Direct thrombin inhibitors"
     }
    ]
   },
@@ -873,23 +915,49 @@
      "name": "Alteplase",
      "kind": "drug",
      "effect": "activates",
-     "note": "Recombinant tPA: turns plasminogen into plasmin to dissolve clots (stroke, MI, PE).",
+     "note": "Recombinant tPA, IV infusion: stroke within 4.5 hours, MI, PE.",
      "aliases": [
-      "tPA",
-      "tenecteplase",
-      "reteplase",
-      "thrombolytics"
-     ]
+      "tPA"
+     ],
+     "cls": "Thrombolytics"
+    },
+    {
+     "name": "Tenecteplase",
+     "kind": "drug",
+     "effect": "activates",
+     "note": "A single IV bolus: MI, increasingly stroke.",
+     "aliases": [
+      "TNK"
+     ],
+     "cls": "Thrombolytics"
+    },
+    {
+     "name": "Reteplase",
+     "kind": "drug",
+     "effect": "activates",
+     "note": "Two IV boluses: MI.",
+     "aliases": [],
+     "cls": "Thrombolytics"
     },
     {
      "name": "Tranexamic acid",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Stops plasminogen activation (blocks its lysine binding sites): bleeding, heavy menstrual bleeding.",
+     "note": "Trauma, postpartum hemorrhage, heavy menstrual bleeding.",
      "aliases": [
-      "TXA",
-      "aminocaproic acid"
-     ]
+      "TXA"
+     ],
+     "cls": "Antifibrinolytics"
+    },
+    {
+     "name": "Aminocaproic acid",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Bleeding after surgery; also reverses thrombolytics.",
+     "aliases": [
+      "EACA"
+     ],
+     "cls": "Antifibrinolytics"
     }
    ]
   },

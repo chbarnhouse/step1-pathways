@@ -353,24 +353,38 @@
    },
    "transport": true,
    "loc": "apical membrane",
-   "drugs": [
-    {
-     "name": "Thiazides",
-     "kind": "drug",
-     "effect": "inhibits",
-     "note": "Block NCC: hydrochlorothiazide, chlorthalidone. Hypertension; hypokalemia, hypercalcemia, hyperglycemia, hyperuricemia.",
-     "aliases": [
-      "hydrochlorothiazide",
-      "chlorthalidone",
-      "HCTZ",
-      "thiazide diuretics"
-     ]
-    }
-   ],
    "diseases": [
     {
      "name": "Gitelman syndrome",
      "clue": "Hypokalemic metabolic alkalosis with low magnesium and low urinary calcium: looks like taking a thiazide."
+    }
+   ],
+   "drugs": [
+    {
+     "name": "Hydrochlorothiazide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The common one.",
+     "aliases": [
+      "HCTZ"
+     ],
+     "cls": "Thiazides"
+    },
+    {
+     "name": "Chlorthalidone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Thiazide-like, long-acting; stronger evidence in hypertension.",
+     "aliases": [],
+     "cls": "Thiazides"
+    },
+    {
+     "name": "Metolazone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Thiazide-like; still works at low GFR, added to a loop diuretic for resistant edema.",
+     "aliases": [],
+     "cls": "Thiazides"
     }
    ]
   },
@@ -417,24 +431,38 @@
    },
    "transport": true,
    "loc": "apical membrane",
-   "drugs": [
-    {
-     "name": "Thiazides",
-     "kind": "drug",
-     "effect": "inhibits",
-     "note": "Block NCC: hydrochlorothiazide, chlorthalidone. Hypertension; hypokalemia, hypercalcemia, hyperglycemia, hyperuricemia.",
-     "aliases": [
-      "hydrochlorothiazide",
-      "chlorthalidone",
-      "HCTZ",
-      "thiazide diuretics"
-     ]
-    }
-   ],
    "diseases": [
     {
      "name": "Gitelman syndrome",
      "clue": "Hypokalemic metabolic alkalosis with low magnesium and low urinary calcium: looks like taking a thiazide."
+    }
+   ],
+   "drugs": [
+    {
+     "name": "Hydrochlorothiazide",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "The common one.",
+     "aliases": [
+      "HCTZ"
+     ],
+     "cls": "Thiazides"
+    },
+    {
+     "name": "Chlorthalidone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Thiazide-like, long-acting; stronger evidence in hypertension.",
+     "aliases": [],
+     "cls": "Thiazides"
+    },
+    {
+     "name": "Metolazone",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Thiazide-like; still works at low GFR, added to a loop diuretic for resistant edema.",
+     "aliases": [],
+     "cls": "Thiazides"
     }
    ]
   },

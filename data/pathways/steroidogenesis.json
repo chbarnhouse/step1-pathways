@@ -407,8 +407,9 @@
      "name": "Ketoconazole",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks desmolase (and 17,20-lyase): Cushing syndrome; also an antifungal.",
-     "aliases": []
+     "note": "Blocks desmolase (and 17,20-lyase): Cushing syndrome; gynecomastia as a side effect.",
+     "aliases": [],
+     "cls": "Azole antifungals"
     }
    ]
   },
@@ -431,6 +432,12 @@
    "loc": "smooth ER",
    "tissue": "zona fasciculata / reticularis",
    "via": "diffusion",
+   "diseases": [
+    {
+     "name": "17α-Hydroxylase deficiency",
+     "clue": "Hypertension and low potassium with no sex steroids: a phenotypic female with no puberty, or an XY person with female-appearing genitalia."
+    }
+   ],
    "drugs": [
     {
      "name": "Abiraterone",
@@ -438,12 +445,6 @@
      "effect": "inhibits",
      "note": "Blocks CYP17 (17α-hydroxylase and 17,20-lyase), so no androgens from the adrenals: metastatic prostate cancer (given with prednisone).",
      "aliases": []
-    }
-   ],
-   "diseases": [
-    {
-     "name": "17α-Hydroxylase deficiency",
-     "clue": "Hypertension and low potassium with no sex steroids: a phenotypic female with no puberty, or an XY person with female-appearing genitalia."
     }
    ]
   },
@@ -541,6 +542,12 @@
     ]
    },
    "loc": "smooth ER",
+   "diseases": [
+    {
+     "name": "17α-Hydroxylase deficiency",
+     "clue": "Hypertension and low potassium with no sex steroids: a phenotypic female with no puberty, or an XY person with female-appearing genitalia."
+    }
+   ],
    "drugs": [
     {
      "name": "Abiraterone",
@@ -548,12 +555,6 @@
      "effect": "inhibits",
      "note": "Blocks CYP17 (17α-hydroxylase and 17,20-lyase), so no androgens from the adrenals: metastatic prostate cancer (given with prednisone).",
      "aliases": []
-    }
-   ],
-   "diseases": [
-    {
-     "name": "17α-Hydroxylase deficiency",
-     "clue": "Hypertension and low potassium with no sex steroids: a phenotypic female with no puberty, or an XY person with female-appearing genitalia."
     }
    ]
   },
@@ -653,6 +654,12 @@
    "loc": "mitochondria",
    "tissue": "zona glomerulosa",
    "via": "diffusion",
+   "diseases": [
+    {
+     "name": "11β-Hydroxylase deficiency",
+     "clue": "Virilization with hypertension and low potassium; raised 11-deoxycorticosterone and 11-deoxycortisol, low renin."
+    }
+   ],
    "drugs": [
     {
      "name": "Metyrapone",
@@ -660,12 +667,6 @@
      "effect": "inhibits",
      "note": "Blocks 11β-hydroxylase: Cushing syndrome; the metyrapone test of ACTH reserve.",
      "aliases": []
-    }
-   ],
-   "diseases": [
-    {
-     "name": "11β-Hydroxylase deficiency",
-     "clue": "Virilization with hypertension and low potassium; raised 11-deoxycorticosterone and 11-deoxycortisol, low renin."
     }
    ]
   },
@@ -688,6 +689,12 @@
    "loc": "mitochondria",
    "tissue": "zona fasciculata",
    "via": "diffusion",
+   "diseases": [
+    {
+     "name": "11β-Hydroxylase deficiency",
+     "clue": "Virilization with hypertension and low potassium; raised 11-deoxycorticosterone and 11-deoxycortisol, low renin."
+    }
+   ],
    "drugs": [
     {
      "name": "Metyrapone",
@@ -695,12 +702,6 @@
      "effect": "inhibits",
      "note": "Blocks 11β-hydroxylase: Cushing syndrome; the metyrapone test of ACTH reserve.",
      "aliases": []
-    }
-   ],
-   "diseases": [
-    {
-     "name": "11β-Hydroxylase deficiency",
-     "clue": "Virilization with hypertension and low potassium; raised 11-deoxycorticosterone and 11-deoxycortisol, low renin."
     }
    ]
   },
@@ -760,15 +761,28 @@
    "tissue": "adipose, ovary",
    "drugs": [
     {
-     "name": "Aromatase inhibitors",
+     "name": "Anastrozole",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Anastrozole, letrozole, exemestane: ER-positive breast cancer after menopause.",
-     "aliases": [
-      "anastrozole",
-      "letrozole",
-      "exemestane"
-     ]
+     "note": "Nonsteroidal, reversible.",
+     "aliases": [],
+     "cls": "Aromatase inhibitors"
+    },
+    {
+     "name": "Letrozole",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Nonsteroidal, reversible; also induces ovulation (PCOS).",
+     "aliases": [],
+     "cls": "Aromatase inhibitors"
+    },
+    {
+     "name": "Exemestane",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Steroidal: binds aromatase irreversibly.",
+     "aliases": [],
+     "cls": "Aromatase inhibitors"
     }
    ]
   },
@@ -792,15 +806,28 @@
    "tissue": "ovary (granulosa), adipose",
    "drugs": [
     {
-     "name": "Aromatase inhibitors",
+     "name": "Anastrozole",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Anastrozole, letrozole, exemestane: ER-positive breast cancer after menopause.",
-     "aliases": [
-      "anastrozole",
-      "letrozole",
-      "exemestane"
-     ]
+     "note": "Nonsteroidal, reversible.",
+     "aliases": [],
+     "cls": "Aromatase inhibitors"
+    },
+    {
+     "name": "Letrozole",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Nonsteroidal, reversible; also induces ovulation (PCOS).",
+     "aliases": [],
+     "cls": "Aromatase inhibitors"
+    },
+    {
+     "name": "Exemestane",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Steroidal: binds aromatase irreversibly.",
+     "aliases": [],
+     "cls": "Aromatase inhibitors"
     }
    ]
   },
@@ -820,21 +847,28 @@
    },
    "loc": "ER",
    "tissue": "prostate, skin, hair follicles",
+   "diseases": [
+    {
+     "name": "5α-Reductase deficiency",
+     "clue": "XY child with ambiguous or female-appearing genitalia who virilizes at puberty; normal testosterone, low DHT."
+    }
+   ],
    "drugs": [
     {
      "name": "Finasteride",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks 5α-reductase (type 2), so less DHT: BPH, male-pattern hair loss (dutasteride blocks types 1 and 2).",
-     "aliases": [
-      "dutasteride"
-     ]
-    }
-   ],
-   "diseases": [
+     "note": "Type 2 only: BPH, male-pattern hair loss.",
+     "aliases": [],
+     "cls": "5α-Reductase inhibitors"
+    },
     {
-     "name": "5α-Reductase deficiency",
-     "clue": "XY child with ambiguous or female-appearing genitalia who virilizes at puberty; normal testosterone, low DHT."
+     "name": "Dutasteride",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Types 1 and 2: BPH.",
+     "aliases": [],
+     "cls": "5α-Reductase inhibitors"
     }
    ]
   },

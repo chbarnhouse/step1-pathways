@@ -286,6 +286,12 @@
    "requires": [
     "B2 (FAD)"
    ],
+   "diseases": [
+    {
+     "name": "MCAD deficiency",
+     "clue": "Hypoketotic hypoglycemia, vomiting and lethargy after fasting or illness in an infant; can cause sudden death. Avoid fasting."
+    }
+   ],
    "drugs": [
     {
      "name": "Hypoglycin A",
@@ -296,12 +302,6 @@
       "hypoglycin",
       "ackee"
      ]
-    }
-   ],
-   "diseases": [
-    {
-     "name": "MCAD deficiency",
-     "clue": "Hypoketotic hypoglycemia, vomiting and lethargy after fasting or illness in an infant; can cause sudden death. Avoid fasting."
     }
    ]
   },

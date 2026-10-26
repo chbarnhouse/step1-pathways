@@ -151,7 +151,18 @@ function metBox(cx, y, item, st, w = BW) {
 // anchor: start | middle | end. valign: center (lines centered on y) or bottom (last line sits on y).
 // Vitamins and other helpers a step can't run without (r.requires), shown with the enzyme: "needs B6 (pyridoxal phosphate)".
 const needsText = r => ((r && r.requires) || []).length ? 'needs ' + r.requires.join(', ') : '';
+// A path element the browser can measure (lengths, points along it), kept in a hidden SVG.
+let PATH_PROBE = null;
+function pathProbe() {
+  if (PATH_PROBE?.isConnected) return PATH_PROBE;
+  const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg'); svg.setAttribute('aria-hidden', 'true'); svg.style.cssText = 'position:absolute;width:0;height:0;overflow:hidden';
+  PATH_PROBE = document.createElementNS('http://www.w3.org/2000/svg', 'path'); svg.append(PATH_PROBE); document.body.append(svg);
+  return PATH_PROBE;
+}
+// Where each step's enzyme name went (or would have gone, when hidden): beside its arrow. Reset with each drawing.
+let STEP_AT = {};
 function enzLabel(x, y, item, st, anchor, max, valign = 'center', extra = []) {
+  if (item?.rxn && !item.via) STEP_AT[item.rxn.id] = [x, y];
   if (st === 'hide') return '';
   const cls = st === 'peek' ? 'shown' : st;
   if (st === 'target' && INLINE) {
@@ -455,7 +466,9 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
 function flowSVG(m, statusOf, opts = {}) {
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; COF_SPOTS = []; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = [];
+  // The second arrow of a coupled step (drawn beside its twin in a connected drawing) leaves the enzyme's name to the first.
+  if (m.p.reactions.some(r => r.coupled)) { const own = statusOf, dup = new Set(m.p.reactions.filter(r => r.coupled).map(r => 'e:' + r.id)); statusOf = k => (dup.has(k) ? 'hide' : own(k)); }
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; COF_SPOTS = []; STEP_AT = {}; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = [];
   if (m.p.stitch) return rlStrip(m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts), m, statusOf);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
@@ -548,7 +561,7 @@ const rlShown = (r, k = 'k:' + r.id) => { if (!DRAW_MODEL?.items[k] || !DRAW_STA
 const shownTags = r => (r.tags || []).filter(t => t !== 'irreversible' && (t !== 'inhibits' || effShown(r)) && (t !== 'rate-limiting' || rlShown(r)));
 // The drugs and toxins on a step that are in view (shown, or blanks).
 const drugLines = item => { const it = (item?.kind === 'enz' || item?.kind === 'trn') && !item.via && DRAW_MODEL?.items['q:' + item.rxn?.id], st = it && (DRAW_STATUS ? DRAW_STATUS(it.key) || 'shown' : 'shown');
-  return !it || st === 'hide' ? [] : hidden(st) ? [[it, st]] : it.drugs.map(d => [{ ...it, name: d.name, drug: d }, st]); };
+  return !it || st === 'hide' ? [] : hidden(st) ? [[it, st]] : (it.groups || it.drugs).map(d => [{ ...it, name: d.name, drug: d }, st]); };
 // Only when one state is in view (a quiz's choice, a page's Fed/Fasting): with both or neither, no badges at all.
 const regLines = item => { if (item?.kind !== 'enz' || !item.rxn?.reg || !DRAW_MODEL) return [];
   const v = ['y:', 'x:'].map(p => DRAW_MODEL.items[p + item.rxn.id]).filter(Boolean).map(it => [it, DRAW_STATUS ? DRAW_STATUS(it.key) || 'shown' : 'shown']).filter(([, st]) => st !== 'hide');
@@ -1453,14 +1466,21 @@ function conn(m, item, st, horiz, statusOf) {
     : hidden(tst) ? `across: <span class="ename ${tst}"><span class="bk">transporter</span></span>` : 'across: ' + esc(tv.name) + mk(tst);
   const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + mk(cs)
     : hidden(cs) ? parts.map(p => isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st)).join(' → ') : '';
-  const extra = [across, ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, needsPart(r, st, statusOf)].filter(Boolean).join(' · ');
-  return `<div class="conn"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}">${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
+  // Fed vs fasting and drugs, as the drawing shows them under the name: text, a blank, or the answer field.
+  const eIt = m.items['e:' + r.id] || item, live = it => `<form class="inl" data-q="0">${inlineInput()}</form>`;
+  const extraPart = ([it, s], text, word) => (s === 'target' && INLINE ? live(it) : hidden(s) ? `<span class="ename ${s}" data-key="${it.key}"><span class="bk">${esc(word)}</span></span>` : `<b class="${it.kind === 'drug' ? 'drug' : 'reg'}">${esc(text)}</b>` + mk(s));
+  const regs = regLines(eIt).map(([it, s]) => extraPart([it, s], `${it.state === 'fed' ? 'FED' : 'FASTING'}: ${it.name === 'On' ? '▲ ON' : '▽ OFF'}`, it.state === 'fed' ? 'fed: on/off?' : 'fasting: on/off?'));
+  const drugs = drugLines(eIt).map(([it, s]) => extraPart([it, s], `${it.drug?.effect === 'activates' ? '⊕' : '⊣'} ${it.name}${it.drug?.kind === 'toxin' ? ' (toxin)' : ''}`, (it.term || 'drug') + '?'));
+  const extra = [across, ct, (r.also_to || []).length ? 'splits in two' : '', (r.also_from || []).length ? 'joins two' : '', r.branch ? 'side step' : '', r.transport ? 'transport' : '', ...tags, needsPart(r, st, statusOf), ...regs, ...drugs].filter(Boolean).join(' · ');
+  return `<div class="conn${regOff(r) ? ' regoff' : ''}"><span class="arr" aria-label="${r.reversible ? 'reversible' : 'one-way'}">${arr}</span><div class="meta"><span class="ename ${cls}"${/^[et]:/.test(item.key || '') ? ` data-key="${item.key}"` : ''}>${badge}${name} ${ic}</span>${extra ? `<span class="cofs">${extra}</span>` : ''}</div></div>`;
 }
-function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
-  let lastLoc = null;
+function listHTML(m, statusOf, { horiz = false, zones = true, links = false } = {}) {
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; // the step extras (fed vs fasting, drugs) read these, as in a drawing
   const parts = m.seq.map(k => {
     const it = m.items[k], st = statusOf(k);
-    if (it.kind === 'cof' || it.kind === 'rl' || it.via) return ''; // carriers ride on their step; rate-limiting goes on top
+    // Carriers, fed vs fasting and drugs ride on their step; rate-limiting goes on top; a disease is a step to click.
+    if (['cof', 'rl', 'regfed', 'regfast', 'drug', 'dis'].includes(it.kind) || it.via) return '';
+    if (it.kind === 'twin') return conn(m, it, 'shown', horiz, statusOf);
     let row = '';
     if (it.kind === 'loc') {
       const st = statusOf(k);
@@ -1469,7 +1489,9 @@ function listHTML(m, statusOf, { horiz = false, zones = true } = {}) {
       const ic = st === 'right' ? icon('ok') : st === 'missed' ? icon('no') : '';
       return `<div class="locrow${hidden(st) ? ' blank' : ''}" data-key="${k}">${hidden(st) ? '<span class="bk">compartment</span>' : esc(it.name)} ${ic}</div>`;
     }
-    return row + listPart(m, it, st, horiz, statusOf);
+    // On a pathway page, a box's links to other pathways follow it, as the drawing's tags do.
+    const out = links && it.kind === 'met' && !hidden(st) ? (m.p.links || []).filter(l => l.at === it.id && Library.get(l.to)).map(l => `<a class="xchip" href="#/pathways/${esc(l.to)}">${esc(tagLabel(l))}</a>`).join('') : '';
+    return row + listPart(m, it, st, horiz, statusOf) + (out ? `<div class="xchips">${out}</div>` : '');
   });
   // Rate-limiting, while quizzed: a row of its own at the top, as the drawing's strip.
   const rl = Object.values(m.items).filter(it => it.kind === 'rl').map(it => [it, statusOf(it.key) || 'shown']);
@@ -1534,7 +1556,7 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   const sm = modelFor(T.variants[vkey] || p);
   DRAW_POS = {};
   let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false, rot });
-  const pos = DRAW_POS, labels = DRAW_LABELS.slice(), cofs = COF_SPOTS.slice(); DRAW_POS = null;
+  const pos = DRAW_POS, labels = DRAW_LABELS.slice(), cofs = COF_SPOTS.slice(), steps = { ...STEP_AT }; DRAW_POS = null;
   // Its tags to other pathways ("from β-Oxidation") take room too.
   for (const t of svg.matchAll(/<rect class="xtag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) labels.push({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] });
   labels.push(...textRects(svg));
@@ -1542,7 +1564,7 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   if (keep) { const at = svg.indexOf(`data-key="m:${keep}"`), g0 = svg.lastIndexOf('<g', at), g1 = svg.indexOf('</g>', at); if (at > 0) svg = svg.slice(0, g0) + svg.slice(g1 + 4); }
   const vb = svg.match(/viewBox="([^"]+)"/)[1].trim().split(/\s+/).map(Number);
   const keptAt = keep && pos['m:' + keep]; if (keep) delete pos['m:' + keep];
-  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
+  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, steps, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
 }
 /* ---------- the nephron ----------
    Nephron segments studied together draw as a textbook nephron: one continuous tube (the tubular lumen) from the
@@ -1619,6 +1641,12 @@ function stitchSVG(m, statusOf) {
     R.dx = dx; R.dy = dy; placed.push(R); occ.push(...rectsOf(R, dx, dy));
     for (const [k, r] of Object.entries(R.pos)) if (!G[k]) G[k] = { ...shift(r, dx, dy), R, id: k.slice(2) };
   };
+  // The parts placed so far take room with their steps too: nothing of a new part may sit on one of their arrows.
+  const onStepsNow = () => {
+    const steps = placed.flatMap(P => P.sm.p.reactions.map(r => [P.pos['m:' + r.from], P.pos['m:' + r.to], P]).filter(([f, t]) => f && t)
+      .map(([f, t, P]) => { const x = Math.min(f.x, t.x) + P.dx, y = Math.min(f.y, t.y) + P.dy; return { x: x - 8, y: y - 8, w: Math.max(f.x + f.w, t.x + t.w) + P.dx - x + 16, h: Math.max(f.y + f.h, t.y + t.h) + P.dy - y + 16 }; }));
+    return rs => rs.some(r => steps.some(o => r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h));
+  };
   // Somewhere free for a part, with its box `key` as close as it can get to `target` (but leaving room for an arrow).
   const nearby = (R, key, target) => {
     const b = R.pos[key] || Object.values(R.pos)[0], t = ctr(target), c = ctr(b), cands = [];
@@ -1628,10 +1656,7 @@ function stitchSVG(m, statusOf) {
       cands.push([d + (vx && vy ? 160 : 0), t.cx + vx - c.cx, t.cy + vy - c.cy]);
     }
     cands.sort((a, b) => a[0] - b[0]);
-    // The other parts' own steps take room too: nothing of this part may sit on one of their arrows.
-    const steps = placed.flatMap(P => P.sm.p.reactions.map(r => [P.pos['m:' + r.from], P.pos['m:' + r.to], P]).filter(([f, t]) => f && t)
-      .map(([f, t, P]) => { const x = Math.min(f.x, t.x) + P.dx, y = Math.min(f.y, t.y) + P.dy; return { x: x - 8, y: y - 8, w: Math.max(f.x + f.w, t.x + t.w) + P.dx - x + 16, h: Math.max(f.y + f.h, t.y + t.h) + P.dy - y + 16 }; }));
-    const onSteps = rs => rs.some(r => steps.some(o => r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h));
+    const onSteps = onStepsNow();
     // The arrow that will join them needs a clear right-angled path (either way round) past every other box.
     for (const [, dx, dy] of cands) {
       const rs = rectsOf(R, dx, dy); if (clash(rs) || onSteps(rs)) continue;
@@ -1761,6 +1786,44 @@ function stitchSVG(m, statusOf) {
       R = renderTile(T, statusOf, others); place(R, ...nearby(R, 'm:' + anchor, a)); bridgeAll([...others]);
       dots.push({ a: 'm:' + anchor, R, label: 'same molecule' }); return;
     }
+    // A step this part shares with one already placed, seen from the other side (methionine synthase): this part's arrow
+    // runs beside its twin, the same way, a box-height or so apart, so the two read as one step. A ring may turn for it.
+    const cp = (st.couples || []).map(([a, b]) => { const mine = T.p.reactions.find(r => r.id === a || r.id === b), other = mine && (mine.id === a ? b : a), P = mine && placed.find(P => P.sm.p.reactions.some(r => r.id === other));
+      return P && { mine, theirs: P.sm.p.reactions.find(r => r.id === other), P }; }).find(Boolean);
+    const X = cp && G['m:' + cp.theirs.from], Y = cp && G['m:' + cp.theirs.to];
+    if (X && Y) {
+      const cX = ctr(X), cY = ctr(Y), L = Math.hypot(cY.cx - cX.cx, cY.cy - cX.cy) || 1, ux = (cY.cx - cX.cx) / L, uy = (cY.cy - cX.cy) / L, mx = (cX.cx + cY.cx) / 2, my = (cX.cy + cY.cy) / 2;
+      // Out from the other part's middle first (never into its ring).
+      const pc = Object.values(cp.P.pos).map(ctr), ox = pc.reduce((n, c) => n + c.cx, 0) / pc.length + cp.P.dx, oy = pc.reduce((n, c) => n + c.cy, 0) / pc.length + cp.P.dy;
+      const side = Math.sign(-uy * (mx - ox) + ux * (my - oy)) || 1, nx = -uy * side, ny = ux * side, onSteps = onStepsNow();
+      // A ring turns by just the angle that lines its arrow up with the twin (either way round, as rotation's sign goes).
+      let rots = [0];
+      if (T.p.circular) {
+        const R0 = renderTile(T, statusOf, new Set(), undefined, 0), U0 = R0.pos['m:' + cp.mine.from], V0 = R0.pos['m:' + cp.mine.to];
+        const a0 = U0 && V0 ? Math.atan2(ctr(V0).cy - ctr(U0).cy, ctr(V0).cx - ctr(U0).cx) : 0, phi = Math.atan2(uy, ux);
+        rots = uniq([phi - a0, a0 - phi, phi - a0 + 0.12, phi - a0 - 0.12, a0 - phi + 0.12, a0 - phi - 0.12, 0, Math.PI / 2, Math.PI, -Math.PI / 2]);
+      }
+      // Every turn that lines the arrows up (either way round: two rings meet like gears, their touching arrows running
+      // opposite ways), at every spot beside the twin; the nearest free one wins. Only if none is free, any turn.
+      let got = null;
+      for (const strict of [true, false]) {
+        if (got) break;
+        let best = Infinity;
+        for (const rot of rots) {
+          const R = renderTile(T, statusOf, new Set(), undefined, rot), U = R.pos['m:' + cp.mine.from], V = R.pos['m:' + cp.mine.to];
+          if (!U || !V) continue;
+          const cU = ctr(U), cV = ctr(V), W = Math.hypot(cV.cx - cU.cx, cV.cy - cU.cy) || 1;
+          if (strict && Math.abs(((cV.cx - cU.cx) * ux + (cV.cy - cU.cy) * uy) / W) < 0.9) continue;
+          const qx = (cU.cx + cV.cx) / 2, qy = (cU.cy + cV.cy) / 2;
+          for (const d of [150, 200, 260, 330, 420, 520, 640, 780]) for (const sl of [0, 60, -60, 130, -130, 260, -260, 400, -400, 550, -550]) {
+            const cost = d + 0.6 * Math.abs(sl); if (cost >= best) continue;
+            const dx = mx + nx * d + ux * sl - qx, dy = my + ny * d + uy * sl - qy, rs = rectsOf(R, dx, dy);
+            if (!clash(rs) && !onSteps(rs)) { got = [R, dx, dy]; best = cost; }
+          }
+        }
+      }
+      if (got) { place(...got); return; }
+    }
     // No shared box, but the same molecule in another compartment: place it near, a transport arrow joins them.
     const jn = st.joins.find(([a, b]) => T.ids.includes(b) && G['m:' + a]);
     if (jn) { const R = renderTile(T, statusOf, new Set()); place(R, ...nearby(R, 'm:' + jn[1], G['m:' + jn[0]])); return; }
@@ -1822,6 +1885,7 @@ function stitchSVG(m, statusOf) {
         const box = end === 'a' ? a : b, R = box.R, sp = (R?.cofs || []).find(c => word.test(c.text.toLowerCase()));
         if (!sp) continue;
         const at = shift(sp, R.dx, R.dy);
+        d.sib = (R.cofs || []).filter(c => c !== sp && Math.abs(c.y - sp.y) < 16).map(c => shift(c, R.dx, R.dy)); // its neighbor on the same line ("Homocysteine + B12")
         if (end === 'a') a = { ...at, R }; else b = { ...at, R };
         d.label = ''; fromCof = end; break;
       }
@@ -1834,6 +1898,7 @@ function stitchSVG(m, statusOf) {
       const sp = name && (far.R?.cofs || []).find(c => c.names.some(n => norm(n) === name));
       if (!sp) continue;
       const at = { ...shift(sp, far.R.dx, far.R.dy), R: far.R };
+      d.sib = (far.R.cofs || []).filter(c => c !== sp && Math.abs(c.y - sp.y) < 16).map(c => shift(c, far.R.dx, far.R.dy));
       if (other === 'a') a = at; else b = at;
       d.label = ''; if (sp.side === 'out') fromCof = other; else intoCof = other;
       break;
@@ -1843,7 +1908,7 @@ function stitchSVG(m, statusOf) {
     if (intoCof) {
       // Box → the cofactor label it becomes an input to: an arrowhead into the label.
       const dst = intoCof === 'a' ? a : b, near = l => !(l.x < dst.x + dst.w + 6 && dst.x < l.x + l.w + 6 && l.y < dst.y + dst.h + 6 && dst.y < l.y + l.h + 6);
-      const pts = route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (intoCof === 'a') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += elbow(P, false, 'xline xhand');
@@ -1851,7 +1916,7 @@ function stitchSVG(m, statusOf) {
     }
     if (fromCof) {
       const src = fromCof === 'a' ? a : b, near = l => !(l.x < src.x + src.w + 6 && src.x < l.x + l.w + 6 && l.y < src.y + src.h + 6 && src.y < l.y + l.h + 6);
-      const pts = route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (fromCof === 'b') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += `<circle class="xdot" cx="${P[0][0]}" cy="${P[0][1]}" r="3"/>` + elbow(P, false, 'xline xhand');
@@ -1868,6 +1933,31 @@ function stitchSVG(m, statusOf) {
       const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots[0];
       DRAW_LABELS.push({ x: tx - w / 2, y: ty - 11, w, h: 22 });
       between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${esc(d.label)}</text>`;
+    }
+  }
+  // Coupled steps: a dotted tie between the two arrows of one step, dots at both ends; named when they ended up apart.
+  for (const [a, b] of st.couples || []) {
+    // Midway along each arrow: the part's own path that leaves one box and ends at the other (a curve or an elbow).
+    const ra = m.p.reactions.find(r => r.id === a), rb = m.p.reactions.find(r => r.id === b), mid = r => {
+      const f = G['m:' + r.from], t = G['m:' + r.to]; if (!f || !t) return null;
+      const P = placed.find(P => P.sm.p.reactions.includes(r)) || f.R, near = (x, y, b) => x > b.x - 24 && x < b.x + b.w + 24 && y > b.y - 24 && y < b.y + b.h + 24;
+      const probe = pathProbe();
+      for (const pm of (P.body || '').matchAll(/<path class="[^"]*" d="([^"]+)"/g)) {
+        probe.setAttribute('d', pm[1]); const L = probe.getTotalLength(), at = l => { const q = probe.getPointAtLength(l); return [q.x + P.dx, q.y + P.dy]; };
+        if (L < 20 || !near(...at(0), f) || !near(...at(L), t)) continue;
+        return at(L / 2);
+      }
+      return [(ctr(f).cx + ctr(t).cx) / 2, (ctr(f).cy + ctr(t).cy) / 2]; };
+    const p = ra && mid(ra), q = rb && mid(rb); if (!p || !q) continue;
+    // Side by side: a straight tie. Apart: routed like the other joins, clear of boxes, and named.
+    const far = Math.hypot(q[0] - p[0], q[1] - p[1]) > 320, dot = c => ({ x: c[0] - 4, y: c[1] - 4, w: 8, h: 8 });
+    const blocked = [...DRAW_BOXES, ...DRAW_LABELS].some(r => { for (let f = 0.08; f < 0.93; f += 0.04) { const x = p[0] + (q[0] - p[0]) * f, y = p[1] + (q[1] - p[1]) * f; if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true; } return false; });
+    const pts = (far || blocked) && (route(dot(p), dot(q), [...DRAW_BOXES, ...DRAW_LABELS]) || route(dot(p), dot(q), DRAW_BOXES, false, DRAW_LABELS)), P = pts || [p, q];
+    between += elbow(P, false, 'xline xhand couple').replace(/<path class="ah"[^>]*\/>/, '') + `<circle class="xdot" cx="${p[0]}" cy="${p[1]}" r="3"/><circle class="xdot" cx="${q[0]}" cy="${q[1]}" r="3"/>`;
+    if (far) {
+      const segs = P.slice(1).map((v, i) => [P[i], v]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
+      const label = 'same step', w = label.length * 6.4 + 20, [[u0, u1], [v0, v1]] = segs[0], tx = (u0 + v0) / 2, ty = (u1 + v1) / 2;
+      between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${label}</text>`;
     }
   }
   DRAW_BOXES = [];

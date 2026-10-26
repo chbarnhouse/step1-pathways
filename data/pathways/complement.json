@@ -660,10 +660,17 @@
      "name": "Eculizumab",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Antibody against C5: no C5 cleavage, no MAC. PNH, atypical HUS; vaccinate against Neisseria first.",
-     "aliases": [
-      "ravulizumab"
-     ]
+     "note": "Every two weeks, IV.",
+     "aliases": [],
+     "cls": "Complement C5 inhibitors"
+    },
+    {
+     "name": "Ravulizumab",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Longer-acting: every eight weeks.",
+     "aliases": [],
+     "cls": "Complement C5 inhibitors"
     }
    ]
   },
@@ -687,10 +694,17 @@
      "name": "Eculizumab",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Antibody against C5: no C5 cleavage, no MAC. PNH, atypical HUS; vaccinate against Neisseria first.",
-     "aliases": [
-      "ravulizumab"
-     ]
+     "note": "Every two weeks, IV.",
+     "aliases": [],
+     "cls": "Complement C5 inhibitors"
+    },
+    {
+     "name": "Ravulizumab",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Longer-acting: every eight weeks.",
+     "aliases": [],
+     "cls": "Complement C5 inhibitors"
     }
    ]
   },

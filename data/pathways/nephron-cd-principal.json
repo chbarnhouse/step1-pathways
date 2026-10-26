@@ -327,21 +327,28 @@
    },
    "transport": true,
    "loc": "apical membrane",
+   "diseases": [
+    {
+     "name": "Liddle syndrome",
+     "clue": "Early hypertension, hypokalemia and metabolic alkalosis with low renin and low aldosterone (ENaC stuck open); treat with amiloride."
+    }
+   ],
    "drugs": [
     {
      "name": "Amiloride",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Blocks ENaC (triamterene too): a potassium-sparing diuretic; Liddle syndrome, lithium-induced nephrogenic DI.",
-     "aliases": [
-      "triamterene"
-     ]
-    }
-   ],
-   "diseases": [
+     "note": "Liddle syndrome; lithium-induced nephrogenic DI (blocks lithium entering the cell).",
+     "aliases": [],
+     "cls": "ENaC blockers"
+    },
     {
-     "name": "Liddle syndrome",
-     "clue": "Early hypertension, hypokalemia and metabolic alkalosis with low renin and low aldosterone (ENaC stuck open); treat with amiloride."
+     "name": "Triamterene",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Usually paired with hydrochlorothiazide; can cause kidney stones.",
+     "aliases": [],
+     "cls": "ENaC blockers"
     }
    ]
   },
@@ -401,17 +408,28 @@
    },
    "transport": true,
    "loc": "apical membrane",
+   "diseases": [
+    {
+     "name": "Nephrogenic diabetes insipidus",
+     "clue": "Large volumes of dilute urine that desmopressin does not concentrate (V2 receptor or aquaporin-2 defect; lithium)."
+    }
+   ],
    "drugs": [
     {
-     "name": "Vaptans",
+     "name": "Tolvaptan",
      "kind": "drug",
      "effect": "inhibits",
-     "note": "Block the V2 receptor, so no aquaporin-2 in the membrane: SIADH, hyponatremia (tolvaptan, conivaptan).",
-     "aliases": [
-      "tolvaptan",
-      "conivaptan",
-      "V2 antagonists"
-     ]
+     "note": "Oral, V2-selective: SIADH, autosomal dominant polycystic kidney disease. Liver injury.",
+     "aliases": [],
+     "cls": "Vaptans"
+    },
+    {
+     "name": "Conivaptan",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "IV, blocks V1a too: hospital hyponatremia.",
+     "aliases": [],
+     "cls": "Vaptans"
     },
     {
      "name": "Lithium",
@@ -421,12 +439,6 @@
      "aliases": [
       "demeclocycline"
      ]
-    }
-   ],
-   "diseases": [
-    {
-     "name": "Nephrogenic diabetes insipidus",
-     "clue": "Large volumes of dilute urine that desmopressin does not concentrate (V2 receptor or aquaporin-2 defect; lithium)."
     }
    ]
   },

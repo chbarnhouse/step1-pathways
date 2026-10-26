@@ -97,7 +97,9 @@ function quizSummary(cfg) {
 function mcOptions(item, m) {
   if (item.kind === 'regfed' || item.kind === 'regfast') return ['On', 'Off']; // fed vs fasting: on or off
   // A drug: three others from this pathway first, then from anywhere.
-  if (item.kind === 'drug') { const mine = item.drugs.map(d => d.name), here = uniq(m.p.reactions.flatMap(r => (r.drugs || []).map(d => d.name))).filter(n => !mine.includes(n)), all = uniq(Object.values(Library.builtin()).flatMap(p => (p.reactions || []).flatMap(r => (r.drugs || []).map(d => d.name)))).filter(n => !mine.includes(n) && !here.includes(n));
+  // Named as drawings name them (a class where its members act together), never one of this step's own drugs or classes.
+  if (item.kind === 'drug') { const mine = [...item.drugs.map(d => d.name), ...item.groups.map(g => g.name), ...item.drugs.map(d => d.cls).filter(Boolean)], names = r => drugGroups(r.drugs).map(g => g.name);
+    const here = uniq(m.p.reactions.flatMap(names)).filter(n => !mine.includes(n)), all = uniq(Object.values(Library.builtin()).flatMap(p => (p.reactions || []).flatMap(names))).filter(n => !mine.includes(n) && !here.includes(n));
     return shuffle([item.name, ...[...shuffle(here), ...shuffle(all)].slice(0, 3)]); }
   const p = m.p;
   const trnIds = new Set(p.reactions.flatMap(r => (r.transport ? [r.enzyme] : r.via ? [r.via] : [])));
@@ -1374,7 +1376,7 @@ const maybeSpoil = (open, html) => (open && html ? spoiler(html) : html);
 // Free text (notes) with the names of still-unanswered items covered: metabolites, enzymes, cofactors still to type
 // (succinyl-CoA in glycine's notes), and compartments, whatever form the word takes (mitochondrion, mitochondrial).
 function maskNames(text, m) {
-  const open = Object.values(m.items).filter(it => stillOpen(m, it.key));
+  const open = Object.values(m.items).filter(it => !it.coupled && stillOpen(m, it.key));
   const lit = uniq(open.flatMap(it => it.kind === 'cof'
       ? [...(it.cofs.in || []), ...(it.cofs.out || [])].flatMap(id => [m.cof[id]?.name, ...(m.cof[id]?.aliases || [])])
       : [it.name, it.short, ...(it.aliases || []), ...(it.nicknames || [])])
@@ -1403,7 +1405,7 @@ function factsCard(item, m) {
     }
     // Fed vs fasting, drugs and diseases: in the facts too (spoilered while they're still being asked).
     if (r.reg) extra += `<p>Fed: ${maybeSpoil(stillOpen(m, 'y:' + r.id), r.reg.fed.toUpperCase())} · Fasting: ${maybeSpoil(stillOpen(m, 'x:' + r.id), r.reg.fasting.toUpperCase())}. ${maybeSpoil(stillOpen(m, 'y:' + r.id) || stillOpen(m, 'x:' + r.id), esc(r.reg.why))}</p>`;
-    if ((r.drugs || []).length) extra += `<p>${maybeSpoil(stillOpen(m, 'q:' + r.id), r.drugs.map(d => `<b>${esc(d.name)}</b> ${d.effect === 'activates' ? 'drives it' : 'blocks it'}${d.kind === 'toxin' ? ' (toxin)' : ''}`).join(' · '))}</p>`;
+    if ((r.drugs || []).length) extra += `<p>${maybeSpoil(stillOpen(m, 'q:' + r.id), drugGroups(r.drugs).map(g => `<b>${esc(g.name)}</b>${g.members.length > 1 ? ` (${esc(g.members.map(d => d.name).join(', '))})` : ''} ${g.effect === 'activates' ? 'drive' : 'block'}${g.members.length > 1 || /s$/.test(g.name) && g.cls === g.name ? '' : 's'} it${g.kind === 'toxin' ? ' (toxin)' : ''}`).join(' · '))}</p>`;
     if ((r.diseases || []).length && Q.round?.type !== 'where') extra += `<p>When it fails: ${r.diseases.map(d => `<b>${esc(d.name)}</b>`).join(' · ')}</p>`;
     if (Q.round?.type === 'stepE') extra += `<p>Pathway: ${maybeSpoil(stillOpen(m, 'w:' + r.id), esc(pathwaysWithEnzyme(item).map(p => p.name).join(' · ')))}</p>`;
   }

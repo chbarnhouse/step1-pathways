@@ -36,7 +36,10 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   for (const r of rx) {
     const e = enzs[r.enzyme];
     if (r.via && enzs[r.via]) { const t = enzs[r.via]; items['t:' + r.id] = { key: 't:' + r.id, kind: 'trn', id: r.via, rxn: r, via: true, name: t.name, short: t.short, aliases: t.aliases || [], nicknames: t.nicknames, notes: t.notes }; }
-    items['e:' + r.id] = { key: 'e:' + r.id, kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes, term: r.transport ? undefined : e.term || p.terms?.enz };
+    // The second arrow of a coupled step reads in a list as its own row, named for the step it's one with; never asked.
+    if (r.coupled) { const o = rx.find(x => x.id === r.coupled), mn = id => mets[id]?.short || mets[id]?.name || id;
+      items['u:' + r.id] = { key: 'u:' + r.id, kind: 'twin', coupled: true, rxn: r, name: `${e.name} (with ${o ? `${mn(o.from)} → ${mn(o.to)}` : 'its twin'})`, short: '', aliases: [], notes: null }; }
+    items['e:' + r.id] = { key: 'e:' + r.id, ...(r.coupled ? { coupled: true } : {}), kind: r.transport ? 'trn' : 'enz', id: r.enzyme, rxn: r, name: e.name, short: e.short, aliases: e.aliases || [], nicknames: e.nicknames, notes: e.notes, term: r.transport ? undefined : e.term || p.terms?.enz };
     // A step's cofactors are quizzable, one blank per side: 'c:<step>' is what goes in (or the only side there is),
     // 'o:<step>' what comes out when both sides exist. (Before 3.9 'c:' was the whole set; its history stays with the inputs.)
     const c = r.cofactors || {}, ci = c.in || [], co = c.out || [];
@@ -55,8 +58,10 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
         aliases: on ? ['on', 'active', 'activated', 'turned on', 'up', 'upregulated', 'induced', 'yes'] : ['off', 'inactive', 'inactivated', 'turned off', 'down', 'downregulated', 'inhibited', 'no'] };
     }
     // Drugs and toxins that act on this step (r.drugs), asked once as 'q:<step>': name any of them.
-    if ((r.drugs || []).length) { const ds = r.drugs, toxin = ds.every(d => d.kind === 'toxin');
-      items['q:' + r.id] = { key: 'q:' + r.id, kind: 'drug', id: r.id, rxn: r, drugs: ds, name: ds[0].name, short: '', aliases: uniq(ds.flatMap((d, i) => [...(i ? [d.name] : []), ...(d.aliases || [])])),
+    // A class counts as an answer too, and so does any one of its members.
+    if ((r.drugs || []).length) { const ds = r.drugs, toxin = ds.every(d => d.kind === 'toxin'), gs = drugGroups(ds), cl = Library.drugClasses();
+      items['q:' + r.id] = { key: 'q:' + r.id, kind: 'drug', id: r.id, rxn: r, drugs: ds, groups: gs, name: gs[0].name, short: '',
+        aliases: uniq([...gs.slice(1).map(g => g.name), ...ds.flatMap(d => [d.name, ...(d.aliases || []), ...(d.cls ? [d.cls, ...(cl[d.cls]?.aliases || [])] : [])])]).filter(n => n !== gs[0].name),
         notes: ds.map(d => `${d.name}: ${d.note}`).join(' '), term: toxin ? 'toxin' : ds.some(d => d.kind === 'toxin') ? 'drug or toxin' : 'drug' }; }
     // Its effect, in a pathway that marks them ("effects": true): it activates, or it inhibits (tag "inhibits"), as 'f:<step>'.
     if (p.effects || r.fx) {
@@ -82,7 +87,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push('e:' + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
+  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push((r.coupled ? 'u:' : 'e:') + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.
@@ -106,7 +111,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
     // Bypasses between two metabolites already read (a combined pathway's reverse steps) follow right away.
     for (const b of branches) if (onSpine.has(b.from) && onSpine.has(b.to) && seen.has('m:' + b.from) && seen.has('m:' + b.to)) pushRx(b);
   }
-  for (const k of Object.keys(items)) push(k); // anything unreachable still gets studied
+  for (const k of Object.keys(items)) if (!items[k].coupled) push(k); // anything unreachable still gets studied
 
   // Compartments are items too ('z:<key>'): one per place the pathway runs, read just before its first step there.
   const m0z = { p, multiTissue: new Set(rx.map(r => r.tissue || '')).size > 1 };
@@ -140,7 +145,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   if (p.layout === 'grid') {
     seq.length = 0; seen.clear();
     for (const r of rx) { pushMet(r.from); pushRx(r); pushMet(r.to); }
-    for (const k of Object.keys(items)) push(k);
+    for (const k of Object.keys(items)) if (!items[k].coupled) push(k);
   }
   // Groupings ('g:<id>'): named sets of boxes drawn as a dashed frame (myeloid cells; the COX branch). Read last.
   for (const g of p.groups || []) {
@@ -183,6 +188,17 @@ function needIds(cof, r) {
 }
 
 /* ---------- cofactors ---------- */
+/* A step's drugs as they're named on a drawing: one line per class whose members are better known as the class (two or
+   more statins on HMG-CoA reductase: "Statins"), else one per drug. [{ name, effect, kind, cls, members: [drug…] }] */
+function drugGroups(ds) {
+  const classes = Library.drugClasses(), out = [];
+  for (const d of ds || []) {
+    const c = d.cls && classes[d.cls], mates = c && c.show === 'class' ? ds.filter(x => x.cls === d.cls && x.effect === d.effect) : [];
+    if (mates.length > 1) { if (!out.some(g => g.cls === d.cls && g.effect === d.effect)) out.push({ name: d.cls, effect: d.effect, kind: d.kind, cls: d.cls, members: mates }); }
+    else out.push({ name: d.name, effect: d.effect, kind: d.kind, cls: d.cls, members: [d] });
+  }
+  return out;
+}
 const cofName = (m, id) => (m.cof[id] && m.cof[id].name) || id;
 const cofItemsOf = (m, r) => ['c:', 'o:'].map(k => m.items[k + r.id]).filter(Boolean); // a step's cofactor blanks, inputs first
 const cofSideText = (m, c) => [...(c.in || []), ...(c.out || [])].map(id => cofName(m, id)).join(' + ');

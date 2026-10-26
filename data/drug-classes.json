@@ -1,0 +1,193 @@
+{
+ "Antifolates": {
+  "note": "Block dihydrofolate reductase, so DHF isn’t recycled to THF: no new thymidine or purines. Which organism’s DHFR each one prefers decides what it treats.",
+  "show": "members",
+  "aliases": [
+   "DHFR inhibitors"
+  ]
+ },
+ "Thymidylate synthase inhibitors": {
+  "note": "Fluoropyrimidines: 5-FdUMP locks thymidylate synthase with methylene-THF, so no dTMP (\"thymineless death\"). Leucovorin strengthens the lock; uridine triacetate is the antidote.",
+  "show": "members",
+  "aliases": [
+   "fluoropyrimidines"
+  ]
+ },
+ "DHODH inhibitors": {
+  "note": "Block dihydroorotate dehydrogenase (de novo pyrimidine synthesis), which activated lymphocytes depend on. Hepatotoxic and teratogenic; washed out with cholestyramine.",
+  "show": "members",
+  "aliases": [
+   "dihydroorotate dehydrogenase inhibitors"
+  ]
+ },
+ "Thiopurines": {
+  "note": "Purine analogs that shut down de novo purine synthesis at PRPP amidotransferase. Xanthine oxidase and TPMT break them down: allopurinol raises their levels, and low TPMT activity means bone-marrow suppression.",
+  "show": "class",
+  "aliases": [
+   "purine analogs"
+  ]
+ },
+ "IMP dehydrogenase inhibitors": {
+  "note": "Block IMP dehydrogenase, so cells run short of GMP and GTP; lymphocytes, which rely on de novo purine synthesis, are hit hardest.",
+  "show": "members",
+  "aliases": [
+   "IMPDH inhibitors"
+  ]
+ },
+ "Xanthine oxidase inhibitors": {
+  "note": "Block xanthine oxidase, so less uric acid: gout, and preventing tumor lysis syndrome. They raise azathioprine and 6-MP levels.",
+  "show": "members",
+  "aliases": []
+ },
+ "Statins": {
+  "note": "Block HMG-CoA reductase, so liver cells make more LDL receptors and LDL falls. Myopathy (worse with fibrates and CYP3A4 inhibitors), raised liver enzymes.",
+  "show": "class",
+  "aliases": [
+   "HMG-CoA reductase inhibitors"
+  ]
+ },
+ "Azole antifungals": {
+  "note": "Block fungal lanosterol 14α-demethylase (CYP51), so no ergosterol in the fungal membrane. They inhibit human CYP450s too (drug interactions).",
+  "show": "class",
+  "aliases": [
+   "azoles"
+  ]
+ },
+ "DOPA decarboxylase inhibitors": {
+  "note": "Block DOPA decarboxylase outside the brain (they don’t cross the blood–brain barrier), so more levodopa reaches the brain with less nausea and hypotension.",
+  "show": "members",
+  "aliases": [
+   "peripheral decarboxylase inhibitors"
+  ]
+ },
+ "VMAT inhibitors": {
+  "note": "Block the vesicular monoamine transporter, so monoamines aren’t packed into vesicles and are broken down instead.",
+  "show": "members",
+  "aliases": [
+   "VMAT2 inhibitors"
+  ]
+ },
+ "HIV protease inhibitors": {
+  "note": "The -navirs. Atazanavir and indinavir also inhibit UGT1A1: a harmless unconjugated hyperbilirubinemia.",
+  "show": "class",
+  "aliases": [
+   "protease inhibitors"
+  ]
+ },
+ "5α-Reductase inhibitors": {
+  "note": "Block 5α-reductase, so less testosterone becomes DHT: BPH, male-pattern hair loss. PSA falls by about half.",
+  "show": "members",
+  "aliases": [
+   "5-alpha-reductase inhibitors"
+  ]
+ },
+ "Aromatase inhibitors": {
+  "note": "Block aromatase, so androgens aren’t turned into estrogens: ER-positive breast cancer after menopause. Bone loss, joint pain.",
+  "show": "class",
+  "aliases": []
+ },
+ "Glucocorticoids": {
+  "note": "Block phospholipase A₂ (via annexin A1) and cut COX-2 production, so every eicosanoid falls; broadly anti-inflammatory and immunosuppressive.",
+  "show": "class",
+  "aliases": [
+   "corticosteroids",
+   "steroids"
+  ]
+ },
+ "NSAIDs": {
+  "note": "Block cyclooxygenase (COX-1 and COX-2), so fewer prostaglandins and less thromboxane. Gastric ulcers, kidney injury (afferent arteriole), bleeding.",
+  "show": "class",
+  "aliases": [
+   "nonsteroidal anti-inflammatory drugs"
+  ]
+ },
+ "Direct factor Xa inhibitors": {
+  "note": "The -xabans: block factor Xa directly, no antithrombin needed. Oral, no routine monitoring; andexanet alfa reverses them.",
+  "show": "class",
+  "aliases": [
+   "factor Xa inhibitors",
+   "xabans"
+  ]
+ },
+ "Heparins": {
+  "note": "Activate antithrombin, which shuts down factor Xa (and, with unfractionated heparin, thrombin). Safe in pregnancy; heparin-induced thrombocytopenia.",
+  "show": "members",
+  "aliases": []
+ },
+ "Direct thrombin inhibitors": {
+  "note": "Block thrombin directly, no antithrombin needed. Used when heparin can’t be (HIT).",
+  "show": "members",
+  "aliases": [
+   "DTIs"
+  ]
+ },
+ "Thrombolytics": {
+  "note": "Turn plasminogen into plasmin, which dissolves fibrin clots: ischemic stroke, STEMI without PCI, massive PE. Bleeding; contraindicated after recent surgery or hemorrhagic stroke.",
+  "show": "class",
+  "aliases": [
+   "tPA",
+   "fibrinolytics"
+  ]
+ },
+ "Antifibrinolytics": {
+  "note": "Block the lysine binding sites on plasminogen, so it can’t bind fibrin and be activated: bleeding, heavy menstrual bleeding, trauma.",
+  "show": "class",
+  "aliases": []
+ },
+ "Complement C5 inhibitors": {
+  "note": "Antibodies against C5: no C5 cleavage, so no MAC. PNH, atypical HUS, myasthenia gravis. Vaccinate against Neisseria meningitidis first.",
+  "show": "members",
+  "aliases": []
+ },
+ "SGLT2 inhibitors": {
+  "note": "The -gliflozins: block SGLT2 in the proximal tubule, so glucose (and sodium) stay in the urine. Type 2 diabetes, heart failure, CKD; genital infections, euglycemic DKA.",
+  "show": "class",
+  "aliases": [
+   "gliflozins"
+  ]
+ },
+ "Loop diuretics": {
+  "note": "Block NKCC2 in the thick ascending limb, so the medullary gradient is lost: the strongest diuretics. Edema, hypercalcemia; hypokalemia, metabolic alkalosis, ototoxicity, and they make you lose calcium.",
+  "show": "class",
+  "aliases": [
+   "loops"
+  ]
+ },
+ "Thiazides": {
+  "note": "Block NCC in the distal convoluted tubule. Hypertension, calcium kidney stones, nephrogenic DI; hypokalemia, hyponatremia, hypercalcemia, hyperglycemia, hyperuricemia.",
+  "show": "class",
+  "aliases": [
+   "thiazide diuretics"
+  ]
+ },
+ "ENaC blockers": {
+  "note": "Potassium-sparing diuretics that block ENaC in the principal cell, so less sodium in and less potassium out. Hyperkalemia.",
+  "show": "class",
+  "aliases": [
+   "potassium-sparing diuretics"
+  ]
+ },
+ "Vaptans": {
+  "note": "Block the V2 receptor, so no aquaporin-2 goes into the membrane and free water is lost: SIADH, euvolemic hyponatremia. Correct sodium slowly (osmotic demyelination).",
+  "show": "class",
+  "aliases": [
+   "V2 antagonists"
+  ]
+ },
+ "ACE inhibitors": {
+  "note": "The -prils: block angiotensin-converting enzyme, so less angiotensin II and aldosterone. The efferent arteriole relaxes, so GFR falls a little (creatinine may rise up to about 30%) and the kidney is protected in diabetic nephropathy. Hyperkalemia; bradykinin builds up: dry cough, angioedema. Not in pregnancy or bilateral renal artery stenosis.",
+  "show": "class",
+  "aliases": [
+   "ACEIs",
+   "prils"
+  ]
+ },
+ "ARBs": {
+  "note": "The -sartans: block the AT1 receptor. The same kidney effects as ACE inhibitors (efferent arteriole relaxes, GFR falls a little, hyperkalemia) without the bradykinin cough. Not in pregnancy.",
+  "show": "class",
+  "aliases": [
+   "angiotensin receptor blockers",
+   "sartans"
+  ]
+ }
+}

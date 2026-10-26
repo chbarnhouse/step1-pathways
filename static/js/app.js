@@ -333,8 +333,8 @@ function filterPathways(list, st) {
   const q = norm(st.q || '');
   return list.filter(p => (!q || searchText(p).includes(q))
     && (!st.groups.length || st.groups.includes(p.group || 'Other'))
-    && (!(st.systems || []).length || st.systems.some(t => systemsOf(p.id).includes(t)))
-    && (!st.tags.length || st.tags.some(t => tagsOf(p.id).includes(t)))
+    && (!(st.systems || []).length || st.systems[st.all?.systems ? 'every' : 'some'](t => systemsOf(p.id).includes(t)))
+    && (!st.tags.length || st.tags[st.all?.tags ? 'every' : 'some'](t => tagsOf(p.id).includes(t)))
     && (!st.source || sourceOf(p) === st.source)
     && (!st.status || (st.status === 'new' ? !Stats.accuracy(p.id) : st.status === 'studied' ? !!Stats.accuracy(p.id) : hasWeak(p.id))))
     .sort((a, b) => st.sort === 'name' ? a.name.localeCompare(b.name)
@@ -360,7 +360,16 @@ function activeChips(st) {
   const on = [...st.groups.map(g => ['data-bgroup', g, 'Group', g]), ...(st.systems || []).map(t => ['data-bsys', t, 'System', t]),
     ...(st.status ? [['data-bstatus', st.status, 'Status', STATUS_LABELS[st.status]]] : []), ...(st.source ? [['data-bsource', st.source, 'Source', SOURCE_LABELS[st.source]]] : []),
     ...st.tags.map(t => ['data-btag', t, 'Tag', t])];
-  return on.map(([attr, v, k, l]) => `<button type="button" class="fchip" ${attr}="${esc(v)}" aria-label="Remove filter ${esc(k)}: ${esc(l)}"><span class="muted">${k}:</span> ${esc(l)}${mi('close', 'sm')}</button>`).join('');
+  return filterChips(on, { System: ['systems', 'systems'], Tag: ['tags', 'tags'] }, st, 'data-bjoin');
+}
+/* What's on, as removable chips. Two chips from one menu are joined by "or" (either will do); different menus narrow
+   each other. A pathway has many systems and tags, so there the "or" is a button that turns into "and" (all of them). */
+function filterChips(on, multi, st, joinAttr) {
+  return on.map(([attr, v, k, l], i) => {
+    const prev = on[i - 1], m = multi[k], all = m && st.all?.[m[0]];
+    const join = prev && prev[2] === k ? (m ? `<button type="button" class="fjoin" ${joinAttr}="${m[0]}" aria-label="${all ? `Showing ones with all these ${m[1]}; show any of them` : `Showing ones with any of these ${m[1]}; show only ones with all`}">${all ? 'and' : 'or'}</button>` : '<span class="fjoin muted">or</span>') : '';
+    return join + `<button type="button" class="fchip" ${attr}="${esc(v)}" aria-label="Remove filter ${esc(k)}: ${esc(l)}"><span class="muted">${k}:</span> ${esc(l)}${mi('close', 'sm')}</button>`;
+  }).join('');
 }
 function browseToolbar(page, st, list) {
   const groups = uniq(list.map(p => p.group || 'Other')).sort((a, b) => groupRank(a) - groupRank(b));
@@ -457,15 +466,16 @@ document.addEventListener('change', e => {
 document.addEventListener('click', e => {
   const page = $('#view .create') ? 'new' : $('#view .library') ? 'library' : null;
   if (!page) return;
-  const t = e.target.closest('[data-bgroup],[data-bsys],[data-btag],[data-bstatus],[data-bsource],[data-bclear]');
+  const t = e.target.closest('[data-bgroup],[data-bsys],[data-btag],[data-bstatus],[data-bsource],[data-bclear],[data-bjoin]');
   if (!t) return;
   const st = browse(page);
-  if (t.dataset.bgroup) st.groups = st.groups.includes(t.dataset.bgroup) ? st.groups.filter(x => x !== t.dataset.bgroup) : [...st.groups, t.dataset.bgroup];
+  if (t.dataset.bjoin) st.all = { ...(st.all || {}), [t.dataset.bjoin]: !st.all?.[t.dataset.bjoin] };
+  else if (t.dataset.bgroup) st.groups = st.groups.includes(t.dataset.bgroup) ? st.groups.filter(x => x !== t.dataset.bgroup) : [...st.groups, t.dataset.bgroup];
   else if (t.dataset.bsys) st.systems = (st.systems || []).includes(t.dataset.bsys) ? st.systems.filter(x => x !== t.dataset.bsys) : [...(st.systems || []), t.dataset.bsys];
   else if (t.dataset.btag) st.tags = st.tags.includes(t.dataset.btag) ? st.tags.filter(x => x !== t.dataset.btag) : [...st.tags, t.dataset.btag];
   else if (t.dataset.bstatus) st.status = st.status === t.dataset.bstatus ? '' : t.dataset.bstatus;
   else if (t.dataset.bsource) st.source = st.source === t.dataset.bsource ? '' : t.dataset.bsource;
-  else Object.assign(st, { q: '', groups: [], systems: [], tags: [], status: '', source: '' });
+  else Object.assign(st, { q: '', groups: [], systems: [], tags: [], status: '', source: '', all: {} });
   local.set('pathways.browse.' + page, st);
   const open = t.closest('details.fdd')?.dataset.f; // keep that menu open while you tick several
   rerenderBrowsePage(page);
@@ -755,8 +765,8 @@ function renderPathway(id) {
     ${p.summary ? `<p class="lede">${esc(p.summary)}</p>` : ''}${p.tissue ? `<p class="muted"><b>Where:</b> ${esc(p.tissue)}</p>` : ''}
     <section class="card diagram-card">
       <div class="sec-h"><div class="seg">${['flow', 'list'].map(v => `<button data-pwview="${v}" aria-pressed="${Store.settings.view === v}">${v === 'flow' ? 'Flow' : 'List'}</button>`).join('')}</div>
-        ${flow && Object.values(m.items).some(it => it.kind === 'regfed') ? `<div class="seg" role="group" aria-label="Fed or fasting">${[['', 'Any state'], ['fed', 'Fed'], ['fasting', 'Fasting']].map(([v, l]) => `<button data-pwreg="${v}" aria-pressed="${(Store.settings.regView || '') === v}" data-tip="${v ? `Which steps are on (▲) or off (▽) ${v === 'fed' ? 'after a meal (insulin high)' : 'between meals (glucagon high)'}` : 'No fed/fasting badges'}">${l}</button>`).join('')}</div>` : ''}${flow && Object.values(m.items).some(it => it.kind === 'drug') ? `<button class="btn small${Store.settings.drugView ? ' on' : ''}" data-pwdrug aria-pressed="${!!Store.settings.drugView}" data-tip="Show the drugs and toxins that act on these steps">${mi('medication', 'sm')} Drugs & toxins</button>` : ''}${flow ? zoomBarHTML() : ''}</div>
-      ${flow ? `<div class="stage canvas" data-view="page:${esc(id)}">${canvasHTML(pageFlowSVG(m))}</div>` : `<div class="stage">${listHTML(m, () => 'shown', { horiz: Store.settings.dir === 'h' })}</div>`}
+        ${Object.values(m.items).some(it => it.kind === 'regfed') ? `<div class="seg" role="group" aria-label="Fed or fasting">${[['', 'Any state'], ['fed', 'Fed'], ['fasting', 'Fasting']].map(([v, l]) => `<button data-pwreg="${v}" aria-pressed="${(Store.settings.regView || '') === v}" data-tip="${v ? `Which steps are on (▲) or off (▽) ${v === 'fed' ? 'after a meal (insulin high)' : 'between meals (glucagon high)'}` : 'No fed/fasting badges'}">${l}</button>`).join('')}</div>` : ''}${Object.values(m.items).some(it => it.kind === 'drug') ? `<button class="btn small${Store.settings.drugView ? ' on' : ''}" data-pwdrug aria-pressed="${!!Store.settings.drugView}" data-tip="Show the drugs and toxins that act on these steps">${mi('medication', 'sm')} Drugs & toxins</button>` : ''}${flow ? zoomBarHTML() : ''}</div>
+      ${flow ? `<div class="stage canvas" data-view="page:${esc(id)}">${canvasHTML(pageFlowSVG(m))}</div>` : `<div class="stage">${listHTML(m, pageStatus, { horiz: Store.settings.dir === 'h', links: true })}</div>`}
     </section>
     <section class="card pad"><h2>Steps</h2><div class="tablewrap"><table class="steps"><thead><tr><th class="num">#</th><th>Reaction</th><th>Enzyme</th><th>Cofactors</th><th>Where</th><th>Notes</th></tr></thead><tbody>${steps}</tbody></table></div></section>
     <section class="card pad"><div class="sec-h"><h2>Weak spots</h2>${Store.data.stats[id] ? '<button class="btn small ghost" data-pw="resetstats">Clear history</button>' : ''}</div>${statsTableHTML(Stats.rows(p))}</section>

@@ -239,7 +239,81 @@
     "out": []
    },
    "transport": true,
-   "loc": "filtration barrier"
+   "loc": "filtration barrier",
+   "drugs": [
+    {
+     "name": "Lisinopril",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Once daily; not a prodrug, cleared by the kidney.",
+     "aliases": [],
+     "cls": "ACE inhibitors"
+    },
+    {
+     "name": "Enalapril",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "A prodrug; enalaprilat is the IV form.",
+     "aliases": [],
+     "cls": "ACE inhibitors"
+    },
+    {
+     "name": "Captopril",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Short-acting, with a sulfhydryl group: rash, taste changes; the captopril renal scan.",
+     "aliases": [],
+     "cls": "ACE inhibitors"
+    },
+    {
+     "name": "Losartan",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Also lowers uric acid.",
+     "aliases": [],
+     "cls": "ARBs"
+    },
+    {
+     "name": "Valsartan",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "With sacubitril (a neprilysin inhibitor) for heart failure with reduced ejection fraction.",
+     "aliases": [],
+     "cls": "ARBs"
+    },
+    {
+     "name": "Ibuprofen",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks the prostaglandins that hold the afferent arteriole open, so GFR falls: acute kidney injury, especially with an ACE inhibitor or ARB and a diuretic (the \"triple whammy\").",
+     "aliases": [],
+     "cls": "NSAIDs"
+    },
+    {
+     "name": "Naproxen",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks the prostaglandins that hold the afferent arteriole open, so GFR falls: acute kidney injury, especially with an ACE inhibitor or ARB and a diuretic (the \"triple whammy\").",
+     "aliases": [],
+     "cls": "NSAIDs"
+    },
+    {
+     "name": "Indomethacin",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks the prostaglandins that hold the afferent arteriole open, so GFR falls: acute kidney injury, especially with an ACE inhibitor or ARB and a diuretic (the \"triple whammy\").",
+     "aliases": [],
+     "cls": "NSAIDs"
+    },
+    {
+     "name": "Ketorolac",
+     "kind": "drug",
+     "effect": "inhibits",
+     "note": "Blocks the prostaglandins that hold the afferent arteriole open, so GFR falls: acute kidney injury, especially with an ACE inhibitor or ARB and a diuretic (the \"triple whammy\").",
+     "aliases": [],
+     "cls": "NSAIDs"
+    }
+   ]
   },
   {
    "id": "r2",
