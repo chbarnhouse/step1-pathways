@@ -22,8 +22,8 @@ const MAP_LAYERS = [
   ['enz', 'Enzymes', ['e:', 'f:']], ['trn', 'Transporters', ['t:']], ['cof', 'Cofactors', ['c:', 'o:']], ['need', 'What steps need (vitamins)', ['n:']],
   ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['bands', 'Group bands', []],
 ];
-const MAP_DEFAULT = { merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, bands: true }, reg: '', off: null, q: '', side: true };
-const mapCfg = () => { const c = local.get('pathways.map') || {}; return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null }; };
+const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, bands: true }, reg: '', off: null, q: '', side: true };
+const mapCfg = () => { const c = local.get('pathways.map') || {}; return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null, sel: c.sel || [] }; };
 const mapSave = c => local.set('pathways.map', c);
 const MAPV = { tiles: [], hits: [] };
 const MAP_SHAPE = [1.5, 2.2]; // how wide a group block and the whole map run, against the square root of their area
@@ -76,9 +76,24 @@ function mapStatus(c, found) {
    ids, become the joined drawing's ids. */
 const MAP_MERGED = { sig: '', svg: '' };
 function mapMergedKey(P, pid, k) {
-  const T = P.stitch.tiles.find(t => t.id === pid), i = k.indexOf(':'), pre = k.slice(0, i + 1), id = k.slice(i + 1);
+  let T = P.stitch.tiles.find(t => t.id === pid), i = k.indexOf(':'), pre = k.slice(0, i + 1), id = k.slice(i + 1);
+  // A pathway drawn inside a combined one (glycolysis in glycolysis + gluconeogenesis): its ids, by name, in the combined one.
+  if (!T) {
+    T = P.stitch.tiles.find(t => (Library.get(t.id)?.compose || []).includes(pid)); const C = T && Library.get(T.id), o = Library.get(pid); if (!C || !o) return null;
+    const byName = (obj, n) => Object.keys(obj).find(x => norm(obj[x].name) === norm(n || ''));
+    if (pre === 'm:') id = byName(C.metabolites, o.metabolites[id]?.name);
+    else { const r = o.reactions.find(x => x.id === id); if (!r) return null;
+      const en = o.enzymes[r.enzyme]?.name, names = [r.from, r.to].map(x => norm(o.metabolites[x]?.name || '')).sort().join('|');
+      id = (C.compose[0] === pid && C.reactions.some(x => x.id === id) ? id : null) || C.reactions.find(x => x.id === `${pid}.${id}`)?.id
+        || C.reactions.find(x => norm(C.enzymes[x.enzyme]?.name || '') === norm(en || '') && [x.from, x.to].map(y => norm(C.metabolites[y]?.name || '')).sort().join('|') === names)?.id; }
+    if (!id) return null; pid = T.id;
+  }
   return pre === 'm:' ? T && T.mid[id] && 'm:' + T.mid[id] : pre + pid + '.' + id;
 }
+// Everything of one pathway in the joined drawing: its steps and every box it has (shared ones too).
+// (A pathway inside a combined one: its own steps and boxes, found by name.)
+const mapMergedPathKeys = (P, pid) => { if (!P.stitch.tiles.some(t => t.id === pid)) { const o = Library.get(pid); return o ? uniq([...Object.keys(o.metabolites).map(id => 'm:' + id), ...o.reactions.map(r => 'e:' + r.id)].map(k => mapMergedKey(P, pid, k)).filter(Boolean)) : []; }
+  return Object.keys(modelFor(P).items).filter(k => { const r = modelFor(P).items[k].rxn; return (r && r.id.startsWith(pid + '.')) || (k.startsWith('m:') && (P.stitch.origin.m[k.slice(2)] || []).some(([q]) => q === pid)); }); };
 function mapMergedSVG(c) {
   const off = mapOff(c), ids = mapPathways().filter(p => !off.has(p.id)).map(p => p.id);
   MAPV.tiles = []; MAPV.merged = true;
@@ -94,7 +109,7 @@ function mapMergedSVG(c) {
   if (found) { lit = new Set();
     for (const [pid, f] of Object.entries(found)) {
       if (!ids.includes(pid)) continue;
-      if (f.all) { for (const k of Object.keys(m.items)) { const r = m.items[k].rxn; if ((r && r.id.startsWith(pid + '.')) || (k.startsWith('m:') && (P.stitch.origin.m[k.slice(2)] || []).some(([q]) => q === pid))) lit.add(k); } }
+      if (f.all) mapMergedPathKeys(P, pid).forEach(k => lit.add(k));
       else for (const k of f.keys) { const mk = mapMergedKey(P, pid, k); if (mk) lit.add(mk); }
     } }
   const hide = new Set(MAP_LAYERS.filter(([k]) => !c.layers[k]).flatMap(([, , pre]) => pre));
@@ -163,7 +178,9 @@ function mapSidebarHTML(c) {
   MAPV.hits = hits.map(([pid, f]) => ({ pid, keys: [...f.keys], all: f.all }));
   const results = !found ? '' : hits.length ? `<ul class="map-results">${hits.map(([pid, f], i) => `<li><button type="button" class="linkbtn" data-mapgo="${i}">${esc(Library.get(pid)?.name || pid)}</button>
       <span class="muted small">${esc(f.all ? 'the whole pathway' : f.names.slice(0, 3).join(', '))}${off.has(pid) ? ' · hidden: turned on when you go' : ''}</span></li>`).join('')}</ul>` : '<p class="muted small">Nothing by that name.</p>';
-  return `<div class="map-side-in">
+  const tabs = `<div class="seg map-tabs" role="tablist" aria-label="Sidebar">${[['show', 'Show', 'tune'], ['browse', 'Browse', 'list']].map(([v, l, ic]) => `<button type="button" role="tab" data-maptab="${v}" aria-selected="${c.tab === v}" aria-pressed="${c.tab === v}">${mi(ic, 'sm')} ${l}${v === 'browse' && c.sel.length ? ` <span class="fdd-n">${c.sel.length}</span>` : ''}</button>`).join('')}</div>`;
+  if (c.tab === 'browse') return `<div class="map-side-in">${tabs}${mapBrowseHTML(c)}</div>`;
+  return `<div class="map-side-in">${tabs}
     <label class="search">${mi('search', 'sm')}<input type="search" data-mapq placeholder="Find a pathway, molecule, enzyme, drug" value="${esc(c.q)}" aria-label="Find on the map"></label>
     ${results}
     <h3 class="glabel">Layout</h3>
@@ -178,6 +195,60 @@ function mapSidebarHTML(c) {
         <div class="map-sw">${ps.map(p => sw('data-mappath', p.id, !off.has(p.id), p.name)).join('')}</div></div>`; }).join('')}
   </div>`;
 }
+/* Browse: everything on the map as lists (pathways, molecules, enzymes, cofactors, drugs, toxins). Hover a row to
+   light that thing up wherever it's drawn and fit the view to it; click to keep it lit (selected; saved). What's
+   lit is the hovered row plus every selected one, and the view fits all of it. */
+const MAP_BROWSE = [['path', 'Pathways'], ['met', 'Molecules'], ['enz', 'Enzymes'], ['cof', 'Cofactors'], ['drug', 'Drugs'], ['tox', 'Toxins']];
+function mapBrowseEntries(kind) {
+  if (kind === 'path') return mapPathways().map(p => ({ id: 'path|' + p.id, name: p.name, sub: p.group || 'Other', pids: [p.id] }));
+  return Object.values(catalog()[kind] || {}).map(e => ({ id: kind + '|' + e.key, name: e.name, sub: `${plural(e.pathways.size, 'pathway')}`, pids: [...e.pathways], e }))
+    .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
+}
+function mapBrowseHTML(c) {
+  const on = new Set(mapPathways().filter(p => !mapOff(c).has(p.id)).map(p => p.id)), q = norm(c.bq || '');
+  // Exact names first, then names that start with it, then the rest that contain it.
+  const rank = x => { const ns = [x.name, ...(x.e ? x.e.others : [])].map(norm); return ns.includes(q) ? 0 : ns.some(n => n.startsWith(q)) ? 1 : ns.some(n => n.includes(q)) ? 2 : 9; };
+  const rows = mapBrowseEntries(c.btab).map(x => [x, q ? rank(x) : 0]).filter(([, r]) => r < 9).sort((a, b) => a[1] - b[1]).map(([x]) => x);
+  const sel = new Set(c.sel);
+  return `<div class="seg map-btabs" role="group" aria-label="Browse">${MAP_BROWSE.map(([v, l]) => `<button type="button" data-mapbtab="${v}" aria-pressed="${c.btab === v}">${l}</button>`).join('')}</div>
+    <label class="search">${mi('search', 'sm')}<input type="search" data-mapbq placeholder="Filter ${esc(MAP_BROWSE.find(b => b[0] === c.btab)[1].toLowerCase())}" value="${esc(c.bq)}" aria-label="Filter the list"></label>
+    <div class="sec-h"><span class="muted small">${rows.length} · hover to light up, click to keep lit</span>${c.sel.length ? `<button type="button" class="linkbtn" data-mapclear>Clear selection (${c.sel.length})</button>` : ''}</div>
+    <div class="map-list" role="list">${rows.map(x => { const vis = x.pids.some(id => on.has(id));
+      return `<button type="button" role="listitem" class="map-row${vis ? '' : ' off'}" data-mapitem="${esc(x.id)}" aria-pressed="${sel.has(x.id)}">${mi(sel.has(x.id) ? 'check' : 'add', 'sm')}<span class="map-row-t"><span>${esc(x.name)}</span><span class="muted small">${esc(x.sub)}${vis ? '' : ' · not on the map'}</span></span></button>`; }).join('')}</div>`;
+}
+// The drawn elements for one browse entry: boxes and labels carrying its keys (a cofactor lights up its step's enzyme).
+function mapEls(id) {
+  const world = $('#mapStage .world'); if (!world) return [];
+  const i = id.indexOf('|'), kind = id.slice(0, i), key = id.slice(i + 1), q = (root, k) => [...root.querySelectorAll(`[data-key="${CSS.escape(k)}"]`)];
+  const withStep = (root, k) => { const els = q(root, k); return els.length || !/^[a-z]:/.test(k) ? els : q(root, 'e:' + k.slice(2)); };
+  if (MAPV.merged) {
+    const P = MAP_MERGED.P; if (!P) return [];
+    if (kind === 'path') return mapMergedPathKeys(P, key).flatMap(k => q(world, k));
+    return (catalog()[kind]?.[key]?.keys || []).flatMap(([pid, k]) => { const mk = mapMergedKey(P, pid, k); return mk ? withStep(world, mk) : []; });
+  }
+  const tile = pid => world.querySelector(`g.map-tile[data-mappid="${CSS.escape(pid)}"]`);
+  if (kind === 'path') { const t = tile(key); return t ? [...t.querySelectorAll('g.mbox, g.elab, a.map-title')] : []; }
+  return (catalog()[kind]?.[key]?.keys || []).flatMap(([pid, k]) => { const t = tile(pid); return t ? withStep(t, k) : []; });
+}
+// Light up the hovered and selected entries (everything else fades back); fit the view to them when asked.
+function mapLight(fit) {
+  const st = $('#mapStage'), svg = st?.querySelector('.world > svg'); if (!svg) return;
+  svg.querySelectorAll('.hl').forEach(x => x.classList.remove('hl'));
+  const ids = uniq([...mapCfg().sel, ...(MAPV.hover ? [MAPV.hover] : [])]), els = ids.flatMap(mapEls);
+  els.forEach(x => x.classList.add('hl'));
+  svg.classList.toggle('hashl', els.length > 0);
+  if (!fit || !els.length) return;
+  const w = st.querySelector('.world'), wr = w.getBoundingClientRect(), k0 = st._v?.k || 1, rs = els.map(e => e.getBoundingClientRect()).filter(r => r.width || r.height);
+  if (!rs.length) return;
+  const x0 = (Math.min(...rs.map(r => r.left)) - wr.left) / k0, x1 = (Math.max(...rs.map(r => r.right)) - wr.left) / k0, y0 = (Math.min(...rs.map(r => r.top)) - wr.top) / k0, y1 = (Math.max(...rs.map(r => r.bottom)) - wr.top) / k0;
+  const k = Math.min(1.2, Math.max(+st.dataset.min || 0.04, Math.min((st.clientWidth - 100) / (x1 - x0 || 1), (st.clientHeight - 100) / (y1 - y0 || 1))));
+  setView(st, { k, x: st.clientWidth / 2 - (x0 + x1) / 2 * k, y: st.clientHeight / 2 - (y0 + y1) / 2 * k }, true);
+}
+let mapHoverTimer = 0;
+const mapHover = id => { if (MAPV.hover === id) return; MAPV.hover = id; clearTimeout(mapHoverTimer); mapHoverTimer = setTimeout(() => mapLight(!!id || mapCfg().sel.length > 0), id ? 140 : 250); };
+document.addEventListener('pointerover', e => { const r = e.target.closest?.('#mapSide [data-mapitem]'); if (r) mapHover(r.dataset.mapitem); else if (MAPV.hover && e.target.closest?.('#mapSide')) mapHover(null); });
+document.addEventListener('pointerleave', e => { if (e.target.id === 'mapSide' && MAPV.hover) mapHover(null); }, true);
+document.addEventListener('focusin', e => { const r = e.target.closest?.('#mapSide [data-mapitem]'); if (r) mapHover(r.dataset.mapitem); });
 const MAP_EMPTY = '<svg class="flow" viewBox="0 0 10 10"></svg>';
 function renderMap() {
   const c = mapCfg();
@@ -189,6 +260,7 @@ function renderMap() {
     </section>
   </div>`;
   applyZoom($('#view'));
+  if (c.sel.length) requestAnimationFrame(() => mapLight(false));
 }
 // Redraws the canvas (keeping the view where it is) and, unless told not to, the sidebar.
 function mapRefresh(side = true) {
@@ -197,6 +269,7 @@ function mapRefresh(side = true) {
   world.innerHTML = mapSVG(c) || MAP_EMPTY;
   if (v) setView(st, v); else applyZoom($('#view'));
   if (side) $('#mapSide').innerHTML = mapSidebarHTML(c);
+  mapLight(false);
 }
 // Fly to a pathway (and its found item): centered, zoomed so the pathway fits (closer for one item).
 // On the merged drawing, where things are is read off the drawing itself: the found item's box or label, or else
@@ -224,6 +297,14 @@ document.addEventListener('click', e => {
   const lay = t.closest('[data-maplayer]'), reg = t.closest('[data-mapreg]'), path = t.closest('[data-mappath]'), grp = t.closest('[data-mapgrp]'), all = t.closest('[data-mapall]'), go = t.closest('[data-mapgo]'), side = t.closest('[data-mapside]');
   if (lay) { c.layers[lay.dataset.maplayer] = !c.layers[lay.dataset.maplayer]; mapSave(c); return mapRefresh(); }
   if (reg) { c.reg = reg.dataset.mapreg; mapSave(c); return mapRefresh(); }
+  const tb = t.closest('[data-maptab]'), bt = t.closest('[data-mapbtab]'), item = t.closest('[data-mapitem]');
+  if (tb) { c.tab = tb.dataset.maptab; mapSave(c); MAPV.hover = null; $('#mapSide').innerHTML = mapSidebarHTML(c); return; }
+  if (bt) { c.btab = bt.dataset.mapbtab; c.bq = ''; mapSave(c); $('#mapSide').innerHTML = mapSidebarHTML(c); return; }
+  if (t.closest('[data-mapclear]')) { c.sel = []; mapSave(c); $('#mapSide').innerHTML = mapSidebarHTML(c); return mapLight(false); }
+  if (item) { const id = item.dataset.mapitem, on = c.sel.includes(id); c.sel = on ? c.sel.filter(x => x !== id) : [...c.sel, id]; mapSave(c);
+    item.setAttribute('aria-pressed', String(!on)); item.querySelector('svg, .mi')?.replaceWith(document.createRange().createContextualFragment(mi(on ? 'add' : 'check', 'sm')));
+    const n = $('#mapSide [data-maptab="browse"]'); if (n) n.innerHTML = `${mi('list', 'sm')} Browse${c.sel.length ? ` <span class="fdd-n">${c.sel.length}</span>` : ''}`;
+    return mapLight(true); }
   const mg = t.closest('[data-mapmerge]');
   if (mg) { c.merge = mg.dataset.mapmerge === 'true'; mapSave(c); const st = $('#mapStage'); if (st) st._v = null; mapRefresh(); return applyZoom($('#view')); }
   if (path) { const id = path.dataset.mappath; off.has(id) ? off.delete(id) : off.add(id); c.off = [...off]; mapSave(c); return mapRefresh(); }
@@ -235,6 +316,13 @@ document.addEventListener('click', e => {
   const x = t.closest('#mapStage a[href^="#/pathways/"]');
   if (x && !x.classList.contains('map-title')) { const id = decodeURIComponent(x.getAttribute('href').split('/')[2]); if (MAPV.tiles.some(tt => tt.id === id)) { e.preventDefault(); e.stopPropagation(); mapGo(id); } }
 }, true);
+let mapBqTimer = 0;
+document.addEventListener('input', e => {
+  const q = e.target.closest?.('[data-mapbq]'); if (!q) return;
+  clearTimeout(mapBqTimer);
+  mapBqTimer = setTimeout(() => { const c = mapCfg(); c.bq = q.value; mapSave(c); const list = $('#mapSide .map-list'), tmp = document.createElement('div'); tmp.innerHTML = mapBrowseHTML(c);
+    list.replaceWith(tmp.querySelector('.map-list')); $('#mapSide .sec-h .muted').textContent = tmp.querySelector('.sec-h .muted').textContent; }, 150);
+});
 let mapTimer = 0;
 document.addEventListener('input', e => {
   const q = e.target.closest?.('[data-mapq]'); if (!q) return;
