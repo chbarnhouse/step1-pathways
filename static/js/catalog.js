@@ -145,7 +145,7 @@ const pathwayCell = p => `<a href="#/pathways/${encodeURIComponent(p.id)}">${esc
 /* ---------- the tabs ---------- */
 function libTabs(active) {
   const c = catalog(), n = { pathways: Library.atomic().length, ...Object.fromEntries(CAT_TABS.map(([t, , k]) => [t, Object.keys(c[k]).length])) };
-  return `<nav class="libtabs" aria-label="Library">${[['pathways', 'Pathways'], ['map', 'Map'], ...CAT_TABS].map(([t, l]) =>
+  return `<nav class="libtabs" aria-label="Library">${[['pathways', 'Pathways'], ...CAT_TABS].map(([t, l]) =>
     `<a href="${t === 'pathways' ? '#/pathways' : t === 'map' ? '#/map' : `#/library/${t}`}"${t === active ? ' aria-current="page"' : ''}>${l}${n[t] !== undefined ? ` <span class="n">${n[t]}</span>` : ''}</a>`).join('')}</nav>`;
 }
 /* ---------- browsing a tab: like the Pathways tab (search, sort, filter menus with chips, rows by section) ----------

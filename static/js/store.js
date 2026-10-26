@@ -31,7 +31,7 @@ const MIGRATIONS = [
 function normalizeData(raw) {
   const obj = x => (x && typeof x === 'object' && !Array.isArray(x) ? x : {}), arr = x => (Array.isArray(x) ? x : []);
   const d = Object.assign({}, obj(raw));
-  d.custom = obj(d.custom); d.stats = obj(d.stats); d.tags = obj(d.tags); d.mixups = obj(d.mixups); // mixups: { pid: { key: { wrong: { name, n, last } } } }
+  d.custom = obj(d.custom); d.stats = obj(d.stats); d.tags = obj(d.tags); d.mixups = obj(d.mixups); d.review = obj(d.review); // mixups: { pid: { key: { wrong: { name, n, last } } } }
   d.presets = arr(d.presets).filter(x => x && typeof x === 'object');
   d.favorites = arr(d.favorites).filter(x => x && typeof x === 'object' && x.d);
   d.log = arr(d.log).filter(x => x && typeof x === 'object');

@@ -1647,6 +1647,11 @@ function stitchSVG(m, statusOf) {
       .map(([f, t, P]) => { const x = Math.min(f.x, t.x) + P.dx, y = Math.min(f.y, t.y) + P.dy; return { x: x - 8, y: y - 8, w: Math.max(f.x + f.w, t.x + t.w) + P.dx - x + 16, h: Math.max(f.y + f.h, t.y + t.h) + P.dy - y + 16 }; }));
     return rs => rs.some(r => steps.some(o => r.x < o.x + o.w && o.x < r.x + r.w && r.y < o.y + o.h && o.y < r.y + r.h));
   };
+  // The other way round: none of a new part's own arrows may run over a box or label already placed (the span between a step's
+  // two boxes, which is where its line goes, give or take a curve).
+  const overBoxes = (R, dx, dy) => R.sm.p.reactions.some(r => { const f = R.pos['m:' + r.from], t = R.pos['m:' + r.to]; if (!f || !t) return false;
+    const x0 = Math.min(f.x + f.w / 2, t.x + t.w / 2) + dx, x1 = Math.max(f.x + f.w / 2, t.x + t.w / 2) + dx, y0 = Math.min(f.y + f.h / 2, t.y + t.h / 2) + dy, y1 = Math.max(f.y + f.h / 2, t.y + t.h / 2) + dy;
+    return occ.some(o => { const g = o.box ? M : 6; return o.x - g < x1 && o.x + o.w + g > x0 && o.y - g < y1 && o.y + o.h + g > y0; }); }); // its tags and labels too
   // Somewhere free for a part, with its box `key` as close as it can get to `target` (but leaving room for an arrow).
   const nearby = (R, key, target) => {
     const b = R.pos[key] || Object.values(R.pos)[0], t = ctr(target), c = ctr(b), cands = [];
@@ -1818,7 +1823,7 @@ function stitchSVG(m, statusOf) {
           for (const d of [150, 200, 260, 330, 420, 520, 640, 780]) for (const sl of [0, 60, -60, 130, -130, 260, -260, 400, -400, 550, -550]) {
             const cost = d + 0.6 * Math.abs(sl); if (cost >= best) continue;
             const dx = mx + nx * d + ux * sl - qx, dy = my + ny * d + uy * sl - qy, rs = rectsOf(R, dx, dy);
-            if (!clash(rs) && !onSteps(rs)) { got = [R, dx, dy]; best = cost; }
+            if (!clash(rs) && !onSteps(rs) && !overBoxes(R, dx, dy)) { got = [R, dx, dy]; best = cost; }
           }
         }
       }
@@ -1937,18 +1942,23 @@ function stitchSVG(m, statusOf) {
   }
   // Coupled steps: a dotted tie between the two arrows of one step, dots at both ends; named when they ended up apart.
   for (const [a, b] of st.couples || []) {
-    // Midway along each arrow: the part's own path that leaves one box and ends at the other (a curve or an elbow).
-    const ra = m.p.reactions.find(r => r.id === a), rb = m.p.reactions.find(r => r.id === b), mid = r => {
+    // Points along each arrow (the middle 70% of the part's own path that leaves one box and ends at the other, a curve
+    // or an elbow), so the tie can join the two where they come closest.
+    const ra = m.p.reactions.find(r => r.id === a), rb = m.p.reactions.find(r => r.id === b), along = r => {
       const f = G['m:' + r.from], t = G['m:' + r.to]; if (!f || !t) return null;
       const P = placed.find(P => P.sm.p.reactions.includes(r)) || f.R, near = (x, y, b) => x > b.x - 24 && x < b.x + b.w + 24 && y > b.y - 24 && y < b.y + b.h + 24;
       const probe = pathProbe();
       for (const pm of (P.body || '').matchAll(/<path class="[^"]*" d="([^"]+)"/g)) {
         probe.setAttribute('d', pm[1]); const L = probe.getTotalLength(), at = l => { const q = probe.getPointAtLength(l); return [q.x + P.dx, q.y + P.dy]; };
         if (L < 20 || !near(...at(0), f) || !near(...at(L), t)) continue;
-        return at(L / 2);
+        return Array.from({ length: 29 }, (_, i) => at(L * (0.15 + 0.7 * i / 28)));
       }
-      return [(ctr(f).cx + ctr(t).cx) / 2, (ctr(f).cy + ctr(t).cy) / 2]; };
-    const p = ra && mid(ra), q = rb && mid(rb); if (!p || !q) continue;
+      return [[(ctr(f).cx + ctr(t).cx) / 2, (ctr(f).cy + ctr(t).cy) / 2]]; };
+    const A = ra && along(ra), B = rb && along(rb); if (!A || !B) continue;
+    // The closest pair whose straight line covers no box or label (the closest of all if none is clear).
+    const clear = (u, v) => ![...DRAW_BOXES, ...DRAW_LABELS].some(r => { for (let f = 0.08; f < 0.93; f += 0.04) { const x = u[0] + (v[0] - u[0]) * f, y = u[1] + (v[1] - u[1]) * f; if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true; } return false; });
+    const pairs = A.flatMap(u => B.map(v => [Math.hypot(u[0] - v[0], u[1] - v[1]), u, v])).sort((x, y) => x[0] - y[0]);
+    const [, p, q] = pairs.slice(0, 200).find(([d, u, v]) => d < 320 && clear(u, v)) || pairs[0];
     // Side by side: a straight tie. Apart: routed like the other joins, clear of boxes, and named.
     const far = Math.hypot(q[0] - p[0], q[1] - p[1]) > 320, dot = c => ({ x: c[0] - 4, y: c[1] - 4, w: 8, h: 8 });
     const blocked = [...DRAW_BOXES, ...DRAW_LABELS].some(r => { for (let f = 0.08; f < 0.93; f += 0.04) { const x = p[0] + (q[0] - p[0]) * f, y = p[1] + (q[1] - p[1]) * f; if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true; } return false; });

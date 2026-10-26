@@ -6,6 +6,7 @@
 'use strict';
 
 const CANVAS = { min: 0.2, max: 3, pad: 16 };
+const minK = st => +(st?.dataset.min || CANVAS.min); // the map is far bigger than any one diagram: it may zoom out further
 let CANVAS_VIEW = null; // the last view, kept across re-renders of the same diagram: { key, mode, k, x, y }
 
 const canvasStage = (scope = document) => scope.querySelector('.stage.canvas');
@@ -18,14 +19,14 @@ const canvasHTML = (svg, extra = '') => `<div class="world">${svg}${extra}</div>
 function contentSize(st) { const vb = svgOf(st).viewBox.baseVal; return { w: vb.width, h: vb.height }; }
 function fitK(st, mode) {
   const { w, h } = contentSize(st), W = st.clientWidth - 2 * CANVAS.pad, H = st.clientHeight - 2 * CANVAS.pad;
-  if (mode === 'fit') return Math.max(CANVAS.min, Math.min(W / w, H / h, 1.6));
-  if (mode === 'height') return Math.max(CANVAS.min, Math.min(H / h, 1.6));
-  return Math.max(CANVAS.min, Math.min(1, W / w));
+  if (mode === 'fit') return Math.max(minK(st), Math.min(W / w, H / h, 1.6));
+  if (mode === 'height') return Math.max(minK(st), Math.min(H / h, 1.6));
+  return Math.max(minK(st), Math.min(1, W / w));
 }
 // Keep some of the diagram on screen however far it is dragged.
 function clampView(st, v) {
   const { w, h } = contentSize(st), keep = 80, W = st.clientWidth, H = st.clientHeight;
-  v.k = Math.min(CANVAS.max, Math.max(CANVAS.min, v.k));
+  v.k = Math.min(CANVAS.max, Math.max(minK(st), v.k));
   v.x = Math.min(W - keep, Math.max(keep - w * v.k, v.x));
   v.y = Math.min(H - keep, Math.max(keep - h * v.k, v.y));
   return v;
@@ -43,7 +44,7 @@ function setView(st, v, animate = false) {
 // Zoom about a point of the stage (cursor, pinch center, or the middle for the buttons).
 function zoomAt(st, k, px, py, animate = false) {
   const v = st._v;
-  const nk = Math.min(CANVAS.max, Math.max(CANVAS.min, k));
+  const nk = Math.min(CANVAS.max, Math.max(minK(st), k));
   setView(st, { k: nk, x: px - (px - v.x) * nk / v.k, y: py - (py - v.y) * nk / v.k }, animate);
 }
 
@@ -77,7 +78,7 @@ function zoomBy(d) {
     const z = Store.settings.zoom; Store.settings.zoom = Math.round(Math.min(2.5, Math.max(0.3, (typeof z === 'number' ? z : 1) + d)) * 10) / 10;
     Store.save(); return applyZoom();
   }
-  const k = Math.round(Math.min(CANVAS.max, Math.max(CANVAS.min, st._v.k + d)) * 10) / 10;
+  const k = Math.round(Math.min(CANVAS.max, Math.max(minK(st), st._v.k + d)) * 10) / 10;
   Store.settings.zoom = k; Store.save();
   zoomAt(st, k, st.clientWidth / 2, st.clientHeight / 2, true);
   applyZoomButtons();

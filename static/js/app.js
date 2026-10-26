@@ -85,7 +85,7 @@ function renderDashboard() {
       ${backupCardHTML()}
     </div>
     <div class="dash-quick">${favoritesCardHTML()}${presetsCardHTML()}</div>
-    ${Store.mode === 'server' ? `<div class="dash-feedback" id="dashFeedback">${feedbackHTML()}</div>` : ''}
+    ${Store.mode === 'server' ? `<div class="dash-feedback" id="dashFeedback">${feedbackHTML()}</div>${reviewCardHTML()}` : ''}
     <div class="dash-cols">
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
@@ -121,6 +121,13 @@ function loadFeedback(force) {
 }
 const fbWhen = iso => { const t = Date.parse(iso); if (!t) return iso || ''; const d = Math.floor((Date.now() - t) / 86400000); return d <= 0 ? 'today' : d === 1 ? 'yesterday' : d < 7 ? `${d} days ago` : new Date(t).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }); };
 const fbLink = v => (/^https?:\/\//.test(v) ? v.split(/,\s*/).map(u => `<a href="${esc(u)}" target="_blank" rel="noopener">${mi('open_in_new', 'sm')} Open</a>`).join(' ') : esc(v));
+// Your copy only: how much of the written-in content is left to check, and a way in.
+function reviewCardHTML() {
+  const fs = reviewFacts(), left = fs.filter(f => ['open', 'changed'].includes(reviewState(f))).length, fix = fs.filter(f => reviewState(f) === 'fix').length;
+  if (!left && !fix) return '';
+  return `<section class="card pad rv-dash"><div class="sec-h"><h2>${mi('task_alt', 'h-ic')} Review content</h2><a class="btn small" href="#/review">${left ? 'Check facts' : 'See fixes'}</a></div>
+    <p class="muted">${left ? `${left} written-in facts to check` : 'All checked'}${fix ? ` · ${fix} marked to fix` : ''}.</p></section>`;
+}
 function feedbackHTML() {
   if (!FB.data) { loadFeedback(); return `<section class="card pad fb-card"><p class="muted small">${mi('refresh', 'sm')} Loading feedback…</p></section>`; }
   if (!FB.data.configured) return `<section class="card pad fb-card"><div class="sec-h"><h2>${mi('bug_report', 'h-ic')} Feedback</h2></div><p class="muted small">Not connected yet: the issue reports and shared pathways will show here once the forms' sheet is linked (see tools/feedback-bridge.gs).</p></section>`;
@@ -1073,7 +1080,7 @@ function router() {
     if (Q.cfg) renderQuiz(); else { location.replace('#/'); return; }
   }
   else if (h === '#/pathways') { page = 'pathways'; renderLibrary(); }
-  else if (h === '#/map') { page = 'pathways'; renderMap(); }
+  else if (h === '#/map') { page = 'map'; renderMap(); }
   else if (h === '#/pathways/new') { page = 'pathways'; openEditor(null); }
   else if (h === '#/pathways/new-combined') { page = 'pathways'; openEditor(null, { id: '', name: 'Combined pathway', group: 'Combined', summary: '', compose: [] }); }
   else if (h === '#/pathways/import') { page = 'pathways'; if (E.pending) openEditor(null, E.pending); else location.replace('#/pathways'); }
@@ -1083,6 +1090,7 @@ function router() {
   else if ((m = h.match(/^#\/library\/([a-z]+)$/))) { page = 'pathways'; renderCatalog(m[1]); }
   else if ((m = h.match(/^#\/library\/([a-z]+)\/(.+)$/))) { page = 'pathways'; renderCatItem(m[1], decodeURIComponent(m[2])); }
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
+  else if (h === '#/review' && Store.mode === 'server') { page = 'settings'; renderReview(); }
   else { location.replace('#/'); return; }
   document.body.dataset.page = page;
   trailLabel(h);
