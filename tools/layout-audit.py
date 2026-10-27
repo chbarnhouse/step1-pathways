@@ -5,7 +5,8 @@
    tiles = every pathway as a joined drawing draws it (compartments off).
    map = the merged Map (every metabolic pathway joined).
    links = every two-pathway set the app suggests (they share a link or a molecule), drawn the way New quiz draws them.
-   Counted per drawing: text over text, text over a box or pill it doesn't belong to, a joining line through text, and pairs closer than 3 px."""
+   Counted per drawing: text over text, text over a box or pill it doesn't belong to, a joining line through text, a box
+   outside its compartment or across two, and pairs closer than 3 px."""
 import json, sys
 from playwright.sync_api import sync_playwright
 
@@ -73,6 +74,12 @@ PROBE = r"""([id, zones, rot]) => {
   }
   // A compartment's name tab wider than the shape it names.
   svg.querySelectorAll('rect.legend[data-room]').forEach(r => { if (+r.getAttribute('width') > +r.dataset.room - 16) hits.push(['tab', 'too wide: ' + (r.nextElementSibling?.textContent || '').trim()]); });
+  // A box that sticks out of its compartment's shape or reaches into a second one (9 sample points in each shape).
+  const blobs = [...svg.querySelectorAll('.blob > path')];
+  if (blobs.length) svg.querySelectorAll('g.mbox').forEach(g => { const r = g.querySelector(':scope > rect'); if (!r) return; const b = r.getBBox(), m = r.getScreenCTM(), pts = [];
+    for (const fx of [0.02, 0.5, 0.98]) for (const fy of [0.05, 0.5, 0.95]) { const x = b.x + fx * b.width, y = b.y + fy * b.height; pts.push([m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]); }
+    const ns = blobs.map(pth => { const im = pth.getScreenCTM().inverse(); return pts.filter(([X, Y]) => { const q = svg.createSVGPoint(); q.x = im.a * X + im.c * Y + im.e; q.y = im.b * X + im.d * Y + im.f; return pth.isPointInFill(q); }).length; }).filter(n => n);
+    if (ns.length && (ns.length > 1 || ns[0] < 9)) hits.push(['box', (ns.length > 1 ? 'in ' + ns.length + ' compartments: ' : 'sticks out: ') + g.textContent.trim().slice(0, 30)]); });
   host.remove();
   return { id, hits: hits.length, near: near.length, examples: hits.slice(0, 6), nearEx: near.slice(0, 4), all: hits };
 }"""

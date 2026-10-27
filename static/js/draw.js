@@ -990,7 +990,25 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
   const L = snapSide(areas.map(a => a.r.x), true), Rr = snapSide(areas.map(a => a.r.x + a.r.w), false), T = snapSide(areas.map(a => a.r.y), true), Bm = snapSide(areas.map(a => a.r.y + a.r.h), false);
   const ar = areas.map(a => ({ z: a.z, x0: L.get(a.r.x), x1: Rr.get(a.r.x + a.r.w), y0: T.get(a.r.y), y1: Bm.get(a.r.y + a.r.h) })).map(a => ({ ...a, area: (a.x1 - a.x0) * (a.y1 - a.y0) }));
   const lines = vs => { const s = [...new Set(vs)].sort((a, b) => a - b), o = []; for (const v of s) if (!o.length || v - o[o.length - 1] >= MINC) o.push(v); else o[o.length - 1] = Math.max(o[o.length - 1], v); return o; };
-  const xs = lines(ar.flatMap(a => [a.x0, a.x1])), ys = lines(ar.flatMap(a => [a.y0, a.y1])), W = xs.length - 1, H = ys.length - 1;
+  // A box's own edges (with their margin) always stay grid lines, so no cell holds part of a box and part of its neighbor;
+  // the area edges merge into them like into each other.
+  // A cluster of close lines becomes its lowest when it holds a low edge (an area's left or top), else its highest:
+  // an area may grow by the merge, never shrink, so a merge never cuts into the boxes at its edge.
+  const lines2 = (lo, hi) => { const all = [...lo.map(v => [v, 1]), ...hi.map(v => [v, 0])].sort((a, b) => a[0] - b[0]), o = [];
+    for (let i = 0; i < all.length;) { let j = i; while (j + 1 < all.length && all[j + 1][0] - all[j][0] < MINC) j++;
+      const g = all.slice(i, j + 1); o.push(g.some(t => t[1]) ? g[0][0] : g[g.length - 1][0]); i = j + 1; }
+    return [...new Set(o)]; };
+  const xs = lines2(ar.map(a => a.x0), ar.map(a => a.x1)), ys = lines2(ar.map(a => a.y0), ar.map(a => a.y1));
+  // Two boxes of different compartments side by side (or one above the other) with no line between them would share a
+  // cell: a line goes in the middle of the gap between them.
+  const bb = boxes.map(b => ({ z: b.z, r: b.box || b.r }));
+  for (const [A, B] of bb.flatMap((a, i) => bb.slice(i + 1).map(b => [a, b]))) { if (A.z === B.z) continue;
+    const [p, q] = A.r.x <= B.r.x ? [A.r, B.r] : [B.r, A.r], [u, v] = A.r.y <= B.r.y ? [A.r, B.r] : [B.r, A.r];
+    const rowsMeet = p.y < q.y + q.h && q.y < p.y + p.h, colsMeet = u.x < v.x + v.w && v.x < u.x + u.w;
+    if (rowsMeet && q.x >= p.x + p.w && !xs.some(x => x >= p.x + p.w && x <= q.x)) xs.push((p.x + p.w + q.x) / 2);
+    if (colsMeet && v.y >= u.y + u.h && !ys.some(y => y >= u.y + u.h && y <= v.y)) ys.push((u.y + u.h + v.y) / 2);
+  }
+  xs.sort((a, b) => a - b); ys.sort((a, b) => a - b); const W = xs.length - 1, H = ys.length - 1;
   const near = (v, arr) => arr.reduce((b, x) => (Math.abs(x - v) < Math.abs(b - v) ? x : b), arr[0]); // an edge merged away goes to the line that kept it
   ar.forEach(a => { a.x0 = near(a.x0, xs); a.x1 = near(a.x1, xs); a.y0 = near(a.y0, ys); a.y1 = near(a.y1, ys); });
   const zs = [...new Set(ar.map(a => a.z))], own = new Int16Array(W * H).fill(-1), best = new Float64Array(W * H).fill(Infinity);
@@ -1003,10 +1021,11 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
   for (let n = 0; n < W * H; n++) { const c = cover[n]; if (!c) continue; if (c.size === 1) { own[n] = [...c][0]; continue; }
     const i = n % W, j = (n - i) / W, cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
     for (const zi of c) { const d = Math.min(...zb[zi].map(r => dist(cx, cy, r))); if (d < best[n]) { best[n] = d; own[n] = zi; } } }
-  // ...unless a compartment's own box is there.
-  for (const b of boxes) { const zi = zs.indexOf(b.z); if (zi < 0) continue;
-    for (let j = 0; j < H; j++) { const cy = (ys[j] + ys[j + 1]) / 2; if (cy < b.r.y || cy > b.r.y + b.r.h) continue;
-      for (let i = 0; i < W; i++) { const cx = (xs[i] + xs[i + 1]) / 2; if (cx > b.r.x && cx < b.r.x + b.r.w && own[j * W + i] >= 0) own[j * W + i] = zi; } } }
+  // ...unless a compartment's own box is there: every cell the box (with a margin) reaches into is its compartment's,
+  // even one no area covers (merged grid lines can leave a box's edge outside its own area).
+  for (const b of boxes) { const zi = zs.indexOf(b.z); if (zi < 0) continue; const r = b.box || b.r;
+    for (let j = 0; j < H; j++) { if (ys[j + 1] <= r.y || ys[j] >= r.y + r.h) continue;
+      for (let i = 0; i < W; i++) if (xs[i + 1] > r.x && xs[i] < r.x + r.w) own[j * W + i] = zi; } }
   // Pieces: connected cells of one compartment; their outlines, traced with the piece on the right (y down).
   const seen = new Uint8Array(W * H), corners = [], pieces = [];
   for (let n0 = 0; n0 < W * H; n0++) {
@@ -2299,7 +2318,7 @@ function stitchSVG(m, statusOf) {
   // A piece's area is its bounding box when that holds no other compartment's box; else just its own rectangles (its
   // boxes and the joins between them), so it never claims the space around another pathway's boxes.
   const part = zonePartition(Object.entries(pieces).flatMap(([z, gs]) => gs.flatMap(g => { const b = boxOf(g); return foreign(z).some(o => hit(b, o)) ? g.map(r => ({ z, r })) : [{ z, r: b }]; })),
-    Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(G[k]) })));
+    Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(G[k]), box: { x: G[k].x - 14, y: G[k].y - 14, w: G[k].w + 28, h: G[k].h + 28 } })));
   for (const [z, ps] of Object.entries(part)) bg += `<g class="blob">${ps.map(P => `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${P.d}"/>`).join('')}</g>`;
   // A fully free spot for a w × h tab inside a piece's rows, or null.
   const tabFree = (g, w, h) => { for (const r of g) for (let y = r.y + 4; y <= r.y + r.h - h - 4; y += 16) for (let x = r.x + 12; x <= r.x + r.w - 12 - w; x += 24) { const t = { x, y, w, h };

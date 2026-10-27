@@ -9,6 +9,7 @@ const APP_VERSION = '3.13.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'Compartments in joined drawings and the merged Map now hold every one of their boxes: none sticks out of its shape or reaches into a neighbor’s (75 did on the Map).',
     'Map: switching between Each pathway whole and Merge shared molecules re-fits the view, and Chrome no longer leaves parts of the page unpainted around the big merged drawing.',
     'Two-pathway drawings start from the bigger pathway, so it keeps its own shape (fructose joins glycolysis beside its column; gluconeogenesis keeps pyruvate at the top, with room for PDH’s labels). On the Map, malate dehydrogenase is drawn once between oxaloacetate and malate, and the dotted tie for thymidylate synthase no longer crosses another step’s name.',
     'Connected drawings are tidier: nothing of one pathway lands on another’s labels, compartment names find a free spot, a step both pathways share is drawn (and asked) once, and steps between pathways show their transporter and keep their names and cofactors on a clear stretch of the line.',
