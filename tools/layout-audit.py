@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Layout audit: draws pathways in WebKit and counts things that collide or crowd.
-   python3 tools/layout-audit.py [all|tiles|links|map|ids…] [--url http://localhost:8124] [--json out.json]
+   python3 tools/layout-audit.py [all|tiles|rings|links|map|ids…] [--url http://localhost:8124] [--json out.json]
+   rings = every cycle turned a quarter at a time (as a joined drawing may turn it).
    tiles = every pathway as a joined drawing draws it (compartments off).
    map = the merged Map (every metabolic pathway joined).
    links = every two-pathway set the app suggests (they share a link or a molecule), drawn the way New quiz draws them.
@@ -13,10 +14,10 @@ url = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--url'), 'h
 out = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--json'), None)
 which = args[0] if args else 'links'
 
-PROBE = r"""([id, zones]) => {
+PROBE = r"""([id, zones, rot]) => {
   const p = Library.get(id); if (!p) return null;
   const host = document.createElement('div'); host.style.cssText = 'position:absolute;left:-99999px;top:0;width:4000px';
-  host.innerHTML = flowSVG(modelFor(p), () => 'shown', { zones }); document.body.append(host);
+  host.innerHTML = flowSVG(modelFor(p), () => 'shown', { zones, rot: rot || 0 }); document.body.append(host);
   const svg = host.querySelector('svg'), base = svg.getScreenCTM().inverse();
   const box = el => { const b = el.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; };
   // Things that must stay apart: each text line, each box and pill. A text belongs to the box or pill it sits in.
@@ -49,6 +50,27 @@ PROBE = r"""([id, zones]) => {
     const L = pth.getTotalLength(), ctm = pth.getScreenCTM(), seen = new Set();
     for (let l = 6; l < L - 6; l += 4) { const q = pth.getPointAtLength(l), x = ctm.a * q.x + ctm.c * q.y + ctm.e, y = ctm.b * q.x + ctm.d * q.y + ctm.f;
       for (const t of tb.get(tkey(Math.floor(x / TB), Math.floor(y / TB))) || []) if (!seen.has(t) && !(t.box && pth.compareDocumentPosition(t.box) & Node.DOCUMENT_POSITION_FOLLOWING) && x > t.r.x + 1 && x < t.r.x + t.r.w - 1 && y > t.r.y + 2 && y < t.r.y + t.r.h - 2) { seen.add(t); hits.push(['step', 'text:' + t.label]); } } });
+  // Compartment corners (joined drawings). Every corner of every shape: its circle's center and radius (a rounded rect's
+  // four; an outline's quadratic corners, center = p1 + p2 - v). An inside corner should wrap another shape's outside
+  // corner concentrically (same center, radius bigger by the gap). Counted: inside corners with another shape's corner
+  // close by but off-center (a near miss), and outside corners pinched below the radius (a ledge too short to round).
+  const R0 = 18, GAP0 = 22, cs = [];
+  svg.querySelectorAll('.blob > rect, .blob > path').forEach((el, si) => {
+    if (el.tagName === 'rect') { const x = +el.getAttribute('x'), y = +el.getAttribute('y'), w = +el.getAttribute('width'), h = +el.getAttribute('height'), r = +el.getAttribute('rx');
+      [[x + r, y + r], [x + w - r, y + r], [x + w - r, y + h - r], [x + r, y + h - r]].forEach(c => cs.push({ si, c, r, inner: false })); return; }
+    for (const sub of el.getAttribute('d').split('Z')) {
+      const m = [...sub.matchAll(/[ML]([-\d.]+),([-\d.]+) Q([-\d.]+),([-\d.]+) ([-\d.]+),([-\d.]+)/g)].map(t => t.slice(1).map(Number)); if (m.length < 3) continue;
+      m.forEach(([p1x, p1y, vx, vy, p2x, p2y], i) => { const [ax, ay] = m[(i - 1 + m.length) % m.length].slice(2, 4), [bx, by] = m[(i + 1) % m.length].slice(2, 4);
+        const inner = (vx - ax) * (by - vy) - (vy - ay) * (bx - vx) < 0;
+        cs.push({ si, c: [p1x + p2x - vx, p1y + p2y - vy], r: Math.hypot(vx - p1x, vy - p1y), inner }); });
+    }
+  });
+  for (const k of cs) {
+    if (!k.inner) { if (k.r < R0 - 1) hits.push(['corner', 'pinched ' + k.r.toFixed(0)]); continue; }
+    const others = cs.filter(o => o.si !== k.si && !o.inner), d = o => Math.hypot(o.c[0] - k.c[0], o.c[1] - k.c[1]);
+    if (others.some(o => d(o) < 2.5 && Math.abs(k.r - o.r - GAP0) < 2.5)) continue; // concentric
+    if (others.some(o => d(o) < 60)) hits.push(['corner', 'off-center ' + Math.min(...others.map(d)).toFixed(0)]);
+  }
   // A compartment's name tab wider than the shape it names.
   svg.querySelectorAll('rect.legend[data-room]').forEach(r => { if (+r.getAttribute('width') > +r.dataset.room - 16) hits.push(['tab', 'too wide: ' + (r.nextElementSibling?.textContent || '').trim()]); });
   host.remove();
@@ -64,11 +86,16 @@ with sync_playwright() as pw:
           return [...out].filter(id => id.startsWith('link:')).sort(); }""")
     elif which == 'map':
         ids = pg.evaluate("() => { const ids = mapPathways().filter(p => !MAP_OFF_GROUPS.includes(p.group)).map(p => p.id), d = { pathway: ids[0], extra: [], combine: false }; ids.slice(1).forEach(id => addPathway(d, id)); return [draftPathway(d)]; }")
+    elif which == 'rings':
+        ids = pg.evaluate("() => Library.atomic().filter(p => p.circular).map(p => p.id)")
     elif which in ('all', 'tiles'):
-        ids = pg.evaluate("() => Library.atomic().map(p => p.id)")
+        ids = pg.evaluate("() => Object.values(Library.all()).filter(p => (p.reactions || []).length || p.compose).map(p => p.id)") # combined pathways too
     else:
         ids = args
-    res = [r for r in (pg.evaluate(PROBE, [i, which != 'tiles']) for i in ids) if r]
+    jobs = [(i, False, t) for i in ids for t in (0, 1.5708, 3.1416, -1.5708)] if which == 'rings' else [(i, which != 'tiles', 0) for i in ids]
+    res = [r for r in (pg.evaluate(PROBE, list(j)) for j in jobs) if r]
+    if which == 'rings':
+        for r, j in zip(res, jobs): r['id'] = f"{j[0]} @ {j[2]}"
     b.close()
 res.sort(key=lambda r: -(r['hits'] * 3 + r['near']))
 tot_h, tot_n = sum(r['hits'] for r in res), sum(r['near'] for r in res)

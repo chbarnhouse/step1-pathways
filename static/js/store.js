@@ -267,8 +267,14 @@ function stitchPathway(ids) {
     }).filter(nr => {
       // A step both parts have between the same two shared boxes (triose phosphate isomerase in fructose and
       // glycolysis) is drawn and asked once, by the part that came first.
-      const name = out.enzymes[nr.enzyme]?.name;
-      return !out.reactions.some(o => out.enzymes[o.enzyme]?.name === name && ((o.from === nr.from && o.to === nr.to) || ((o.reversible || nr.reversible) && o.from === nr.to && o.to === nr.from)));
+      // (Its name with any place in brackets aside: "Malate dehydrogenase (mitochondrial)" on the TCA cycle's step is one step.)
+      // Not when either is a ring, though: taking a step out of a ring (or out of the straight pathway it joins) breaks
+      // that drawing, so both keep their copy.
+      const base = n => norm(String(n || '').replace(/\s*\([^)]*\)\s*$/, '')), name = base(out.enzymes[nr.enzyme]?.name);
+      const o = out.reactions.find(o => base(out.enzymes[o.enzyme]?.name) === name && ((o.from === nr.from && o.to === nr.to) || ((o.reversible || nr.reversible) && o.from === nr.to && o.to === nr.from)));
+      if (!o) return true;
+      const owner = out.stitch.tiles.find(x => x.p.reactions.includes(o));
+      return !!(t.circular || owner?.p.circular);
     });
     // A step both parts have, seen from opposite sides (methionine synthase: homocysteine → methionine in one, N⁵-methyl-THF
     // → THF in the other, each the other's cofactors): one step, two arrows side by side. The enzyme is named and asked

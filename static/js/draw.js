@@ -93,27 +93,36 @@ function elbowLabels(m, statusOf, r, h, v) {
 /* A step drawn between the parts of a joined drawing can put its name and cofactors on any leg of its route. Every
    layout on every long-enough leg is scored by what it would cover (boxes and labels alike); the first that covers
    nothing wins (longest legs first), else the one that covers least. */
-function routeStepLabels(m, statusOf, r, P) {
+function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(rect): it would sit on a line already drawn
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), cof = cs !== 'none' && cs !== 'hide';
-  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.filter(q => q && hitsBox(q)).length;
+  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.filter(q => q && (q.hit || hitsBox(q) || lineHit(q))).length;
+  // What a layout's cofactor text actually is, where it lands, tried without keeping anything.
+  // (Drawn as the real thing is: its name already there, which the curl steers around; and curls record their labels.)
+  // Its curl too, sampled every 8 px (a 4-px square each): a curl through a label is as bad as text on one.
+  const drawn = (f, name) => { if (!cof) return []; const keep = COF_SPOTS.length, kl = DRAW_LABELS.length; DRAW_LABELS.push(name); const svg = f(); COF_SPOTS.length = keep; DRAW_LABELS.length = kl;
+    const probe = pathProbe(), pts = [];
+    for (const pm of svg.matchAll(/<path class="([^"]*)" d="([^"]+)"/g)) { if (/\bah\b/.test(pm[1])) continue; probe.setAttribute('d', pm[2]); const L = probe.getTotalLength(); for (let l = 8; l < L - 8; l += 8) { const q = probe.getPointAtLength(l); pts.push({ x: q.x - 2, y: q.y - 2, w: 4, h: 4 }); } }
+    const curlHit = pts.some(q => hitsBox(q));
+    return [...textRects(svg), ...(curlHit ? [{ hit: true }] : [])]; };
   const legs = P.slice(1).map((q, i) => [P[i], q]).map(([p, q]) => ({ p, q, h: Math.abs(p[1] - q[1]) < 1, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }))
-    .filter(l => l.len >= (l.h ? 150 : 80)).sort((a, b) => b.len - a.len);
+    .filter(l => l.len >= (l.h ? 110 : 60)).sort((a, b) => b.len - a.len); // short legs too, as a last resort (tried last)
   const plans = [];
   for (const { p, q, h, len } of legs) {
     if (h) {
       const y = p[1], dir = Math.sign(q[0] - p[0]);
-      for (const f of [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]) for (const up of cof ? [false, true] : [false]) {
-        const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = up ? y - 62 : y - 8;
-        const name = enzRect(mx, ly, 'middle', it, 22, 'bottom'), cb = cof && { x: a0, y: up ? y - 60 : y + 8, w: a1 - a0, h: 52 };
-        plans.push({ n: count([name, cb]), go: () => { DRAW_LABELS.push(name); return enzLabel(mx, ly, it, es, 'middle', 22, 'bottom') + (cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''); } });
+      for (const lift of [0, 24, 48]) for (const f of [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]) for (const up of cof ? [false, true] : [false]) {
+        // (lift: the name a little further above its line, when right against it there's no room)
+        const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = (up ? y - 62 : y - 8) - lift;
+        const name = enzRect(mx, ly, 'middle', it, 22, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
+        plans.push({ n: count([name, ...cb]), go: () => { DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return enzLabel(mx, ly, it, es, 'middle', 22, 'bottom') + c; } });
       }
     } else {
       const x = p[0], y0 = Math.min(p[1], q[1]), y1 = Math.max(p[1], q[1]), cw = cof ? Math.max(0, ...parts.map(t => (hidden(t.st) ? 110 : t.text.length * 7))) + 64 : 14;
       const stretches = y1 - y0 > 150 ? [0.5, 0.35, 0.65, 0.22, 0.78].map(f => { const c = y0 + (y1 - y0) * f; return [Math.max(y0, c - 55), Math.min(y1, c + 55)]; }) : [[y0, y1]];
-      for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1]]) {
-        const c = (a0 + a1) / 2, name = enzRect(x + dx, c, an, it, 18), cb = cof && { x: sx > 0 ? x + 40 : x - cw, y: a0, w: cw - 30, h: a1 - a0 };
+      for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1], [-44, 'end', 1], [cw + 30, 'start', 1], [-cw - 30, 'end', -1]]) {
         if (dx === 14 && cof) continue; // name right with cofactors left is the mirrored layout above
-        plans.push({ n: count([name, cb]), go: () => { DRAW_LABELS.push(name); return enzLabel(x + dx, c, it, es, an, 18, 'center') + (cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''); } });
+        const c = (a0 + a1) / 2, name = enzRect(x + dx, c, an, it, 18), cb = drawn(() => cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0), name);
+        plans.push({ n: count([name, ...cb]), go: () => { DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return enzLabel(x + dx, c, it, es, an, 18, 'center') + cc; } });
       }
     }
   }
@@ -962,6 +971,87 @@ function unionPath(rects, R = REGION_R, Rin = REGION_R + REGION_GAP) { // Rin: i
   }
   return d;
 }
+/* Compartments of a joined drawing as one partition of the plane, so neighbors fit like puzzle pieces with every corner
+   concentric. areas: [{ z, r }] each piece's candidate area (its bounding box); boxes: [{ z, r }] each compartment's own
+   (padded) boxes. A cell goes to the compartment whose own box is in it, else to the compartment whose own box is nearest
+   among the areas that cover it. Edges on one side within 40 px snap outward to one line
+   and grid lines closer than two corners need (2R + gap) merge, so no slivers or ledges survive. Each piece is traced, pulled in by half the
+   gap on every side (so two neighbors keep the gap between them) and rounded: outside corners R, inside corners R + gap,
+   which makes an inside corner concentric with the outside corner it wraps. Where a short edge forces a smaller radius,
+   the corner it faces is matched (radius less the gap), so the two stay concentric. Returns
+   { z: [{ d, runs, bbox }] }: the outline (evenodd) and the piece's area as row runs (for placing its name). */
+function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
+  const h = GAP / 2, MINC = 2 * R + GAP, out = {}; if (!areas.length) return out; // MINC: no step shorter than two corners need
+  const snapSide = (vals, low) => { const s = [...new Set(vals)].sort((a, b) => a - b), map = new Map(); let g = [];
+    const flush = () => { const v = low ? g[0] : g[g.length - 1]; g.forEach(x => map.set(x, v)); g = []; };
+    for (const v of s) { if (g.length && v - g[0] > 40) flush(); g.push(v); } if (g.length) flush(); return map; };
+  const L = snapSide(areas.map(a => a.r.x), true), Rr = snapSide(areas.map(a => a.r.x + a.r.w), false), T = snapSide(areas.map(a => a.r.y), true), Bm = snapSide(areas.map(a => a.r.y + a.r.h), false);
+  const ar = areas.map(a => ({ z: a.z, x0: L.get(a.r.x), x1: Rr.get(a.r.x + a.r.w), y0: T.get(a.r.y), y1: Bm.get(a.r.y + a.r.h) })).map(a => ({ ...a, area: (a.x1 - a.x0) * (a.y1 - a.y0) }));
+  const lines = vs => { const s = [...new Set(vs)].sort((a, b) => a - b), o = []; for (const v of s) if (!o.length || v - o[o.length - 1] >= MINC) o.push(v); else o[o.length - 1] = Math.max(o[o.length - 1], v); return o; };
+  const xs = lines(ar.flatMap(a => [a.x0, a.x1])), ys = lines(ar.flatMap(a => [a.y0, a.y1])), W = xs.length - 1, H = ys.length - 1;
+  const near = (v, arr) => arr.reduce((b, x) => (Math.abs(x - v) < Math.abs(b - v) ? x : b), arr[0]); // an edge merged away goes to the line that kept it
+  ar.forEach(a => { a.x0 = near(a.x0, xs); a.x1 = near(a.x1, xs); a.y0 = near(a.y0, ys); a.y1 = near(a.y1, ys); });
+  const zs = [...new Set(ar.map(a => a.z))], own = new Int16Array(W * H).fill(-1), best = new Float64Array(W * H).fill(Infinity);
+  // Of the areas covering a cell, the compartment with a box nearest it (between pathways, each keeps the space around
+  // its own boxes; a small compartment inside a big one keeps its middle)...
+  const cover = Array.from({ length: W * H }, () => null), zb = zs.map(z => boxes.filter(b => b.z === z).map(b => b.r));
+  for (const a of ar) { const zi = zs.indexOf(a.z), i0 = xs.indexOf(a.x0), i1 = xs.indexOf(a.x1), j0 = ys.indexOf(a.y0), j1 = ys.indexOf(a.y1);
+    for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) { const n = j * W + i; (cover[n] = cover[n] || new Set()).add(zi); } }
+  const dist = (x, y, r) => Math.hypot(Math.max(r.x - x, 0, x - r.x - r.w), Math.max(r.y - y, 0, y - r.y - r.h));
+  for (let n = 0; n < W * H; n++) { const c = cover[n]; if (!c) continue; if (c.size === 1) { own[n] = [...c][0]; continue; }
+    const i = n % W, j = (n - i) / W, cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
+    for (const zi of c) { const d = Math.min(...zb[zi].map(r => dist(cx, cy, r))); if (d < best[n]) { best[n] = d; own[n] = zi; } } }
+  // ...unless a compartment's own box is there.
+  for (const b of boxes) { const zi = zs.indexOf(b.z); if (zi < 0) continue;
+    for (let j = 0; j < H; j++) { const cy = (ys[j] + ys[j + 1]) / 2; if (cy < b.r.y || cy > b.r.y + b.r.h) continue;
+      for (let i = 0; i < W; i++) { const cx = (xs[i] + xs[i + 1]) / 2; if (cx > b.r.x && cx < b.r.x + b.r.w && own[j * W + i] >= 0) own[j * W + i] = zi; } } }
+  // Pieces: connected cells of one compartment; their outlines, traced with the piece on the right (y down).
+  const seen = new Uint8Array(W * H), corners = [], pieces = [];
+  for (let n0 = 0; n0 < W * H; n0++) {
+    if (own[n0] < 0 || seen[n0]) continue;
+    const zi = own[n0], cells = [], stack = [n0]; seen[n0] = 1;
+    while (stack.length) { const n = stack.pop(), i = n % W, j = (n - i) / W; cells.push(n);
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, b = j + dj, m = b * W + a; if (a >= 0 && b >= 0 && a < W && b < H && !seen[m] && own[m] === zi) { seen[m] = 1; stack.push(m); } } }
+    const inP = new Set(cells), edges = new Map(), key = (x, y) => x + ',' + y, add = (p, q) => edges.set(key(...p), [...(edges.get(key(...p)) || []), q]);
+    for (const n of cells) { const i = n % W, j = (n - i) / W, a = [xs[i], ys[j]], b = [xs[i + 1], ys[j]], c = [xs[i + 1], ys[j + 1]], d = [xs[i], ys[j + 1]];
+      if (!(j > 0 && inP.has(n - W))) add(a, b); if (!(i < W - 1 && inP.has(n + 1))) add(b, c); if (!(j < H - 1 && inP.has(n + W))) add(c, d); if (!(i > 0 && inP.has(n - 1))) add(d, a); }
+    const loops = [];
+    while (edges.size) { const [k0] = edges.keys(); let p = k0.split(',').map(Number); const loop = [p];
+      for (let s = 0; s < 100000; s++) { const o = edges.get(key(...p)); if (!o?.length) break; const q = o.shift(); if (!o.length) edges.delete(key(...p)); if (key(...q) === k0) break; loop.push(q); p = q; }
+      edges.delete(k0);
+      const pts = loop.filter((v, i) => { const a = loop[(i - 1 + loop.length) % loop.length], b = loop[(i + 1) % loop.length]; return !((a[0] === v[0] && v[0] === b[0]) || (a[1] === v[1] && v[1] === b[1])); });
+      if (pts.length < 4) continue;
+      // Pulled in by h: each vertex moves along both of its edges' inward normals (right of travel, y down).
+      const unit = (p, q) => { const dx = Math.sign(q[0] - p[0]), dy = Math.sign(q[1] - p[1]); return [dx, dy]; };
+      const vs = pts.map((v, i) => { const a = pts[(i - 1 + pts.length) % pts.length], b = pts[(i + 1) % pts.length], [ax, ay] = unit(a, v), [bx, by] = unit(v, b);
+        return [v[0] + h * (-ay) + h * (-by), v[1] + h * ax + h * bx]; });
+      const li = loops.length; loops.push(vs);
+      vs.forEach((v, i) => { const a = vs[(i - 1 + vs.length) % vs.length], b = vs[(i + 1) % vs.length], la = Math.hypot(v[0] - a[0], v[1] - a[1]), lb = Math.hypot(b[0] - v[0], b[1] - v[1]);
+        const inner = (v[0] - a[0]) * (b[1] - v[1]) - (v[1] - a[1]) * (b[0] - v[0]) < 0, u = [Math.sign(a[0] - v[0]) + Math.sign(b[0] - v[0]), Math.sign(a[1] - v[1]) + Math.sign(b[1] - v[1])];
+        corners.push({ piece: pieces.length, loop: li, i, v, inner, u, cap: Math.min(la, lb) / 2, r: Math.min(inner ? R + GAP : R, la / 2, lb / 2) }); });
+    }
+    const runs = []; // each row's stretches of the piece, pulled in like the outline
+    for (let j = 0; j < H; j++) { let i = 0; while (i < W) { if (!inP.has(j * W + i)) { i++; continue; } let e = i; while (e + 1 < W && inP.has(j * W + e + 1)) e++; runs.push({ x: xs[i] + h, y: ys[j] + h, w: xs[e + 1] - xs[i] - 2 * h, h: ys[j + 1] - ys[j] - 2 * h }); i = e + 1; } }
+    const bx = runs.reduce((b, r) => ({ x: Math.min(b.x, r.x), y: Math.min(b.y, r.y), X: Math.max(b.X, r.x + r.w), Y: Math.max(b.Y, r.y + r.h) }), { x: Infinity, y: Infinity, X: -Infinity, Y: -Infinity });
+    pieces.push({ z: zs[zi], loops, runs, bbox: { x: bx.x, y: bx.y, w: bx.X - bx.x, h: bx.Y - bx.y } });
+  }
+  // Concentric pairs: an inside corner and the outside corner of another piece it wraps (that one's corner sits the gap
+  // away along the diagonal). Radii agree: inside = outside + gap, within what each one's edges allow.
+  const byV = new Map(corners.filter(c => !c.inner).map(c => [Math.round(c.v[0]) + ',' + Math.round(c.v[1]), c]));
+  for (const c of corners) { if (!c.inner) continue;
+    const o = byV.get(Math.round(c.v[0] + GAP * Math.sign(c.u[0])) + ',' + Math.round(c.v[1] + GAP * Math.sign(c.u[1]))); if (!o || o.piece === c.piece) continue;
+    const r = Math.min(c.cap, o.cap + GAP, R + GAP); c.r = r; o.r = Math.max(0, r - GAP); }
+  for (const P of pieces) {
+    let d = '';
+    P.loops.forEach((vs, li) => { const cs = corners.filter(c => c.piece === pieces.indexOf(P) && c.loop === li);
+      cs.forEach(({ v, r }, i) => { const a = vs[(i - 1 + vs.length) % vs.length], b = vs[(i + 1) % vs.length], la = Math.hypot(v[0] - a[0], v[1] - a[1]), lb = Math.hypot(b[0] - v[0], b[1] - v[1]);
+        const p1 = [v[0] - (v[0] - a[0]) / la * r, v[1] - (v[1] - a[1]) / la * r], p2 = [v[0] + (b[0] - v[0]) / lb * r, v[1] + (b[1] - v[1]) / lb * r];
+        d += `${i ? 'L' : 'M'}${+p1[0].toFixed(2)},${+p1[1].toFixed(2)} Q${+v[0].toFixed(2)},${+v[1].toFixed(2)} ${+p2[0].toFixed(2)},${+p2[1].toFixed(2)} `; });
+      d += 'Z '; });
+    (out[P.z] = out[P.z] || []).push({ d, runs: P.runs, bbox: P.bbox });
+  }
+  return out;
+}
 // A compartment's bounding box with the other compartments cut out (each with a margin), never its own boxes: the
 // cells left over, for unionPath to outline as one puzzle piece.
 function boxMinus(b, own, obs, gap = REGION_GAP) {
@@ -1303,6 +1393,14 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     const lines = wrap(items['e:' + b.id]?.name || '', 18).length + (b.tags || []).filter(t => t !== 'irreversible').length;
     pos[sd] = { cx: pos[sp].cx, cy: pos[sp].cy + (up ? -1 : 1) * (BH + Math.max(70, lines * 15 + 24) + (b.via ? VIA_ROOM + 60 : 0) + ((b.cofactors?.in || []).length + (b.cofactors?.out || []).length + (b.requires || []).length ? 36 : 0)), t: pos[sp].t, side: true };
   });
+  // A box left without a place (its step to the ring went to another part of a joined drawing), or two that landed on
+  // each other: moved along, below the ring, to the first spot that's clear of every other box.
+  const clearOf = (id, q) => !Object.entries(pos).some(([k, o]) => k !== id && Math.abs(o.cx - q.cx) < w + 40 && Math.abs(o.cy - q.cy) < BH + 50);
+  for (const id of Object.keys(p.metabolites)) {
+    if (pos[id] && clearOf(id, pos[id])) continue;
+    const at = pos[id] || { cx, cy: cy + RY + BH + 90, t: Math.PI / 2, side: true };
+    for (let k = 0; k < 40; k++) { const q = { ...at, cy: at.cy + Math.floor(k / 4) * (BH + 70), cx: at.cx + [0, 1, -1, 2][k % 4] * (w + 60) }; if (clearOf(id, q)) { pos[id] = q; break; } }
+  }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - w / 2, y: q.cy - BH / 2, w, h: BH })); DRAW_LABELS = [];
   // Parameter-space half-width of a box along the ellipse, so arcs start and stop at the box edge.
   const speed = t => Math.hypot(RX * Math.sin(t), RY * Math.cos(t));
@@ -1363,7 +1461,10 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
     const tv = r.via ? viaT(r) : s1, tm = (tv + s2) / 2, co = Math.cos(tm);
     const anchor = co > 0.3 ? 'start' : co < -0.3 ? 'end' : 'middle';
     if (r.via) vias += viaPill(m, statusOf, r, pt(tv));
-    const [lx, ly0] = pt(tm, 28 + (anchor === 'middle' ? 16 : 0));
+    // Outside the ring, far enough out that the whole label (a drug list makes it tall) clears the arc.
+    const inRing = q => [[q.x, q.y], [q.x + q.w, q.y], [q.x, q.y + q.h], [q.x + q.w, q.y + q.h], [q.x + q.w / 2, q.y], [q.x + q.w / 2, q.y + q.h]].some(([x, y]) => ((x - cx) / (RX + 10)) ** 2 + ((y - cy) / (RY + 10)) ** 2 < 1);
+    let off = 28 + (anchor === 'middle' ? 16 : 0), [lx, ly0] = pt(tm, off);
+    while (off < 240 && inRing(enzRect(lx, ly0, anchor, items['e:' + r.id], 20))) { off += 8; [lx, ly0] = pt(tm, off); }
     const here = locLabel(m, r), zst = m.items['z:' + keyOfR(r)] ? statusOf('z:' + keyOfR(r)) : 'shown';
     const loc = zones && here && here !== main && zst !== 'hide' && !inRegion.has(r) ? [hidden(zst) ? '(compartment?)' : here] : [];
     const es = statusOf('e:' + r.id), it = items['e:' + r.id];
@@ -1595,6 +1696,9 @@ function textRects(svg) {
     if (/<tspan/.test(t[2])) continue; // a box's two-line name: the box is already there
     const a = t[1], num = k => +((a.match(new RegExp(`\\b${k}="([-\\d.]+)"`)) || [])[1]), x = num('x'), y = num('y');
     const txt = t[2].replace(/<[^>]+>/g, '').replace(/&[a-z#0-9]+;/g, 'x').trim();
+    // Turned on its side (a "×2 per glucose" bracket): translate(x,y) rotate(-90), centered on that point.
+    const rot = a.match(/translate\(([-\d.]+),([-\d.]+)\) rotate\(-90\)/);
+    if (rot && txt) { const L = txt.length * 7.4; out.push({ x: +rot[1] - 11, y: +rot[2] - L / 2, w: 14, h: L }); continue; }
     if (!txt || Number.isNaN(x) || Number.isNaN(y)) continue;
     const small = SMALL_TEXT.test(a), w = txt.length * (small ? 7.4 : 7.2), h = small ? 13 : 16;
     const anchor = (a.match(/text-anchor="(\w+)"/) || [])[1] || 'start', central = /dominant-baseline="central"/.test(a);
@@ -1626,7 +1730,14 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   const pts = [], probe = pathProbe();
   for (const pm of svg.matchAll(/<path class="([^"]*)" d="([^"]+)"/g)) { if (/\b(ah|region|xline)\b/.test(pm[1])) continue; probe.setAttribute('d', pm[2]); const L = probe.getTotalLength(); for (let l = 0; l <= L; l += 12) { const q = probe.getPointAtLength(l); pts.push([q.x, q.y]); } }
   for (const lm of svg.matchAll(/<line class="ln[^"]*" x1="([-\d.]+)" y1="([-\d.]+)" x2="([-\d.]+)" y2="([-\d.]+)"/g)) { const [x1, y1, x2, y2] = lm.slice(1).map(Number), L = Math.hypot(x2 - x1, y2 - y1); for (let l = 0; l <= L; l += 12) pts.push([x1 + (x2 - x1) * l / (L || 1), y1 + (y2 - y1) * l / (L || 1)]); }
-  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, steps, pts, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
+  // Whether it draws cleanly by itself: no line through its own text (bar what sits in a filled pill, a carrier's name
+  // or a tag to another pathway, or a box's name, which the box paints over) and no two lines of text on each other. A ring turned to suit a joined drawing
+  // is only used when it is.
+  const boxes = Object.values(pos), pills = [...svg.matchAll(/<rect class="(?:trnpill|xtag)" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)].map(t => ({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] }));
+  const within = (q, r) => { const cx = q.x + q.w / 2, cy = q.y + q.h / 2; return cx > r.x && cx < r.x + r.w && cy > r.y && cy < r.y + r.h; }; // (estimates run wide: its middle is enough)
+  const texts = textRects(svg).filter(q => !boxes.some(r => within(q, r)) && !pills.some(r => within(q, r))).map(q => ({ x: q.x + 1, y: q.y + 2, w: q.w - 2, h: q.h - 4 }));
+  const dirty = texts.some((q, i) => texts.some((o, j) => j > i && q.x < o.x + o.w && o.x < q.x + q.w && q.y < o.y + o.h && o.y < q.y + q.h)) || pts.some(([x, y]) => texts.some(q => x > q.x && x < q.x + q.w && y > q.y && y < q.y + q.h));
+  return { T, sm, pos, keptAt, drop, keep, rot, labels, cofs, steps, pts, dirty, vb, body: svg.slice(svg.indexOf('>') + 1, svg.lastIndexOf('</svg>')), where: tileWhere(p) };
 }
 /* ---------- the nephron ----------
    Nephron segments studied together draw as a textbook nephron: one continuous tube (the tubular lumen) from the
@@ -1691,13 +1802,13 @@ function nephronSVG(m, statusOf) {
   return `<svg class="flow stitched nephron" viewBox="0 0 ${x1 - x0} ${y1 - y0}" role="img" aria-label="${esc(m.p.name)}: nephron diagram"><g transform="translate(${-x0},${-y0})">${s}</g>${slots.join('')}</svg>`;
 }
 /* Routing on a grid, for the steps and joins between the parts of a joined drawing: the cheapest right-angled path on
-   a 20 px grid around the two ends (widening if it must). Boxes are walls; a label can be crossed but costs about a
-   long detour, so only when there's no other way; each bend costs a little; running along a line already drawn costs
+   a 20 px grid around the two ends (widening if it must). Boxes are walls; a label can be crossed but costs as much as
+   thousands of pixels of detour, so only when there's no other way; each bend costs a little; running along a line already drawn costs
    more (crossing one is fine). The grid starts on a's center, so the path leaves a straight out of its middle.
    Returns center-to-center points (the last inside b), or null. */
-function gridRoute(a, b, boxes, labels, drawnSegs = []) {
-  const S = 20, BEND = 3, LABEL = 40, ALONG = 6, ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
-  const touches = (l, q) => l.x < q.x + q.w + 8 && q.x < l.x + l.w + 8 && l.y < q.y + q.h + 8 && q.y < l.y + l.h + 8; // its own step's labels sit against its ends
+function gridRoute(a, b, boxes, labels, drawnSegs = [], linePts = []) { // linePts: the parts' own lines, sampled
+  const S = 20, BEND = 3, LABEL = 400, ALONG = 6, ac = { x: a.x + a.w / 2, y: a.y + a.h / 2 }, same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
+  let best = null; // a path that still crosses a label tries the next, wider window too; the cheaper one wins
   for (const pad of [300, 900, 2400]) {
     const X0 = Math.min(a.x, b.x) - pad, Y0 = Math.min(a.y, b.y) - pad, X1 = Math.max(a.x + a.w, b.x + b.w) + pad, Y1 = Math.max(a.y + a.h, b.y + b.h) + pad;
     const ox = ac.x - Math.ceil((ac.x - X0) / S) * S, oy = ac.y - Math.ceil((ac.y - Y0) / S) * S, W = Math.ceil((X1 - ox) / S) + 1, H = Math.ceil((Y1 - oy) / S) + 1;
@@ -1705,9 +1816,10 @@ function gridRoute(a, b, boxes, labels, drawnSegs = []) {
     const cost = new Float32Array(W * H).fill(1), lineH = new Uint8Array(W * H), lineV = new Uint8Array(W * H);
     const cells = (r, infl, f) => { const i0 = Math.max(0, Math.ceil((r.x - infl - ox) / S)), i1 = Math.min(W - 1, Math.floor((r.x + r.w + infl - ox) / S)), j0 = Math.max(0, Math.ceil((r.y - infl - oy) / S)), j1 = Math.min(H - 1, Math.floor((r.y + r.h + infl - oy) / S));
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) f(j * W + i); };
-    for (const r of labels) if (!touches(r, a) && !touches(r, b)) cells(r, 4, n => { cost[n] += LABEL; });
+    for (const r of labels) cells(r, 4, n => { cost[n] += LABEL; }); // even beside its ends (a carrier's pill by its box)
     for (const r of boxes) if (!same(r, a) && !same(r, b)) cells(r, 10, n => { cost[n] = Infinity; });
     const inA = new Uint8Array(W * H); cells(a, 0, n => { cost[n] = 1; inA[n] = 1; }); const goal = new Uint8Array(W * H); cells(b, -2, n => { cost[n] = 1; goal[n] = 1; });
+    for (const [x, y] of linePts) if (x > X0 && x < X1 && y > Y0 && y < Y1) cells({ x, y, w: 0, h: 0 }, 4, n => { lineH[n] = 1; lineV[n] = 1; }); // along or across one costs a little
     for (const [p, q] of drawnSegs) { const h = Math.abs(p[1] - q[1]) < 1; cells({ x: Math.min(p[0], q[0]), y: Math.min(p[1], q[1]), w: Math.abs(q[0] - p[0]), h: Math.abs(q[1] - p[1]) }, 6, n => { (h ? lineH : lineV)[n] = 1; }); }
     const start = Math.round((ac.y - oy) / S) * W + Math.round((ac.x - ox) / S), bc = { i: (b.x + b.w / 2 - ox) / S, j: (b.y + b.h / 2 - oy) / S };
     // A* over (cell, direction); a small binary heap.
@@ -1726,20 +1838,23 @@ function gridRoute(a, b, boxes, labels, drawnSegs = []) {
         if ((d ^ 1) === e && d >> 1 === e >> 1) continue; // no turning back
         if (inA[n] && n !== start && e !== d) continue; // straight out of its own box (no turning under its name)
         const ni = i + DI[e], nj = j + DJ[e]; if (ni < 0 || nj < 0 || ni >= W || nj >= H) continue;
-        const nn = nj * W + ni, c = cost[nn]; if (c === Infinity) continue;
+        const nn = nj * W + ni, c = cost[nn]; if (c === Infinity || (inA[nn] && !inA[n])) continue; // once out of its own box, never back through it
         const ng = gs + c + (e === d ? 0 : BEND) + ((e < 2 ? lineH : lineV)[nn] ? ALONG : 0), t = nn * 4 + e;
         if (ng < g[t]) { g[t] = ng; from[t] = s; push(t, ng + hf(nn)); }
       }
     }
     if (end < 0) continue;
     const path = []; for (let s = end; s >= 0; s = from[s]) path.push(s >> 2); path.reverse();
+    const crossed = path.some(n => cost[n] > 1 && cost[n] !== Infinity);
     const pt = n => [ox + (n % W) * S, oy + Math.floor(n / W) * S], pts = [pt(path[0])];
     for (let k = 1; k < path.length; k++) { const p = pts[pts.length - 1], q = pt(path[k]), r = pts.length > 1 ? pts[pts.length - 2] : null;
       if (r && ((r[0] === p[0] && p[0] === q[0]) || (r[1] === p[1] && p[1] === q[1]))) pts[pts.length - 1] = q; else pts.push(q); }
     pts[0] = [ac.x, ac.y];
-    return pts.length > 1 ? pts : null;
+    if (pts.length < 2) continue;
+    if (!best || g[end] < best.cost) best = { pts, cost: g[end] };
+    if (!crossed) break;
   }
-  return null;
+  return best ? best.pts : null;
 }
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
@@ -1764,6 +1879,10 @@ function stitchSVG(m, statusOf) {
     for (const [x0, y0] of R.pts || []) { const x = x0 + dx, y = y0 + dy, rs = XI.rects.get(bucketKey(Math.floor(x / B), Math.floor(y / B))); if (rs && rs.some(r => !(skip && r.box && same(r, skip)) && inside(x, y, r, r.box ? 6 : 2))) return true; }
     for (const r of rectsOf(R, dx, dy)) for (let i = Math.floor(r.x / B); i <= Math.floor((r.x + r.w) / B); i++) for (let j = Math.floor(r.y / B); j <= Math.floor((r.y + r.h) / B); j++) { const ps = XI.pts.get(bucketKey(i, j)); if (ps && ps.some(([x, y]) => inside(x, y, r, r.box ? 6 : 2))) return true; }
     return false; };
+  const allPts = () => placed.flatMap(P => (P.pts || []).map(([x, y]) => [x + P.dx, y + P.dy]));
+  // A rectangle on a line: the parts' own lines (sampled) or a line drawn between them.
+  const onAnyLine = r => { index(); for (let i = Math.floor((r.x - 3) / B); i <= Math.floor((r.x + r.w + 3) / B); i++) for (let j = Math.floor((r.y - 3) / B); j <= Math.floor((r.y + r.h + 3) / B); j++) { const ps = XI.pts.get(bucketKey(i, j)); if (ps && ps.some(([x, y]) => inside(x, y, r, 3))) return true; }
+    return drawn.some(([p, q]) => Math.max(p[0], q[0]) > r.x - 3 && Math.min(p[0], q[0]) < r.x + r.w + 3 && Math.max(p[1], q[1]) > r.y - 3 && Math.min(p[1], q[1]) < r.y + r.h + 3); };
   const place = (R, dx, dy) => {
     R.dx = dx; R.dy = dy; placed.push(R); occ.push(...rectsOf(R, dx, dy));
     for (const [k, r] of Object.entries(R.pos)) if (!G[k]) G[k] = { ...shift(r, dx, dy), R, id: k.slice(2) };
@@ -1851,7 +1970,7 @@ function stitchSVG(m, statusOf) {
     return P;
   };
   const drawRoute = (r, a, b, cls, labels = true) => {
-    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
@@ -1861,7 +1980,9 @@ function stitchSVG(m, statusOf) {
     const ti = r?.via && m.items['t:' + r.id], at = ti && viaAt(P, ti), hold = ti && enzRect(at[0], at[1], 'middle', ti, 22);
     const routeLabels = (hh, vv) => {
       if (hold) DRAW_LABELS.push(hold);
-      const lab = (hh || vv) ? routeStepLabels(m, statusOf, r, P) || elbowLabels(m, statusOf, r, hh, vv) : '';
+      const mine = P.slice(1); // this route's own segments are the last ones drawn
+      const lineHit = q => { const was = drawn.splice(drawn.length - mine.length, mine.length); const hit = onAnyLine(q); drawn.push(...was); return hit; }; // (not its own route)
+      const lab = (hh || vv) ? routeStepLabels(m, statusOf, r, P, lineHit) || elbowLabels(m, statusOf, r, hh, vv) : '';
       if (hold) DRAW_LABELS.splice(DRAW_LABELS.indexOf(hold), 1);
       return lab + (ti ? viaPill(m, statusOf, r, at) : '');
     };
@@ -1884,14 +2005,14 @@ function stitchSVG(m, statusOf) {
       // touching it at oxaloacetate, rather than hung from pyruvate with a second oxaloacetate).
       // (This part's labels were laid out around its own copy of the shared box, so that box doesn't count.)
       let best = null;
-      const ring = T.p.circular ? modelFor(T.p).spineMets : [];
+      const ring = T.p.circular ? modelFor(T.p).spineMets : []; let wd; const wholeDirty = () => (wd ??= renderTile(T, statusOf, new Set()).dirty);
       for (const sh of shared.slice().sort((x, y) => leaf(y) - leaf(x))) {
         const oth = new Set(shared.filter(id => id !== sh && leaf(id))), dups = shared.filter(id => id !== sh && !leaf(id)).length, i0 = ring.indexOf(sh);
         if (best && dups >= best.dups) continue;
         const rots = i0 < 0 ? [0] : uniq([0, ...[0, Math.PI, Math.PI / 2, -Math.PI / 2].map(t => t + Math.PI / 2 - 2 * Math.PI * i0 / ring.length)]);
         for (const rot of rots) {
           const Rc = renderTile(T, statusOf, oth, sh, rot), a = G['m:' + sh], b = Rc.keptAt;
-          if (!b) continue;
+          if (!b || (rot && Rc.dirty && !wholeDirty())) continue; // turned only where it draws as cleanly as unturned
           const dx = ctr(a).cx - ctr(b).cx, dy = ctr(a).cy - ctr(b).cy;
           if (!clash(rectsOf(Rc, dx, dy), a) && !crosses(Rc, dx, dy, a)) { best = { R: Rc, dx, dy, oth, dups }; break; }
         }
@@ -1932,22 +2053,15 @@ function stitchSVG(m, statusOf) {
       // Out from the other part's middle first (never into its ring).
       const pc = Object.values(cp.P.pos).map(ctr), ox = pc.reduce((n, c) => n + c.cx, 0) / pc.length + cp.P.dx, oy = pc.reduce((n, c) => n + c.cy, 0) / pc.length + cp.P.dy;
       const side = Math.sign(-uy * (mx - ox) + ux * (my - oy)) || 1, nx = -uy * side, ny = ux * side, onSteps = onStepsNow();
-      // A ring turns by just the angle that lines its arrow up with the twin (either way round, as rotation's sign goes).
-      let rots = [0];
-      if (T.p.circular) {
-        const R0 = renderTile(T, statusOf, new Set(), undefined, 0), U0 = R0.pos['m:' + cp.mine.from], V0 = R0.pos['m:' + cp.mine.to];
-        const a0 = U0 && V0 ? Math.atan2(ctr(V0).cy - ctr(U0).cy, ctr(V0).cx - ctr(U0).cx) : 0, phi = Math.atan2(uy, ux);
-        rots = uniq([phi - a0, a0 - phi, phi - a0 + 0.12, phi - a0 - 0.12, a0 - phi + 0.12, a0 - phi - 0.12, 0, Math.PI / 2, Math.PI, -Math.PI / 2]);
-      }
-      // Every turn that lines the arrows up (either way round: two rings meet like gears, their touching arrows running
-      // opposite ways), at every spot beside the twin; the nearest free one wins. Only if none is free, any turn.
+      // A ring may turn a quarter at a time (its side chains and labels are laid out for those, not for a diagonal).
+      const rots = T.p.circular ? [0, Math.PI / 2, Math.PI, -Math.PI / 2] : [0];
       let got = null;
       for (const strict of [true, false]) {
         if (got) break;
         let best = Infinity;
         for (const rot of rots) {
           const R = renderTile(T, statusOf, new Set(), undefined, rot), U = R.pos['m:' + cp.mine.from], V = R.pos['m:' + cp.mine.to];
-          if (!U || !V) continue;
+          if (!U || !V || (rot && R.dirty)) continue; // turned only where it still draws cleanly
           const cU = ctr(U), cV = ctr(V), W = Math.hypot(cV.cx - cU.cx, cV.cy - cU.cy) || 1;
           if (strict && Math.abs(((cV.cx - cU.cx) * ux + (cV.cy - cU.cy) * uy) / W) < 0.9) continue;
           const qx = (cU.cx + cV.cx) / 2, qy = (cU.cy + cV.cy) / 2;
@@ -1991,7 +2105,9 @@ function stitchSVG(m, statusOf) {
   }
   rebuild();
   // Steps between parts, drawn like any other step (enzyme, cofactors) now that every box has its place.
-  DRAW_BOXES = Object.values(G).map(r => ({ x: r.x, y: r.y, w: r.w, h: r.h })); DRAW_LABELS = occ.filter(o => !DRAW_BOXES.some(b => b.x === o.x && b.y === o.y));
+  // Every box drawn, a molecule's second copy too (joined to the first by a dotted line), is a wall for what's routed now.
+  DRAW_BOXES = uniq([...Object.values(G), ...placed.flatMap(P => Object.values(P.pos).map(r => shift(r, P.dx, P.dy)))].map(r => JSON.stringify({ x: r.x, y: r.y, w: r.w, h: r.h }))).map(t => JSON.parse(t));
+  DRAW_LABELS = occ.filter(o => !o.box);
   let between = '';
   for (const r of uniq(bridges)) {
     const a = G['m:' + r.from], b = G['m:' + r.to];
@@ -2044,7 +2160,7 @@ function stitchSVG(m, statusOf) {
     if (intoCof) {
       // Box → the cofactor label it becomes an input to: an arrowhead into the label.
       const dst = intoCof === 'a' ? a : b, near = l => !(l.x < dst.x + dst.w + 6 && dst.x < l.x + l.w + 6 && l.y < dst.y + dst.h + 6 && dst.y < l.y + l.h + 6);
-      const pts = gridRoute(a, b, [...DRAW_BOXES, ...(d.sib || [])], DRAW_LABELS.filter(near), drawn) || route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = gridRoute(a, b, [...DRAW_BOXES, ...(d.sib || [])], DRAW_LABELS.filter(near), drawn, allPts()) || route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (intoCof === 'a') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += elbow(P, false, 'xline xhand');
@@ -2052,14 +2168,14 @@ function stitchSVG(m, statusOf) {
     }
     if (fromCof) {
       const src = fromCof === 'a' ? a : b, near = l => !(l.x < src.x + src.w + 6 && src.x < l.x + l.w + 6 && l.y < src.y + src.h + 6 && src.y < l.y + l.h + 6);
-      const pts = gridRoute(a, b, [...DRAW_BOXES, ...(d.sib || [])], DRAW_LABELS.filter(near), drawn) || route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
+      const pts = gridRoute(a, b, [...DRAW_BOXES, ...(d.sib || [])], DRAW_LABELS.filter(near), drawn, allPts()) || route(a, b, [...DRAW_BOXES, ...(d.sib || [])], false, DRAW_LABELS.filter(near)) || route(a, b, DRAW_BOXES, false, DRAW_LABELS.filter(near)) || [[ctr(a).cx, ctr(a).cy], [ctr(a).cx, ctr(b).cy], [ctr(b).cx, ctr(b).cy]];
       let P = trim(pts, a, b); if (fromCof === 'b') P = P.reverse();
       drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
       between += `<circle class="xdot" cx="${P[0][0]}" cy="${P[0][1]}" r="3"/>` + elbow(P, false, 'xline xhand');
       continue;
     }
     // Routed like the arrows (clear of boxes and labels, never along another line), its name on the longest leg.
-    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
+    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]];
     const P = trim(pts, a, b); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     between += elbow(P, false, 'xline').replace(/<path class="ah"[^>]*\/>/, ''); // rounded corners, no arrowhead
     if (d.label) {
@@ -2067,7 +2183,7 @@ function stitchSVG(m, statusOf) {
       const w = d.label.length * 6.4 + 20, segs = P.slice(1).map((q, i) => [P[i], q]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
       const spots = segs.flatMap(([u, v]) => [0.5, 0.3, 0.7, 0.4, 0.6, 0.2, 0.8, 0.12, 0.88].map(f => [u[0] + (v[0] - u[0]) * f, u[1] + (v[1] - u[1]) * f]));
       const area = (x, y) => [...DRAW_BOXES, ...DRAW_LABELS].reduce((n, r) => n + Math.max(0, Math.min(x + w / 2, r.x + r.w) - Math.max(x - w / 2, r.x)) * Math.max(0, Math.min(y + 11, r.y + r.h) - Math.max(y - 11, r.y)), 0);
-      const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots.slice().sort((p, q) => area(...p) - area(...q))[0];
+      const [tx, ty] = spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 }) && !onAnyLine({ x: x - w / 2 + 6, y: y - 9, w: w - 12, h: 18 })) || spots.find(([x, y]) => !hitsBox({ x: x - w / 2, y: y - 11, w, h: 22 })) || spots.slice().sort((p, q) => area(...p) - area(...q))[0];
       DRAW_LABELS.push({ x: tx - w / 2, y: ty - 11, w, h: 22 });
       between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${esc(d.label)}</text>`;
     }
@@ -2094,7 +2210,7 @@ function stitchSVG(m, statusOf) {
     // Side by side: a straight tie. Apart: routed like the other joins, clear of boxes, and named.
     const far = Math.hypot(q[0] - p[0], q[1] - p[1]) > 320, dot = c => ({ x: c[0] - 4, y: c[1] - 4, w: 8, h: 8 });
     const blocked = [...DRAW_BOXES, ...DRAW_LABELS].some(r => { for (let f = 0.08; f < 0.93; f += 0.04) { const x = p[0] + (q[0] - p[0]) * f, y = p[1] + (q[1] - p[1]) * f; if (x > r.x && x < r.x + r.w && y > r.y && y < r.y + r.h) return true; } return false; });
-    const pts = (far || blocked) && (route(dot(p), dot(q), [...DRAW_BOXES, ...DRAW_LABELS]) || route(dot(p), dot(q), DRAW_BOXES, false, DRAW_LABELS)), P = pts || [p, q];
+    const pts = (far || blocked) && (gridRoute(dot(p), dot(q), DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(dot(p), dot(q), [...DRAW_BOXES, ...DRAW_LABELS]) || route(dot(p), dot(q), DRAW_BOXES, false, DRAW_LABELS)), P = pts || [p, q];
     between += elbow(P, false, 'xline xhand couple').replace(/<path class="ah"[^>]*\/>/, '') + `<circle class="xdot" cx="${p[0]}" cy="${p[1]}" r="3"/><circle class="xdot" cx="${q[0]}" cy="${q[1]}" r="3"/>`;
     if (far) {
       const segs = P.slice(1).map((v, i) => [P[i], v]).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]));
@@ -2106,7 +2222,7 @@ function stitchSVG(m, statusOf) {
   DRAW_BOXES = [];
   // Compartments, once for the whole picture: each one is a tinted shape that follows its own boxes and the steps
   // between them (one flat tint, however the pieces overlap), named once per connected piece.
-  const zoneOf = {}, pad = b => ({ x: b.x - 26, y: b.y - 38, w: b.w + 52, h: b.h + 64 });
+  const zoneOf = {}, pad = b => ({ x: b.x - 37, y: b.y - 49, w: b.w + 74, h: b.h + 86 }); // (the outline is pulled in 11 px from these)
   for (const [k, g] of Object.entries(G)) { const w = g.R.where[g.id], z = w && zoneKey(m, w.loc, w.tissue); if (z && m.items['z:' + z]) zoneOf[k] = z; }
   const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   const bbox = (a, b) => { const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; };
@@ -2159,34 +2275,52 @@ function stitchSVG(m, statusOf) {
   }
   // Its own boxes (padded) are never cut; the filler between them (joins, a ring's middle) may be.
   const ownBoxes = z => Object.entries(zoneOf).filter(([, z2]) => z2 === z).map(([k]) => pad(G[k]));
-  for (const [z, gs] of Object.entries(pieces)) {
-    const others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
-    bg += `<g class="blob">${gs.map(g => { const b = boxOf(g);
-      return g.length === 1 || !others.some(o => hit(b, o)) ? `<rect class="t-${zoneTone(z)}" x="${b.x}" y="${b.y}" width="${b.w}" height="${b.h}" rx="${REGION_R}"/>` : `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${unionPath(boxMinus(b, ownBoxes(z).filter(o => hit(b, o)), others.filter(o => hit(b, o))))}"/>`; }).join('')}</g>`;
-  }
-  for (const [z, gs] of Object.entries(pieces)) {
+  // One partition for all of them (zonePartition): every corner concentric with the one it wraps.
+  // A piece's area is its bounding box when that holds no other compartment's box; else just its own rectangles (its
+  // boxes and the joins between them), so it never claims the space around another pathway's boxes.
+  const part = zonePartition(Object.entries(pieces).flatMap(([z, gs]) => gs.flatMap(g => { const b = boxOf(g); return foreign(z).some(o => hit(b, o)) ? g.map(r => ({ z, r })) : [{ z, r: b }]; })),
+    Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(G[k]) })));
+  for (const [z, ps] of Object.entries(part)) bg += `<g class="blob">${ps.map(P => `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${P.d}"/>`).join('')}</g>`;
+  // A fully free spot for a w × h tab inside a piece's rows, or null.
+  const tabFree = (g, w, h) => { for (const r of g) for (let y = r.y + 4; y <= r.y + r.h - h - 4; y += 16) for (let x = r.x + 12; x <= r.x + r.w - 12 - w; x += 24) { const t = { x, y, w, h };
+    if (![...occ, ...DRAW_LABELS, ...lineRects].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !onLine(t)) return t; } return null; };
+  for (const [z, ps] of Object.entries(part)) {
     // Named once per neighborhood, as a wall chart does: the biggest piece first; a piece within 600 px of one already
     // named (the cytosol either side of a vesicle) goes without.
     const named = [], near = (a, b) => a.x - 600 < b.x + b.w && b.x - 600 < a.x + a.w && a.y - 600 < b.y + b.h && b.y - 600 < a.y + a.h;
-    for (const g0 of gs.slice().sort((p, q) => { const a = boxOf(p), b = boxOf(q); return b.w * b.h - a.w * a.h; })) {
-      const b0 = boxOf(g0), others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
+    const others = Object.entries(part).filter(([z2]) => z2 !== z).flatMap(([, p2]) => p2.flatMap(P => P.runs));
+    for (const P of ps.slice().sort((p, q) => q.bbox.w * q.bbox.h - p.bbox.w * p.bbox.h)) {
+      const b0 = P.bbox;
       if (named.some(n => near(n, b0))) { regions.push(b0); continue; }
       named.push(b0);
-      const g = g0.length === 1 || !others.some(o => hit(b0, o)) ? [b0] : [b0, ...g0]; // where its name can go: its corners first
+      const g = P.runs; // where its name can go: along the piece's own rows
       // On a top edge, left or right end, wherever it doesn't cover a label or box (topmost edge first).
-      const name = m.items['z:' + z]?.name || '', tw = name.length * 8.1 + 16, free = r => ![...occ, ...DRAW_LABELS, ...lineRects].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o)) && !onLine(r);
-      const spots = g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - 22 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - 22 },
-        { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - 22 }, { x: r.x + 12, y: r.y - 9 }, { x: r.x + r.w - 12 - tw, y: r.y - 9 }, { x: r.x + 12, y: r.y + r.h - 9 }]); // on the edge itself, last
+      // A name wider than the piece (one box in "testes (Leydig cells) · smooth ER") goes on two lines: place, then compartment.
+      const zi = m.items['z:' + z], name = zi?.name || '', room = Math.max(...g.map(r => r.w)), zst = zi ? statusOf(zi.key) : 'shown';
+      // (Also when one line finds no free spot: two lines are narrower.)
+      // Wrapped: at the "·" first (place, then compartment), then at spaces, to the piece's width.
+      const wrapTo = w => { const max = Math.max(8, Math.floor((w - 16) / 8.1)), out = [];
+        for (const part of name.split(' · ')) { let line = ''; for (const word of part.split(' ')) { if (line && (line + ' ' + word).length > max) { out.push(line); line = word; } else line = line ? line + ' ' + word : word; } out.push(line); } return out; };
+      const canTwo = name.includes(' ') && !hidden(zst) && zst !== 'hide';
+      const two = canTwo && (name.length * 8.1 + 16 > room - 16 || tabFree(g, name.length * 8.1 + 16, 18) === null) ? (name.includes(' · ') && Math.max(...name.split(' · ').map(t => t.length)) * 8.1 + 16 <= room - 16 ? name.split(' · ') : wrapTo(room - 24)) : null;
+      const tw = two ? Math.max(...two.map(t => t.length)) * 8.1 + 16 : name.length * 8.1 + 16, TH = two ? 4 + 14 * two.length : 18;
+      const free = r => ![...occ, ...DRAW_LABELS, ...lineRects].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o)) && !onLine(r);
+      const spots = g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - TH - 4 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - TH - 4 },
+        { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - TH - 4 }, { x: r.x + 12, y: r.y - TH / 2 }, { x: r.x + r.w - 12 - tw, y: r.y - TH / 2 }, { x: r.x + 12, y: r.y + r.h - TH / 2 }]); // on the edge itself, last
       // Then anywhere along each edge, a step at a time, inside the shape or on its border.
-      g.forEach(r => { for (const y of [r.y + 4, r.y + r.h - 22, r.y - 9, r.y + r.h - 9]) for (let x = r.x + 12; x <= r.x + r.w - 12 - tw; x += 20) spots.push({ x, y }); });
+      g.forEach(r => { for (const y of [r.y + 4, r.y + r.h - TH - 4, r.y - TH / 2, r.y + r.h - TH / 2]) for (let x = r.x + 12; x <= r.x + r.w - 12 - tw; x += 20) spots.push({ x, y }); });
+      // Anywhere inside the piece, a step at a time.
+      g.forEach(r => { for (let y = r.y + 4; y <= r.y + r.h - TH - 4; y += 16) for (let x = r.x + 12; x <= r.x + r.w - 12 - tw; x += 24) spots.push({ x, y }); });
       // Nowhere fully free: the spot it covers least of (labels count most), just outside the shape too.
-      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - 22 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - 9 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - 9 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - 9 }, { x: r.x - tw - 6, y: r.y + 4 }));
+      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - TH - 4 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - TH / 2 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + 4 }));
       // Further out still: a cramped compartment's name may sit a little away from it, never on a box.
-      g.forEach(r => [30, 60, 100].forEach(o => spots.push({ x: r.x + 12, y: r.y - 22 - o }, { x: r.x + 12, y: r.y + r.h + 3 + o }, { x: r.x + r.w + 6 + o, y: r.y + 4 }, { x: r.x - tw - 6 - o, y: r.y + 4 })));
-      const cost = q => { const t = { ...q, w: tw, h: 18 }; return (onLine(t) ? 4 : 0) + [...occ, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
-      const at = spots.find(q => free({ ...q, w: tw, h: 18 }) && !others.some(o => hit({ ...q, w: tw, h: 18 }, o))) || spots.filter(q => !onBox({ ...q, w: tw, h: 18 })).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
-      tabs.push({ ...at, w: tw, h: 18 });
-      fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="18" rx="5" data-room="${Math.round(Math.max(...g.map(r => r.w)))}"/>` + zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start'); // data-room: the widest stretch of its shape, for the layout audit
+      g.forEach(r => [30, 60, 100].forEach(o => spots.push({ x: r.x + 12, y: r.y - TH - 4 - o }, { x: r.x + 12, y: r.y + r.h + 3 + o }, { x: r.x + r.w + 6 + o, y: r.y + 4 }, { x: r.x - tw - 6 - o, y: r.y + 4 })));
+      const cost = q => { const t = { ...q, w: tw, h: TH }; return (onLine(t) ? 4 : 0) + [...occ, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
+      const at = spots.find(q => free({ ...q, w: tw, h: TH }) && !others.some(o => hit({ ...q, w: tw, h: TH }, o))) || spots.filter(q => !onBox({ ...q, w: tw, h: TH })).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
+      tabs.push({ ...at, w: tw, h: TH });
+      fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="${TH}" rx="5" data-room="${Math.round(room)}"/>` + (two // data-room: the widest stretch of its shape, for the layout audit
+        ? two.map((t, i) => `<text class="zonet"${i ? '' : ` data-key="${zi.key}"`} x="${at.x + 7}" y="${at.y + 13 + 14 * i}">${esc(t)}</text>`).join('')
+        : zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start'));
       regions.push(...g);
     }
   }
