@@ -95,7 +95,9 @@ function elbowLabels(m, statusOf, r, h, v) {
    nothing wins (longest legs first), else the one that covers least. */
 function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(rect): it would sit on a line already drawn
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), cof = cs !== 'none' && cs !== 'hide';
-  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.filter(q => q && (q.hit || hitsBox(q) || lineHit(q))).length;
+  // (Its own route counts too: text on the very line it names.)
+  const own = q => P.slice(1).some((v, i) => { const u = P[i]; return Math.max(u[0], v[0]) > q.x + 1 && Math.min(u[0], v[0]) < q.x + q.w - 1 && Math.max(u[1], v[1]) > q.y + 2 && Math.min(u[1], v[1]) < q.y + q.h - 2; });
+  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.filter(q => q && (q.hit || hitsBox(q) || lineHit(q) || (q.w && own(q)))).length;
   // What a layout's cofactor text actually is, where it lands, tried without keeping anything.
   // (Drawn as the real thing is: its name already there, which the curl steers around; and curls record their labels.)
   // Its curl too, sampled every 8 px (a 4-px square each): a curl through a label is as bad as text on one.
@@ -1812,13 +1814,13 @@ function gridRoute(a, b, boxes, labels, drawnSegs = [], linePts = []) { // lineP
   for (const pad of [300, 900, 2400]) {
     const X0 = Math.min(a.x, b.x) - pad, Y0 = Math.min(a.y, b.y) - pad, X1 = Math.max(a.x + a.w, b.x + b.w) + pad, Y1 = Math.max(a.y + a.h, b.y + b.h) + pad;
     const ox = ac.x - Math.ceil((ac.x - X0) / S) * S, oy = ac.y - Math.ceil((ac.y - Y0) / S) * S, W = Math.ceil((X1 - ox) / S) + 1, H = Math.ceil((Y1 - oy) / S) + 1;
-    if (W * H > 600000) return null;
+    if (W * H > 600000) break; // too big a window: the best found so far
     const cost = new Float32Array(W * H).fill(1), lineH = new Uint8Array(W * H), lineV = new Uint8Array(W * H);
     const cells = (r, infl, f) => { const i0 = Math.max(0, Math.ceil((r.x - infl - ox) / S)), i1 = Math.min(W - 1, Math.floor((r.x + r.w + infl - ox) / S)), j0 = Math.max(0, Math.ceil((r.y - infl - oy) / S)), j1 = Math.min(H - 1, Math.floor((r.y + r.h + infl - oy) / S));
       for (let j = j0; j <= j1; j++) for (let i = i0; i <= i1; i++) f(j * W + i); };
     for (const r of labels) cells(r, 4, n => { cost[n] += LABEL; }); // even beside its ends (a carrier's pill by its box)
     for (const r of boxes) if (!same(r, a) && !same(r, b)) cells(r, 10, n => { cost[n] = Infinity; });
-    const inA = new Uint8Array(W * H); cells(a, 0, n => { cost[n] = 1; inA[n] = 1; }); const goal = new Uint8Array(W * H); cells(b, -2, n => { cost[n] = 1; goal[n] = 1; });
+    const inA = new Uint8Array(W * H); cells(a, 0, n => { cost[n] = 1; inA[n] = 1; }); const goal = new Uint8Array(W * H); cells(b, Math.min(b.w, b.h) < 2 * S ? S / 2 : -2, n => { cost[n] = 1; goal[n] = 1; }); // (a dot smaller than a cell: the cells around it)
     for (const [x, y] of linePts) if (x > X0 && x < X1 && y > Y0 && y < Y1) cells({ x, y, w: 0, h: 0 }, 4, n => { lineH[n] = 1; lineV[n] = 1; }); // along or across one costs a little
     for (const [p, q] of drawnSegs) { const h = Math.abs(p[1] - q[1]) < 1; cells({ x: Math.min(p[0], q[0]), y: Math.min(p[1], q[1]), w: Math.abs(q[0] - p[0]), h: Math.abs(q[1] - p[1]) }, 6, n => { (h ? lineH : lineV)[n] = 1; }); }
     const start = Math.round((ac.y - oy) / S) * W + Math.round((ac.x - ox) / S), bc = { i: (b.x + b.w / 2 - ox) / S, j: (b.y + b.h / 2 - oy) / S };
@@ -1899,11 +1901,11 @@ function stitchSVG(m, statusOf) {
     const x0 = Math.min(f.x + f.w / 2, t.x + t.w / 2) + dx, x1 = Math.max(f.x + f.w / 2, t.x + t.w / 2) + dx, y0 = Math.min(f.y + f.h / 2, t.y + t.h / 2) + dy, y1 = Math.max(f.y + f.h / 2, t.y + t.h / 2) + dy;
     return occ.some(o => { const g = o.box ? M : 6; return o.x - g < x1 && o.x + o.w + g > x0 && o.y - g < y1 && o.y + o.h + g > y0; }); }); // its tags and labels too
   // Somewhere free for a part, with its box `key` as close as it can get to `target` (but leaving room for an arrow).
-  const nearby = (R, key, target) => {
+  const nearby = (R, key, target, room = [200, 200]) => { // room: the least distance across and down
     const b = R.pos[key] || Object.values(R.pos)[0], t = ctr(target), c = ctr(b), cands = [];
     for (let gx = -40; gx <= 40; gx++) for (let gy = -40; gy <= 40; gy++) {
       const vx = gx * 80, vy = gy * 80, d = Math.hypot(vx, vy);
-      if (d < 200) continue;
+      if (d < 200 || (Math.abs(vx) < room[0] && Math.abs(vy) < room[1])) continue;
       cands.push([d + (vx && vy ? 160 : 0), t.cx + vx - c.cx, t.cy + vy - c.cy]);
     }
     cands.sort((a, b) => a[0] - b[0]);
@@ -1928,6 +1930,7 @@ function stitchSVG(m, statusOf) {
   const segHits = (p, q, r) => Math.max(p[0], q[0]) > r.x - 6 && Math.min(p[0], q[0]) < r.x + r.w + 6 && Math.max(p[1], q[1]) > r.y - 6 && Math.min(p[1], q[1]) < r.y + r.h + 6;
   const same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
   const drawn = []; // segments of the arrows already drawn between parts: a new one may cross them, never run along them
+  const routed = {}; // reaction id → the points of its arrow, when it was drawn between parts
   const alongside = (p, q) => drawn.some(([u, v]) => {
     const h1 = Math.abs(p[1] - q[1]) < 1, h2 = Math.abs(u[1] - v[1]) < 1;
     if (h1 !== h2) return false;
@@ -1972,6 +1975,7 @@ function stitchSVG(m, statusOf) {
   const drawRoute = (r, a, b, cls, labels = true) => {
     const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
+    if (r && labels) routed[r.id] = P;
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
     // A long vertical run keeps its labels to a short stretch in the middle, as on any other step.
@@ -2023,7 +2027,10 @@ function stitchSVG(m, statusOf) {
       const a = G['m:' + anchor];
       if (leaf(anchor)) {
         const drop = new Set([...others, anchor]), r = touching(T, anchor)[0] || sideOf(T, anchor)[0], e = r.from === anchor ? r.to : r.from;
-        R = renderTile(T, statusOf, drop); place(R, ...nearby(R, 'm:' + e, a)); bridgeAll([...drop]); return;
+        // The step drawn between them needs room for its labels: its name, its cofactors' curl, a carrier's pill.
+        // (Across, the cofactors and the carrier sit along the line; down, beside it.)
+        const cof = r.cofactors?.in?.length || r.cofactors?.out?.length || r.requires?.length, room = [200 + (cof ? 260 : 0) + (r.via ? 160 : 0), 200 + (cof ? 100 : 0) + (r.via ? 60 : 0)];
+        R = renderTile(T, statusOf, drop); place(R, ...nearby(R, 'm:' + e, a, room)); bridgeAll([...drop]); return;
       }
       // Neither copy is an end (oxaloacetate: between PC and PEPCK in one part, on the TCA ring in the other). Take it out
       // of the earlier part, whose steps into it are then drawn to this part's box, and let this part have the freed spot.
@@ -2109,9 +2116,14 @@ function stitchSVG(m, statusOf) {
   DRAW_BOXES = uniq([...Object.values(G), ...placed.flatMap(P => Object.values(P.pos).map(r => shift(r, P.dx, P.dy)))].map(r => JSON.stringify({ x: r.x, y: r.y, w: r.w, h: r.h }))).map(t => JSON.parse(t));
   DRAW_LABELS = occ.filter(o => !o.box);
   let between = '';
+  // A step between parts that one part already draws between the same two boxes (malate dehydrogenase: oxaloacetate to
+  // malate in gluconeogenesis, malate to oxaloacetate on the TCA ring) is left to that arrow, unless it's being asked.
+  const baseEnz = q => norm((m.p.enzymes[q.enzyme]?.name || q.enzyme || '').replace(/\s*\([^)]*\)\s*$/, ''));
+  const quiet = r => statusOf('e:' + r.id) === 'shown' && cofParts(m, statusOf, r).every(p => p.st === 'shown' || p.st === 'hide');
+  const drawnBy = (r, a, b) => a.R && a.R === b.R && a.R.sm.p.reactions.some(q => q.id !== r.id && ((q.from === r.from && q.to === r.to) || (q.from === r.to && q.to === r.from)) && baseEnz(q) === baseEnz(r));
   for (const r of uniq(bridges)) {
     const a = G['m:' + r.from], b = G['m:' + r.to];
-    if (a && b) between += drawRoute(r, a, b);
+    if (a && b && !(quiet(r) && drawnBy(r, a, b))) between += drawRoute(r, a, b);
   }
   // Same molecule, two compartments: a dashed transport arrow, from where it's made to where it's used.
   const madeOnly = id => m.p.reactions.some(r => r.to === id || (r.also_to || []).includes(id)) && !m.p.reactions.some(r => r.from === id || (r.also_from || []).includes(id));
@@ -2194,12 +2206,20 @@ function stitchSVG(m, statusOf) {
     // or an elbow), so the tie can join the two where they come closest.
     const ra = m.p.reactions.find(r => r.id === a), rb = m.p.reactions.find(r => r.id === b), along = r => {
       const f = G['m:' + r.from], t = G['m:' + r.to]; if (!f || !t) return null;
+      if (routed[r.id]) { const Q = routed[r.id], seg = Q.slice(1).map((q, i) => [Q[i], q, Math.hypot(q[0] - Q[i][0], q[1] - Q[i][1])]), L = seg.reduce((n, s) => n + s[2], 0);
+        const at = l => { for (const [u, v, d] of seg) { if (l <= d) return [u[0] + (v[0] - u[0]) * l / d, u[1] + (v[1] - u[1]) * l / d]; l -= d; } return Q[Q.length - 1]; };
+        return Array.from({ length: 29 }, (_, i) => at(L * (0.15 + 0.7 * i / 28))); } // (an arrow drawn between parts: along its route)
       const P = placed.find(P => P.sm.p.reactions.includes(r)) || f.R, near = (x, y, b) => x > b.x - 24 && x < b.x + b.w + 24 && y > b.y - 24 && y < b.y + b.h + 24;
       const probe = pathProbe();
       for (const pm of (P.body || '').matchAll(/<path class="[^"]*" d="([^"]+)"/g)) {
         probe.setAttribute('d', pm[1]); const L = probe.getTotalLength(), at = l => { const q = probe.getPointAtLength(l); return [q.x + P.dx, q.y + P.dy]; };
         if (L < 20 || !near(...at(0), f) || !near(...at(L), t)) continue;
         return Array.from({ length: 29 }, (_, i) => at(L * (0.15 + 0.7 * i / 28)));
+      }
+      for (const lm of (P.body || '').matchAll(/<line class="[^"]*" x1="([-\d.]+)" y1="([-\d.]+)" x2="([-\d.]+)" y2="([-\d.]+)"/g)) { // a straight arrow
+        const [x1, y1, x2, y2] = lm.slice(1).map(Number), u = [x1 + P.dx, y1 + P.dy], v = [x2 + P.dx, y2 + P.dy];
+        if (!(near(...u, f) && near(...v, t)) && !(near(...u, t) && near(...v, f))) continue;
+        return Array.from({ length: 29 }, (_, i) => { const k = 0.15 + 0.7 * i / 28; return [u[0] + (v[0] - u[0]) * k, u[1] + (v[1] - u[1]) * k]; });
       }
       return [[(ctr(f).cx + ctr(t).cx) / 2, (ctr(f).cy + ctr(t).cy) / 2]]; };
     const A = ra && along(ra), B = rb && along(rb); if (!A || !B) continue;

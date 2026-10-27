@@ -235,12 +235,15 @@ function stitchPathway(ids) {
   const tiles = ids.map(id => Library.get(id)).filter(p => p && !p.stitch && (p.reactions || []).length);
   if (!tiles.length) return null;
   const id = linkId(tiles.map(t => t.id));
+  // Two parts: the bigger one is laid out first and the smaller one joins it (fructose onto glycolysis, not the other way),
+  // so the main pathway keeps its own shape. (The name and the id keep the order asked for.)
+  const asked = tiles.slice(); if (tiles.length === 2 && tiles[1].reactions.length > tiles[0].reactions.length) tiles.reverse();
   const hit = stitchCache.get(id);
   if (hit && hit.tiles.length === tiles.length && hit.tiles.every((t, i) => t === tiles[i])) return hit.p;
   // Nephron segments each have their own lumen, cell and blood: nothing is shared between them, and the set draws as a nephron.
   const nephron = tiles.length > 1 && tiles.every(t => t.nephron), whole = nephron && tiles.length === Object.values(Library.builtin()).filter(p => p.nephron).length;
-  const out = { id, name: whole ? 'Whole nephron' : tiles.map(t => t.name).join(' + '), group: nephron ? 'Nephron' : 'Connected', summary: whole ? 'Every nephron segment on one drawing, in the order the fluid flows: glomerulus, proximal tubule, loop of Henle, distal tubule and collecting duct, each cell with its carriers.' : '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
-    distractors: { metabolites: [], enzymes: [] }, links: [], stitch: { parts: tiles.map(t => t.id), tiles: [], origin: { m: {}, r: {} }, joins: [] } };
+  const out = { id, name: whole ? 'Whole nephron' : asked.map(t => t.name).join(' + '), group: nephron ? 'Nephron' : 'Connected', summary: whole ? 'Every nephron segment on one drawing, in the order the fluid flows: glomerulus, proximal tubule, loop of Henle, distal tubule and collecting duct, each cell with its carriers.' : '', metabolites: {}, enzymes: {}, reactions: [], cofactors: {},
+    distractors: { metabolites: [], enzymes: [] }, links: [], stitch: { parts: asked.map(t => t.id), tiles: [], origin: { m: {}, r: {} }, joins: [] } };
   const byBase = new Map(), inSet = new Set(tiles.flatMap(t => [t.id, ...(t.compose || [])])); // a pair counts as both its parts
   for (const t of tiles) {
     const mid = {}, eid = {}, pre = x => `${t.id}.${x}`, where = tileWhere(t);
