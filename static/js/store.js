@@ -280,8 +280,8 @@ function stitchPathway(ids) {
       return !!(t.circular || owner?.p.circular);
     });
     // A step both parts have, seen from opposite sides (methionine synthase: homocysteine → methionine in one, N⁵-methyl-THF
-    // → THF in the other, each the other's cofactors): one step, two arrows side by side. The enzyme is named and asked
-    // once (on the earlier part's arrow), and neither arrow lists the other's molecules as cofactors.
+    // → THF in the other, each the other's cofactors): one step, two arrows. Each is drawn in full where it stands (its
+    // enzyme, the other half as its cofactors) with a matching badge; the enzyme is asked once (on the earlier part's arrow).
     // Names on both sides go by any of their names (the cofactor THF, the box Tetrahydrofolate).
     const cofs = { ...Library.sharedCof(), ...out.cofactors, ...(t.cofactors || {}) }, names = x => [x?.name, x?.short, ...(x?.aliases || [])].filter(Boolean).map(baseMetName);
     const same = (c, id) => { const a = names(cofs[c] || { name: c }), b = names(out.metabolites[id]); return a.some(n => b.includes(n)); };
@@ -289,8 +289,6 @@ function stitchPathway(ids) {
     for (const nr of rx) {
       const o = out.reactions.find(o => !o.coupled && out.enzymes[o.enzyme]?.name === out.enzymes[nr.enzyme]?.name && mirrors(o, nr) && mirrors(nr, o));
       if (!o) continue;
-      const strip = (a, b) => { a.cofactors = { in: (a.cofactors.in || []).filter(c => !same(c, b.from)), out: (a.cofactors.out || []).filter(c => !same(c, b.to)) }; };
-      strip(o, nr); strip(nr, o);
       const merge = (k, key) => { const all = [...(o[k] || []), ...(nr[k] || [])]; if (all.length) o[k] = all.filter((x, i) => all.findIndex(y => key(y) === key(x)) === i); delete nr[k]; };
       merge('drugs', d => norm(d.name)); merge('diseases', d => norm(d.name)); merge('tags', x => x); delete nr.requires; // its own needs stay (pyrimidine's "needs folate" is the folate cycle itself)
       if (nr.reg && !o.reg) o.reg = nr.reg; delete nr.reg;

@@ -24,7 +24,7 @@ PROBE = r"""([id, zones, rot]) => {
   // Things that must stay apart: each text line, each box and pill. A text belongs to the box or pill it sits in.
   const items = [];
   svg.querySelectorAll('text').forEach(t => { if (!t.textContent.trim() || t.closest('.zone-name')) return; const owner = t.closest('g.mbox, g.elab, a.xlink') || t.previousElementSibling?.matches?.('rect.xtag, rect.legend') && t.previousElementSibling;
-    items.push({ kind: 'text', label: t.textContent.trim().slice(0, 40), r: box(t), owner, onLine: t.classList.contains('xtagt') && !t.closest('.xlink'), inPill: !!t.closest('g.elab.trn') && !t.matches('.drug, .reg'), box: t.closest('g.mbox') }); }); // box: a line drawn before it is painted over
+    items.push({ kind: 'text', label: t.textContent.trim().slice(0, 40), r: box(t), owner, onLine: (t.classList.contains('xtagt') && !t.closest('.xlink')) || !!t.closest('.pairbadge'), inPill: !!t.closest('g.elab.trn') && !t.matches('.drug, .reg'), tab: t.matches('.zonet') && (() => { let e = t.previousElementSibling; while (e?.matches('text.zonet')) e = e.previousElementSibling; return !!e?.matches('rect.legend'); })(), box: t.closest('g.mbox') }); }); // box: a line drawn before it is painted over
   svg.querySelectorAll('g.mbox > rect, rect.trnpill, rect.xtag, rect.legend').forEach(r => { const owner = r.closest('g.mbox, g.elab, a.xlink') || r; items.push({ kind: r.classList.contains('trnpill') ? 'pill' : r.classList.contains('xtag') ? 'tag' : r.classList.contains('legend') ? 'tab' : 'box', label: (owner.textContent || '').trim().slice(0, 40), r: box(r), owner }); });
   const ov = (a, b, g = 0) => a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g;
   const hits = [], near = [];
@@ -37,7 +37,7 @@ PROBE = r"""([id, zones, rot]) => {
     else if (ov(A.r, B.r, 3)) near.push([A.kind + ':' + A.label, B.kind + ':' + B.label]);
   }
   // Joining lines between parts (dotted hand-offs, ties) that run through a line of text.
-  const texts = items.filter(i => i.kind === 'text' && !i.onLine), cross = []; // a line's own name tag sits on it
+  const texts = items.filter(i => i.kind === 'text' && !i.onLine && !i.tab), cross = []; // a line's own name tag sits on it; a compartment's tab is opaque, lines pass under it
   svg.querySelectorAll('path.xline').forEach(pth => { const L = pth.getTotalLength(), ctm = pth.getScreenCTM();
     for (const t of texts) { if (pth.closest('a.xlink, g.xlink') && pth.closest('a.xlink, g.xlink') === t.owner) continue;
       for (let l = 6; l < L - 6; l += 4) { const q = pth.getPointAtLength(l), x = ctm.a * q.x + ctm.c * q.y + ctm.e, y = ctm.b * q.x + ctm.d * q.y + ctm.f;

@@ -20,9 +20,9 @@ const MAP_OFF_GROUPS = ['Blood & immunity', 'Nephron']; // not metabolism: off u
 // What the sidebar can show or hide. Each is a set of item-key prefixes (as the quiz names them).
 const MAP_LAYERS = [
   ['enz', 'Enzymes', ['e:', 'f:']], ['trn', 'Transporters', ['t:']], ['cof', 'Cofactors', ['c:', 'o:']], ['need', 'What steps need (vitamins)', ['n:']],
-  ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['bands', 'Group bands', []],
+  ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['pairs', 'Lines between paired steps', []], ['bands', 'Group bands', []],
 ];
-const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, bands: true }, reg: '', off: null, q: '', side: true };
+const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, pairs: false, bands: true }, reg: '', off: null, q: '', side: true };
 const mapCfg = () => { const c = local.get('pathways.map') || {}; return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null, sel: c.sel || [] }; };
 const mapSave = c => local.set('pathways.map', c);
 const MAPV = { tiles: [], hits: [] };
@@ -120,7 +120,7 @@ function mapMergedSVG(c) {
     if (!lit) return 'shown';
     return lit.has(k) ? (/^[me]:/.test(k) ? 'focus' : 'shown') : /^[em]:/.test(k) ? 'dim' : 'shown'; };
   let svg;
-  try { LINK_NAV = true; svg = flowSVG(m, st, { zones: !!c.layers.loc }); } catch { return ''; } finally { LINK_NAV = false; }
+  try { LINK_NAV = true; DRAW_PAIR_LINES = !!c.layers.pairs; svg = flowSVG(m, st, { zones: !!c.layers.loc }); } catch { return ''; } finally { LINK_NAV = false; DRAW_PAIR_LINES = false; }
   if (!c.layers.links) svg = svg.replace(/<(a|g) class="xlink[\s\S]*?<\/\1>/g, '');
   MAP_MERGED.sig = sig; MAP_MERGED.svg = svg.replace('class="flow', 'class="flow mapfull merged');
   MAP_MERGED.P = P;

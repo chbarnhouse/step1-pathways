@@ -196,3 +196,32 @@ window.addEventListener('resize', () => {
   if (!st) return;
   if (typeof Store.settings.zoom !== 'number') { CANVAS_VIEW = null; applyZoom(); } else if (st._v) setView(st, st._v);
 });
+
+/* ---------- coupled steps: the lettered badges ---------- */
+// Hover or focus: the pair side by side (here, then the other half). Click or Enter: go to the other badge.
+(() => {
+  let pop = null;
+  const hide = () => { if (pop) pop.hidden = true; };
+  const half = (head, s) => { const [a, b] = String(s).split(' → '); return `<div class="pp-col"><span class="pp-h">${head}</span><span class="pp-box">${esc(a || '')}</span><span class="pp-arr"></span><span class="pp-box">${esc(b || '')}</span></div>`; };
+  const show = g => {
+    if (!pop) { pop = document.createElement('div'); pop.className = 'pairpop'; pop.setAttribute('role', 'tooltip'); document.body.append(pop); }
+    const d = g.dataset;
+    pop.innerHTML = `<div class="pp-cols">${half('Here', d.here)}<div class="pp-mid"><span class="pp-badge">${esc(d.pair)}</span><span class="pp-enz">${esc(d.enz || 'one enzyme')}</span></div>${half('Also', d.there)}</div>
+      <p>One step, two halves: each half’s molecules are the other’s cofactors. Click the badge to go to the other half.</p>`;
+    pop.hidden = false;
+    const r = g.getBoundingClientRect(), t = pop.getBoundingClientRect(), below = r.bottom + 8 + t.height <= innerHeight - 4;
+    pop.style.top = (below ? r.bottom + 8 : r.top - 8 - t.height) + 'px';
+    pop.style.left = Math.min(innerWidth - t.width - 6, Math.max(6, r.left + r.width / 2 - t.width / 2)) + 'px';
+  };
+  const jump = g => {
+    const svg = g.closest('svg.flow'), to = svg && svg.querySelector(`.pairbadge[data-pair="${CSS.escape(g.dataset.pair)}"][data-me="${CSS.escape(g.dataset.other)}"]`); if (!to) return;
+    hide(); centerOn(to); to.classList.remove('flash'); void to.getBBox(); to.classList.add('flash'); setTimeout(() => to.classList.remove('flash'), 1700); to.focus?.({ preventScroll: true });
+  };
+  document.addEventListener('pointerover', e => { if (e.pointerType !== 'mouse') return; const g = e.target.closest?.('.pairbadge'); if (g) show(g); });
+  document.addEventListener('pointerout', e => { const g = e.target.closest?.('.pairbadge'); if (g && !g.contains(e.relatedTarget)) hide(); });
+  document.addEventListener('focusin', e => { const g = e.target.closest?.('.pairbadge'); if (g) show(g); });
+  document.addEventListener('focusout', hide);
+  document.addEventListener('click', e => { const g = e.target.closest?.('.pairbadge'); if (!g) return; const st = g.closest('.stage.canvas'); e.stopPropagation(); if (st?._dragged && Date.now() - st._dragged < 300) return; jump(g); }, true); // (not at the end of a drag)
+  document.addEventListener('keydown', e => { const g = e.target.closest?.('.pairbadge'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); jump(g); } });
+  for (const ev of ['scroll', 'wheel']) document.addEventListener(ev, hide, true);
+})();
