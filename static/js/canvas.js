@@ -38,7 +38,8 @@ function setView(st, v, animate = false) {
   st._v = v;
   world.classList.toggle('glide', !!animate && !matchMedia('(prefers-reduced-motion: reduce)').matches);
   world.style.transform = `translate(${v.x}px, ${v.y}px) scale(${v.k})`;
-  CANVAS_VIEW = { key: st.dataset.view || '', mode: Store.settings.zoom, k: v.k, x: v.x, y: v.y };
+  const { w, h } = contentSize(st);
+  CANVAS_VIEW = { key: st.dataset.view || '', mode: Store.settings.zoom, k: v.k, x: v.x, y: v.y, w, h };
   const zp = document.querySelector('#zoomPct'); if (zp) zp.textContent = Math.round(v.k * 100) + '%';
 }
 // Zoom about a point of the stage (cursor, pinch center, or the middle for the buttons).
@@ -62,8 +63,9 @@ function applyZoom(scope = document) {
   const svg = svgOf(st), vb0 = svg.viewBox.baseVal; svg.style.width = vb0.width + 'px'; svg.style.height = vb0.height + 'px';
   placeInline();
   // Same diagram, same zoom mode as a moment ago (e.g. the next question): keep the view where it was.
-  if (CANVAS_VIEW && CANVAS_VIEW.key && CANVAS_VIEW.key === st.dataset.view && CANVAS_VIEW.mode === z) return setView(st, CANVAS_VIEW);
+  // (Same size too: the Map keeps one key while its layout and pathways change what it draws.)
   const { w, h } = contentSize(st);
+  if (CANVAS_VIEW && CANVAS_VIEW.key && CANVAS_VIEW.key === st.dataset.view && CANVAS_VIEW.mode === z && CANVAS_VIEW.w === w && CANVAS_VIEW.h === h) return setView(st, CANVAS_VIEW);
   let k = typeof z === 'number' ? z : fitK(st, z);
   // Quizzing with Follow on a drawing too big to fit legibly (the whole nephron): start readable and let Follow
   // keep the blank in view; holding Peek still shows all of it.

@@ -906,7 +906,10 @@ form.inl.inl-float { position: absolute; z-index: 2; transform-origin: 0 0; marg
 /* The diagram canvas: drag to pan, pinch or Ctrl/⌘-scroll to zoom (canvas.js). */
 .stage.canvas { position: relative; overflow: hidden; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; padding: 0; }
 .stage.canvas.dragging { cursor: grabbing; }
-.stage.canvas .world { position: absolute; left: 0; top: 0; transform-origin: 0 0; will-change: transform; }
+.stage.canvas .world { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+/* Its own layer only mid-gesture: Chrome keeps a promoted layer at the drawing’s full size (the merged Map is ~5500×6200,
+   ×4 at 2× pixels), and that starved the rest of the page of tiles. */
+.stage.canvas.dragging .world { will-change: transform; }
 .stage.canvas .world.glide { transition: transform .28s ease; }
 .stage.canvas .world > svg.flow { display: block; margin: 0; width: auto; max-width: none; }
 .stage.canvas input, .stage.canvas .inl-float { cursor: text; user-select: text; -webkit-user-select: text; }
