@@ -198,17 +198,27 @@ window.addEventListener('resize', () => {
 });
 
 /* ---------- coupled steps: the lettered badges ---------- */
-// Hover or focus: the pair side by side (here, then the other half). Click or Enter: go to the other badge.
+// Hover or focus: the pair (here, and the other half) meeting at their enzyme. Click or Enter: go to the other badge.
 (() => {
   let pop = null;
   const hide = () => { if (pop) pop.hidden = true; };
-  const half = (head, s) => { const [a, b] = String(s).split(' → '); return `<div class="pp-col"><span class="pp-h">${head}</span><span class="pp-box">${esc(a || '')}</span><span class="pp-arr"></span><span class="pp-box">${esc(b || '')}</span></div>`; };
+  // The two halves as one picture: each half's arrow bows in to touch the enzyme between them, then on to its product.
+  const split = s => String(s).split(' → ').map(t => esc(t || ''));
   const show = g => {
     if (!pop) { pop = document.createElement('div'); pop.className = 'pairpop'; pop.setAttribute('role', 'tooltip'); document.body.append(pop); }
-    const d = g.dataset;
-    pop.innerHTML = `<div class="pp-cols">${half('Here', d.here)}<div class="pp-mid"><span class="pp-badge">${esc(d.pair)}</span><span class="pp-enz">${esc(d.enz || 'one enzyme')}</span></div>${half('Also', d.there)}</div>
+    const d = g.dataset, [a1, a2] = split(d.here), [b1, b2] = split(d.there);
+    pop.innerHTML = `<div class="pp-grid"><span class="pp-h" style="grid-area:h1">Here</span><span class="pp-h" style="grid-area:h2">Also</span>
+      <span class="pp-box" style="grid-area:a1">${a1}</span><span class="pp-box" style="grid-area:a2">${a2}</span>
+      <span class="pp-mid" style="grid-area:e"><span class="pp-badge">${esc(d.pair)}</span><span class="pp-enz">${esc(d.enz || 'one enzyme')}</span></span>
+      <span class="pp-box" style="grid-area:b1">${b1}</span><span class="pp-box" style="grid-area:b2">${b2}</span></div>
       <p>One step, two halves: each half’s molecules are the other’s cofactors. Click the badge to go to the other half.</p>`;
     pop.hidden = false;
+    const G = pop.querySelector('.pp-grid'), o = G.getBoundingClientRect(), R = sel => pop.querySelector(sel).getBoundingClientRect();
+    const [ra1, ra2, rb1, rb2] = [...pop.querySelectorAll('.pp-box')].map(e => e.getBoundingClientRect()), m = R('.pp-mid');
+    const ym = m.top + m.height / 2 - o.top, curve = (top, bot, px) => { const x1 = top.left + top.width / 2 - o.left, y1 = top.bottom - o.top + 2, x2 = bot.left + bot.width / 2 - o.left, y2 = bot.top - o.top - 3;
+      return `<path d="M${x1},${y1} C${x1},${y1 + 10} ${px},${ym - 26} ${px},${ym} C${px},${ym + 26} ${x2},${y2 - 10} ${x2},${y2}" marker-end="url(#pp-ah)"/>`; };
+    G.insertAdjacentHTML('afterbegin', `<svg class="pp-lines" width="${o.width}" height="${o.height}" aria-hidden="true"><defs><marker id="pp-ah" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z"/></marker></defs>
+      ${curve(ra1, ra2, m.left - o.left - 3)}${curve(rb1, rb2, m.right - o.left + 3)}</svg>`);
     const r = g.getBoundingClientRect(), t = pop.getBoundingClientRect(), below = r.bottom + 8 + t.height <= innerHeight - 4;
     pop.style.top = (below ? r.bottom + 8 : r.top - 8 - t.height) + 'px';
     pop.style.left = Math.min(innerWidth - t.width - 6, Math.max(6, r.left + r.width / 2 - t.width / 2)) + 'px';
