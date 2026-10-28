@@ -22,6 +22,8 @@ function inlineField(x, y, w, h) {
   return `<rect class="inl-slot" x="${x}" y="${y}" width="${w}" height="${h}" fill="none"/>`;
 }
 const BW = 212, BH = 40, GAP = 72, CX = 222, SIDEX = 556, TOP = 18;
+const TAB_ROOM = 64; // extra gap where a joined drawing's main line enters another compartment (linearSVG tabRoom)
+const TAB_BAND = 70; // ...where that step's name and cofactors stop short of the box: its compartment's name tab goes there
 
 function head(x, y, ang, size = 9, cls = 'ah') {
   // An inhibiting step (tag "inhibits") ends in a flat bar, ⊣, so inhibition reads by shape, not just its color or label.
@@ -97,7 +99,8 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), cof = cs !== 'none' && cs !== 'hide';
   // (Its own route counts too: text on the very line it names.)
   const own = q => P.slice(1).some((v, i) => { const u = P[i]; return Math.max(u[0], v[0]) > q.x + 1 && Math.min(u[0], v[0]) < q.x + q.w - 1 && Math.max(u[1], v[1]) > q.y + 2 && Math.min(u[1], v[1]) < q.y + q.h - 2; });
-  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.filter(q => q && (q.hit || hitsBox(q) || lineHit(q) || (q.w && own(q)))).length;
+  const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.reduce((n, q) => n + (!q ? 0 : q.hit || DRAW_BOXES.some(b => overlaps(q, b)) ? 10 : DRAW_LABELS.some(l => overlaps(q, l)) ? 3 : lineHit(q) || (q.w && own(q)) || TAB_SPOTS.some(l => overlaps(q, l)) ? 1 : 0), 0); // (when nothing is clean: over a line or a compartment's name spot beats over a name, over a name beats over a box)
+  const self = rs => { const t = rs.filter(q => q && q.w); let n = 0; for (let i = 0; i < t.length; i++) for (let j = i + 1; j < t.length; j++) if (overlaps(t[i], t[j])) n += 3; return n; }; // its own texts on each other
   // What a layout's cofactor text actually is, where it lands, tried without keeping anything.
   // (Drawn as the real thing is: its name already there, which the curl steers around; and curls record their labels.)
   // Its curl too, sampled every 8 px (a 4-px square each): a curl through a label is as bad as text on one.
@@ -112,25 +115,28 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
   for (const { p, q, h, len } of legs) {
     if (h) {
       const y = p[1], dir = Math.sign(q[0] - p[0]);
-      for (const lift of [0, 24, 48]) for (const f of [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]) for (const up of cof ? [false, true] : [false]) {
+      for (const wm of [22, 34]) for (const lift of wm > 22 ? [0] : [0, 24, 48]) for (const f of [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]) for (const up of cof ? [false, true] : [false]) { // (wm 34: on one line, to fit a tight gap)
         // (lift: the name a little further above its line, when right against it there's no room)
         const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = (up ? y - 62 : y - 8) - lift;
-        const name = enzRect(mx, ly, 'middle', it, 22, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
-        plans.push({ n: count([name, ...cb]), go: () => { DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return enzLabel(mx, ly, it, es, 'middle', 22, 'bottom') + c; } });
+        const name = enzRect(mx, ly, 'middle', it, wm, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), go: () => { DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return enzLabel(mx, ly, it, es, 'middle', wm, 'bottom') + c; } });
       }
     } else {
       const x = p[0], y0 = Math.min(p[1], q[1]), y1 = Math.max(p[1], q[1]), cw = cof ? Math.max(0, ...parts.map(t => (hidden(t.st) ? 110 : t.text.length * 7))) + 64 : 14;
       const stretches = y1 - y0 > 150 ? [0.5, 0.35, 0.65, 0.22, 0.78].map(f => { const c = y0 + (y1 - y0) * f; return [Math.max(y0, c - 55), Math.min(y1, c + 55)]; }) : [[y0, y1]];
-      for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1], [-44, 'end', 1], [cw + 30, 'start', 1], [-cw - 30, 'end', -1]]) {
+      for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1], [-44, 'end', 1], [cw + 30, 'start', 1], [-cw - 30, 'end', -1], [-74, 'end', 1], [cw + 60, 'start', 1], [-cw - 60, 'end', -1]]) {
         if (dx === 14 && cof) continue; // name right with cofactors left is the mirrored layout above
         const c = (a0 + a1) / 2, name = enzRect(x + dx, c, an, it, 18), cb = drawn(() => cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0), name);
-        plans.push({ n: count([name, ...cb]), go: () => { DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return enzLabel(x + dx, c, it, es, an, 18, 'center') + cc; } });
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), go: () => { DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return enzLabel(x + dx, c, it, es, an, 18, 'center') + cc; } });
       }
     }
   }
-  if (!plans.length) return '';
-  return (plans.find(pl => !pl.n) || plans.slice().sort((a, b) => a.n - b.n)[0]).go();
+  if (!plans.length) { ROUTE_LABEL_MISS += 5; return ''; }
+  const best = plans.find(pl => !pl.n) || plans.slice().sort((a, b) => a.n - b.n)[0]; ROUTE_LABEL_MISS += best.n;
+  return best.go();
 }
+let TAB_SPOTS = []; // where a joined drawing's compartment names will go: a step's name avoids them (stitchSVG)
+let ROUTE_LABEL_MISS = 0; // what routeStepLabels' names cover where it put them (0: clean), for a joined drawing to try another route
 function arrow(x1, y1, x2, y2, rev, cls = 'ln') {
   const ang = Math.atan2(y2 - y1, x2 - x1);
   const back = (x, y, d) => [x - Math.cos(ang) * d, y - Math.sin(ang) * d];
@@ -522,7 +528,7 @@ function flowSVG(m, statusOf, opts = {}) {
   // The second arrow of a coupled step names its enzyme too, once the first one's is showing (it's asked there, once).
   if (m.p.reactions.some(r => r.coupled)) { const own = statusOf, twin = new Map(m.p.reactions.filter(r => r.coupled).map(r => ['e:' + r.id, 'e:' + r.coupled]));
     statusOf = k => { if (!twin.has(k)) return own(k); const s = own(twin.get(k)); return s === 'shown' || s === 'peek' || s === 'dim' || s === 'focus' ? s : 'hide'; }; }
-  DRAW_STATUS = statusOf; DRAW_MODEL = m; COF_SPOTS = []; STEP_AT = {}; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = [];
+  DRAW_STATUS = statusOf; DRAW_MODEL = m; COF_SPOTS = []; STEP_AT = {}; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = []; TAB_ENTERS = new Set(); TAB_ENTER_TO = new Set();
   if (m.p.stitch) return rlStrip(m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts), m, statusOf);
   ZONE_INLINE_DONE = false;
   const grps = Object.values(m.items).filter(it => it.kind === 'grp'), outer = DRAW_POS;
@@ -697,6 +703,8 @@ function drawEdge(m, statusOf, r, a, b, wA = BW, wB = BW) {
   return out + viaPill(m, statusOf, r, VIA_PTS ? viaAt(VIA_PTS, ti) : viaAt([p1, p2]));
 }
 let VIA_PTS = null; // the route drawEdge1 took, when it bent
+let TAB_ENTER_TO = new Set(); // ...and the boxes they drop into (a pair of arrows there, twinEdge, stops short too)
+let TAB_ENTERS = new Set(); // grid steps dropping into another compartment in a joined drawing: their name sits higher (gridSVG)
 function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
   const p1 = edgePt(a, b.cx, b.cy, wA), p2 = edgePt(b, a.cx, a.cy, wB);
   const isEnd = bx => [a, b].some(q => Math.abs(bx.x + bx.w / 2 - q.cx) < 4 && Math.abs(bx.y + bx.h / 2 - q.cy) < 4);
@@ -710,7 +718,7 @@ function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
     return elbow(pts, r.reversible, rxCls(r)) + enzLabel(gx + 12, mid, it, es, 'start', 18, 'center');
   }
   let s = arrow(p1[0], p1[1], p2[0], p2[1], r.reversible, rxCls(r));
-  const lw = enzRect(0, 0, 'middle', m.items['e:' + r.id], 16, 'bottom').w, mx = labAt(r, p1[0], p2[0], lw), my = labAt(r, p1[1], p2[1]);
+  const lw = enzRect(0, 0, 'middle', m.items['e:' + r.id], 16, 'bottom').w, mx = labAt(r, p1[0], p2[0], lw), my = TAB_ENTERS.has(r.id) ? (p1[1] + b.cy - BH / 2 - TAB_BAND) / 2 : labAt(r, p1[1], p2[1]);
   const cs = cofSt(m, statusOf, r), ct = cofVisible(cs) ? cofText(m, r.cofactors) : '';
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id);
   const xm = r.transport && !r.paracellular && Math.abs(p1[1] - p2[1]) < 4 ? GRID_MEMBRANES.find(x => x > Math.min(p1[0], p2[0]) && x < Math.max(p1[0], p2[0])) : undefined;
@@ -745,7 +753,8 @@ function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
       return hitsBox({ x: side > 0 ? mx + 50 : mx - 50 - w, y: y0, w, h: y1 - y0 }); });
     const flip = cofOn && span(1) && !span(-1) && !hitsBox(enzRect(mx + 14, my, 'start', it, 18));
     s += enzLabel(mx + (flip ? 14 : -14), my, it, es, flip ? 'start' : 'end', 18, 'center'); DRAW_LABELS.push(enzRect(mx + (flip ? 14 : -14), my, flip ? 'start' : 'end', it, 18));
-    if (cofOn) s += cofArcParts(mx, Math.min(q1, p2[1]), Math.max(q1, p2[1]), cofParts(m, statusOf, r), p2[1] < p1[1], flip);
+    const e2 = TAB_ENTERS.has(r.id) ? b.cy - BH / 2 - TAB_BAND - 8 : p2[1]; // (into another compartment: the curl stays above its name tab)
+    if (cofOn) s += cofArcParts(mx, Math.min(q1, e2), Math.max(q1, e2), cofParts(m, statusOf, r), p2[1] < p1[1], flip);
   } else {
     // Off-line: an L. Leave a box on the main line from its side (its bottom carries the main arrow), then turn into the
     // other box; otherwise drop straight down (or up) first, then turn into the other box's side.
@@ -838,13 +847,15 @@ function joinEdge(a, b, r) {
 function twinEdge(m, statusOf, r, a, b, forceSide = 0) {
   const down = b.cy > a.cy, side = forceSide || (down ? -1 : 1), x = a.cx + side * 14;
   const y1 = down ? a.cy + BH / 2 + 4 : a.cy - BH / 2 - 4, y2 = down ? b.cy - BH / 2 - 4 : b.cy + BH / 2 + 4;
-  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), mid = labAt(r, y1, y2), anchor = side < 0 ? 'end' : 'start';
+  // (Into another compartment's box in a joined drawing: its name and cofactors stop short of that box's name tab.)
+  const low = down ? r.to : r.from, [c1, c2] = TAB_ENTER_TO.has(low) ? (down ? [y1, y2 - TAB_BAND + 4] : [y1 - TAB_BAND + 4, y2]) : [y1, y2];
+  const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), mid = labAt(r, c1, c2), anchor = side < 0 ? 'end' : 'start';
   // The name sits outside the cofactor text (which hugs the arrow), so the two never overlap.
   const cw = Math.max(0, ...cofParts(m, statusOf, r).map(q => (hidden(q.st) ? 110 : q.text.length * 7))), lx = x + side * (54 + cw + 14);
   let s = arrow(x, y1, x, y2, r.reversible, rxCls(r)) + enzLabel(lx, mid, it, es, anchor, 22, 'center');
   DRAW_LABELS.push(enzRect(lx, mid, anchor, it, 22));
-  if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x, y1], [x, y2], [side, 0], cofParts(m, statusOf, r));
-  if (r.via) s += viaPill(m, statusOf, r, viaAt([[x, y1], [x, y2]]));
+  if (cs !== 'none' && cs !== 'hide') s += cofArcLine([x, c1], [x, c2], [side, 0], cofParts(m, statusOf, r));
+  if (r.via) s += viaPill(m, statusOf, r, viaAt([[x, c1], [x, c2]]));
   return s;
 }
 // One of two level steps between the same boxes: the first runs just above center with its label above it, the
@@ -996,11 +1007,14 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
   // the area edges merge into them like into each other.
   // A cluster of close lines becomes its lowest when it holds a low edge (an area's left or top), else its highest:
   // an area may grow by the merge, never shrink, so a merge never cuts into the boxes at its edge.
-  const lines2 = (lo, hi) => { const all = [...lo.map(v => [v, 1]), ...hi.map(v => [v, 0])].sort((a, b) => a[0] - b[0]), o = [];
-    for (let i = 0; i < all.length;) { let j = i; while (j + 1 < all.length && all[j + 1][0] - all[j][0] < MINC) j++;
-      const g = all.slice(i, j + 1); o.push(g.some(t => t[1]) ? g[0][0] : g[g.length - 1][0]); i = j + 1; }
+  // cap: a cluster spans less than MINC (no chain, so a top edge never creeps far up).
+  const lines2 = (lo, hi, cap = false) => { const all = [...lo.map(v => [v, 1]), ...hi.map(v => [v, 0])].sort((a, b) => a[0] - b[0]), o = [];
+    for (let i = 0; i < all.length;) { let j = i; while (j + 1 < all.length && all[j + 1][0] - all[j][0] < MINC && (!cap || all[j + 1][0] - all[i][0] < cap)) j++;
+      const g = all.slice(i, j + 1), lows = g.filter(t => t[1]);
+      // (cap: tops meet a little under the highest, up to 12 px, so that none creeps far up and a name tab still fits above each box)
+      o.push(lows.length ? (cap ? Math.min(lows[lows.length - 1][0], lows[0][0] + 12) : g[0][0]) : g[g.length - 1][0]); i = j + 1; }
     return [...new Set(o)]; };
-  const xs = lines2(ar.map(a => a.x0), ar.map(a => a.x1)), ys = lines2(ar.map(a => a.y0), ar.map(a => a.y1));
+  const xs = lines2(ar.map(a => a.x0), ar.map(a => a.x1)), ys = lines2(ar.map(a => a.y0), ar.map(a => a.y1), MINC);
   // Two boxes of different compartments side by side (or one above the other) with no line between them would share a
   // cell: a line goes in the middle of the gap between them.
   const bb = boxes.map(b => ({ z: b.z, r: b.box || b.r }));
@@ -1013,7 +1027,7 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
   xs.sort((a, b) => a - b); ys.sort((a, b) => a - b); const W = xs.length - 1, H = ys.length - 1;
   const near = (v, arr) => arr.reduce((b, x) => (Math.abs(x - v) < Math.abs(b - v) ? x : b), arr[0]); // an edge merged away goes to the line that kept it
   ar.forEach(a => { a.x0 = near(a.x0, xs); a.x1 = near(a.x1, xs); a.y0 = near(a.y0, ys); a.y1 = near(a.y1, ys); });
-  const zs = [...new Set(ar.map(a => a.z))], own = new Int16Array(W * H).fill(-1), best = new Float64Array(W * H).fill(Infinity);
+  const zs = [...new Set(ar.map(a => a.z))], own = new Int16Array(W * H).fill(-1), held = new Uint8Array(W * H), best = new Float64Array(W * H).fill(Infinity);
   // Of the areas covering a cell, the compartment with a box nearest it (between pathways, each keeps the space around
   // its own boxes; a small compartment inside a big one keeps its middle)...
   const cover = Array.from({ length: W * H }, () => null), zb = zs.map(z => boxes.filter(b => b.z === z).map(b => b.r));
@@ -1027,7 +1041,18 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
   // even one no area covers (merged grid lines can leave a box's edge outside its own area).
   for (const b of boxes) { const zi = zs.indexOf(b.z); if (zi < 0) continue; const r = b.box || b.r;
     for (let j = 0; j < H; j++) { if (ys[j + 1] <= r.y || ys[j] >= r.y + r.h) continue;
-      for (let i = 0; i < W; i++) if (xs[i + 1] > r.x && xs[i] < r.x + r.w) own[j * W + i] = zi; } }
+      for (let i = 0; i < W; i++) if (xs[i + 1] > r.x && xs[i] < r.x + r.w) { own[j * W + i] = zi; held[j * W + i] = 1; } } }
+  // A ledge: a strip of a compartment thinner than a corner needs (a row or column under MINC) that sticks out past the
+  // rest of its edge, so the outline steps by too little to round. It goes, unless a box holds it.
+  const at = (i, j) => (i < 0 || j < 0 || i >= W || j >= H ? -1 : own[j * W + i]);
+  for (let pass = 0; pass < 3; pass++) for (const [n, L, step] of [[H, ys, (i, j) => [i, j]], [W, xs, (j, i) => [i, j]]]) {
+    const m = n === H ? W : H;
+    for (let j = 0; j < n; j++) { if (L[j + 1] - L[j] >= MINC) continue;
+      for (let i = 0; i < m; i++) { const [x, y] = step(i, j), z = at(x, y); if (z < 0 || held[y * W + x]) continue;
+        const [xa, ya] = step(i, j - 1), [xb, yb] = step(i, j + 1), up = at(xa, ya), dn = at(xb, yb);
+        if ((up === z) === (dn === z)) continue; // inside the piece, or a thin piece of its own
+        const side = k => { const [xs1, ys1] = step(i + k, j), [xn, yn] = up === z ? step(i + k, j - 1) : step(i + k, j + 1); return at(xs1, ys1) !== z && at(xn, yn) === z; };
+        if (side(-1) || side(1)) own[y * W + x] = -1; } } }
   // Pieces: connected cells of one compartment; their outlines, traced with the piece on the right (y down).
   const seen = new Uint8Array(W * H), corners = [], pieces = [];
   for (let n0 = 0; n0 < W * H; n0++) {
@@ -1139,7 +1164,7 @@ function zoneLabel(m, statusOf, key, x, y, anchor = 'middle', fallback = '') {
   const mark = st === 'right' ? svgIcon(mx, y - 4, 'ok') : st === 'missed' ? svgIcon(mx, y - 4, 'no') : '';
   return `<text class="zonet" data-key="${item.key}" x="${x}" y="${y}" text-anchor="${anchor}">${esc(item.name)}</text>${mark}`;
 }
-function linearSVG(m, statusOf, { zones = true } = {}) {
+function linearSVG(m, statusOf, { zones = true, tabRoom = false } = {}) {
   const { p, items, spine, spineMets, branches, onSpine } = m;
   // Side steps between two main-line metabolites (gluconeogenic bypasses in a combined view) curve out to the right.
   const bypass = branches.filter(b => onSpine.has(b.from) && onSpine.has(b.to));
@@ -1156,6 +1181,7 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
   const laneLeft = i => (i === 0 ? 0 : laneX(i) - LANE_W / 2 + 20);
   const top = TOP + (lanesOn || oneZone ? 26 : 0);
   let pos, perRow, sideX;
+  const enters = new Set(); // boxes the main line enters another compartment at (tabRoom)
   const layout = () => {
     for (let i = 1; i <= last; i++) laneXs[i] = laneXs[i - 1] + LANE_W + (cols[i - 1] || 0) * SIDE_STEP;
     sideX = laneX(lanesOn ? last : 0) + SIDE_STEP + (bypass.length ? 190 : 0);
@@ -1164,7 +1190,12 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
     // A step drawn straight down (both boxes in one lane) whose label is taller than the gap (a carrier's pill with its
     // drugs under it) gets the extra room it needs.
     const tall = r => { const it = r && items['e:' + r.id]; if (!it || (lanesOn && (L.laneOf[r.from] || 0) !== (L.laneOf[r.to] || 0))) return 0; return Math.max(0, enzRect(0, 0, 'end', it, 24).h + 16 - GAP); };
-    spineMets.forEach((id, i) => { if (i) yy += BH + GAP + (spine[i - 1]?.via ? VIA_ROOM : 0) + tall(spine[i - 1]); pos[id] = { x: laneX(L.laneOf[id] || 0), y: yy }; });
+    // Drawn as part of a joined drawing (tabRoom): where the main line steps into another compartment, the gap grows so
+    // the step's name sits clear above that compartment's top edge, which is where its name tab goes.
+    const zw = tabRoom ? { ...tileWhere(p), ...STITCH_WHERE } : {}, zk = id => (zw[id]?.loc ? zw[id].loc + '|' + (zw[id].tissue || '') : '');
+    const entering = i => { const e = tabRoom && zk(spineMets[i]) && zk(spineMets[i]) !== zk(spineMets[i - 1]); if (!e) return 0; enters.add(spineMets[i]);
+      const it = items['e:' + spine[i - 1]?.id], h = it ? enzRect(0, 0, 'end', it, 24).h : 0; return Math.max(TAB_ROOM, h + TAB_BAND - GAP - tall(spine[i - 1])); }; // (a tall name: as much as it needs)
+    spineMets.forEach((id, i) => { if (i) yy += BH + GAP + (spine[i - 1]?.via ? VIA_ROOM : 0) + tall(spine[i - 1]) + entering(i); pos[id] = { x: laneX(L.laneOf[id] || 0), y: yy }; });
     const place = (id, y, stack = 0) => {
       if (pos[id]) return;
       // Many extra inputs into one step (VOMIT → propionyl-CoA) stack in a column beside the line, not a long row.
@@ -1327,10 +1358,12 @@ function linearSVG(m, statusOf, { zones = true } = {}) {
       // A via step: its carrier just below the box it leaves, the enzyme (and cofactors) below that.
       const ya = r.via ? y1 + VIA_ROOM : y1;
       s += arrow(X, y1 + 4, X, y2 - 4, r.reversible, rxCls(r)) + (r.via ? viaPill(m, statusOf, r, [X, y1 + 28]) : '');
-      s += enzLabel(X - 34, (ya + y2) / 2, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
-      DRAW_LABELS.push(enzRect(X - 34, (ya + y2) / 2, 'end', items['e:' + r.id], 24));
+      // (Into another compartment, in a joined drawing: centered in the gap above its name tab's band.)
+      const yl = enters.has(r.to) ? (ya + y2 - TAB_BAND) / 2 : (ya + y2) / 2;
+      s += enzLabel(X - 34, yl, items['e:' + r.id], statusOf('e:' + r.id), 'end', 24, 'center', stepLoc[r.id] || []);
+      DRAW_LABELS.push(enzRect(X - 34, yl, 'end', items['e:' + r.id], 24));
       const cs = cofSt(m, statusOf, r);
-      if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, ya, y2, cofParts(m, statusOf, r));
+      if (hidden(cs) || cofVisible(cs)) s += cofArcParts(X, ya, enters.has(r.to) ? y2 - TAB_BAND - 8 : y2, cofParts(m, statusOf, r)); // (its curl stays above the tab band too)
     } else {
       // Crosses a membrane: down, across into the other lane, down (a right angle, not a slant).
       // With a carrier (r.via): across just below the first box, the carrier on the membrane, then the enzyme
@@ -1521,7 +1554,14 @@ function gridSVG(m, statusOf, opts = {}) {
   const extra = p.column_zones && !rowBands ? 15 * Math.max(0, ...p.reactions.filter(r => r.transport && items['e:' + r.id]).map(r => regLines(items['e:' + r.id]).length + drugLines(items['e:' + r.id]).length)) : 0;
   const COLW = p.grid_colw || BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + (rowBands ? 190 : 130), Y0 = TOP + extra + (rowBands ? 30 : p.column_zones ? 78 : p.grid_columns ? 34 : 0);
   const pos = {};
-  for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + BH / 2 }; }
+  // Drawn as part of a joined drawing (opts.tabRoom): a row that a step drops into from another compartment sits lower,
+  // so the step's name clears that compartment's top edge, where its name tab goes (as linearSVG does).
+  const at0 = id => p.metabolites[id]?.pos || [0, 0], zw = opts.tabRoom ? { ...tileWhere(p), ...STITCH_WHERE } : {}, zk = id => (zw[id]?.loc ? zw[id].loc + '|' + (zw[id].tissue || '') : '');
+  TAB_ENTERS = new Set(); TAB_ENTER_TO = new Set();
+  const enterRows = new Set(p.reactions.filter(r => opts.tabRoom && p.metabolites[r.from] && p.metabolites[r.to] && at0(r.from)[0] === at0(r.to)[0] && at0(r.to)[1] > at0(r.from)[1] && zk(r.to) && zk(r.to) !== zk(r.from))
+    .map(r => (r.via || TAB_ENTERS.add(r.id), TAB_ENTER_TO.add(r.to), at0(r.to)[1]))); // (a carrier's pill holds the middle: its step's name stays put)
+  const lower = r => [...enterRows].filter(e => e <= r).length * TAB_ROOM;
+  for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + lower(r) + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
   // Column bands (p.column_zones): when each column is one compartment (a tubular cell: lumen | cell | blood), shade
@@ -1740,7 +1780,7 @@ function renderTile(T, statusOf, drop, keep, rot = 0) {
   if (p !== T.p && !p.reactions.some(r => !r.branch)) T.variants[vkey] = p.reactions.length ? { ...p, reactions: p.reactions.map((r, i) => (i ? r : { ...r, branch: false })) } : T.p;
   const sm = modelFor(T.variants[vkey] || p);
   DRAW_POS = {};
-  let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false, rot });
+  let svg = flowSVG(sm, k => (keep && k === 'm:' + keep ? 'shown' : statusOf(k)), { zones: false, rot, tabRoom: true });
   const pos = DRAW_POS, labels = DRAW_LABELS.slice(), cofs = COF_SPOTS.slice(), steps = { ...STEP_AT }; DRAW_POS = null;
   // Its tags to other pathways ("from β-Oxidation") take room too.
   for (const t of svg.matchAll(/<rect class="xtag" x="([-\d.]+)" y="([-\d.]+)" width="([\d.]+)" height="([\d.]+)"/g)) labels.push({ x: +t[1], y: +t[2], w: +t[3], h: +t[4] });
@@ -1879,9 +1919,13 @@ function gridRoute(a, b, boxes, labels, drawnSegs = [], linePts = []) { // lineP
   }
   return best ? best.pts : null;
 }
+let STITCH_WHERE = null; // set while a joined drawing is drawn (stitchSVG)
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
   const owner = {}; tiles.forEach((t, i) => t.ids.forEach(id => { if (!(id in owner)) owner[id] = i; }));
+  // Where each molecule is, as the joined drawing places it (by the first part that has it): a part drawn by itself
+  // finds where its line enters another compartment from this, a molecule shared with an earlier part included.
+  STITCH_WHERE = {}; tiles.forEach(t => { const w = tileWhere(t.p); for (const id of t.ids) if (!(id in STITCH_WHERE) && w[id]) STITCH_WHERE[id] = w[id]; });
   const G = {}, occ = [], placed = [], bridges = [], dots = [];
   const M = 18, ctr = r => ({ cx: r.x + r.w / 2, cy: r.y + r.h / 2 });
   const shift = (r, dx, dy) => ({ x: r.x + dx, y: r.y + dy, w: r.w, h: r.h });
@@ -1963,7 +2007,7 @@ function stitchSVG(m, statusOf) {
     if (P.length === 2) { if (vert) { P[0][0] += o; P[1][0] += o; } else { P[0][1] += o / 4; P[1][1] += o / 4; } return P; }
     if (vert) { P[i][0] += o; P[j][0] += o; } else { P[i][1] += o / 4; P[j][1] += o / 4; } return P; };
   // soft: things a route may cross at a cost (labels): a short route that grazes one beats a long way round.
-  const route = (a, b, boxes, spread = false, soft = []) => {
+  const route = (a, b, boxes, spread = false, soft = [], every = false) => { // every: all acceptable routes, best first
     const A = ctr(a), B = ctr(b), others = boxes.filter(r => !same(r, a) && !same(r, b)), cands = [];
     const near = q => soft.filter(l => !(l.x < q.x + q.w + 6 && q.x < l.x + l.w + 6 && l.y < q.y + q.h + 6 && q.y < l.y + l.h + 6)); // not its own ends' labels
     const softs = [...near(a)].filter(l => near(b).includes(l));
@@ -1984,6 +2028,7 @@ function stitchSVG(m, statusOf) {
     }).sort((x, y) => cost(x) - cost(y));
     // A route that crosses no label at all wins, however much longer; only when there's none does it graze the fewest.
     const clean = ok.filter(pts => !pts.slice(1).some((q, i) => softs.some(l => segHits(pts[i], q, l))));
+    if (every) return [...clean, ...ok.filter(pts => !clean.includes(pts))];
     return clean[0] || ok[0] || null;
   };
   // A route's ends moved out to the box edges.
@@ -1993,8 +2038,8 @@ function stitchSVG(m, statusOf) {
     P[0] = out(P[0], P[1], a); P[n - 1] = out(P[n - 1], P[n - 2], b);
     return P;
   };
-  const drawRoute = (r, a, b, cls, labels = true) => {
-    const pts = gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+  const drawRoute = (r, a, b, cls, labels = true, given = null) => {
+    const pts = given || gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     if (r && labels) routed[r.id] = P;
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
@@ -2138,7 +2183,13 @@ function stitchSVG(m, statusOf) {
   // Steps between parts, drawn like any other step (enzyme, cofactors) now that every box has its place.
   // Every box drawn, a molecule's second copy too (joined to the first by a dotted line), is a wall for what's routed now.
   DRAW_BOXES = uniq([...Object.values(G), ...placed.flatMap(P => Object.values(P.pos).map(r => shift(r, P.dx, P.dy)))].map(r => JSON.stringify({ x: r.x, y: r.y, w: r.w, h: r.h }))).map(t => JSON.parse(t));
-  DRAW_LABELS = occ.filter(o => !o.box);
+  DRAW_LABELS = occ.filter(o => !o.box); TAB_SPOTS = [];
+  // Where each compartment's name tab will go (above the top-left of the first box in its column): the names of the
+  // steps between parts keep off it when they can (routeStepLabels).
+  const zoneAt = g => { const w = g.R?.where?.[g.id], z = w && zoneKey(m, w.loc, w.tissue); return z && m.items['z:' + z] ? z : null; };
+  for (const g of Object.values(G)) { const z = zoneAt(g); if (!z) continue;
+    if (Object.values(G).some(o => o !== g && zoneAt(o) === z && Math.abs(o.x - g.x) < 10 && o.y < g.y && o.y > g.y - 300)) continue;
+    TAB_SPOTS.push({ x: g.x - 2, y: g.y - 54, w: Math.min(220, (m.items['z:' + z].name || '').length * 8.1 + 16), h: 32 }); }
   let between = '';
   // A step between parts that one part already draws between the same two boxes (malate dehydrogenase: oxaloacetate to
   // malate in gluconeogenesis, malate to oxaloacetate on the TCA ring) is left to that arrow, unless it's being asked.
@@ -2147,7 +2198,16 @@ function stitchSVG(m, statusOf) {
   const drawnBy = (r, a, b) => a.R && a.R === b.R && a.R.sm.p.reactions.some(q => q.id !== r.id && ((q.from === r.from && q.to === r.to) || (q.from === r.to && q.to === r.from)) && baseEnz(q) === baseEnz(r));
   for (const r of uniq(bridges)) {
     const a = G['m:' + r.from], b = G['m:' + r.to];
-    if (a && b && !(quiet(r) && drawnBy(r, a, b))) between += drawRoute(r, a, b);
+    if (!a || !b || (quiet(r) && drawnBy(r, a, b))) continue;
+    // When its names find no clean spot along the route it takes, another route wins if its names cover less (the first
+    // clean one, shortest first; else the one that covers least).
+    const keep = [drawn.length, DRAW_LABELS.length, COF_SPOTS.length], undo = () => { drawn.length = keep[0]; DRAW_LABELS.length = keep[1]; COF_SPOTS.length = keep[2]; };
+    ROUTE_LABEL_MISS = 0; let svg = drawRoute(r, a, b);
+    if (ROUTE_LABEL_MISS) { let best = [ROUTE_LABEL_MISS, null]; undo();
+      const across = pts => 3 * DRAW_LABELS.filter(l => pts.slice(1).some((q, i) => segHits(pts[i], q, l))).length; // (the route itself through a name counts too)
+      for (const pts of (route(a, b, DRAW_BOXES, true, DRAW_LABELS, true) || []).slice(0, 24)) { const x = across(pts); if (x >= best[0]) continue; ROUTE_LABEL_MISS = 0; drawRoute(r, a, b, undefined, true, pts); undo(); if (ROUTE_LABEL_MISS + x < best[0]) best = [ROUTE_LABEL_MISS + x, pts]; if (!best[0]) break; }
+      svg = drawRoute(r, a, b, undefined, true, best[1]); }
+    between += svg;
   }
   // Same molecule, two compartments: a dashed transport arrow, from where it's made to where it's used.
   const madeOnly = id => m.p.reactions.some(r => r.to === id || (r.also_to || []).includes(id)) && !m.p.reactions.some(r => r.from === id || (r.also_from || []).includes(id));
@@ -2275,7 +2335,7 @@ function stitchSVG(m, statusOf) {
       between += `<rect class="xtag" x="${tx - w / 2}" y="${ty - 11}" width="${w}" height="22" rx="11"/><text class="xtagt" x="${tx}" y="${ty}" text-anchor="middle" dominant-baseline="central">${label}</text>`;
     }
   }
-  DRAW_BOXES = [];
+  DRAW_BOXES = []; TAB_SPOTS = [];
   // Compartments, once for the whole picture: each one is a tinted shape that follows its own boxes and the steps
   // between them (one flat tint, however the pieces overlap), named once per connected piece.
   const zoneOf = {}, pad = b => ({ x: b.x - 37, y: b.y - 49, w: b.w + 74, h: b.h + 86 }); // (the outline is pulled in 11 px from these)
@@ -2337,9 +2397,11 @@ function stitchSVG(m, statusOf) {
   const part = zonePartition(Object.entries(pieces).flatMap(([z, gs]) => gs.flatMap(g => { const b = boxOf(g); return foreign(z).some(o => hit(b, o)) ? g.map(r => ({ z, r })) : [{ z, r: b }]; })),
     Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(G[k]), box: { x: G[k].x - 14, y: G[k].y - 14, w: G[k].w + 28, h: G[k].h + 28 } })));
   for (const [z, ps] of Object.entries(part)) bg += `<g class="blob">${ps.map(P => `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${P.d}"/>`).join('')}</g>`;
+  // (Not the spots kept free for labels while parts were placed: those are empty now.)
+  const seen = occ.filter(o => !reserved.includes(o));
   // A fully free spot for a w × h tab inside a piece's rows, or null.
   const tabFree = (g, w, h) => { for (const r of g) for (let y = r.y + 4; y <= r.y + r.h - h - 4; y += 16) for (let x = r.x + 12; x <= r.x + r.w - 12 - w; x += 24) { const t = { x, y, w, h };
-    if (![...occ, ...DRAW_LABELS, ...lineRects].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !onLine(t)) return t; } return null; };
+    if (![...seen, ...DRAW_LABELS, ...lineRects].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !onLine(t)) return t; } return null; };
   for (const [z, ps] of Object.entries(part)) {
     // Named once per neighborhood, as a wall chart does: the biggest piece first; a piece within 600 px of one already
     // named (the cytosol either side of a vesicle) goes without.
@@ -2358,9 +2420,9 @@ function stitchSVG(m, statusOf) {
       const wrapTo = w => { const max = Math.max(8, Math.floor((w - 16) / 8.1)), out = [];
         for (const part of name.split(' · ')) { let line = ''; for (const word of part.split(' ')) { if (line && (line + ' ' + word).length > max) { out.push(line); line = word; } else line = line ? line + ' ' + word : word; } out.push(line); } return out; };
       const canTwo = name.includes(' ') && !hidden(zst) && zst !== 'hide';
-      const two = canTwo && (name.length * 8.1 + 16 > room - 16 || tabFree(g, name.length * 8.1 + 16, 18) === null) ? (name.includes(' · ') && Math.max(...name.split(' · ').map(t => t.length)) * 8.1 + 16 <= room - 16 ? name.split(' · ') : wrapTo(room - 24)) : null;
-      const tw = two ? Math.max(...two.map(t => t.length)) * 8.1 + 16 : name.length * 8.1 + 16, TH = two ? 4 + 14 * two.length : 18;
-      const free = r => ![...occ, ...DRAW_LABELS, ...lineRects].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o)) && !onLine(r);
+      let two = canTwo && (name.length * 8.1 + 16 > room - 16 || tabFree(g, name.length * 8.1 + 16, 18) === null) ? (name.includes(' · ') && Math.max(...name.split(' · ').map(t => t.length)) * 8.1 + 16 <= room - 16 ? name.split(' · ') : wrapTo(room - 24)) : null;
+      let tw = two ? Math.max(...two.map(t => t.length)) * 8.1 + 16 : name.length * 8.1 + 16, TH = two ? 4 + 14 * two.length : 18;
+      const free = r => ![...seen, ...DRAW_LABELS, ...lineRects].some(o => hit(r, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(r, o)) && !onLine(r);
       // Always the same place first, like a folder tab: on the shape's top edge, at its left end, sliding right along
       // that edge (then along any lower top edge) only when something is in the way.
       const topSegs = g.flatMap(r => { let segs = [[r.x, r.x + r.w]];
@@ -2370,8 +2432,15 @@ function stitchSVG(m, statusOf) {
       const botSegs = g.flatMap(r => { let segs = [[r.x, r.x + r.w]];
         for (const o of g) if (o !== r && o.y >= r.y + r.h - 1 && o.y <= r.y + r.h + REGION_GAP + 2) segs = segs.flatMap(([a, b]) => [[a, Math.min(b, o.x)], [Math.max(a, o.x + o.w), b]]).filter(([a, b]) => b - a > 1);
         return segs.map(([a, b]) => ({ y: r.y + r.h, a, b })); }).sort((p, q) => q.y - p.y || p.a - q.a);
-      const along = (es, dy) => es.flatMap(e => { const o = []; for (let x = e.a + 24; x <= e.b - 24 - tw; x += 16) o.push({ x, y: e.y + dy, edge: true }); return o; });
-      const top = along(topSegs, -TH / 2), edge = [...top, ...along(botSegs, -TH / 2)];
+      const along = (es, dy) => es.flatMap(e => { const o = []; for (let x = e.a + 24; x <= e.b - 14 - tw; x += 16) o.push({ x, y: e.y + dy, edge: true }); return o; });
+      // No room on the top edge for it as it is: narrower, on more lines (up to four), when that fits there.
+      const fits = () => along(topSegs, -Math.min(TH / 2, 16)).some(q => { const t = { ...q, w: tw, h: TH };
+        return ![...seen, ...DRAW_LABELS].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !others.some(o => hit(t, o)); });
+      if (canTwo && !fits()) { const was = [two, tw, TH];
+        for (let w = tw - 16; w >= 90; w -= 16) { const L = wrapTo(w); if (L.length > 4) break;
+          [two, tw, TH] = [L, Math.max(...L.map(t => t.length)) * 8.1 + 16, 4 + 14 * L.length]; if (fits()) break; [two, tw, TH] = was; } }
+      // (A tab of three or four lines hangs down into its own compartment rather than across the gap above.)
+      const top = along(topSegs, -Math.min(TH / 2, 16)), edge = [...top, ...along(botSegs, -TH / 2)];
       const spots = [...edge, ...g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - TH - 4 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - TH - 4 },
         { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - TH - 4 }, { x: r.x + 12, y: r.y - TH / 2 }, { x: r.x + r.w - 12 - tw, y: r.y - TH / 2 }, { x: r.x + 12, y: r.y + r.h - TH / 2 }])]; // then inside it
       // Then anywhere along each edge, a step at a time, inside the shape or on its border.
@@ -2382,9 +2451,9 @@ function stitchSVG(m, statusOf) {
       g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - TH - 4 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - TH / 2 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + 4 }));
       // Further out still: a cramped compartment's name may sit a little away from it, never on a box.
       g.forEach(r => [30, 60, 100].forEach(o => spots.push({ x: r.x + 12, y: r.y - TH - 4 - o }, { x: r.x + 12, y: r.y + r.h + 3 + o }, { x: r.x + r.w + 6 + o, y: r.y + 4 }, { x: r.x - tw - 6 - o, y: r.y + 4 })));
-      const cost = q => { const t = { ...q, w: tw, h: TH }; return (onLine(t) ? 4 : 0) + [...occ, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
+      const cost = q => { const t = { ...q, w: tw, h: TH }; return (onLine(t) ? 4 : 0) + [...seen, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
       // On the top edge a line may pass under the tab (it's opaque): the same place beats a clear one elsewhere.
-      const under = q => { const t = { ...q, w: tw, h: TH }; return ![...occ, ...DRAW_LABELS].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !others.some(o => hit(t, o)); };
+      const under = q => { const t = { ...q, w: tw, h: TH }; return ![...seen, ...DRAW_LABELS].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !others.some(o => hit(t, o)); };
       const clear = q => free({ ...q, w: tw, h: TH }) && !others.some(o => hit({ ...q, w: tw, h: TH }, o));
       const at = top.find(clear) || top.find(under) || edge.find(clear) || edge.find(under) ||
         spots.find(q => free({ ...q, w: tw, h: TH }) && !others.some(o => hit({ ...q, w: tw, h: TH }, o))) || spots.filter(q => !onBox({ ...q, w: tw, h: TH })).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
@@ -2405,6 +2474,9 @@ function stitchSVG(m, statusOf) {
   const body = placed.map(R => `<g transform="translate(${R.dx},${R.dy})">${slotAt(R, R.body)}</g>`).join('');
   const slots = [];
   const flat = body.replace(/<rect class="inl-slot"[^>]*data-moved="1"[^>]*\/>/g, t => { slots.push(t); return ''; });
+  STITCH_WHERE = null;
   return `<svg class="flow stitched" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.p.name)} flow diagram"><g transform="translate(${P - x0},${P - y0})">${bg}${flat}<g class="between">${between}</g>${fg}${pairBadges}</g>${slots.join('')}</svg>`;
 }
+
+
 

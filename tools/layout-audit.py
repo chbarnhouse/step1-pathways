@@ -3,7 +3,8 @@
    python3 tools/layout-audit.py [all|tiles|rings|links|map|ids…] [--url http://localhost:8124] [--json out.json]
    rings = every cycle turned a quarter at a time (as a joined drawing may turn it).
    tiles = every pathway as a joined drawing draws it (compartments off).
-   map = the merged Map (every metabolic pathway joined).
+   map = the merged Map (every metabolic pathway joined, everything shown).
+   mapview = the Map as the app draws it: its default settings (@map) and every layer on (@map-all).
    links = every two-pathway set the app suggests (they share a link or a molecule), drawn the way New quiz draws them.
    Counted per drawing: text over text, text over a box or pill it doesn't belong to, a joining line through text, a box
    outside its compartment or across two, and pairs closer than 3 px."""
@@ -16,9 +17,12 @@ out = next((sys.argv[i + 1] for i, a in enumerate(sys.argv) if a == '--json'), N
 which = args[0] if args else 'links'
 
 PROBE = r"""([id, zones, rot]) => {
-  const p = Library.get(id); if (!p) return null;
   const host = document.createElement('div'); host.style.cssText = 'position:absolute;left:-99999px;top:0;width:4000px';
-  host.innerHTML = flowSVG(modelFor(p), () => 'shown', { zones, rot: rot || 0 }); document.body.append(host);
+  if (id.startsWith('@map')) { // the Map as the app draws it (its own settings: default, or every layer on)
+    const L = { ...MAP_DEFAULT.layers, loc: true }; if (id === '@map-all') Object.keys(L).forEach(k => { L[k] = true; });
+    MAP_MERGED.sig = null; host.innerHTML = mapMergedSVG({ ...MAP_DEFAULT, merge: true, layers: L, q: '' });
+  } else { const p = Library.get(id); if (!p) return null; host.innerHTML = flowSVG(modelFor(p), () => 'shown', { zones, rot: rot || 0 }); }
+  document.body.append(host);
   const svg = host.querySelector('svg'), base = svg.getScreenCTM().inverse();
   const box = el => { const b = el.getBoundingClientRect(); return { x: b.left, y: b.top, w: b.width, h: b.height }; };
   // Things that must stay apart: each text line, each box and pill. A text belongs to the box or pill it sits in.
@@ -67,10 +71,10 @@ PROBE = r"""([id, zones, rot]) => {
     }
   });
   for (const k of cs) {
-    if (!k.inner) { if (k.r < R0 - 1) hits.push(['corner', 'pinched ' + k.r.toFixed(0)]); continue; }
+    if (!k.inner) { if (k.r < R0 - 1) hits.push(['corner', 'pinched ' + k.r.toFixed(0) + ' @' + k.c.map(Math.round)]); continue; }
     const others = cs.filter(o => o.si !== k.si && !o.inner), d = o => Math.hypot(o.c[0] - k.c[0], o.c[1] - k.c[1]);
     if (others.some(o => d(o) < 2.5 && Math.abs(k.r - o.r - GAP0) < 2.5)) continue; // concentric
-    if (others.some(o => d(o) < 60)) hits.push(['corner', 'off-center ' + Math.min(...others.map(d)).toFixed(0)]);
+    if (others.some(o => d(o) < 60)) hits.push(['corner', 'off-center ' + Math.min(...others.map(d)).toFixed(0) + ' @' + k.c.map(Math.round)]);
   }
   // A compartment's name tab wider than the shape it names.
   svg.querySelectorAll('rect.legend[data-room]').forEach(r => { if (+r.getAttribute('width') > +r.dataset.room - 16) hits.push(['tab', 'too wide: ' + (r.nextElementSibling?.textContent || '').trim()]); });
@@ -91,6 +95,8 @@ with sync_playwright() as pw:
         ids = pg.evaluate("""() => { const out = new Set(), atoms = Library.atomic().filter(p => !p.nephron);
           for (const p of atoms) { const d = { pathway: p.id, extra: [], combine: false }; for (const q of suggestions(d)) { const d2 = { pathway: p.id, extra: [], combine: false }; addPathway(d2, q); out.add(draftPathway(d2)); } }
           return [...out].filter(id => id.startsWith('link:')).sort(); }""")
+    elif which == 'mapview':
+        ids = ['@map', '@map-all']
     elif which == 'map':
         ids = pg.evaluate("() => { const ids = mapPathways().filter(p => !MAP_OFF_GROUPS.includes(p.group)).map(p => p.id), d = { pathway: ids[0], extra: [], combine: false }; ids.slice(1).forEach(id => addPathway(d, id)); return [draftPathway(d)]; }")
     elif which == 'rings':

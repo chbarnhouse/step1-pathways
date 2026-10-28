@@ -10,7 +10,7 @@ const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy
 const CHANGELOG = [
   { v: 'next', items: [
     'Paired steps (thymidylate synthase, methionine synthase) are drawn in full at both places, each with its enzyme and the other half as its cofactors, and a matching lettered badge: hover it to see the two halves as two arrows bowing in to meet at their enzyme, click it to go to the other half. The dotted line between them is now a Map setting: Lines between paired steps.',
-    'Compartment names sit in one place: a tab on the top edge of the shape, at its left end (the bottom edge when the top has no room).',
+    'Compartment names sit in one place: a tab at the top-left of the shape. Where a pathway steps into a new compartment the drawing leaves a little more room, so the step’s name sits above that tab instead of on it; a long name wraps to three or four lines to fit; and names of steps between pathways keep off the tab’s spot. On the Map, 35 of 39 names now sit there (18 before).',
     'Compartments in joined drawings and the merged Map now hold every one of their boxes: none sticks out of its shape or reaches into a neighbor’s (75 did on the Map).',
     'Map: switching between Each pathway whole and Merge shared molecules re-fits the view, and Chrome no longer leaves parts of the page unpainted around the big merged drawing.',
     'Two-pathway drawings start from the bigger pathway, so it keeps its own shape (fructose joins glycolysis beside its column; gluconeogenesis keeps pyruvate at the top, with room for PDH’s labels). On the Map, malate dehydrogenase is drawn once between oxaloacetate and malate, and the dotted tie for thymidylate synthase no longer crosses another step’s name.',
