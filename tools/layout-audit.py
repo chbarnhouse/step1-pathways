@@ -106,6 +106,7 @@ PROBE = r"""([id, zones, rot]) => {
 with sync_playwright() as pw:
     b = pw.webkit.launch(); pg = b.new_page(viewport={'width': 1400, 'height': 1000}); pg.set_default_timeout(600000)
     pg.goto(url + '/#/'); pg.wait_for_timeout(2500)
+    if '--bands' in sys.argv: pg.evaluate("STITCH_BANDS = 'all'")  # compartment-first joined drawings
     if which == 'links':
         ids = pg.evaluate("""() => { const out = new Set(), atoms = Library.atomic().filter(p => !p.nephron);
           for (const p of atoms) { const d = { pathway: p.id, extra: [], combine: false }; for (const q of suggestions(d)) { const d2 = { pathway: p.id, extra: [], combine: false }; addPathway(d2, q); out.add(draftPathway(d2)); } }
