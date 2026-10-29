@@ -827,7 +827,7 @@ function renderSettings() {
       <div class="setup">
         <div class="set-row"><span class="glabel">Answer</span><div class="set-ctl">${opt('answer', [['type', 'Type'], ['along', 'Type along'], ['choice', 'Choice'], ['self', 'Self-check']])}</div></div>
         <div class="set-row"><span class="glabel">View</span><div class="set-ctl">${opt('view', [['flow', 'Flow'], ['list', 'List']])}${opt('dir', [['v', 'List top–bottom'], ['h', 'List left–right']])}</div></div>
-        <div class="set-row"><span class="glabel">Zoom</span><div class="set-ctl">${opt('zoom', [['width', 'Fit width'], ['height', 'Fit height'], ['fit', 'Fit to frame']])}${cb('data-sflag', 'follow', s.follow, 'Follow the current blank')}</div></div>
+        <div class="set-row"><span class="glabel">Drawings open</span><div class="set-ctl">${seg('data-set', 'zoom', [['width', 'Fit width'], ['height', 'Fit height'], ['fit', 'Whole drawing']], typeof s.zoom === 'number' ? 'fit' : s.zoom)}${cb('data-sflag', 'follow', s.follow, 'Follow the current blank')}</div></div>
         <div class="set-row"><span class="glabel">During a quiz</span><div class="set-ctl">${cb('data-sflag', 'facts', s.facts, 'Show facts after each answer')}${cb('data-sflag', 'autoAdvance', s.autoAdvance, 'Full recall moves on after a right answer')}</div></div>
       </div>
       <h3>Answer checking</h3><p class="muted small">Your next quiz starts with these. New quiz (and each quiz’s options) can still change them for one quiz.</p>

@@ -1034,6 +1034,8 @@ function resolved(q) {
 
 /* ---------- diagram status ---------- */
 function statusOf(key) {
+  // What a step needs is asked with its inputs (one field): it shows when they do.
+  if (key.startsWith('n:') && Q.m.items['c:' + key.slice(2)]?.side === 'in') return statusOf('c:' + key.slice(2));
   const R = Q.round, mode = el(kindOf(key));
   if (key[0] === 'f' && !elSpecFor(Q.cfg).some(([k]) => k === 'eff')) return 'shown'; // the step modes don't ask effects
   if (R.type === 'review') return mode === 'hide' ? 'hide' : 'shown';

@@ -279,7 +279,8 @@ function cofArcParts(x, y1, y2, parts, up = false, left = false) {
   if (pin && !free(pin, a[1])) for (let k = 1; k < 8; k++) { const y = a[1] + d * k * 8; if (Math.abs(y - b[1]) < 26) break; if (free(pin, y)) { a[1] = y; break; } }
   if (pout && !free(pout, b[1])) for (let k = 1; k < 8; k++) { const y = b[1] - d * k * 8; if (Math.abs(y - a[1]) < 26) break; if (free(pout, y)) { b[1] = y; break; } }
   const start = pin ? a : [X(3), mid], end = pout ? b : [X(3), mid];
-  const ctrl = pin && pout ? [X(2), mid] : pin ? [X(12), yF + 20 * d] : [X(12), yT - 20 * d];
+  // (Both sides: the control point across the line, so the bow's middle touches the arrow it belongs to.)
+  const ctrl = pin && pout ? [X(-38), mid] : pin ? [X(12), yF + 20 * d] : [X(12), yT - 20 * d];
   const ang = Math.atan2(end[1] - ctrl[1], end[0] - ctrl[0]);
   let s = `<path class="cof" d="M${start[0]},${start[1]}Q${ctrl[0]},${ctrl[1]} ${end[0] - Math.cos(ang) * 4},${end[1] - Math.sin(ang) * 4}"/>` + head(end[0], end[1], ang, 7, 'cofh');
   const two = !!(pin && pout), cw = 7;
@@ -333,7 +334,7 @@ function cofArcLine(p1, p2, n, parts, flip = false) {
   const h = Math.min(0.3, 55 / L), tS = 0.5 - h, tE = 0.5 + h;
   // Both sides: a bow from one end to the other. One side: a hook that leaves (or joins) the arrow and turns out to its label.
   const S = pin ? at(tS, 30) : at(0.5 - h / 2, 4), E = pout ? at(tE, 30) : at(0.5 + h / 2, 4);
-  const C = pin && pout ? at(0.5, 2) : pin ? at(tS + h * 0.5, 6) : at(tE - h * 0.5, 6);
+  const C = pin && pout ? at(0.5, -26) : pin ? at(tS + h * 0.5, 6) : at(tE - h * 0.5, 6); // (the bow's middle touches the arrow)
   const ang = Math.atan2(E[1] - C[1], E[0] - C[0]);
   let s = `<path class="cof" d="M${S[0]},${S[1]}Q${C[0]},${C[1]} ${E[0] - Math.cos(ang) * 4},${E[1] - Math.sin(ang) * 4}"/>` + head(E[0], E[1], ang, 7, 'cofh');
   const two = !!(pin && pout), cw = 7;
@@ -2083,7 +2084,10 @@ function stitchSVG(m, statusOf) {
   };
   const PILL_FORK = {}; // box|carrier → the point just past that carrier's pill
   const drawRoute = (r, a, b, cls, labels = true, given = null) => {
-    const pts = given || gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+    // Two boxes (nearly) level with nothing between them: one straight line, never a jog into the far box.
+    const A = ctr(a), Bc = ctr(b), ym = (A.cy + Bc.cy) / 2, flat = !given && Math.abs(A.cy - Bc.cy) < 24 && Math.abs(ym - A.cy) < a.h / 2 - 4 && Math.abs(ym - Bc.cy) < b.h / 2 - 4
+      && ![...DRAW_BOXES, ...DRAW_LABELS].some(r => !same(r, a) && !same(r, b) && segHits([Math.min(A.cx, Bc.cx) + a.w / 2 + 2, ym], [Math.max(A.cx, Bc.cx) - b.w / 2 - 2, ym], r)) && !alongside([A.cx, ym], [Bc.cx, ym]) ? [[A.cx, ym], [Bc.cx, ym]] : null; // (nor through a label: a tag beside the far box)
+    const pts = given || flat || gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     if (r && labels) routed[r.id] = P;
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
@@ -2200,7 +2204,7 @@ function stitchSVG(m, statusOf) {
     for (const z of order) { const ps = pieces.filter(q => q.z === z).sort((a, b) => b.R.vb[2] - a.R.vb[2]), other = ps.find(q => q.ti !== ps[0].ti);
       const cols = many ? Math.max(1, Math.min(ps.length, Math.ceil(ps.reduce((n, q) => n + q.R.vb[3] + 60, 0) / tall))) : other ? 2 : 1;
       const cw = ps[0].R.vb[2] + 60, w = cols > 2 || many ? cols * cw : ps[0].R.vb[2] + (other ? other.R.vb[2] + 60 : 0);
-      BANDS.push({ z, x0: bx, x1: bx + w + 320, cols, cw }); bx += w + 320; }
+      BANDS.push({ z, x0: bx, x1: bx + w + 520, cols, cw }); bx += w + 520; } // (260 each side: a carrier's pill on the membrane and the step's name past it)
     // Pieces in drawing order: each part's pieces in the order its main line reaches them.
     const firstAt = q => { const T = q.R.T, sp = modelFor(T.p).seq; const i = Math.min(...Object.keys(q.R.pos).map(k => sp.indexOf(k)).filter(i => i >= 0)); return q.ti * 1000 + (Number.isFinite(i) ? i : 999); };
   PROF('pieces');
@@ -2213,9 +2217,9 @@ function stitchSVG(m, statusOf) {
       // In a band shared by parts, its widest piece goes to the side away from where the others cross (they take the membrane).
       const mates = pieces.filter(o => o.z === q.z && o.ti !== q.ti), widest = mates.length && pieces.filter(o => o.z === q.z).every(o => o.R.vb[2] <= R.vb[2]);
       const lean = widest ? -Math.sign(mates.reduce((n, o) => n + leanOf(o), 0)) : leanOf(q);
-      const L = band.x0 + 160 - R.vb[0], Rt = band.x1 - 160 - R.vb[0] - R.vb[2], C = (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
+      const L = band.x0 + 260 - R.vb[0], Rt = band.x1 - 260 - R.vb[0] - R.vb[2], C = (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
       // (In a band of several columns, the middle of each column too, the ones nearer the membrane it leans to first.)
-      const colXs = band.cols > 2 || (many && band.cols > 1) ? Array.from({ length: band.cols }, (_, c) => band.x0 + 160 + c * band.cw + band.cw / 2 - (R.vb[0] + R.vb[2] / 2)) : [];
+      const colXs = band.cols > 2 || (many && band.cols > 1) ? Array.from({ length: band.cols }, (_, c) => band.x0 + 260 + c * band.cw + band.cw / 2 - (R.vb[0] + R.vb[2] / 2)) : [];
       const dxs = uniq([...(lean < 0 ? [L, C, Rt] : lean > 0 ? [Rt, C, L] : [C, L, Rt]), ...(lean > 0 ? colXs.reverse() : colXs)]);
       // Level with the box it's joined to across a membrane (a straight step), else just below what's in its band.
       const link = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].map(r => R.pos['m:' + r.from] && G['m:' + r.to] ? [R.pos['m:' + r.from], G['m:' + r.to]] : R.pos['m:' + r.to] && G['m:' + r.from] ? [R.pos['m:' + r.to], G['m:' + r.from]] : null).find(Boolean);
@@ -2224,7 +2228,7 @@ function stitchSVG(m, statusOf) {
       const dy0 = link ? ctr(link[1]).cy - ctr(link[0]).cy : many && placed.length ? top : placed.length ? below : 0;
       // Its steps across a membrane each run along a row of their own: none within 110 px of one already crossing
       // (its carrier pill, name and cofactors need that much), its own step's row aside.
-      const xs = links.filter(([k]) => R.pos[k]), clearRows = d => xs.every(([k, o]) => { const y = ctr(R.pos[k]).cy + d; return LANES.every(l => l.pair === [k, o].sort().join() || Math.abs(l.y - y) >= 110); });
+      const xs = links.filter(([k]) => R.pos[k]), clearRows = d => xs.every(([k, o]) => { const y = ctr(R.pos[k]).cy + d; return LANES.every(l => l.pair === [k, o].sort().join() || l.pair.split(',').includes(k) || Math.abs(l.y - y) >= 110); }); // (its own other crossings leave it the other way)
       // Each place across its band (against the membrane it leans to first), the nearest clear row; the straightest wins.
       let dx = dxs[0], dy = dy0, best = Infinity;
       for (const strict of [true, false]) {
@@ -2389,7 +2393,8 @@ function stitchSVG(m, statusOf) {
     ROUTE_LABEL_MISS = 0; let svg = drawRoute(r, a, b);
     if (ROUTE_LABEL_MISS) { let best = [ROUTE_LABEL_MISS, null]; undo();
       const across = pts => 3 * DRAW_LABELS.filter(l => pts.slice(1).some((q, i) => segHits(pts[i], q, l))).length; // (the route itself through a name counts too)
-      for (const pts of (route(a, b, DRAW_BOXES, true, DRAW_LABELS, true) || []).slice(0, 24)) { const x = across(pts); if (x >= best[0]) continue; ROUTE_LABEL_MISS = 0; drawRoute(r, a, b, undefined, true, pts); undo(); if (ROUTE_LABEL_MISS + x < best[0]) best = [ROUTE_LABEL_MISS + x, pts]; if (!best[0]) break; }
+      const noJog = pts => pts.slice(1).every((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]) >= 24); // (never a little step into a box)
+      for (const pts of (route(a, b, DRAW_BOXES, true, DRAW_LABELS, true) || []).filter(noJog).slice(0, 24)) { const x = across(pts); if (x >= best[0]) continue; ROUTE_LABEL_MISS = 0; drawRoute(r, a, b, undefined, true, pts); undo(); if (ROUTE_LABEL_MISS + x < best[0]) best = [ROUTE_LABEL_MISS + x, pts]; if (!best[0]) break; }
       svg = drawRoute(r, a, b, undefined, true, best[1]); }
     between += svg;
   }
@@ -2539,8 +2544,10 @@ function stitchSVG(m, statusOf) {
     // (Compartments set to Hide: the pieces keep their places, without tints, lines or names.)
     if (BANDS.some(b => m.items['z:' + b.z] && statusOf('z:' + b.z) !== 'hide')) BANDS.forEach((b, i) => {
       const r = { x: b.x0, y: ya, w: b.x1 - b.x0, h: yb - ya }; regions.push(r);
-      bg += `<g class="blob"><path class="t-${zoneTone(b.z)}" d="M${r.x},${r.y}H${r.x + r.w}V${r.y + r.h}H${r.x}Z"/></g>`;
-      if (i) bg += `<line class="cellwall" x1="${b.x0}" x2="${b.x0}" y1="${ya}" y2="${yb}"/>`;
+      // The tint runs on past the drawing to the edges of the canvas (as a grid's columns do); the outer bands sideways too.
+      const bx0 = i ? b.x0 : b.x0 - BLEED, bx1 = i < BANDS.length - 1 ? b.x1 : b.x1 + BLEED;
+      bg += `<g class="blob"><path class="t-${zoneTone(b.z)}" d="M${bx0},${ya - BLEED}H${bx1}V${yb + BLEED}H${bx0}Z"/></g>`;
+      if (i) bg += `<line class="cellwall" x1="${b.x0}" x2="${b.x0}" y1="${ya - BLEED}" y2="${yb + BLEED}"/>`;
       const zi = m.items['z:' + b.z], name = zi?.name || b.z.split('|')[0], tw = Math.min(260, name.length * 8.1 + 16), R0 = { x: b.x0 + 12, y: ya + 10, w: tw, h: 22 };
       if (!zi) return;
       tabs.push(R0);

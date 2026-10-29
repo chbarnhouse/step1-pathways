@@ -50,7 +50,9 @@ function zoomAt(st, k, px, py, animate = false) {
 }
 
 function applyZoom(scope = document) {
-  const st = canvasStage(scope), list = scope.querySelector('.stage .list'), z = Store.settings.zoom;
+  const st = canvasStage(scope), list = scope.querySelector('.stage .list');
+  // A drawing opens fitted as Settings says; a number left from before (a zoom once saved as the setting) means the whole drawing.
+  const z = st && typeof Store.settings.zoom === 'number' ? 'fit' : Store.settings.zoom;
   scope.querySelectorAll('[data-zoom]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.zoom === String(z))));
   scope.querySelectorAll('[data-flag="follow"]').forEach(b => b.setAttribute('aria-pressed', String(!!Store.settings.follow)));
   scope.querySelectorAll('.peekbtn').forEach(b => { b.hidden = !Store.settings.follow; });
@@ -80,18 +82,15 @@ function zoomBy(d) {
     const z = Store.settings.zoom; Store.settings.zoom = Math.round(Math.min(2.5, Math.max(0.3, (typeof z === 'number' ? z : 1) + d)) * 10) / 10;
     Store.save(); return applyZoom();
   }
+  // (A drawing's own zoom: the setting, how every drawing opens, stays as it is.)
   const k = Math.round(Math.min(CANVAS.max, Math.max(minK(st), st._v.k + d)) * 10) / 10;
-  Store.settings.zoom = k; Store.save();
   zoomAt(st, k, st.clientWidth / 2, st.clientHeight / 2, true);
-  applyZoomButtons();
 }
 // Clicking the percentage: back to 100%, about the middle of the view.
 function zoomTo(k) {
   const st = canvasStage();
-  Store.settings.zoom = k; Store.save();
-  if (!st || !st._v) return applyZoom();
+  if (!st || !st._v) { Store.settings.zoom = k; Store.save(); return applyZoom(); }
   zoomAt(st, k, st.clientWidth / 2, st.clientHeight / 2, true);
-  applyZoomButtons();
 }
 const applyZoomButtons = () => document.querySelectorAll('[data-zoom]').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.zoom === String(Store.settings.zoom))));
 // Bring an element into the middle of the view (Follow, and stepping through facts).
