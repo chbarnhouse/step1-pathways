@@ -2059,6 +2059,7 @@ function stitchSVG(m, statusOf) {
   const same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
   const drawn = []; // segments of the arrows already drawn between parts: a new one may cross them, never run along them
   const routed = {}; // reaction id → the points of its arrow, when it was drawn between parts
+  const ALL_ROUTES = []; // every arrow drawn between parts, as points
   const routeLab = {}; // reaction id → the labels put down along that arrow
   const alongside = (p, q) => drawn.some(([u, v]) => {
     const h1 = Math.abs(p[1] - q[1]) < 1, h2 = Math.abs(u[1] - v[1]) < 1;
@@ -2110,6 +2111,7 @@ function stitchSVG(m, statusOf) {
     const pts = given || flat || gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     if (r && labels) routed[r.id] = P;
+    ALL_ROUTES.push(P); // (for counting crossings, when timing)
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
     // A long vertical run keeps its labels to a short stretch in the middle, as on any other step.
@@ -2204,6 +2206,11 @@ function stitchSVG(m, statusOf) {
     // The compartments in the order that keeps steps between them short: outside (blood, lumen) · cytosol · organelles.
     const zs = uniq(pieces.map(q => q.z)), wt = {};
     const zOfId = id => pieces.find(q => q.R.pos['m:' + id])?.z;
+    // How much room a step across a membrane needs either side of it, as it's shown now: half its carrier's pill, then its
+    // name past the pill (a hidden name or carrier takes none). Bands and the Map's regions keep that much inside each edge.
+    const need = r => { const ti = r.via && m.items['t:' + r.id], it = m.items['e:' + r.id], on = k => statusOf(k) !== 'hide';
+      return (ti && on('t:' + r.id) ? enzRect(0, 0, 'middle', ti, 22).w / 2 + 10 : 10) + (it && on('e:' + r.id) ? enzRect(0, 0, 'middle', it, 16, 'bottom').w + 30 : 0) + 40; };
+    const CLEAR = Math.round(Math.min(260, Math.max(80, ...bridges.filter(r => zOfId(r.from) !== zOfId(r.to)).map(need))));
     for (const r of [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))]) { const a = zOfId(r.from), b = zOfId(r.to); if (a && b && a !== b) { wt[a + '>' + b] = (wt[a + '>' + b] || 0) + 1; wt[b + '>' + a] = (wt[b + '>' + a] || 0) + 1; } }
     const rank = z => (/blood|plasma|extracell|lumen|gut|urine|interstit|brush|bonemarrow|tissue/.test(z) ? 0 : /cytosol|cytoplasm/.test(z) ? 1 : /intermembrane/.test(z) ? 2 : /mito|matrix/.test(z) ? 3 : 2);
     const perms = a => (a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(r => [x, ...r])));
@@ -2216,7 +2223,7 @@ function stitchSVG(m, statusOf) {
        bottom of the cytosol. Every pair of compartments with steps between them shares an edge. */
     const roleOf = z => { const c = z.split('|').pop(); return /blood|plasma|extracell|interstit/.test(c) ? 'blood' : /lumen|brush|urine|gut/.test(c) ? 'lumen' : /cytosol|cytoplasm/.test(c) ? 'cyto'
       : /intermembrane/.test(c) ? 'ims' : /mito|matrix/.test(c) ? 'mito' : c === 'er' || /reticulum/.test(c) ? 'er' : 'isle'; };
-    const M = 200, room = q => (q.R.vb[2] + 80) * (q.R.vb[3] + 80); // (M: clear inside each edge, for a carrier's pill and its step's name)
+    const M = Math.min(200, Math.max(120, CLEAR)), room = q => (q.R.vb[2] + 80) * (q.R.vb[3] + 80); // (M: clear inside each edge, for a carrier's pill and its step's name)
     const of = r => pieces.filter(q => roleOf(q.z) === r), A = r => of(r).reduce((n, q) => n + room(q), 0) * 1.25;
     const MW = r => Math.max(0, ...of(r).map(q => q.R.vb[2])), MH = r => Math.max(0, ...of(r).map(q => q.R.vb[3]));
     const fit = (r, w) => (of(r).length ? Math.max(MH(r) + 2 * M, A(r) / Math.max(1, w - 2 * M) + 2 * M) : 0);
@@ -2271,23 +2278,39 @@ function stitchSVG(m, statusOf) {
     PROF('pieces');
     pieces.sort((a, b) => firstAt(a) - firstAt(b));
     const all = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))];
-    for (const q of pieces) {
-      const R = q.R, rs = rectsFor(q.z), mine = rs.filter(r => r.role !== 'isle' || r.z === q.z);
-      const link = all.map(r => R.pos['m:' + r.from] && G['m:' + r.to] ? [R.pos['m:' + r.from], G['m:' + r.to]] : R.pos['m:' + r.to] && G['m:' + r.from] ? [R.pos['m:' + r.to], G['m:' + r.from]] : null).find(Boolean);
+    /* Where a piece goes: among the free spots of its region nearest the boxes it's joined to, the one whose links
+       (as right-angled lines, either corner) are shortest and cross least: each crossing with a link already laid, and
+       each other piece a link would run through, costs as much as a long detour. */
+    const cen = r => [r.x + r.w / 2, r.y + r.h / 2], segsHit = ([a, b], [c, d]) => { const ha = Math.abs(a[1] - b[1]) < 1, hc = Math.abs(c[1] - d[1]) < 1; if (ha === hc) return false;
+      const [h, v] = ha ? [[a, b], [c, d]] : [[c, d], [a, b]], y = h[0][1], x = v[0][0];
+      return x > Math.min(h[0][0], h[1][0]) + 1 && x < Math.max(h[0][0], h[1][0]) - 1 && y > Math.min(v[0][1], v[1][1]) + 1 && y < Math.max(v[0][1], v[1][1]) - 1; };
+    const ell = (a, b, hFirst) => (hFirst ? [[a, [b[0], a[1]]], [[b[0], a[1]], b]] : [[a, [a[0], b[1]]], [[a[0], b[1]], b]]);
+    const through = (sg, boxes) => boxes.reduce((n, B) => n + (Math.max(sg[0][0], sg[1][0]) > B.x && Math.min(sg[0][0], sg[1][0]) < B.x + B.w && Math.max(sg[0][1], sg[1][1]) > B.y && Math.min(sg[0][1], sg[1][1]) < B.y + B.h ? 1 : 0), 0);
+    const placeFloor = q => {
+      const R = q.R, mine = rectsFor(q.z).filter(r => r.role !== 'isle' || r.z === q.z);
+      // Its links to boxes already down, and every other link already laid (as its cheaper corner).
+      const ends = all.flatMap(r => R.pos['m:' + r.from] && G['m:' + r.to] && !R.pos['m:' + r.to] ? [[R.pos['m:' + r.from], G['m:' + r.to]]] : R.pos['m:' + r.to] && G['m:' + r.from] && !R.pos['m:' + r.from] ? [[R.pos['m:' + r.to], G['m:' + r.from]]] : []);
+      const laid = all.filter(r => G['m:' + r.from] && G['m:' + r.to] && !R.pos['m:' + r.from] && !R.pos['m:' + r.to]).map(r => ell(cen(G['m:' + r.from]), cen(G['m:' + r.to]), true));
+      const others = placed.filter(P => P !== R).map(P => ({ x: P.vb[0] + P.dx, y: P.vb[1] + P.dy, w: P.vb[2], h: P.vb[3] }));
       const cands = [];
       for (const r of mine) { const mm = r.role === 'isle' ? 40 : M, m0 = Math.min(mm, Math.max(40, (r.w - R.vb[2]) / 2)), m1 = Math.min(mm, Math.max(40, (r.h - R.vb[3]) / 2)); // (an island is just big enough: a small margin)
         for (let x = r.x + m0; x <= Math.max(r.x + m0, r.x + r.w - m0 - R.vb[2]); x += 40) for (let y = r.y + m1; y <= Math.max(r.y + m1, r.y + r.h - m1 - R.vb[3]); y += 40) {
           const dx = x - R.vb[0], dy = y - R.vb[1], box = { x, y, w: R.vb[2], h: R.vb[3] };
           if (r.role === 'cyto' && holes.some(h => overlaps(box, { x: h.x - 60, y: h.y - 60, w: h.w + 120, h: h.h + 120 }))) continue; // (not on an island)
-          let cost;
-          if (link) { const a = ctr(link[0]), b = ctr(link[1]), ex = Math.abs(a.cx + dx - b.cx), ey = Math.abs(a.cy + dy - b.cy); cost = ex + ey + 0.6 * Math.min(ex, ey); }
-          else cost = (y - r.y) * 2 + (x - r.x);
+          const cost = ends.length ? ends.reduce((n, [a, b]) => { const ex = Math.abs(a.x + a.w / 2 + dx - b.x - b.w / 2), ey = Math.abs(a.y + a.h / 2 + dy - b.y - b.h / 2); return n + ex + ey + 0.6 * Math.min(ex, ey); }, 0) : (y - r.y) * 2 + (x - r.x);
           cands.push([cost, dx, dy]); } }
       cands.sort((a, b) => a[0] - b[0]);
-      let got = cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)) && !crosses(R, dx, dy)) || cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)));
+      // The nearest free spots (up to 40), scored with their crossings; the best wins.
+      const free = []; for (const c of cands) { if (free.length >= 80 || (free.length && c[0] > free[0][0] + 5000)) break; if (!clash(rectsOf(R, c[1], c[2])) && !crosses(R, c[1], c[2])) free.push(c); }
+      const score = ([d, dx, dy]) => d + ends.reduce((n, [a, b]) => { const A = [a.x + a.w / 2 + dx, a.y + a.h / 2 + dy], B = cen(b);
+        return n + Math.min(...[true, false].map(hf => ell(A, B, hf).reduce((t, sg) => t + 900 * laid.filter(l => l.some(ls => segsHit(sg, ls))).length + 3000 * through(sg, others.filter(o => !(B[0] > o.x && B[0] < o.x + o.w && B[1] > o.y && B[1] < o.y + o.h))), 0))); }, 0);
+      let got = free.length ? free.map(c => [score(c), c]).sort((a, b) => a[0] - b[0])[0][1] : cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)));
       if (!got) { const r = mine[0]; got = [0, r.x + 40 - R.vb[0], Math.max(...placed.map(P => P.vb[1] + P.vb[3] + P.dy), r.y) + 60 - R.vb[1]]; }
       place(R, got[1], got[2]);
-    }
+    };
+    for (const q of pieces) placeFloor(q);
+    // Then three times over: each piece out and back in, now that everything it's joined to is down.
+    for (let pass = 0; pass < 3; pass++) for (const q of pieces) { placed.splice(placed.indexOf(q.R), 1); rebuild(); placeFloor(q); }
     } else {
     // Each band as wide as its widest piece, plus room either side for what crosses its membranes (a carrier's pill and
     // the step's name beside it).
@@ -2305,7 +2328,7 @@ function stitchSVG(m, statusOf) {
     for (const z of order) { const ps = pieces.filter(q => q.z === z).sort((a, b) => b.R.vb[2] - a.R.vb[2]), other = ps.find(q => q.ti !== ps[0].ti);
       const cols = many ? Math.max(1, Math.min(ps.length, Math.ceil(ps.reduce((n, q) => n + q.R.vb[3] + 60, 0) / tall))) : other ? 2 : 1;
       const cw = ps[0].R.vb[2] + 60, w = cols > 2 || many ? cols * cw : ps[0].R.vb[2] + (other ? other.R.vb[2] + 60 : 0);
-      BANDS.push({ z, x0: bx, x1: bx + w + 520, cols, cw }); bx += w + 520; } // (260 each side: a carrier's pill on the membrane and the step's name past it)
+      BANDS.push({ z, x0: bx, x1: bx + w + 2 * CLEAR, cols, cw }); bx += w + 2 * CLEAR; } // (CLEAR each side: a carrier's pill on the membrane and the step's name past it)
     // Pieces in drawing order: each part's pieces in the order its main line reaches them.
     const firstAt = q => { const T = q.R.T, sp = modelFor(T.p).seq; const i = Math.min(...Object.keys(q.R.pos).map(k => sp.indexOf(k)).filter(i => i >= 0)); return q.ti * 1000 + (Number.isFinite(i) ? i : 999); };
   PROF('pieces');
@@ -2318,9 +2341,9 @@ function stitchSVG(m, statusOf) {
       // In a band shared by parts, its widest piece goes to the side away from where the others cross (they take the membrane).
       const mates = pieces.filter(o => o.z === q.z && o.ti !== q.ti), widest = mates.length && pieces.filter(o => o.z === q.z).every(o => o.R.vb[2] <= R.vb[2]);
       const lean = widest ? -Math.sign(mates.reduce((n, o) => n + leanOf(o), 0)) : leanOf(q);
-      const L = band.x0 + 260 - R.vb[0], Rt = band.x1 - 260 - R.vb[0] - R.vb[2], C = (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
+      const L = band.x0 + CLEAR - R.vb[0], Rt = band.x1 - CLEAR - R.vb[0] - R.vb[2], C = (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
       // (In a band of several columns, the middle of each column too, the ones nearer the membrane it leans to first.)
-      const colXs = band.cols > 2 || (many && band.cols > 1) ? Array.from({ length: band.cols }, (_, c) => band.x0 + 260 + c * band.cw + band.cw / 2 - (R.vb[0] + R.vb[2] / 2)) : [];
+      const colXs = band.cols > 2 || (many && band.cols > 1) ? Array.from({ length: band.cols }, (_, c) => band.x0 + CLEAR + c * band.cw + band.cw / 2 - (R.vb[0] + R.vb[2] / 2)) : [];
       const dxs = uniq([...(lean < 0 ? [L, C, Rt] : lean > 0 ? [Rt, C, L] : [C, L, Rt]), ...(lean > 0 ? colXs.reverse() : colXs)]);
       // Level with the box it's joined to across a membrane (a straight step), else just below what's in its band.
       const link = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].map(r => R.pos['m:' + r.from] && G['m:' + r.to] ? [R.pos['m:' + r.from], G['m:' + r.to]] : R.pos['m:' + r.to] && G['m:' + r.from] ? [R.pos['m:' + r.to], G['m:' + r.from]] : null).find(Boolean);
@@ -2492,7 +2515,7 @@ function stitchSVG(m, statusOf) {
     if (!a || !b || (quiet(r) && drawnBy(r, a, b))) continue;
     // When its names find no clean spot along the route it takes, another route wins if its names cover less (the first
     // clean one, shortest first; else the one that covers least).
-    const keep = [drawn.length, DRAW_LABELS.length, COF_SPOTS.length], undo = () => { drawn.length = keep[0]; DRAW_LABELS.length = keep[1]; COF_SPOTS.length = keep[2]; };
+    const keep = [drawn.length, DRAW_LABELS.length, COF_SPOTS.length, ALL_ROUTES.length], undo = () => { drawn.length = keep[0]; DRAW_LABELS.length = keep[1]; COF_SPOTS.length = keep[2]; ALL_ROUTES.length = keep[3]; };
     ROUTE_LABEL_MISS = 0; const tR = performance.now(); let svg = drawRoute(r, a, b); if (STITCH_PROF) { STITCH_PROF.n1 = (STITCH_PROF.n1 || 0) + 1; STITCH_PROF.first = (STITCH_PROF.first || 0) + performance.now() - tR; }
     if (ROUTE_LABEL_MISS) { if (STITCH_PROF) STITCH_PROF.retries = (STITCH_PROF.retries || 0) + 1; let best = [ROUTE_LABEL_MISS, null]; undo();
       const across = pts => 3 * DRAW_LABELS.filter(l => pts.slice(1).some((q, i) => segHits(pts[i], q, l))).length; // (the route itself through a name counts too)
@@ -2633,6 +2656,19 @@ function stitchSVG(m, statusOf) {
     }
   }
   DRAW_BOXES = []; TAB_SPOTS = [];
+  // (Timing: also how often lines cross — two arrows between parts, or one through a part's own lines.)
+  if (STITCH_PROF) {
+    const segsOf = P => P.slice(1).map((q, i) => [P[i], q]), hv = ([p, q]) => Math.abs(p[1] - q[1]) < 1;
+    const cross = ([a, b], [c, d]) => { const [h, v] = hv([a, b]) ? [[a, b], [c, d]] : [[c, d], [a, b]]; if (hv(v) || !hv(h)) return false;
+      const y = h[0][1], x = v[0][0]; return x > Math.min(h[0][0], h[1][0]) + 2 && x < Math.max(h[0][0], h[1][0]) - 2 && y > Math.min(v[0][1], v[1][1]) + 2 && y < Math.max(v[0][1], v[1][1]) - 2; };
+    let rr = 0, rp = 0; const S = ALL_ROUTES.map(segsOf);
+    for (let i = 0; i < S.length; i++) for (let j = i + 1; j < S.length; j++) for (const s1 of S[i]) for (const s2 of S[j]) if (cross(s1, s2)) rr++;
+    // (A part's lines are sampled every 12 px: a line crosses an arrow where two neighboring samples fall either side of it.)
+    const pairs = placed.flatMap(P => (P.pts || []).slice(1).map((q, i) => [[P.pts[i][0] + P.dx, P.pts[i][1] + P.dy], [q[0] + P.dx, q[1] + P.dy]]).filter(([a, b]) => Math.hypot(a[0] - b[0], a[1] - b[1]) < 16));
+    for (const segs of S) for (const [[x0, y0], [x1, y1]] of segs) { const lo = [Math.min(x0, x1), Math.min(y0, y1)], hi = [Math.max(x0, x1), Math.max(y0, y1)], h = Math.abs(y0 - y1) < 1;
+      for (const [a, b] of pairs) if (h ? (a[1] - y0) * (b[1] - y0) < 0 && a[0] > lo[0] + 20 && a[0] < hi[0] - 20 : (a[0] - x0) * (b[0] - x0) < 0 && a[1] > lo[1] + 20 && a[1] < hi[1] - 20) rp++; }
+    STITCH_PROF.crossArrows = rr; STITCH_PROF.crossLines = rp;
+  }
   PROF('dots+badges');
   let bg = '', fg = '';
   const regions = [], tabs = [];
