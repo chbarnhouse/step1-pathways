@@ -426,7 +426,7 @@ const cofParts = (m, statusOf, r) => {
   if (np && np.st !== 'hide') {
     const i = ps.findIndex(p => p.side === 'in');
     if (i < 0 || ps[i].st === 'hide') ps = [np, ...ps.filter(p => p.side !== 'in')];
-    else if (!hidden(ps[i].st) && hidden(np.st)) ps[i] = { ...np, pre: ps[i].text + ' +', word: 'needs' }; // the inputs are in: they stay, the needs blank follows them
+    else if (!hidden(ps[i].st) && hidden(np.st)) ps[i] = { ...np, pre: ps[i].text + ' +' }; // the inputs are in: they stay, the needs blank follows them
     else { const pin = ps[i], both = [pin, np]; ps[i] = { key: pin.key, keys: [pin.key, np.key], side: 'in', st: cofCombined(both), text: both.some(p => hidden(p.st)) ? '' : pin.text + ' + ' + np.text }; }
   }
   return ps.length && cofShapeHidden(r) && ps.some(p => hidden(p.st)) ? [{ key: ps[0].key, side: null, st: cofCombined(ps), text: '' }] : ps;

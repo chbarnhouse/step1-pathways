@@ -854,8 +854,23 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .tiles-row > * { scroll-snap-align: start; }
 .glabel .muted { font-weight: 600; letter-spacing: 0; }
 /* Settings: one centered column with the page gutters. */
-.page.settings { width: 100%; max-width: 900px; margin-inline: auto; }
-.settings .card.pad { max-width: none; }
+.page.settings { width: 100%; max-width: 1120px; margin-inline: auto; }
+.settings .card.pad { max-width: none; scroll-margin-top: 84px; }
+/* A list of the sections on the left (sticky), the sections on the right; on a narrow screen the list is a row of chips. */
+.set-grid { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 20px; align-items: start; }
+.set-main { display: grid; gap: 16px; min-width: 0; }
+.set-nav { position: sticky; top: 84px; display: grid; gap: 2px; padding: 8px; background: var(--card); border: 1px solid var(--line-soft); border-radius: 14px; }
+.set-nav a { display: flex; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 9px; color: var(--ink-2); text-decoration: none; font-weight: 500; }
+.set-nav a:hover, .set-nav a:focus-visible { background: var(--sunk); color: var(--ink); }
+.set-h { display: flex; justify-content: space-between; align-items: center; gap: 12px; }
+.set-h h2 { margin: 0; }
+.settings h3 { margin: 18px 0 2px; font-size: var(--fs-md, 1rem); }
+.set-cols { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 4px 16px; }
+@media (max-width: 820px) {
+  .set-grid { grid-template-columns: minmax(0, 1fr); }
+  .set-nav { position: static; display: flex; overflow-x: auto; gap: 4px; scrollbar-width: thin; }
+  .set-nav a { white-space: nowrap; }
+}
 /* Compartments: each kind has its own tint, its name on it, dashed membranes and a solid wall between cells. */
 .flow .zone, .flow .region { opacity: .75; }
 .flow .t-blue { fill: var(--blue-bg); } .flow .t-orange { fill: var(--orange-bg); } .flow .t-teal { fill: var(--teal-bg); }

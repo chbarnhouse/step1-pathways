@@ -87,7 +87,8 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push((r.coupled ? 'u:' : 'e:') + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'n:', 'o:']) if (items[k + r.id]) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
+  // (What a step needs is one of its inputs: with inputs of its own, it's asked with them, not on its own.)
+  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push((r.coupled ? 'u:' : 'e:') + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'n:', 'o:']) if (items[k + r.id] && !(k === 'n:' && items['c:' + r.id]?.side === 'in')) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.
@@ -201,6 +202,9 @@ function drugGroups(ds) {
 }
 const cofName = (m, id) => (m.cof[id] && m.cof[id].name) || id;
 const cofItemsOf = (m, r) => ['c:', 'o:'].map(k => m.items[k + r.id]).filter(Boolean); // a step's cofactor blanks, inputs first
+// What a step needs (B6, biotin…) is asked as one of its inputs: one field, "0/2" for Succinyl-CoA + B6. Only when it has
+// no inputs of its own is it asked by itself (still as the inputs).
+const foldNeeds = (m, r, cofs) => { const nd = m.items['n:' + r.id]; return nd ? { ...cofs, in: uniq([...(cofs.in || []), ...nd.cofs.in]) } : cofs; };
 const cofSideText = (m, c) => [...(c.in || []), ...(c.out || [])].map(id => cofName(m, id)).join(' + ');
 function cofText(m, c) {
   const i = (c.in || []).map(id => cofName(m, id)), o = (c.out || []).map(id => cofName(m, id));

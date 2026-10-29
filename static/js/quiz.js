@@ -7,7 +7,7 @@
 
 const Q = { cfg: null, m: null, round: null, score: { right: 0, total: 0 }, fact: null, models: [] };
 const KIND = { met: 'metabolite', enz: 'enzyme', trn: 'transporter', rl: 'rate-limiting enzyme', regfed: 'fed: on or off', regfast: 'fasting: on or off', drug: 'drug or toxin', cof: 'cofactors', loc: 'compartment', eff: 'effect', grp: 'group' };
-const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'needs' }[q.side]) : q.item?.term || KIND[q.kind]);
+const kindLabel = q => (q.kind === 'cof' && q.side && !shapePending(q) ? ({ in: 'cofactors in', out: 'cofactors out', need: 'cofactors in' }[q.side]) : q.item?.term || KIND[q.kind]);
 const TRANSPORTER_DISTRACTORS = ['GLUT1', 'GLUT2', 'GLUT4', 'SGLT1', 'Carnitine–acylcarnitine translocase', 'Citrate transporter', 'Malate–α-ketoglutarate antiporter', 'ADP/ATP translocase', 'StAR protein', 'Mitochondrial pyruvate carrier'];
 
 /* ---------- classic mix-ups ----------
@@ -203,11 +203,12 @@ function shortenedLoc(v, item) {
 // One question per side of a step's cofactors ("Cofactors in", "Cofactors out"), each in any order.
 // A step with none at all is asked as "none" (single-step modes only).
 function cofQ(r, m, item = null) {
-  const cofs = item ? item.cofs : {}, t = cofSideText(m, cofs) || 'None', side = item?.side;
+  const fold = item?.side === 'in' && item.key[0] === 'c' && !!m.items['n:' + r.id]; // its needs go in with the inputs
+  const cofs = fold ? foldNeeds(m, r, item.cofs) : item ? item.cofs : {}, t = cofSideText(m, cofs) || 'None', side = item?.side;
   return baseQ({
-    kind: 'cof', side, label: !item ? 'Cofactors' : { in: 'Cofactors in', out: 'Cofactors out', need: 'Needs' }[side], item, factItem: m.items['e:' + r.id], answerText: t, correct: t,
-    statKey: item ? item.key : 'c:' + r.id, pid: m.p.id, cofs, model: m,
-    placeholder: !item ? 'e.g. ATP — or "none"' : { in: 'what goes in, e.g. ATP', out: 'what comes out, e.g. ADP', need: 'what it needs, e.g. B6' }[side],
+    kind: 'cof', side, label: !item ? 'Cofactors' : { in: 'Cofactors in', out: 'Cofactors out', need: 'Cofactors in' }[side], item, factItem: m.items['e:' + r.id], answerText: t, correct: t,
+    statKey: item ? item.key : 'c:' + r.id, alsoKey: fold ? 'n:' + r.id : null, pid: m.p.id, cofs, model: m,
+    placeholder: !item ? 'e.g. ATP — or "none"' : { in: 'what goes in, e.g. ATP', out: 'what comes out, e.g. ADP', need: 'what goes in, e.g. B6' }[side],
     options: answerStyle() === 'choice' ? cofOptions(m, t) : null,
     check: v => v === t || gradeCof(m, v, cofs),
   });
@@ -427,7 +428,7 @@ function buildResolved(q) {
   const R = Q.round;
   const clean = q.status === 'right' && !q.hints && !q.tries;
   const key = q.item.key, first = !R.intro.has(key);
-  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); Q.score.total++; if (clean) Q.score.right++; else noteMiss(q); logAnswer(); }
+  if (first && (clean || q.status === 'right')) { R.intro.add(key); Stats.record(q.pid, q.statKey, clean); if (q.alsoKey) Stats.record(q.pid, q.alsoKey, clean); Q.score.total++; if (clean) Q.score.right++; else noteMiss(q); logAnswer(); }
   Q.fact = factItemOf(q.item, Q.m); Q.factM = Q.m;
   Q.history = (Q.history || []).filter(h => h.item !== Q.fact); Q.history.unshift({ item: Q.fact, m: Q.m, status: clean ? 'right' : 'missed' });
   if (!clean) {
@@ -919,7 +920,7 @@ function noteMiss(q) {
 function tally(q, firstTry) {
   firstTry = firstTry && !q.hints;
   if (!firstTry) noteMiss(q);
-  Q.score.total++; if (firstTry) Q.score.right++; Stats.record(q.pid, q.statKey, firstTry);
+  Q.score.total++; if (firstTry) Q.score.right++; Stats.record(q.pid, q.statKey, firstTry); if (q.alsoKey) Stats.record(q.pid, q.alsoKey, firstTry);
   logAnswer();
 }
 /* Quiz complete: a popup with how it went, what to look at again, and the ways on: the same quiz again, the same
@@ -1408,7 +1409,7 @@ function factsCard(item, m) {
       const c = r.cofactors || {}, ins = cofSideText(m, { in: c.in }), outs = cofSideText(m, { out: c.out });
       const open = k => stillOpen(m, k + r.id), cin = maybeSpoil(open('c:'), esc(ins)), cout = maybeSpoil(ins ? open('o:') : open('c:'), esc(outs));
       const ct = !ins && !outs ? 'None' : cofShapeHidden(r) && (open('c:') || open('o:')) ? spoiler(esc(cofText(m, c))) : !ins ? '→ ' + cout : !outs ? cin + ' →' : cin + ' → ' + cout;
-      extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Needs ${maybeSpoil(open('n:'), esc(r.requires.join(', ')))}` : ''}</p>`;
+      extra += `<p>Cofactors: ${ct}${(r.requires || []).length ? ` · Needs ${maybeSpoil(open(m.items['c:' + r.id]?.side === 'in' ? 'c:' : 'n:'), esc(r.requires.join(', ')))}` : ''}</p>`;
     }
     // Fed vs fasting, drugs and diseases: in the facts too (spoilered while they're still being asked).
     if (r.reg) extra += `<p>Fed: ${maybeSpoil(stillOpen(m, 'y:' + r.id), r.reg.fed.toUpperCase())} · Fasting: ${maybeSpoil(stillOpen(m, 'x:' + r.id), r.reg.fasting.toUpperCase())}. ${maybeSpoil(stillOpen(m, 'y:' + r.id) || stillOpen(m, 'x:' + r.id), esc(r.reg.why))}</p>`;

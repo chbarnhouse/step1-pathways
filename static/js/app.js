@@ -27,7 +27,7 @@ const themeChoice = (group, v, label, cur) => { const [bg, card, acc] = THEME_SW
   return `<button class="theme-pick" data-theme-set="${group}" data-v="${v}" role="radio" aria-checked="${cur === v}"><span class="theme-sw" style="background:${bg}"><span style="background:${card}"><i style="background:${acc}"></i></span></span><span>${label}${cur === v ? ` ${mi('check', 'sm')}` : ''}</span></button>`; };
 function appearanceHTML() {
   const a = appearance();
-  return `<section class="card pad"><h2>Appearance</h2><p class="muted">Applies to this device.</p>
+  return `<section class="card pad" id="set-look">${setHead('Appearance', 'look')}<p class="muted">Applies to this device.</p>
     <div class="set-row"><span class="glabel">Mode</span>${seg('data-theme-set', 'mode', [['auto', 'Auto (match system)'], ['light', 'Light'], ['dark', 'Dark']], a.mode)}</div>
     <div class="set-row"><span class="glabel">Light theme</span><div class="theme-row" role="radiogroup">${themeChoice('light', 'default', 'Default', a.light)}${themeChoice('light', 'light', 'Light', a.light)}</div></div>
     <div class="set-row"><span class="glabel">Dark theme</span><div class="theme-row" role="radiogroup">${themeChoice('dark', 'dark', 'Dark', a.dark)}${themeChoice('dark', 'black', 'Black', a.dark)}</div></div>
@@ -256,7 +256,7 @@ const C = { draft: null, presetId: '' };
 const DRAFT_DEFAULTS = { pathway: 'glycolysis', combine: false, extra: [], mode: 'single', given: 'mets', start: 'random', answer: null, weak: false, allPathways: false, letterCheck: false, hints: false,
   el: { met: 'quiz', enz: 'quiz', trn: 'quiz', cof: 'show', loc: 'show', dir: 'quiz', path: 'quiz' } };
 function normalizeDraft(d) {
-  const out = Object.assign(clone(DRAFT_DEFAULTS), clone(d || {}));
+  const out = Object.assign(clone(DRAFT_DEFAULTS), clone(Store.settings.quizStart || {}), clone(d || {})); // (Settings → Answer checking, then what was saved)
   out.el = Object.assign(clone(DRAFT_DEFAULTS.el), (d && d.el) || {});
   if (!out.pathway && d?.pathways?.length) out.pathway = d.pathways[0];
   // '' = nothing picked yet (New quiz from the top bar, or Clear all); anything else must be a real, single pathway.
@@ -801,25 +801,59 @@ document.addEventListener('click', e => {
 });
 
 /* ================= Settings ================= */
+// A section's title with its Reset (what Reset puts back: SET_RESETS).
+const setHead = (title, key) => `<div class="set-h"><h2>${title}</h2>${key ? `<button class="btn small ghost" data-setreset="${key}">${mi('restart_alt', 'sm')} Reset</button>` : ''}</div>`;
+const SET_SECTIONS = [['look', 'opacity', 'Appearance'], ['quiz', 'edit_note', 'Quizzes'], ['draw', 'route', 'Pathway pages'], ['map', 'map', 'Map'], ['presets', 'bookmark_add', 'Presets'], ['data', 'inventory_2', 'Your data'], ['help', 'help', 'Help'], ['about', 'library_books', 'About']];
+// Answer checking carries over to your next quiz: these change the quiz New quiz starts from (and stay as the start for
+// any quiz with nothing saved yet); New quiz and a quiz's own options can still change them for that quiz.
+const QUIZ_START_KEYS = ['letterCheck', 'hints', 'cofCount', 'weak', 'nameModes'];
+function setQuizStart(k, v) {
+  Store.settings.quizStart = { ...(Store.settings.quizStart || {}), [k]: v }; Store.save();
+  const d = homeDraft(); d[k] = v; if (k === 'nameModes') { delete d.names; delete d.fullNames; delete d.autoSubmit; }
+  const last = local.get(LAST_QUIZ); if (last?.cfg) { last.cfg[k] = v; local.set(LAST_QUIZ, last); }
+}
 function renderSettings() {
-  const s = Store.settings, mine = Store.data.presets;
+  const s = Store.settings, mine = Store.data.presets, d = homeDraft(), mc = mapCfg();
   const opt = (key, opts) => seg('data-set', key, opts, s[key]);
+  const cb = (attr, key, on, label) => `<label class="cb"><input type="checkbox" ${attr}="${key}" ${on ? 'checked' : ''}> ${label}</label>`;
+  const top = $('#view .settings') ? window.scrollY : 0;
   $('#view').innerHTML = `<div class="page settings">
     ${pageHead('Settings')}
+    <div class="set-grid">
+    <nav class="set-nav card" aria-label="Settings sections">${SET_SECTIONS.map(([id, ic, l]) => `<a href="#set-${id}" data-setnav="${id}">${mi(ic, 'sm')} ${l}</a>`).join('')}</nav>
+    <div class="set-main">
     ${appearanceHTML()}
-    <section class="card pad"><h2>Quiz defaults</h2><p class="muted">Used whenever a quiz doesn't set its own.</p>
+    <section class="card pad" id="set-quiz">${setHead('Quizzes', 'quiz')}<p class="muted">How every quiz looks and behaves.</p>
       <div class="setup">
         <div class="set-row"><span class="glabel">Answer</span><div class="set-ctl">${opt('answer', [['type', 'Type'], ['along', 'Type along'], ['choice', 'Choice'], ['self', 'Self-check']])}</div></div>
         <div class="set-row"><span class="glabel">View</span><div class="set-ctl">${opt('view', [['flow', 'Flow'], ['list', 'List']])}${opt('dir', [['v', 'List top–bottom'], ['h', 'List left–right']])}</div></div>
-        <div class="set-row"><span class="glabel">Zoom</span><div class="set-ctl">${opt('zoom', [['width', 'Fit width'], ['height', 'Fit height'], ['fit', 'Fit to frame']])}<label class="cb"><input type="checkbox" data-sflag="follow" ${s.follow ? 'checked' : ''}> Follow the current blank</label></div></div>
-        <div class="set-row"><span class="glabel">During a quiz</span><div class="set-ctl"><label class="cb"><input type="checkbox" data-sflag="facts" ${s.facts ? 'checked' : ''}> Show facts after each answer</label><label class="cb"><input type="checkbox" data-sflag="autoAdvance" ${s.autoAdvance ? 'checked' : ''}> Full recall moves on after a right answer</label></div></div>
+        <div class="set-row"><span class="glabel">Zoom</span><div class="set-ctl">${opt('zoom', [['width', 'Fit width'], ['height', 'Fit height'], ['fit', 'Fit to frame']])}${cb('data-sflag', 'follow', s.follow, 'Follow the current blank')}</div></div>
+        <div class="set-row"><span class="glabel">During a quiz</span><div class="set-ctl">${cb('data-sflag', 'facts', s.facts, 'Show facts after each answer')}${cb('data-sflag', 'autoAdvance', s.autoAdvance, 'Full recall moves on after a right answer')}</div></div>
+      </div>
+      <h3>Answer checking</h3><p class="muted small">Your next quiz starts with these. New quiz (and each quiz’s options) can still change them for one quiz.</p>
+      <div class="setup">
+        <div class="set-row"><span class="glabel">Typing</span><div class="set-ctl">${cb('data-qstart', 'letterCheck', d.letterCheck, 'Check each letter as I type')}${cb('data-qstart', 'hints', d.hints, '“Give me a letter” hints')}</div></div>
+        <div class="set-row"><span class="glabel">Cofactors</span><div class="set-ctl">${cb('data-qstart', 'cofCount', d.cofCount !== false, 'Show how many there are (“1/2”); off: first pick which arrow they have')}</div></div>
+        <div class="set-row"><span class="glabel">Order</span><div class="set-ctl">${cb('data-qstart', 'weak', d.weak, 'Weak spots first')}</div></div>
+        <div class="set-row"><span class="glabel">Names</span><div class="set-ctl">${nameModesHTML('data-snames', nameModesCfg(d))}</div></div>
       </div></section>
-    <section class="card pad"><h2>Your presets</h2>
+    <section class="card pad" id="set-draw">${setHead('Pathway pages', 'draw')}<p class="muted">What a pathway’s own page shows. Its buttons change these too.</p>
+      <div class="setup">
+        <div class="set-row"><span class="glabel">Fed vs fasting</span><div class="set-ctl">${seg('data-set', 'regView', [['', 'No badges'], ['fed', 'Fed (insulin)'], ['fasting', 'Fasting (glucagon)']], s.regView || '')}</div></div>
+        <div class="set-row"><span class="glabel">Drugs & toxins</span><div class="set-ctl">${cb('data-sflag', 'drugView', s.drugView, 'Show the drugs and toxins that act on each step')}</div></div>
+      </div></section>
+    <section class="card pad" id="set-map">${setHead('Map', 'map')}<p class="muted">The Map’s sidebar changes these too. Applies to this device.</p>
+      <div class="setup">
+        <div class="set-row"><span class="glabel">Layout</span><div class="set-ctl">${seg('data-mapset', 'merge', [['false', 'Each pathway whole'], ['true', 'Merge shared molecules']], String(!!mc.merge))}</div></div>
+        <div class="set-row"><span class="glabel">Browse</span><div class="set-ctl">${cb('data-mapflag', 'hover', mc.hover, 'Light up on hover')}</div></div>
+        <div class="set-row"><span class="glabel">Show</span><div class="set-ctl set-cols">${MAP_LAYERS.map(([k, l]) => cb('data-maplayer', k, mc.layers[k], esc(l))).join('')}</div></div>
+      </div></section>
+    <section class="card pad" id="set-presets">${setHead('Your presets')}
       ${mine.length ? `<ul class="presetlist">${mine.map(p => `<li><div><b>${esc(p.name)}</b><span class="muted">${esc(quizSummary(normalizeQuiz(p)))}${p.pathways?.length ? ` · ${p.pathways.length} pathway${p.pathways.length > 1 ? 's' : ''}` : ''}</span></div>
         <div class="btnrow tight"><button class="btn small ghost" data-preset="rename" data-id="${esc(p.id)}">Rename</button><button class="btn small ghost" data-preset="delete" data-id="${esc(p.id)}">${mi('delete', 'sm')} Delete</button></div></li>`).join('')}</ul>`
         : '<p class="muted">None yet. On Home, set up a quiz and press Save as preset.</p>'}
     </section>
-    <section class="card pad"><h2>Your data</h2>
+    <section class="card pad" id="set-data">${setHead('Your data')}
       <p class="muted">${Store.mode === 'server' ? 'Saved on your Step 1 Pathways server, so every device sees the same pathways, presets and history.' : 'Saved in this browser only. Export a backup to move it to another device.'}</p>
       ${Store.mode === 'local' ? `<div class="autobk"><h3>Automatic backups</h3>
         ${AutoBackup.supported ? (AutoBackup.status === 'linked'
@@ -833,19 +867,36 @@ function renderSettings() {
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history…</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
     </section>
-    <section class="card pad help"><h2>Help and feedback</h2>
+    <section class="card pad help" id="set-help">${setHead('Help and feedback')}
       <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
       <div class="btnrow"><button class="btn" data-tour-start>${mi('tour', 'sm')} Take the tour</button>${reportsEnabled() ? `<button class="btn" data-report="open">${mi('flag', 'sm')} Report a problem</button>` : ''}</div>
       <label class="cb"><input type="checkbox" id="tourNeverSetting" ${local.get('pathways.tourNever') ? '' : 'checked'}> Show the tour automatically when I open Pathways</label></section>
-    <section class="card pad about"><h2>About</h2><p class="muted">Step 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''}. Icons: Material Symbols.</p>
+    <section class="card pad about" id="set-about">${setHead('About')}<p class="muted">Step 1 Pathways version ${APP_VERSION}${Store.mode === 'server' && isPreview() ? ' + unreleased changes' : ''}${Store.mode === 'server' ? ` · <a href="${PUBLIC_SITE}" target="_blank" rel="noopener">classmates’ version</a>` : ''}. Icons: Material Symbols.</p>
       <div class="btnrow"><button class="btn small" data-whatsnew>${mi('history', 'sm')} What’s new</button>${Store.mode === 'server' && isPreview() ? `<button class="btn small" data-preview>${mi('science', 'sm')} Not released yet</button>` : ''}</div></section>
+    </div></div>
   </div>`;
+  if (top) window.scrollTo(0, top); // a change re-renders the page: stay where you were
 }
+// What each section's Reset puts back.
+const SET_RESETS = {
+  look: () => { local.set('pathways.appearance', null); applyTheme(); },
+  quiz: () => { for (const k of ['answer', 'view', 'dir', 'zoom', 'follow', 'facts', 'autoAdvance']) Store.settings[k] = DEFAULT_SETTINGS[k]; for (const k of QUIZ_START_KEYS) setQuizStart(k, DRAFT_DEFAULTS[k] ?? (k === 'cofCount' ? true : k === 'nameModes' ? { ...NAME_MODE_DEFAULTS } : false)); delete Store.settings.quizStart; Store.save(); },
+  draw: () => { delete Store.settings.regView; delete Store.settings.drugView; Store.save(); },
+  map: () => { const c = mapCfg(); mapSave({ ...MAP_DEFAULT, tab: c.tab, btab: c.btab, side: c.side }); },
+};
 document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(RELEASED, 'All changes'); });
 document.addEventListener('click', e => {
   if (!$('#view .settings')) return;
   const sb = e.target.closest('[data-set]');
   if (sb) { Store.settings[sb.dataset.set] = sb.dataset.v; Store.save(); return renderSettings(); }
+  const rs = e.target.closest('[data-setreset]');
+  if (rs) { const k = rs.dataset.setreset, name = SET_SECTIONS.find(x => x[0] === k)?.[2] || ''; return ask({ title: `Reset ${name} to how it started?`, ok: 'Reset' }).then(y => { if (y) { SET_RESETS[k](); renderSettings(); } }); }
+  const nm = e.target.closest('[data-snames]');
+  if (nm) { setQuizStart('nameModes', { ...nameModesCfg(homeDraft()), [nm.dataset.snames]: nm.dataset.v }); return renderSettings(); }
+  const ms = e.target.closest('[data-mapset]');
+  if (ms) { const c = mapCfg(); c[ms.dataset.mapset] = ms.dataset.v === 'true'; mapSave(c); return renderSettings(); }
+  const nv = e.target.closest('[data-setnav]');
+  if (nv) { e.preventDefault(); $('#set-' + nv.dataset.setnav)?.scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'start' }); return; }
   const pb = e.target.closest('[data-preset]');
   if (pb) {
     const p = Store.data.presets.find(x => x.id === pb.dataset.id);
@@ -860,6 +911,9 @@ document.addEventListener('change', e => {
   if (e.target.hasAttribute('data-autodl')) local.set('pathways.autoDownload', e.target.checked ? Date.now() : null);
   if (e.target.id === 'tourNeverSetting') local.set('pathways.tourNever', e.target.checked ? null : Date.now());
   if (e.target.dataset.sflag) { Store.settings[e.target.dataset.sflag] = e.target.checked; Store.save(); }
+  if (e.target.dataset.qstart) setQuizStart(e.target.dataset.qstart, e.target.checked);
+  if (e.target.dataset.mapflag) { const c = mapCfg(); c[e.target.dataset.mapflag] = e.target.checked; mapSave(c); }
+  if (e.target.dataset.maplayer) { const c = mapCfg(); c.layers = { ...c.layers, [e.target.dataset.maplayer]: e.target.checked }; mapSave(c); }
 });
 
 /* ---------- backups (Settings and the dashboard) ---------- */
