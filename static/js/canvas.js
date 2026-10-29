@@ -368,7 +368,8 @@ function membraneHints(st, ob) {
   const S = st.getBoundingClientRect(), V = svg.getBoundingClientRect();
   // The whole drawing in view: its compartment names are too.
   if (V.left >= S.left - 2 && V.right <= S.right + 2 && V.top >= S.top - 2 && V.bottom <= S.bottom + 2) return;
-  const placed = [], seen = [];
+  // (Clear of the arrows' pills at the edges too, which go first.)
+  const placed = [...st.querySelectorAll('.edgehint')].map(e => ({ x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight })), seen = [];
   for (const g of svg.querySelectorAll('g.mpair')) {
     const ln = g.querySelector('line'), T = toScreen(svg, ln);
     const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map(a => +ln.getAttribute(a)), v = g.dataset.o === 'v', p = T(x1, y1), q = T(x2, y2);
@@ -393,7 +394,7 @@ function membraneHints(st, ob) {
     }
     if (!spot) { el.remove(); continue; }
     el.style.left = spot.x + 'px'; el.style.top = spot.y + 'px'; placed.push(spot); seen.push({ key, at });
-    if (placed.length >= 8) break;
+    if (seen.length >= 8) break;
   }
 }
 function edgeHints(st, ob) {

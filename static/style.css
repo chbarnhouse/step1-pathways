@@ -20,6 +20,9 @@
   --gut-r: max(16px, env(safe-area-inset-right, 0px));
   --gold: #8a6500; --gold-bg: #f8efd6;
   --bg: var(--paper); /* the page itself (only Default changes it) */
+  /* Compartment tints are mixed from these: lighter, clearer tones than the ink colors, which go muddy mixed into the
+     light page. Dark themes mix from the tones themselves. */
+  --zs-blue: #4d9bef; --zs-orange: #ff9442; --zs-teal: #22b5bc; --zs-gold: #f0bd2a; --zs-pink: #ec6aa6; --zs-slate: #93a1b3;
   color-scheme: light;
 }
 /* Themes (Settings → Appearance): Light, Default (light with a blue page), Dark, Black (pure black).
@@ -39,6 +42,7 @@
     --good: #4ac26b; --bad: #ff6b6b; --good-bg: rgba(74,194,107,.24); --bad-bg: rgba(255,107,107,.24);
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
     --bg: var(--paper);
+    --zs-blue: var(--blue); --zs-orange: var(--orange); --zs-teal: var(--teal); --zs-gold: var(--gold); --zs-pink: var(--pink); --zs-slate: var(--slate);
     color-scheme: dark;
   }
 }
@@ -55,6 +59,7 @@
     --good: #4ac26b; --bad: #ff6b6b; --good-bg: rgba(74,194,107,.24); --bad-bg: rgba(255,107,107,.24);
     --shadow: 0 1px 2px rgba(0,0,0,.4), 0 10px 30px -18px rgba(0,0,0,.7);
     --bg: var(--paper);
+    --zs-blue: var(--blue); --zs-orange: var(--orange); --zs-teal: var(--teal); --zs-gold: var(--gold); --zs-pink: var(--pink); --zs-slate: var(--slate);
     color-scheme: dark;
 }
 /* Black: pure black page, near-black surfaces. */
@@ -875,8 +880,8 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 .flow .region { opacity: .75; }
 /* (Tints mixed from each tone into the page, so they're as saturated in dark themes as in light.) */
 .flow { --zt: 24%; }
-.flow .t-blue { fill: color-mix(in srgb, var(--blue) var(--zt), var(--paper)); } .flow .t-orange { fill: color-mix(in srgb, var(--orange) var(--zt), var(--paper)); } .flow .t-teal { fill: color-mix(in srgb, var(--teal) var(--zt), var(--paper)); }
-.flow .t-gold { fill: color-mix(in srgb, var(--gold) var(--zt), var(--paper)); } .flow .t-pink { fill: color-mix(in srgb, var(--pink) var(--zt), var(--paper)); } .flow .t-slate { fill: color-mix(in srgb, var(--slate) var(--zt), var(--paper)); }
+.flow .t-blue { fill: color-mix(in srgb, var(--zs-blue) var(--zt), var(--paper)); } .flow .t-orange { fill: color-mix(in srgb, var(--zs-orange) var(--zt), var(--paper)); } .flow .t-teal { fill: color-mix(in srgb, var(--zs-teal) var(--zt), var(--paper)); }
+.flow .t-gold { fill: color-mix(in srgb, var(--zs-gold) var(--zt), var(--paper)); } .flow .t-pink { fill: color-mix(in srgb, var(--zs-pink) var(--zt), var(--paper)); } .flow .t-slate { fill: color-mix(in srgb, var(--zs-slate) var(--zt), var(--paper)); }
 .flow .region { stroke: var(--ink-2); stroke-width: 1.6; stroke-dasharray: 7 5; }
 /* Connected pathways: a compartment is one tinted shape made of overlapping pieces; the group carries the transparency. */
 .flow .blob { opacity: 1; }
