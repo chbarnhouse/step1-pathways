@@ -51,7 +51,7 @@ PROBE = r"""([id, zones, rot]) => {
   // buckets; each line is sampled every 4 px and only the texts in its sample's bucket are checked.
   const TB = 80, tb = new Map(), tkey = (i, j) => i * 100003 + j;
   texts.filter(t => !t.inPill).forEach(t => { for (let i = Math.floor(t.r.x / TB); i <= Math.floor((t.r.x + t.r.w) / TB); i++) for (let j = Math.floor(t.r.y / TB); j <= Math.floor((t.r.y + t.r.h) / TB); j++) { const k = tkey(i, j); (tb.get(k) || tb.set(k, []).get(k)).push(t); } });
-  svg.querySelectorAll('path:not(.ah):not(.xline):not(.region):not([fill-rule]), line.ln').forEach(pth => { if (pth.closest('.blob, defs, .zone, .xlink') || !pth.getTotalLength) return;
+  svg.querySelectorAll('path:not(.ah):not(.hit):not(.xline):not(.region):not([fill-rule]), line.ln:not(.hit)').forEach(pth => { if (pth.closest('.blob, defs, .zone, .xlink') || !pth.getTotalLength) return;
     const L = pth.getTotalLength(), ctm = pth.getScreenCTM(), seen = new Set();
     for (let l = 6; l < L - 6; l += 4) { const q = pth.getPointAtLength(l), x = ctm.a * q.x + ctm.c * q.y + ctm.e, y = ctm.b * q.x + ctm.d * q.y + ctm.f;
       for (const t of tb.get(tkey(Math.floor(x / TB), Math.floor(y / TB))) || []) if (!seen.has(t) && !(t.box && pth.compareDocumentPosition(t.box) & Node.DOCUMENT_POSITION_FOLLOWING) && x > t.r.x + 1 && x < t.r.x + t.r.w - 1 && y > t.r.y + 2 && y < t.r.y + t.r.h - 2) { seen.add(t); hits.push(['step', 'text:' + t.label]); } } });
@@ -95,7 +95,7 @@ PROBE = r"""([id, zones, rot]) => {
   }
   // A compartment's name tab over a line (the tab is opaque, but a line vanishing under a name still reads as a clash).
   const tabs = [...svg.querySelectorAll('rect.legend')].map(box);
-  if (tabs.length) svg.querySelectorAll('path:not(.ah):not(.region):not([fill-rule]), line.ln').forEach(pth => { if (pth.closest('.blob, defs, .zone') || !pth.getTotalLength) return;
+  if (tabs.length) svg.querySelectorAll('path:not(.ah):not(.hit):not(.region):not([fill-rule]), line.ln:not(.hit)').forEach(pth => { if (pth.closest('.blob, defs, .zone') || !pth.getTotalLength) return;
     const L = pth.getTotalLength(), ctm = pth.getScreenCTM(); if (L < 8) return;
     for (const t of tabs) for (let l = 2; l < L - 2; l += 4) { const q = pth.getPointAtLength(l), x = ctm.a * q.x + ctm.c * q.y + ctm.e, y = ctm.b * q.x + ctm.d * q.y + ctm.f;
       if (x > t.x && x < t.x + t.w && y > t.y && y < t.y + t.h) { hits.push(['tab', 'on a line @' + Math.round(t.x) + ',' + Math.round(t.y)]); break; } } });

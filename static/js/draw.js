@@ -545,10 +545,19 @@ function linkTags(m, statusOf, boxes, prefer = () => 'right', obstacles = []) {
 }
 // The status function of the drawing in progress, for a blank that lives inside another label (what a step needs).
 let DRAW_STATUS = null, DRAW_MODEL = null;
+const HOVER_MODELS = new Map(); // pathway id → its model, for hover help on its drawing (data-pid on the drawing)
+// Every drawing names its pathway (data-pid), so hovering it can look its boxes and lines up (HOVER_MODELS).
 function flowSVG(m, statusOf, opts = {}) {
+  // (Each step's line also gets a wide invisible twin underneath, so it's easy to point at.)
+  const svg = flowSVG0(m, statusOf, opts).replace('<svg ', `<svg data-pid="${esc(m.p.id)}" `);
+  return svg.replace(/<path class="([^"]*\brx-[^"\s]+[^"]*)" d="([^"]+)"\/>/g, (t, c, d) => (c.startsWith('hit') ? t : `<path class="hit ${(c.match(/\brx-\S+/) || [''])[0]}" d="${d}"/>` + t))
+    .replace(/<line class="([^"]*\brx-[^"\s]+[^"]*)"( x1="[^"]+" y1="[^"]+" x2="[^"]+" y2="[^"]+")\/>/g, (t, c, xy) => (c.startsWith('hit') ? t : `<line class="hit ${(c.match(/\brx-\S+/) || [''])[0]}"${xy}/>` + t));
+}
+function flowSVG0(m, statusOf, opts = {}) {
   // The second arrow of a coupled step names its enzyme too, once the first one's is showing (it's asked there, once).
   if (m.p.reactions.some(r => r.coupled)) { const own = statusOf, twin = new Map(m.p.reactions.filter(r => r.coupled).map(r => ['e:' + r.id, 'e:' + r.coupled]));
     statusOf = k => { if (!twin.has(k)) return own(k); const s = own(twin.get(k)); return s === 'shown' || s === 'peek' || s === 'dim' || s === 'focus' ? s : 'hide'; }; }
+  HOVER_MODELS.set(m.p.id, m); // (hovering a drawing's boxes and lines looks their names up here)
   DRAW_STATUS = statusOf; DRAW_MODEL = m; COF_SPOTS = []; STEP_AT = {}; CONN_STEPS = new Map(); GRID_MEMBRANES = []; GRID_MEMBRANES_Y = []; VIA_X = []; VIA_Y = []; TAB_ENTERS = new Set(); TAB_ENTER_TO = new Set();
   if (m.p.stitch) return rlStrip(m.p.stitch.tiles.length > 1 && m.p.stitch.tiles.every(T => T.p.nephron) ? nephronSVG(m, statusOf) : stitchSVG(m, statusOf, opts), m, statusOf);
   ZONE_INLINE_DONE = false;
@@ -637,7 +646,8 @@ function withGroups(svg, m, statusOf, grps, pos) {
 const effSt = r => (DRAW_MODEL?.items['f:' + r.id] ? (DRAW_STATUS ? DRAW_STATUS('f:' + r.id) || 'shown' : 'shown') : null);
 const effShown = r => { const st = effSt(r); return st === null || !(hidden(st) || st === 'hide'); };
 function rxCls(r) {
-  const base = (r.transport ? 'ln trn' : 'ln') + (regOff(r) ? ' regoff' : ''), inh = (r.tags || []).some(t => t === 'inhibits' || t === 'blocked'), st = effSt(r);
+  // (rx-<step>: which step a line draws, for its hover summary)
+  const base = (r.transport ? 'ln trn' : 'ln') + (regOff(r) ? ' regoff' : '') + (r.id ? ' rx-' + r.id : ''), inh = (r.tags || []).some(t => t === 'inhibits' || t === 'blocked'), st = effSt(r);
   if (st === null) return base + (inh ? ' inh' : '');
   if (st === 'hide') return base;
   if (hidden(st)) return base + ' effq' + (st === 'target' ? ' eff-target' : '');

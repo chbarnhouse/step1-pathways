@@ -41,6 +41,7 @@ function setView(st, v, animate = false) {
   const { w, h } = contentSize(st);
   CANVAS_VIEW = { key: st.dataset.view || '', mode: Store.settings.zoom, k: v.k, x: v.x, y: v.y, w, h };
   const zp = document.querySelector('#zoomPct'); if (zp) zp.textContent = Math.round(v.k * 100) + '%';
+  edgeHintsSoon(st);
 }
 // Zoom about a point of the stage (cursor, pinch center, or the middle for the buttons).
 function zoomAt(st, k, px, py, animate = false) {
@@ -234,3 +235,93 @@ window.addEventListener('resize', () => {
   document.addEventListener('keydown', e => { const g = e.target.closest?.('.pairbadge'); if (g && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); jump(g); } });
   for (const ev of ['scroll', 'wheel']) document.addEventListener(ev, hide, true);
 })();
+
+/* ---------- hover help ----------
+   On a drawing (a pathway page, a connected drawing, the Map, a quiz's Review), pointing at a molecule shows the names
+   it also goes by; at an enzyme or carrier, its other names and the step it does; at an arrow, what the step is: from →
+   to, by which enzyme, through which carrier, with which cofactors. Never during a quiz (it would give answers away). */
+(() => {
+  let tip = null, on = null;
+  const quizzing = () => !!document.querySelector('#view .quiz') && typeof Q !== 'undefined' && Q.round?.type !== 'review';
+  const modelOf = el => HOVER_MODELS.get(el.closest('svg[data-pid]')?.dataset.pid);
+  const aka = it => { const seen = new Set([norm(it.name)]); return [it.short, ...(it.aliases || []), ...(it.nicknames || [])].filter(n => n && !seen.has(norm(n)) && seen.add(norm(n))).slice(0, 6); };
+  const stepLine = (m, r) => `${esc(metNames(m, reactantsOf(r)))} ${r.reversible ? '⇌' : '→'} ${esc(metNames(m, productsOf(r)))}`;
+  const html = (m, key) => {
+    const it = m.items[key]; if (!it) return '';
+    const also = aka(it), line = also.length ? `<div class="ht-aka">Also: ${also.map(esc).join(' · ')}</div>` : '';
+    if (key.startsWith('m:')) return `<b>${esc(it.name)}</b>${line}`;
+    const r = it.rxn; return `<b>${esc(it.name)}</b>${line}${r ? `<div class="ht-step">${stepLine(m, r)}${r.loc ? ` · ${esc(r.loc)}` : ''}</div>` : ''}`;
+  };
+  const lineHtml = (m, r) => {
+    const e = m.items['e:' + r.id], t = m.items['t:' + r.id], c = cofText(m, r.cofactors || {});
+    return `<b>${stepLine(m, r)}</b>${e ? `<div>${esc(e.name)}${t ? ` <span class="ht-dim">through ${esc(t.name)}</span>` : ''}</div>` : ''}${c && c !== 'None' ? `<div class="ht-dim">${esc(c)}</div>` : ''}`;
+  };
+  const hide = () => { on = null; if (tip) tip.hidden = true; };
+  const place = e => { const t = tip.getBoundingClientRect(); tip.style.left = Math.min(innerWidth - t.width - 8, e.clientX + 14) + 'px'; tip.style.top = (e.clientY + 18 + t.height > innerHeight - 6 ? e.clientY - t.height - 12 : e.clientY + 18) + 'px'; };
+  document.addEventListener('pointermove', e => {
+    if (e.pointerType !== 'mouse' || quizzing()) return hide();
+    const el = e.target.closest?.('svg.flow g.mbox[data-key], svg.flow g.elab[data-key], svg.flow [class*="rx-"]');
+    if (!el) return on && hide();
+    const m = modelOf(el); if (!m) return hide();
+    let h = '';
+    const rx = [...el.classList].find(c => c.startsWith('rx-'));
+    if (rx) { const r = m.p.reactions.find(x => x.id === rx.slice(3)); if (r) h = lineHtml(m, r); }
+    else { const k = el.dataset.key; if (/^[mte]:/.test(k)) h = html(m, k); }
+    if (!h) return hide();
+    if (!tip) { tip = document.createElement('div'); tip.className = 'hovtip'; tip.setAttribute('role', 'tooltip'); document.body.append(tip); }
+    if (on !== el) { on = el; tip.innerHTML = h; tip.hidden = false; }
+    place(e);
+  });
+  document.addEventListener('pointerleave', hide);
+  for (const ev of ['pointerdown', 'wheel', 'keydown']) document.addEventListener(ev, hide, true);
+})();
+
+/* ---------- where an arrow goes off screen ----------
+   Zoomed in, an arrow that leaves the view gets a small pill where it crosses the edge, saying where it goes ("→ Acetyl-CoA
+   (TCA cycle) via Mitochondrial pyruvate carrier") or comes from ("← from …"); clicking it flies there. Up to 12, nearest
+   the middle first; none during a quiz (they'd give answers away). */
+let EDGE_T = 0;
+function edgeHintsSoon(st) { clearTimeout(EDGE_T); EDGE_T = setTimeout(() => edgeHints(st), 140); }
+function edgeHints(st) {
+  st.querySelectorAll('.edgehint').forEach(e => e.remove());
+  if (!st.isConnected || (document.querySelector('#view .quiz') && typeof Q !== 'undefined' && Q.round?.type !== 'review')) return;
+  const svg = svgOf(st); if (!svg) return;
+  const m = HOVER_MODELS.get(svg.dataset.pid); if (!m) return;
+  const S = st.getBoundingClientRect(), pad = 4, inView = q => q.x > S.left + pad && q.x < S.right - pad && q.y > S.top + pad && q.y < S.bottom - pad;
+  // (A <line> is measured from its ends: Safari gives lines no length.)
+  const isLine = p => p.tagName === 'line', ends = p => ['x1', 'y1', 'x2', 'y2'].map(k => +p.getAttribute(k));
+  const lenOf = p => { if (!isLine(p)) return p.getTotalLength(); const [x1, y1, x2, y2] = ends(p); return Math.hypot(x2 - x1, y2 - y1); };
+  const scr = (p, l) => { let q; if (isLine(p)) { const [x1, y1, x2, y2] = ends(p), L = Math.hypot(x2 - x1, y2 - y1) || 1; q = { x: x1 + (x2 - x1) * l / L, y: y1 + (y2 - y1) * l / L }; } else q = p.getPointAtLength(l);
+    const M = p.getScreenCTM(); return { x: M.a * q.x + M.c * q.y + M.e, y: M.b * q.x + M.d * q.y + M.f }; };
+  const partOf = id => { const o = m.p.stitch?.origin.m[id]; return o ? Library.get(o[0][0])?.name : ''; };
+  const found = [];
+  for (const p of svg.querySelectorAll('path[class*="rx-"]:not(.hit), line[class*="rx-"]:not(.hit)')) {
+    const rid = [...p.classList].find(c => c.startsWith('rx-')).slice(3), r = m.p.reactions.find(x => x.id === rid); if (!r) continue;
+    const L = lenOf(p); if (L < 40) continue;
+    const a = scr(p, 0), b = scr(p, L), ia = inView(a), ib = inView(b); if (ia === ib) continue;
+    // Where it crosses the edge: halve the stretch between the end inside and the end outside.
+    let lo = ia ? 0 : L, hi = ia ? L : 0; for (let i = 0; i < 14; i++) { const mid = (lo + hi) / 2; if (inView(scr(p, mid))) lo = mid; else hi = mid; }
+    // Which molecule is off there: the step's end whose box is nearest the line's end outside (a reversible step draws a
+    // line each way, so a line's start isn't always the step's input).
+    const off = ia ? b : a, boxAt = id => [...svg.querySelectorAll(`g.mbox[data-key="${CSS.escape('m:' + id)}"]`)].map(g => { const R = g.getBoundingClientRect(); return Math.hypot(R.x + R.width / 2 - off.x, R.y + R.height / 2 - off.y); }).sort((x, y) => x - y)[0] ?? Infinity;
+    const outId = boxAt(r.to) <= boxAt(r.from) ? r.to : r.from, near = outId === r.to ? r.from : r.to, goes = outId === r.to;
+    const at = scr(p, lo), far = m.items['m:' + outId]; if (!far) continue;
+    const via = m.items['t:' + r.id] || (r.transport ? m.items['e:' + r.id] : null), there = partOf(outId), here = partOf(near);
+    const text = `${goes ? '→' : '← from'} ${far.name}${there && there !== here ? ` (${there})` : ''}${via ? ` via ${via.name}` : ''}`;
+    found.push({ at, text, rid, key: 'm:' + outId, d: Math.hypot(at.x - (S.left + S.width / 2), at.y - (S.top + S.height / 2)) });
+  }
+  const seen = new Set(), placed = [];
+  for (const h of found.sort((x, y) => x.d - y.d)) {
+    if (placed.length >= 12 || seen.has(h.text)) continue; seen.add(h.text);
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'edgehint'; el.textContent = h.text; el.dataset.go = h.key; el.dataset.rx = h.rid; st.append(el);
+    const w = el.offsetWidth, ht = el.offsetHeight;
+    let x = Math.min(S.width - w - 6, Math.max(6, h.at.x - S.left - w / 2)), y = Math.min(S.height - ht - 6, Math.max(6, h.at.y - S.top - ht / 2));
+    for (let k = 0; k < 8 && placed.some(o => Math.abs(o.x - x) < (o.w + w) / 2 + 4 && Math.abs(o.y - y) < ht + 4); k++) y += ht + 6; // (never on one another)
+    el.style.left = x + 'px'; el.style.top = y + 'px'; placed.push({ x: x + w / 2 - w / 2, y, w });
+  }
+}
+document.addEventListener('click', e => {
+  const h = e.target.closest?.('.edgehint'); if (!h) return;
+  const st = h.closest('.stage.canvas'), box = st?.querySelector(`svg.flow g.mbox[data-key="${CSS.escape(h.dataset.go)}"]`);
+  if (box) centerOn(box);
+});

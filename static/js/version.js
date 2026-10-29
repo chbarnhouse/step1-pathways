@@ -9,6 +9,8 @@ const APP_VERSION = '3.13.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'Hover help on drawings and the Map (not during a quiz): point at a molecule to see the other names it goes by, at an enzyme or carrier for its names and the step it does, and at an arrow for the step itself (from → to, the enzyme, the carrier, the cofactors).',
+    'Zoomed in, an arrow that runs off the screen gets a small pill at the edge saying where it goes (“→ Glyceraldehyde-3-phosphate (Glycolysis + gluconeogenesis)”, “via” its carrier) or comes from; click it to go there.',
     'Connected drawings and the Map: arrows meet boxes head-on (a line that ran along just above a box and dropped a few pixels into its corner now enters its side, or drops a clear distance into it); a transporter that is a step’s name (SGLT1, GLUT2) sits on the membrane its line crosses; and the kidney’s urobilin no longer sits on top of urobilinogen with the reabsorption pill over both.',
     'The Map opens on its merged chart, the cell, by default (Each pathway whole is one click away under Layout, and remembered once picked).',
     'The Map’s merged chart places each pathway piece where its links to the rest are short and cross least, then goes over every piece again with everything else in place: on the default Map, arrows crossing arrows went from 105 to 47 and arrows cutting through another pathway from 22 to 15. Compartments (bands and the Map’s regions) leave room at their edges only for what’s shown: with enzyme names and carriers hidden, or fewer pathways on, they close up.',
