@@ -2161,7 +2161,9 @@ function stitchSVG(m, statusOf) {
     // with no tissue given joins its tissue's when only one is named (glycolysis's cytosol is galactose's liver cytosol).
     const alias = {}, byC = {};
     for (const z of uniq(pieces.map(q => q.z))) { const [t, c] = z.includes('|') ? z.split('|') : ['', z]; (byC[c] = byC[c] || []).push({ z, t }); }
-    for (const [c, zl] of Object.entries(byC)) { const ts = uniq(zl.map(x => x.t).filter(Boolean)), outside = /blood|plasma|extracell|interstit/.test(c);
+    // (A big merged chart, the Map, is a chart of compartments, not of the body: every tissue's cytosol is one band.)
+    const many = tiles.length > 4;
+    for (const [c, zl] of Object.entries(byC)) { const ts = uniq(zl.map(x => x.t).filter(Boolean)), outside = many || /blood|plasma|extracell|interstit/.test(c);
       if (!outside && ts.length > 1) {
         // Several tissues: the one with none given joins whichever of them its steps run into most, if any.
         const plain = zl.find(x => !x.t); if (!plain) continue;
@@ -2192,9 +2194,13 @@ function stitchSVG(m, statusOf) {
       q.R = q.Rs.slice().sort((a, b) => score(b) - score(a))[0];
     }
     let bx = 0;
-    // (Two parts in one band: room for their widest pieces side by side.)
+    // (Two parts in one band: room for their widest pieces side by side. A big chart: as many columns as a band needs to
+    // stay about as tall as the whole chart is meant to be, about 1.6 times as wide as tall.)
+    const area = pieces.reduce((n, q) => n + (q.R.vb[2] + 60) * (q.R.vb[3] + 60), 0), tall = Math.sqrt(area / 1.6) * 1.2;
     for (const z of order) { const ps = pieces.filter(q => q.z === z).sort((a, b) => b.R.vb[2] - a.R.vb[2]), other = ps.find(q => q.ti !== ps[0].ti);
-      const w = ps[0].R.vb[2] + (other ? other.R.vb[2] + 60 : 0); BANDS.push({ z, x0: bx, x1: bx + w + 320 }); bx += w + 320; }
+      const cols = many ? Math.max(1, Math.min(ps.length, Math.ceil(ps.reduce((n, q) => n + q.R.vb[3] + 60, 0) / tall))) : other ? 2 : 1;
+      const cw = ps[0].R.vb[2] + 60, w = cols > 2 || many ? cols * cw : ps[0].R.vb[2] + (other ? other.R.vb[2] + 60 : 0);
+      BANDS.push({ z, x0: bx, x1: bx + w + 320, cols, cw }); bx += w + 320; }
     // Pieces in drawing order: each part's pieces in the order its main line reaches them.
     const firstAt = q => { const T = q.R.T, sp = modelFor(T.p).seq; const i = Math.min(...Object.keys(q.R.pos).map(k => sp.indexOf(k)).filter(i => i >= 0)); return q.ti * 1000 + (Number.isFinite(i) ? i : 999); };
   PROF('pieces');
@@ -2208,11 +2214,14 @@ function stitchSVG(m, statusOf) {
       const mates = pieces.filter(o => o.z === q.z && o.ti !== q.ti), widest = mates.length && pieces.filter(o => o.z === q.z).every(o => o.R.vb[2] <= R.vb[2]);
       const lean = widest ? -Math.sign(mates.reduce((n, o) => n + leanOf(o), 0)) : leanOf(q);
       const L = band.x0 + 160 - R.vb[0], Rt = band.x1 - 160 - R.vb[0] - R.vb[2], C = (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
-      const dxs = uniq(lean < 0 ? [L, C, Rt] : lean > 0 ? [Rt, C, L] : [C, L, Rt]);
+      // (In a band of several columns, the middle of each column too, the ones nearer the membrane it leans to first.)
+      const colXs = band.cols > 2 || (many && band.cols > 1) ? Array.from({ length: band.cols }, (_, c) => band.x0 + 160 + c * band.cw + band.cw / 2 - (R.vb[0] + R.vb[2] / 2)) : [];
+      const dxs = uniq([...(lean < 0 ? [L, C, Rt] : lean > 0 ? [Rt, C, L] : [C, L, Rt]), ...(lean > 0 ? colXs.reverse() : colXs)]);
       // Level with the box it's joined to across a membrane (a straight step), else just below what's in its band.
       const link = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].map(r => R.pos['m:' + r.from] && G['m:' + r.to] ? [R.pos['m:' + r.from], G['m:' + r.to]] : R.pos['m:' + r.to] && G['m:' + r.from] ? [R.pos['m:' + r.to], G['m:' + r.from]] : null).find(Boolean);
       const inBand = placed.filter(P => P.band === band), below = inBand.length ? Math.max(...inBand.map(P => P.vb[1] + P.vb[3] + P.dy)) + 40 - R.vb[1] : -R.vb[1];
-      const dy0 = link ? ctr(link[1]).cy - ctr(link[0]).cy : placed.length ? below : 0;
+      const top = placed.length ? Math.min(...placed.map(P => P.vb[1] + P.dy)) - R.vb[1] : 0; // (a big chart fills its columns from the top)
+      const dy0 = link ? ctr(link[1]).cy - ctr(link[0]).cy : many && placed.length ? top : placed.length ? below : 0;
       // Its steps across a membrane each run along a row of their own: none within 110 px of one already crossing
       // (its carrier pill, name and cofactors need that much), its own step's row aside.
       const xs = links.filter(([k]) => R.pos[k]), clearRows = d => xs.every(([k, o]) => { const y = ctr(R.pos[k]).cy + d; return LANES.every(l => l.pair === [k, o].sort().join() || Math.abs(l.y - y) >= 110); });
