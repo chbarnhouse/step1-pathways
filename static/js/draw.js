@@ -1001,20 +1001,21 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
     const flush = () => { const v = low ? g[0] : g[g.length - 1]; g.forEach(x => map.set(x, v)); g = []; };
     for (const v of s) { if (g.length && v - g[0] > 40) flush(); g.push(v); } if (g.length) flush(); return map; };
   const L = snapSide(areas.map(a => a.r.x), true), Rr = snapSide(areas.map(a => a.r.x + a.r.w), false), T = snapSide(areas.map(a => a.r.y), true), Bm = snapSide(areas.map(a => a.r.y + a.r.h), false);
-  const ar = areas.map(a => ({ z: a.z, x0: L.get(a.r.x), x1: Rr.get(a.r.x + a.r.w), y0: T.get(a.r.y), y1: Bm.get(a.r.y + a.r.h) })).map(a => ({ ...a, area: (a.x1 - a.x0) * (a.y1 - a.y0) }));
+  const ar = areas.map(a => ({ z: a.z, prio: a.prio, lab: a.lab, x0: L.get(a.r.x), x1: Rr.get(a.r.x + a.r.w), y0: T.get(a.r.y), y1: Bm.get(a.r.y + a.r.h) })).map(a => ({ ...a, area: (a.x1 - a.x0) * (a.y1 - a.y0) }));
   const lines = vs => { const s = [...new Set(vs)].sort((a, b) => a - b), o = []; for (const v of s) if (!o.length || v - o[o.length - 1] >= MINC) o.push(v); else o[o.length - 1] = Math.max(o[o.length - 1], v); return o; };
   // A box's own edges (with their margin) always stay grid lines, so no cell holds part of a box and part of its neighbor;
   // the area edges merge into them like into each other.
   // A cluster of close lines becomes its lowest when it holds a low edge (an area's left or top), else its highest:
   // an area may grow by the merge, never shrink, so a merge never cuts into the boxes at its edge.
   // cap: a cluster spans less than MINC (no chain, so a top edge never creeps far up).
-  const lines2 = (lo, hi, cap = false) => { const all = [...lo.map(v => [v, 1]), ...hi.map(v => [v, 0])].sort((a, b) => a[0] - b[0]), o = [];
+  // keep: lows that may not move down (a label's top).
+  const lines2 = (lo, hi, cap = false, keep = new Set()) => { const all = [...lo.map(v => [v, 1]), ...hi.map(v => [v, 0])].sort((a, b) => a[0] - b[0]), o = [];
     for (let i = 0; i < all.length;) { let j = i; while (j + 1 < all.length && all[j + 1][0] - all[j][0] < MINC && (!cap || all[j + 1][0] - all[i][0] < cap)) j++;
       const g = all.slice(i, j + 1), lows = g.filter(t => t[1]);
       // (cap: tops meet a little under the highest, up to 12 px, so that none creeps far up and a name tab still fits above each box)
-      o.push(lows.length ? (cap ? Math.min(lows[lows.length - 1][0], lows[0][0] + 12) : g[0][0]) : g[g.length - 1][0]); i = j + 1; }
+      o.push(lows.length ? (cap ? Math.min(lows[lows.length - 1][0], lows[0][0] + 12, ...lows.filter(t => keep.has(t[0])).map(t => t[0])) : g[0][0]) : g[g.length - 1][0]); i = j + 1; }
     return [...new Set(o)]; };
-  const xs = lines2(ar.map(a => a.x0), ar.map(a => a.x1)), ys = lines2(ar.map(a => a.y0), ar.map(a => a.y1), MINC);
+  const xs = lines2(ar.map(a => a.x0), ar.map(a => a.x1)), ys = lines2(ar.map(a => a.y0), ar.map(a => a.y1), MINC, new Set(ar.filter(a => a.lab).map(a => a.y0)));
   // Two boxes of different compartments side by side (or one above the other) with no line between them would share a
   // cell: a line goes in the middle of the gap between them.
   const bb = boxes.map(b => ({ z: b.z, r: b.box || b.r }));
@@ -1031,10 +1032,11 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
   // Of the areas covering a cell, the compartment with a box nearest it (between pathways, each keeps the space around
   // its own boxes; a small compartment inside a big one keeps its middle)...
   const cover = Array.from({ length: W * H }, () => null), zb = zs.map(z => boxes.filter(b => b.z === z).map(b => b.r));
+  const prio = new Int16Array(W * H).fill(-1); // (a priority area, a label that must stay in its compartment, takes its cells outright)
   for (const a of ar) { const zi = zs.indexOf(a.z), i0 = xs.indexOf(a.x0), i1 = xs.indexOf(a.x1), j0 = ys.indexOf(a.y0), j1 = ys.indexOf(a.y1);
-    for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) { const n = j * W + i; (cover[n] = cover[n] || new Set()).add(zi); } }
+    for (let j = j0; j < j1; j++) for (let i = i0; i < i1; i++) { const n = j * W + i; (cover[n] = cover[n] || new Set()).add(zi); if (a.prio) prio[n] = zi; } }
   const dist = (x, y, r) => Math.hypot(Math.max(r.x - x, 0, x - r.x - r.w), Math.max(r.y - y, 0, y - r.y - r.h));
-  for (let n = 0; n < W * H; n++) { const c = cover[n]; if (!c) continue; if (c.size === 1) { own[n] = [...c][0]; continue; }
+  for (let n = 0; n < W * H; n++) { const c = cover[n]; if (!c) continue; if (prio[n] >= 0) { own[n] = prio[n]; continue; } if (c.size === 1) { own[n] = [...c][0]; continue; }
     const i = n % W, j = (n - i) / W, cx = (xs[i] + xs[i + 1]) / 2, cy = (ys[j] + ys[j + 1]) / 2;
     for (const zi of c) { const d = Math.min(...zb[zi].map(r => dist(cx, cy, r))); if (d < best[n]) { best[n] = d; own[n] = zi; } } }
   // ...unless a compartment's own box is there: every cell the box (with a margin) reaches into is its compartment's,
@@ -1996,6 +1998,7 @@ function stitchSVG(m, statusOf) {
   const same = (r, q) => Math.abs(r.x - q.x) < 1 && Math.abs(r.y - q.y) < 1;
   const drawn = []; // segments of the arrows already drawn between parts: a new one may cross them, never run along them
   const routed = {}; // reaction id → the points of its arrow, when it was drawn between parts
+  const routeLab = {}; // reaction id → the labels put down along that arrow
   const alongside = (p, q) => drawn.some(([u, v]) => {
     const h1 = Math.abs(p[1] - q[1]) < 1, h2 = Math.abs(u[1] - v[1]) < 1;
     if (h1 !== h2) return false;
@@ -2049,12 +2052,15 @@ function stitchSVG(m, statusOf) {
     // A step between parts that brings its substrate across first shows its carrier too (GLUT into glycolysis).
     const ti = r?.via && m.items['t:' + r.id], at = ti && viaAt(P, ti), hold = ti && enzRect(at[0], at[1], 'middle', ti, 22);
     const routeLabels = (hh, vv) => {
+      const n0 = DRAW_LABELS.length;
       if (hold) DRAW_LABELS.push(hold);
       const mine = P.slice(1); // this route's own segments are the last ones drawn
       const lineHit = q => { const was = drawn.splice(drawn.length - mine.length, mine.length); const hit = onAnyLine(q); drawn.push(...was); return hit; }; // (not its own route)
       const lab = (hh || vv) ? routeStepLabels(m, statusOf, r, P, lineHit) || elbowLabels(m, statusOf, r, hh, vv) : '';
       if (hold) DRAW_LABELS.splice(DRAW_LABELS.indexOf(hold), 1);
-      return lab + (ti ? viaPill(m, statusOf, r, at) : '');
+      const out = lab + (ti ? viaPill(m, statusOf, r, at) : '');
+      if (r) (routeLab[r.id] = routeLab[r.id] || []).push(...DRAW_LABELS.slice(n0)); // (its labels, for the compartment they belong to)
+      return out;
     };
     // The labels go on the longer kind of run: a long climb beats a short sideways stub out of a box.
     const hl = h ? Math.abs(h[1][0] - h[0][0]) : 0, vl = v ? Math.abs(v[1][1] - v[0][1]) : 0;
@@ -2339,12 +2345,14 @@ function stitchSVG(m, statusOf) {
   // Compartments, once for the whole picture: each one is a tinted shape that follows its own boxes and the steps
   // between them (one flat tint, however the pieces overlap), named once per connected piece.
   const zoneOf = {}, pad = b => ({ x: b.x - 37, y: b.y - 49, w: b.w + 74, h: b.h + 86 }); // (the outline is pulled in 11 px from these)
-  for (const [k, g] of Object.entries(G)) { const w = g.R.where[g.id], z = w && zoneKey(m, w.loc, w.tissue); if (z && m.items['z:' + z]) zoneOf[k] = z; }
+  // Every box drawn, a molecule's second copy too (TCA's oxaloacetate beside gluconeogenesis's): each one is held.
+  const GB = { ...G }; placed.forEach((P, pi) => Object.entries(P.pos).forEach(([k, r]) => { const q = shift(r, P.dx, P.dy); if (G[k] && !same(G[k], q)) GB[k + '#' + pi] = { ...q, R: P, id: k.slice(2) }; }));
+  for (const [k, g] of Object.entries(GB)) { const w = g.R.where[g.id], z = w && zoneKey(m, w.loc, w.tissue); if (z && m.items['z:' + z]) zoneOf[k] = z; }
   const hit = (a, b) => a.x < b.x + b.w && b.x < a.x + a.w && a.y < b.y + b.h && b.y < a.y + a.h;
   const bbox = (a, b) => { const x = Math.min(a.x, b.x), y = Math.min(a.y, b.y); return { x, y, w: Math.max(a.x + a.w, b.x + b.w) - x, h: Math.max(a.y + a.h, b.y + b.h) - y }; };
   const shapes = {};
-  for (const [k, z] of Object.entries(zoneOf)) (shapes[z] = shapes[z] || []).push(pad(G[k]));
-  const foreign = z => Object.entries(zoneOf).filter(([, z2]) => z2 !== z).map(([k]) => pad(G[k]));
+  for (const [k, z] of Object.entries(zoneOf)) (shapes[z] = shapes[z] || []).push(pad(GB[k]));
+  const foreign = z => Object.entries(zoneOf).filter(([, z2]) => z2 !== z).map(([k]) => pad(GB[k]));
   const join = (pairs, z0) => { for (const [f, t] of pairs) {
     const z = z0 || zoneOf['m:' + f]; if (!z || zoneOf['m:' + t] !== z || !G['m:' + f] || !G['m:' + t]) continue;
     const u = bbox(pad(G['m:' + f]), pad(G['m:' + t]));
@@ -2354,9 +2362,9 @@ function stitchSVG(m, statusOf) {
   join(m.p.reactions.flatMap(r => [[r.from, r.to], ...(r.also_to || []).map(x => [r.from, x]), ...(r.also_from || []).map(x => [x, r.to])]));
   join(dots.filter(d => d.b).map(d => [d.a.slice(2), d.b.slice(2)]));
   for (const R of placed) if (R.sm.p.circular) {
-    const ring = R.sm.spineMets.filter(id => G['m:' + id]), z = zoneOf['m:' + ring[0]];
-    if (!z || ring.some(id => zoneOf['m:' + id] !== z)) continue;
-    const cs = ring.map(id => ctr(G['m:' + id])), xs = cs.map(c => c.cx), ys = cs.map(c => c.cy); // between the box centers: the ring's middle
+    const ring = R.sm.spineMets.filter(id => R.pos['m:' + id]), zr = id => R.where[id] && zoneKey(m, R.where[id].loc, R.where[id].tissue), z = zr(ring[0]);
+    if (!z || !shapes[z] || ring.some(id => zr(id) !== z)) continue;
+    const cs = ring.map(id => ctr(shift(R.pos['m:' + id], R.dx, R.dy))), xs = cs.map(c => c.cx), ys = cs.map(c => c.cy); // between the box centers: the ring's middle
     const u = { x: Math.min(...xs), y: Math.min(...ys), w: Math.max(...xs) - Math.min(...xs), h: Math.max(...ys) - Math.min(...ys) };
     if (!foreign(z).some(o => hit(u, o))) shapes[z].push(u);
   }
@@ -2366,8 +2374,34 @@ function stitchSVG(m, statusOf) {
   // The lines drawn between parts, as thin rectangles: a name tab never sits on one.
   // ...nor on any part's own lines (their sampled points, in the bucket index).
   const onLine = r => { index(); for (let i = Math.floor((r.x - 3) / B); i <= Math.floor((r.x + r.w + 3) / B); i++) for (let j = Math.floor((r.y - 3) / B); j <= Math.floor((r.y + r.h + 3) / B); j++) { const ps = XI.pts.get(bucketKey(i, j)); if (ps && ps.some(([x, y]) => inside(x, y, r, 3))) return true; } return false; };
-  const onBox = r => Object.values(G).some(b => hit(r, { x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 }));
+  const onBox = r => Object.values(GB).some(b => hit(r, { x: b.x - 4, y: b.y - 4, w: b.w + 8, h: b.h + 8 }));
   const lineRects = drawn.map(([p, q]) => ({ x: Math.min(p[0], q[0]) - 2, y: Math.min(p[1], q[1]) - 2, w: Math.abs(q[0] - p[0]) + 4, h: Math.abs(q[1] - p[1]) + 4 }));
+  // Every label (a step's name and cofactors, a carrier's pill, a tag) stays wholly inside one compartment: only arrows
+  // cross an edge. Each belongs to the compartment of the box nearest it, which keeps it with a margin, the edge bending
+  // around it where a step between compartments puts its name in the gap.
+  const zoned = Object.entries(GB).map(([k, r]) => ({ z: zoneOf[k], r })), LM = 16; // (a label nearest a box with no compartment has none either)
+  // A step from one compartment into another has its name in the gap between them: it goes with the compartment its
+  // enzyme works in (hexokinase: the cytosol, not the blood its glucose comes from), else the one it starts in.
+  const tagged = new Map(); // a label drawn along a step between parts → its compartment
+  const crossing = m.p.reactions.flatMap(r => { const a = G['m:' + r.from], b = G['m:' + r.to], za = zoneOf['m:' + r.from], zb = zoneOf['m:' + r.to];
+    if (!a || !b || !za || !zb || za === zb) return [];
+    const P = routed[r.id], cs = P ? P : [[a.x + a.w / 2, a.y + a.h / 2], [b.x + b.w / 2, b.y + b.h / 2]];
+    const x0 = Math.min(...cs.map(c => c[0])), x1 = Math.max(...cs.map(c => c[0])), y0 = Math.min(...cs.map(c => c[1])), y1 = Math.max(...cs.map(c => c[1]));
+    const zr = r.loc && zoneKey(m, r.loc, r.tissue || (zoneTissue(za) === zoneTissue(zb) ? zoneTissue(za) : undefined)), z = zr === zb ? zb : za, far = z === za ? b : a; // (where its enzyme works, when that's one of the two)
+    (routeLab[r.id] || []).forEach(l => tagged.set(l, z));
+    return [{ z, a, b: far, r: { x: x0 - 250, y: y0 - 30, w: x1 - x0 + 500, h: y1 - y0 + 60 } }]; });
+  const labelHolds = [...placed.flatMap(P => P.labels.map(l => shift(l, P.dx, P.dy))), ...DRAW_LABELS].flatMap(l => {
+    const cx = l.x + l.w / 2, cy = l.y + l.h / 2; if (!l.w || !l.h || Object.values(GB).some(b => cx > b.x && cx < b.x + b.w && cy > b.y && cy < b.y + b.h)) return [];
+    const own = { x: l.x - LM, y: l.y - LM, w: l.w + 2 * LM, h: l.h + 2 * LM };
+    // (never over a box of another compartment, or of none: holding the label would swallow it)
+    const alien = (z, q) => Object.entries(GB).some(([k, b]) => zoneOf[k] !== z && hit(q, { x: b.x - 6, y: b.y - 6, w: b.w + 12, h: b.h + 12 }));
+    if (tagged.has(l)) return alien(tagged.get(l), own) ? [] : [{ z: tagged.get(l), r: own, hold: true }];
+    const cr = crossing.find(c => cx > c.r.x && cx < c.r.x + c.r.w && cy > c.r.y && cy < c.r.y + c.r.h && !hit(own, { x: c.b.x - 8, y: c.b.y - 8, w: c.b.w + 16, h: c.b.h + 16 }));
+    if (cr) return alien(cr.z, own) ? [] : [{ z: cr.z, r: own, hold: true }];
+    const d = r => Math.hypot(Math.max(r.x - cx, 0, cx - r.x - r.w), Math.max(r.y - cy, 0, cy - r.y - r.h)), nb = zoned.reduce((b, o) => (!b || d(o.r) < d(b.r) ? o : b), null);
+    if (!nb?.z) return []; const joined = bbox(own, pad(nb.r)); // (with its box when that's clear: one smooth bulge, not a notch per label)
+    return alien(nb.z, own) ? [] : [{ z: nb.z, r: foreign(nb.z).some(o => hit(joined, o)) || alien(nb.z, joined) ? own : joined }]; });
+  for (const { z, r } of labelHolds) shapes[z].push(r);
   // Each connected piece is one shape: a plain rounded rectangle when the corner it would leave out is empty anyway,
   // else its own outline, fitting around the other compartment like a puzzle piece.
   const pieces = {};
@@ -2386,16 +2420,18 @@ function stitchSVG(m, statusOf) {
       const b = boxOf(g); if (Math.max(...g.map(r => r.w)) >= need) continue;
       const wide = { x: b.x + b.w / 2 - need / 2, y: b.y, w: need, h: Math.min(b.h, 64) };
       const others = [...foreign(z), ...Object.entries(pieces).filter(([z2]) => z2 !== z).flatMap(([, g2]) => g2.flat())];
-      if (!others.some(o => hit(wide, o)) && !Object.entries(G).some(([k, r]) => zoneOf[k] !== z && hit(wide, r))) g.push(wide);
+      if (!others.some(o => hit(wide, o)) && !Object.entries(GB).some(([k, r]) => zoneOf[k] !== z && hit(wide, r))) g.push(wide);
     }
   }
   // Its own boxes (padded) are never cut; the filler between them (joins, a ring's middle) may be.
-  const ownBoxes = z => Object.entries(zoneOf).filter(([, z2]) => z2 === z).map(([k]) => pad(G[k]));
+  const ownBoxes = z => Object.entries(zoneOf).filter(([, z2]) => z2 === z).map(([k]) => pad(GB[k]));
   // One partition for all of them (zonePartition): every corner concentric with the one it wraps.
   // A piece's area is its bounding box when that holds no other compartment's box; else just its own rectangles (its
   // boxes and the joins between them), so it never claims the space around another pathway's boxes.
-  const part = zonePartition(Object.entries(pieces).flatMap(([z, gs]) => gs.flatMap(g => { const b = boxOf(g); return foreign(z).some(o => hit(b, o)) ? g.map(r => ({ z, r })) : [{ z, r: b }]; })),
-    Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(G[k]), box: { x: G[k].x - 14, y: G[k].y - 14, w: G[k].w + 28, h: G[k].h + 28 } })));
+  // (lab: its top is a label's, which the merging of edges must not cut into)
+  const labelRects = new Set(labelHolds.map(h => h.r));
+  const part = zonePartition(Object.entries(pieces).flatMap(([z, gs]) => gs.flatMap(g => { const b = boxOf(g); return foreign(z).some(o => hit(b, o)) ? g.map(r => ({ z, r, lab: labelRects.has(r) })) : [{ z, r: b, lab: g.some(r => labelRects.has(r) && Math.abs(r.y - b.y) < 1) }]; })),
+    [...Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(GB[k]), box: { x: GB[k].x - 14, y: GB[k].y - 14, w: GB[k].w + 28, h: GB[k].h + 28 } }))]);
   for (const [z, ps] of Object.entries(part)) bg += `<g class="blob">${ps.map(P => `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${P.d}"/>`).join('')}</g>`;
   // (Not the spots kept free for labels while parts were placed: those are empty now.)
   const seen = occ.filter(o => !reserved.includes(o));
@@ -2441,6 +2477,14 @@ function stitchSVG(m, statusOf) {
           [two, tw, TH] = [L, Math.max(...L.map(t => t.length)) * 8.1 + 16, 4 + 14 * L.length]; if (fits()) break; [two, tw, TH] = was; } }
       // (A tab of three or four lines hangs down into its own compartment rather than across the gap above.)
       const top = along(topSegs, -Math.min(TH / 2, 16)), edge = [...top, ...along(botSegs, -TH / 2)];
+      // Turned on its side down the left edge, reading upward: the corner's other arm, for when the top edge is busy.
+      const leftSegs = g.flatMap(r => { let segs = [[r.y, r.y + r.h]];
+        for (const o of g) if (o !== r && o.x + o.w <= r.x + 1 && o.x + o.w >= r.x - REGION_GAP - 2) segs = segs.flatMap(([a, b]) => [[a, Math.min(b, o.y)], [Math.max(a, o.y + o.h), b]]).filter(([a, b]) => b - a > 1);
+        return segs.map(([a, b]) => ({ x: r.x, a, b })); }).sort((p, q) => p.a - q.a || p.x - q.x);
+      const side = leftSegs.flatMap(e => { const o = []; for (let y = e.a + 24; y <= e.b - 14 - tw; y += 16) o.push({ x: e.x - Math.min(TH / 2, 16), y, edge: true, vert: true }); return o; });
+      const rectOf = q => (q.vert ? { x: q.x, y: q.y, w: TH, h: tw } : { x: q.x, y: q.y, w: tw, h: TH });
+      // The corner first, either way round: the top edge's left end, then the left edge's top end (each may slide a little).
+      const t0 = top.filter(q => q.y === top[0]?.y && q.x - top[0].x <= 96), s0 = side.filter(q => q.x === side[0]?.x && q.y - side[0].y <= 96);
       const spots = [...edge, ...g.slice().sort((a, b) => a.y - b.y || a.x - b.x).flatMap(r => [{ x: r.x + 12, y: r.y + 4 }, { x: r.x + r.w - 12 - tw, y: r.y + 4 }, { x: r.x + r.w / 2 - tw / 2, y: r.y + 4 }, { x: r.x + 12, y: r.y + r.h - TH - 4 }, { x: r.x + r.w - 12 - tw, y: r.y + r.h - TH - 4 },
         { x: r.x + r.w / 2 - tw / 2, y: r.y + r.h - TH - 4 }, { x: r.x + 12, y: r.y - TH / 2 }, { x: r.x + r.w - 12 - tw, y: r.y - TH / 2 }, { x: r.x + 12, y: r.y + r.h - TH / 2 }])]; // then inside it
       // Then anywhere along each edge, a step at a time, inside the shape or on its border.
@@ -2451,16 +2495,19 @@ function stitchSVG(m, statusOf) {
       g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - TH - 4 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - TH / 2 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + 4 }));
       // Further out still: a cramped compartment's name may sit a little away from it, never on a box.
       g.forEach(r => [30, 60, 100].forEach(o => spots.push({ x: r.x + 12, y: r.y - TH - 4 - o }, { x: r.x + 12, y: r.y + r.h + 3 + o }, { x: r.x + r.w + 6 + o, y: r.y + 4 }, { x: r.x - tw - 6 - o, y: r.y + 4 })));
-      const cost = q => { const t = { ...q, w: tw, h: TH }; return (onLine(t) ? 4 : 0) + [...seen, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
+      const cost = q => { const t = rectOf(q); return (onLine(t) ? 4 : 0) + [...seen, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
       // On the top edge a line may pass under the tab (it's opaque): the same place beats a clear one elsewhere.
-      const under = q => { const t = { ...q, w: tw, h: TH }; return ![...seen, ...DRAW_LABELS].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !others.some(o => hit(t, o)); };
-      const clear = q => free({ ...q, w: tw, h: TH }) && !others.some(o => hit({ ...q, w: tw, h: TH }, o));
-      const at = top.find(clear) || top.find(under) || edge.find(clear) || edge.find(under) ||
-        spots.find(q => free({ ...q, w: tw, h: TH }) && !others.some(o => hit({ ...q, w: tw, h: TH }, o))) || spots.filter(q => !onBox({ ...q, w: tw, h: TH })).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
-      tabs.push({ ...at, w: tw, h: TH });
-      fg += `<rect class="legend" x="${at.x}" y="${at.y}" width="${tw}" height="${TH}" rx="5" data-room="${Math.round(room)}" data-at="${top.includes(at) ? 'top' : at.edge ? 'bottom' : 'other'}"/>` + (two // data-room: the widest stretch of its shape, for the layout audit
-        ? two.map((t, i) => `<text class="zonet"${i ? '' : ` data-key="${zi.key}"`} x="${at.x + 7}" y="${at.y + 13 + 14 * i}">${esc(t)}</text>`).join('')
-        : zoneLabel(m, statusOf, z, at.x + 7, at.y + 13, 'start'));
+      const under = q => { const t = rectOf(q); return ![...seen, ...DRAW_LABELS].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !others.some(o => hit(t, o)); };
+      const clear = q => free(rectOf(q)) && !others.some(o => hit(rectOf(q), o));
+      // Never on a line or a label while any clear spot is left: the corner, either edge, its bottom edge, then inside it.
+      // Only when nothing anywhere is clear does a line pass under it (it's opaque) or it cover the least it can.
+      const at = t0.find(clear) || s0.find(clear) || top.find(clear) || side.find(clear) || edge.find(clear) || spots.find(clear) ||
+        top.find(under) || edge.find(under) || spots.filter(q => !onBox(rectOf(q))).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
+      const R0 = rectOf(at); tabs.push(R0);
+      fg += `<rect class="legend" x="${R0.x}" y="${R0.y}" width="${R0.w}" height="${R0.h}" rx="5" data-room="${Math.round(at.vert ? Infinity : room)}" data-at="${t0.includes(at) ? 'corner-top' : s0.includes(at) ? 'corner-left' : top.includes(at) ? 'top' : side.includes(at) ? 'left' : at.edge ? 'bottom' : 'other'}"/>` + // data-room: the widest stretch of its shape, for the layout audit
+        (at.vert ? `<g transform="translate(${R0.x},${R0.y + R0.h}) rotate(-90)">` : '') + (two
+        ? two.map((t, i) => `<text class="zonet"${i ? '' : ` data-key="${zi.key}"`} x="${at.vert ? 7 : at.x + 7}" y="${(at.vert ? 0 : at.y) + 13 + 14 * i}">${esc(t)}</text>`).join('')
+        : zoneLabel(m, statusOf, z, at.vert ? 7 : at.x + 7, (at.vert ? 0 : at.y) + 13, 'start')) + (at.vert ? '</g>' : '');
       regions.push(...g);
     }
   }

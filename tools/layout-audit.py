@@ -28,7 +28,7 @@ PROBE = r"""([id, zones, rot]) => {
   // Things that must stay apart: each text line, each box and pill. A text belongs to the box or pill it sits in.
   const items = [];
   svg.querySelectorAll('text').forEach(t => { if (!t.textContent.trim() || t.closest('.zone-name')) return; const owner = t.closest('g.mbox, g.elab, a.xlink') || t.previousElementSibling?.matches?.('rect.xtag, rect.legend') && t.previousElementSibling;
-    items.push({ kind: 'text', label: t.textContent.trim().slice(0, 40), r: box(t), owner, onLine: (t.classList.contains('xtagt') && !t.closest('.xlink')) || !!t.closest('.pairbadge'), inPill: !!t.closest('g.elab.trn') && !t.matches('.drug, .reg'), tab: t.matches('.zonet') && (() => { let e = t.previousElementSibling; while (e?.matches('text.zonet')) e = e.previousElementSibling; return !!e?.matches('rect.legend'); })(), box: t.closest('g.mbox') }); }); // box: a line drawn before it is painted over
+    items.push({ kind: 'text', label: t.textContent.trim().slice(0, 40), r: box(t), owner, onLine: (t.classList.contains('xtagt') && !t.closest('.xlink')) || !!t.closest('.pairbadge'), inPill: !!t.closest('g.elab.trn') && !t.matches('.drug, .reg'), tab: t.matches('.zonet') && (() => { let e = t.previousElementSibling || t.parentNode.previousElementSibling; while (e?.matches('text.zonet')) e = e.previousElementSibling; return !!e?.matches('rect.legend'); })(), box: t.closest('g.mbox') }); }); // box: a line drawn before it is painted over
   svg.querySelectorAll('g.mbox > rect, rect.trnpill, rect.xtag, rect.legend').forEach(r => { const owner = r.closest('g.mbox, g.elab, a.xlink') || r; items.push({ kind: r.classList.contains('trnpill') ? 'pill' : r.classList.contains('xtag') ? 'tag' : r.classList.contains('legend') ? 'tab' : 'box', label: (owner.textContent || '').trim().slice(0, 40), r: box(r), owner }); });
   const ov = (a, b, g = 0) => a.x < b.x + b.w + g && b.x < a.x + a.w + g && a.y < b.y + b.h + g && b.y < a.y + a.h + g;
   const hits = [], near = [];
@@ -83,7 +83,22 @@ PROBE = r"""([id, zones, rot]) => {
   if (blobs.length) svg.querySelectorAll('g.mbox').forEach(g => { const r = g.querySelector(':scope > rect'); if (!r) return; const b = r.getBBox(), m = r.getScreenCTM(), pts = [];
     for (const fx of [0.02, 0.5, 0.98]) for (const fy of [0.05, 0.5, 0.95]) { const x = b.x + fx * b.width, y = b.y + fy * b.height; pts.push([m.a * x + m.c * y + m.e, m.b * x + m.d * y + m.f]); }
     const ns = blobs.map(pth => { const im = pth.getScreenCTM().inverse(); return pts.filter(([X, Y]) => { const q = svg.createSVGPoint(); q.x = im.a * X + im.c * Y + im.e; q.y = im.b * X + im.d * Y + im.f; return pth.isPointInFill(q); }).length; }).filter(n => n);
-    if (ns.length && (ns.length > 1 || ns[0] < 9)) hits.push(['box', (ns.length > 1 ? 'in ' + ns.length + ' compartments: ' : 'sticks out: ') + g.textContent.trim().slice(0, 30)]); });
+    if (ns.length && (ns.length > 1 || ns[0] < 9)) hits.push(['box', (ns.length > 1 ? 'in ' + ns.length + ' compartments: ' : 'sticks out: ') + g.textContent.trim().slice(0, 30) + ' ' + ns.join('/') + '/9']); });
+  // Only arrows cross a compartment's edge: a text, pill or tag whose corners land in different compartments (or half
+  // in one and half outside) straddles an edge.
+  const shapes = [...svg.querySelectorAll('.blob > path, .blob > rect')];
+  if (shapes.length) {
+    const inv = shapes.map(el => el.getScreenCTM().inverse()), where = (X, Y) => shapes.map((el, i) => { const q = svg.createSVGPoint(), im = inv[i]; q.x = im.a * X + im.c * Y + im.e; q.y = im.b * X + im.d * Y + im.f; return el.isPointInFill(q) ? 1 : 0; }).join('');
+    for (const t of items) { if (t.kind === 'box' || t.kind === 'tab' || t.tab || !t.r.w) continue;
+      const r = t.r, ins = 1.5, ws = new Set([[r.x + ins, r.y + ins], [r.x + r.w - ins, r.y + ins], [r.x + ins, r.y + r.h - ins], [r.x + r.w - ins, r.y + r.h - ins], [r.x + r.w / 2, r.y + r.h / 2]].map(([X, Y]) => where(X, Y)));
+      if (ws.size > 1) hits.push(['edge', t.kind + ':' + t.label + ' @' + Math.round(r.x) + ',' + Math.round(r.y)]); }
+  }
+  // A compartment's name tab over a line (the tab is opaque, but a line vanishing under a name still reads as a clash).
+  const tabs = [...svg.querySelectorAll('rect.legend')].map(box);
+  if (tabs.length) svg.querySelectorAll('path:not(.ah):not(.region):not([fill-rule]), line.ln').forEach(pth => { if (pth.closest('.blob, defs, .zone') || !pth.getTotalLength) return;
+    const L = pth.getTotalLength(), ctm = pth.getScreenCTM(); if (L < 8) return;
+    for (const t of tabs) for (let l = 2; l < L - 2; l += 4) { const q = pth.getPointAtLength(l), x = ctm.a * q.x + ctm.c * q.y + ctm.e, y = ctm.b * q.x + ctm.d * q.y + ctm.f;
+      if (x > t.x && x < t.x + t.w && y > t.y && y < t.y + t.h) { hits.push(['tab', 'on a line @' + Math.round(t.x) + ',' + Math.round(t.y)]); break; } } });
   host.remove();
   return { id, hits: hits.length, near: near.length, examples: hits.slice(0, 6), nearEx: near.slice(0, 4), all: hits };
 }"""
