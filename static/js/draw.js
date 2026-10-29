@@ -2209,7 +2209,8 @@ function stitchSVG(m, statusOf) {
     // How much room a step across a membrane needs either side of it, as it's shown now: half its carrier's pill, then its
     // name past the pill (a hidden name or carrier takes none). Bands and the Map's regions keep that much inside each edge.
     const need = r => { const ti = r.via && m.items['t:' + r.id], it = m.items['e:' + r.id], on = k => statusOf(k) !== 'hide';
-      return (ti && on('t:' + r.id) ? enzRect(0, 0, 'middle', ti, 22).w / 2 + 10 : 10) + (it && on('e:' + r.id) ? enzRect(0, 0, 'middle', it, 16, 'bottom').w + 30 : 0) + 40; };
+      const cof = cofParts(m, statusOf, r).filter(p => p.st !== 'hide' && p.st !== 'none').reduce((n, p) => n + (hidden(p.st) ? 120 : p.text.length * 7) + 30, 0); // (its cofactors run along the line under its name)
+      return (ti && on('t:' + r.id) ? enzRect(0, 0, 'middle', ti, 22).w / 2 + 10 : 10) + Math.max(it && on('e:' + r.id) ? enzRect(0, 0, 'middle', it, 16, 'bottom').w + 30 : 0, cof) + 40; };
     const CLEAR = Math.round(Math.min(260, Math.max(80, ...bridges.filter(r => zOfId(r.from) !== zOfId(r.to)).map(need))));
     for (const r of [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))]) { const a = zOfId(r.from), b = zOfId(r.to); if (a && b && a !== b) { wt[a + '>' + b] = (wt[a + '>' + b] || 0) + 1; wt[b + '>' + a] = (wt[b + '>' + a] || 0) + 1; } }
     const rank = z => (/blood|plasma|extracell|lumen|gut|urine|interstit|brush|bonemarrow|tissue/.test(z) ? 0 : /cytosol|cytoplasm/.test(z) ? 1 : /intermembrane/.test(z) ? 2 : /mito|matrix/.test(z) ? 3 : 2);
