@@ -78,6 +78,8 @@ const el = k => elOf(Q.cfg, k);
    (mark the membranes, then name each part; see Compartments below). It runs while the whole pathway is showing:
    first in Fill the blanks, after the rest in Full recall and Building blocks. Q.placed = that round is behind you. */
 const placing = () => el('loc') === 'place' && !Q.placed;
+// Compartments still to draw after this round: the quiz isn't complete until they're placed.
+const zonesNext = () => placing() && zonesUsable(Q.models[0]);
 // Groupings set to Draw yourself: no frames until you've drawn them (a round of their own, first). Q.gplaced = done.
 const groupsOf = m => Object.values(m?.items || {}).filter(it => it.kind === 'grp');
 // Enzyme slots ('e:<reaction>') are transporters when the step moves something across a membrane.
@@ -402,7 +404,7 @@ function startTotal() {
 }
 function loadTotalQ() {
   const R = Q.round;
-  if (R.pos >= R.order.length) { R.done = true; R.q = null; if (!R.queue?.length) logAnswer(true); return; }
+  if (R.pos >= R.order.length) { R.done = true; R.q = null; if (!R.queue?.length) logAnswer(!zonesNext()); return; }
   R.q = withAlong(itemQ(Q.m.items[Q.m.seq[R.order[R.pos]]], Q.m), Q.m);
 }
 /* ---------- Building blocks ----------
@@ -437,7 +439,7 @@ function buildResolved(q) {
   R.pos++;
   if (R.pos >= R.k) {
     R.k++; R.pos = 0;
-    if (R.k > R.order.length) { R.done = true; R.q = null; logAnswer(true); return renderQuiz(); }
+    if (R.k > R.order.length) { R.done = true; R.q = null; logAnswer(!zonesNext()); return renderQuiz(); }
     R.roundMsg = `Round ${R.k - (R.k0 || 1) + 1}: from the top, one more blank.`;
     roundNotice(`Round ${R.k - (R.k0 || 1)} done. Back to the top, one more blank`);
   } else R.roundMsg = '';
@@ -1315,6 +1317,8 @@ function renderQuiz() {
     below = stepPanel();
   }
   const nFacts = (Q.history || []).length;
+  // A re-render replaces the options pop-up and the facts drawer; keep the pop-up open and both where they were scrolled.
+  const optsOpen = !!$('.qopts:not(.keypop)[open]'), popTop = $('.qopts:not(.keypop) .pop')?.scrollTop || 0, drawTop = $('.quiz .drawer')?.scrollTop || 0;
   V.innerHTML = `<div class="quiz ${occ ? 'occ' : 'steps'}${Q.drawer ? ' with-drawer' : ''}">
     <header class="qbar">
       <a class="tbtn icon" href="#/" title="Dashboard" aria-label="Dashboard">${mi('home')}</a>
@@ -1338,6 +1342,9 @@ function renderQuiz() {
   if (Q.focus && Q.drawer) $(`#stage [data-key="${CSS.escape(Q.focus.item.key)}"]`)?.classList.add('focused');
   const fk = Q.fact?.key;
   if (fk && fk !== Q.pulsed) { Q.pulsed = fk; $(`#stage [data-key="${CSS.escape(fk)}"]`)?.classList.add('just'); }
+  const opts = $('.qopts:not(.keypop)');
+  if (opts && optsOpen) { opts.open = true; $('.pop', opts).scrollTop = popTop; }
+  const dr = $('.quiz .drawer'); if (dr) dr.scrollTop = drawTop;
   updateCofCounts();
   if (R.type === 'groups') wireGroupDraw();
   fitToolbar();

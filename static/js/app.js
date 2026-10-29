@@ -543,6 +543,8 @@ function renderCreate() {
   const laterBlanks = d.mode === 'build' ? `<div class="field"><span>Later blanks</span>${seg('data-cs', 'ahead', [['hide', 'Hide them'], ['show', 'Show them']], d.ahead === 'show' ? 'show' : 'hide')}<p class="muted small">${d.ahead === 'show' ? 'Blanks you haven’t reached yet show their answers.' : 'Blanks you haven’t reached yet stay empty, so you recall the whole pathway.'}</p></div>` : '';
   if (d.mode === 'step') modeOpts = `<div class="field"><span>You're given</span>${seg('data-cs', 'given', [['mets', 'Two metabolites'], ['enz', 'An enzyme']], d.given)}</div>
     ${d.given === 'enz' ? `<label class="cb"><input type="checkbox" data-cflag="allPathways" ${d.allPathways ? 'checked' : ''}> Draw enzymes from every pathway</label>` : ''}`;
+  // Re-rendering replaces the sidebar, so carry its scroll (and each row's) across, or every change jumps to the top.
+  const keepSide = $('.create .sidebar')?.scrollTop || 0, keepRows = [...document.querySelectorAll('.create .tiles-row')].map(r => r.scrollLeft);
   $('#view').innerHTML = `<div class="page create">
     <div class="create-grid">
       <section class="picker">
@@ -575,6 +577,8 @@ function renderCreate() {
       </aside>
     </div>
   </div>`;
+  const side = $('.create .sidebar'); if (side) side.scrollTop = keepSide;
+  document.querySelectorAll('.create .tiles-row').forEach((r, i) => { if (keepRows[i] != null) r.scrollLeft = keepRows[i]; });
   const st = $('#cStart'); if (st) st.value = [...st.options].some(o => o.value === d.start) ? d.start : 'random';
   // Keep the chosen pathway visible in its row, then mark which row ends have more.
   const on = $('#tiles .ptile.on'), row = on?.closest('.tiles-row');

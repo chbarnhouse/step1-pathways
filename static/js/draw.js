@@ -281,11 +281,10 @@ function cofArcParts(x, y1, y2, parts, up = false, left = false) {
   const two = !!(pin && pout), cw = 7;
   for (const [p, y] of [[pin, a[1]], [pout, b[1]]]) {
     if (!p) continue;
-    const live = isLive(p), w = live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw;
+    const live = isLive(p), w = (live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw) + (live || hidden(p.st) ? cofPreW(p) : 0);
     const x0 = left ? X(50) - w : X(50); // where the label starts (its left edge)
     DRAW_LABELS.push({ x: left ? X(50) - w - 24 : x0, y: y - 14, w: w + 24, h: 28 });
-    if (live) s += `<g class="elab target"><rect x="${x0}" y="${y - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, y - 12, w - 8, 24);
-    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${y - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, y, cofWord(p, two))}</g>`;
+    if (live || hidden(p.st)) s += cofSlot(p, x0, y, w, two);
     else s += cofSpot(p, x0, y, w) + `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(left ? x0 - 14 : x0 + w + 14, y, p.st);
   }
   return s;
@@ -343,15 +342,14 @@ function cofArcLine(p1, p2, n, parts, flip = false) {
     const level = Math.abs(u[1]) < 0.1 && two;
     let anchor = side || (level ? 'middle' : two ? ((u[0] >= 0) === first ? 'end' : 'start') : n[0] >= 0 ? 'start' : 'end');
     let lx = P[0] + n[0] * 10, ly = P[1] + n[1] * (level ? 20 : 16);
-    const live = isLive(p), w = live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw;
+    const live = isLive(p), w = (live ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * cw) + (live || hidden(p.st) ? cofPreW(p) : 0);
     const xAt = a => (a === 'end' ? lx - w : a === 'middle' ? lx - w / 2 : lx);
     // A label that would run under a box goes the other way instead (Dehydroascorbate beside norepinephrine).
     if (hitsBox({ x: xAt(anchor), y: ly - 13, w, h: 26 })) anchor = ['start', 'end', 'middle'].filter(a => a !== anchor).find(a => !hitsBox({ x: xAt(a), y: ly - 13, w, h: 26 })) || anchor;
     let x0 = xAt(anchor);
     for (let k = 1; k < 5 && hitsBox({ x: x0, y: ly - 13, w, h: 26 }); k++) { lx += n[0] * 16; ly += n[1] * 16; x0 = xAt(anchor); }
     DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
-    if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
-    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
+    if (live || hidden(p.st)) s += cofSlot(p, x0, ly, w, two);
     else s += cofSpot(p, x0, ly, w) + `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
   }
   return s;
@@ -366,7 +364,7 @@ function cofCurl(M, u, n, parts, cx0 = M[0]) { // cx0: the ring's middle
   if (!pin && !pout) return parts.length ? cofRow(M[0] + n[0] * 40, M[1] + n[1] * 40, Math.abs(n[0]) > 0.5 ? (n[0] > 0 ? 'start' : 'end') : 'middle', parts) : '';
   const at = (a, b) => [M[0] + n[0] * a + u[0] * b, M[1] + n[1] * a + u[1] * b];
   const side = Math.abs(n[0]) > 0.3; // the ring's sides and diagonals: labels beside the curl, inputs above outputs
-  const wOf = p => (!p ? 0 : isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) : p.text.length * 7);
+  const wOf = p => (!p ? 0 : isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) + cofPreW(p) : hidden(p.st) ? pillW(cofWord(p, two)) + cofPreW(p) : p.text.length * 7);
   // Top or bottom of the ring, where the arrows are short: both labels at one depth inward (inputs before, outputs after,
   // in the direction of travel), as deep as it takes to clear the boxes.
   const fw = u[0] >= 0 ? 1 : -1, rectAt = (q, w, a) => ({ x: a === 'end' ? q[0] - w : q[0], y: q[1] - 11, w, h: 22 });
@@ -408,8 +406,7 @@ function cofCurl(M, u, n, parts, cx0 = M[0]) { // cx0: the ring's middle
     const anchor = stack ? (stack > 0 ? 'start' : 'end') : side ? (n[0] > 0 ? 'start' : 'end') : (first === (fw > 0) ? 'end' : 'start');
     const x0 = anchor === 'end' ? lx - w : anchor === 'middle' ? lx - w / 2 : lx;
     DRAW_LABELS.push({ x: x0, y: ly - 13, w, h: 26 });
-    if (live) s += `<g class="elab target"><rect x="${x0}" y="${ly - 14}" width="${w}" height="28" rx="14"/></g>` + inlineField(x0 + 4, ly - 12, w - 8, 24);
-    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${x0}" y="${ly - 13}" width="${w}" height="26" rx="13"/>${blankText(x0 + w / 2, ly, cofWord(p, two))}</g>`;
+    if (live || hidden(p.st)) s += cofSlot(p, x0, ly, w, two);
     else s += cofSpot(p, x0, ly, w) + `<text class="coft" x="${x0}" y="${ly + 4}">${esc(p.text)}</text>` + cofMark(anchor === 'end' ? x0 - 12 : x0 + w + 12, ly, p.st);
   }
   return s;
@@ -429,6 +426,7 @@ const cofParts = (m, statusOf, r) => {
   if (np && np.st !== 'hide') {
     const i = ps.findIndex(p => p.side === 'in');
     if (i < 0 || ps[i].st === 'hide') ps = [np, ...ps.filter(p => p.side !== 'in')];
+    else if (!hidden(ps[i].st) && hidden(np.st)) ps[i] = { ...np, pre: ps[i].text + ' +', word: 'needs' }; // the inputs are in: they stay, the needs blank follows them
     else { const pin = ps[i], both = [pin, np]; ps[i] = { key: pin.key, keys: [pin.key, np.key], side: 'in', st: cofCombined(both), text: both.some(p => hidden(p.st)) ? '' : pin.text + ' + ' + np.text }; }
   }
   return ps.length && cofShapeHidden(r) && ps.some(p => hidden(p.st)) ? [{ key: ps[0].key, side: null, st: cofCombined(ps), text: '' }] : ps;
@@ -446,19 +444,25 @@ const cofLine = (m, statusOf, r) => { const ps = cofParts(m, statusOf, r).filter
   return i && o ? i + ' → ' + o : i ? i + ' →' : o ? '→ ' + o : ''; };
 const cofVisible = st => !hidden(st) && st !== 'none' && st !== 'hide';
 // With a blank on either side, the cofactors are laid out in a row: "cofactors in → out", "ATP → out", "cofactors in → ADP".
-const cofWord = (p, two) => (!two ? 'cofactors' : p.side === 'in' ? 'cofactors in' : 'out');
+const cofWord = (p, two) => p.word || (!two ? 'cofactors' : p.side === 'in' ? 'cofactors in' : 'out');
+// A cofactor blank or answer field. p.pre: what's already answered on that side, written in front ("Succinyl-CoA +").
+const cofPreW = p => (p.pre ? p.pre.length * 7 + 6 : 0);
+function cofSlot(p, x0, y, w, two, lh = 28, ins = 2) {
+  const pw = cofPreW(p), pre = pw ? `<text class="coft" x="${x0}" y="${y + 4}">${esc(p.pre)}</text>` : '', x = x0 + pw, ww = w - pw;
+  if (isLive(p)) return pre + `<g class="elab target"><rect x="${x}" y="${y - lh / 2}" width="${ww}" height="${lh}" rx="${lh / 2}"/></g>` + inlineField(x + 4, y - lh / 2 + ins, ww - 8, lh - 2 * ins);
+  return pre + `<g class="elab cofb ${p.st}"><rect x="${x}" y="${y - 13}" width="${ww}" height="26" rx="13"/>${blankText(x + ww / 2, y, cofWord(p, two))}</g>`;
+}
 const isLive = p => p.st === 'target' && INLINE && (!INLINE.q?.statKey || INLINE.q.statKey === p.key || !!p.keys?.includes(INLINE.q.statKey));
 function cofRow(x, y, anchor, parts) {
   parts = parts.filter(p => p.st !== 'hide' && p.st !== 'none');
   const two = parts.length > 1, gap = 6, aw = 14, cw = 7;
   const ps = parts.map(p => ({ ...p, live: isLive(p),
-    w: isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) : hidden(p.st) ? pillW(cofWord(p, two)) + (p.st === 'target' ? 16 : 0) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
+    w: isLive(p) ? Math.max(190, (INLINE.along || INLINE.q?.answerText || '').length * 9 + 64) + cofPreW(p) : hidden(p.st) ? pillW(cofWord(p, two)) + (p.st === 'target' ? 16 : 0) + cofPreW(p) : p.text.length * cw + (['right', 'missed'].includes(p.st) ? 20 : 0) }));
   const total = ps.reduce((a, p) => a + p.w, 0) + (ps.length - 1) * (aw + 2 * gap);
   let cx = anchor === 'end' ? x - total : anchor === 'middle' ? x - total / 2 : x, s = '';
   ps.forEach((p, i) => {
     if (i) { s += `<text class="coft" x="${cx + gap + aw / 2}" y="${y + 4}" text-anchor="middle">→</text>`; cx += aw + 2 * gap; }
-    if (p.live) s += `<g class="elab target"><rect x="${cx}" y="${y - 16}" width="${p.w}" height="32" rx="16"/></g>` + inlineField(cx + 4, y - 13, p.w - 8, 26);
-    else if (hidden(p.st)) s += `<g class="elab cofb ${p.st}"><rect x="${cx}" y="${y - 13}" width="${p.w}" height="26" rx="13"/>${blankText(cx + p.w / 2, y, cofWord(p, two))}</g>`;
+    if (p.live || hidden(p.st)) s += cofSlot(p, cx, y, p.w, two, 32, 3);
     else s += cofSpot(p, cx, y, p.text.length * cw) + `<text class="coft" x="${cx}" y="${y + 4}">${esc(p.text)}</text>` + cofMark(cx + p.text.length * cw + 10, y, p.st);
     cx += p.w;
   });
@@ -1564,8 +1568,9 @@ function cycleSVG(m, statusOf, { zones = true, rot = 0 } = {}) { // rot: turn th
 function gridSVG(m, statusOf, opts = {}) {
   const { p, items } = m, rowBands = p.column_zones?.axis === 'y';
   // Carrier names sit above their arrows and grow upward with the drugs or fed/fasting lines under them: room for those under the band names.
-  const extra = p.column_zones && !rowBands ? 15 * Math.max(0, ...p.reactions.filter(r => r.transport && items['e:' + r.id]).map(r => regLines(items['e:' + r.id]).length + drugLines(items['e:' + r.id]).length)) : 0;
-  const COLW = p.grid_colw || BW + 320, ROWH = BH + 116, X0 = 24 + BW / 2 + (rowBands ? 190 : 130), Y0 = TOP + extra + (rowBands ? 30 : p.column_zones ? 78 : p.grid_columns ? 34 : 0);
+  const pillOn = r => r.transport && items['e:' + r.id] && statusOf('e:' + r.id) !== 'hide'; // a carrier whose pill is drawn (hidden transporters draw none)
+  const extra = p.column_zones && !rowBands ? 15 * Math.max(0, ...p.reactions.filter(pillOn).map(r => regLines(items['e:' + r.id]).length + drugLines(items['e:' + r.id]).length)) : 0;
+  const COLW = p.grid_colw || (p.column_zones && !rowBands && !p.reactions.some(pillOn) ? BW + 200 : BW + 320), ROWH = BH + 116, X0 = 24 + BW / 2 + (rowBands ? 190 : 130), Y0 = TOP + extra + (rowBands ? 30 : p.column_zones ? 78 : p.grid_columns ? 34 : 0);
   const pos = {};
   // Drawn as part of a joined drawing (opts.tabRoom): a row that a step drops into from another compartment sits lower,
   // so the step's name clears that compartment's top edge, where its name tab goes (as linearSVG does).
@@ -1574,7 +1579,17 @@ function gridSVG(m, statusOf, opts = {}) {
   const enterRows = new Set(p.reactions.filter(r => opts.tabRoom && p.metabolites[r.from] && p.metabolites[r.to] && at0(r.from)[0] === at0(r.to)[0] && at0(r.to)[1] > at0(r.from)[1] && zk(r.to) && zk(r.to) !== zk(r.from))
     .map(r => (r.via || TAB_ENTERS.add(r.id), TAB_ENTER_TO.add(r.to), at0(r.to)[1]))); // (a carrier's pill holds the middle: its step's name stays put)
   const lower = r => [...enterRows].filter(e => e <= r).length * TAB_ROOM;
-  for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + r * ROWH + lower(r) + BH / 2 }; }
+  // Compartment columns (a tubular cell): a row only needs the full height above it for a carrier pill on its arrows or a
+  // step down into it (name and cofactors beside the run); with neither, as when transporters are hidden, rows close up.
+  const rowOf = id => at0(id)[1], tall = new Set();
+  if (p.column_zones && !rowBands) for (const r of p.reactions) {
+    if (!p.metabolites[r.from] || !p.metabolites[r.to]) continue;
+    const a = rowOf(r.from), b = rowOf(r.to);
+    if (r.transport ? pillOn(r) : a !== b) for (let k = Math.min(a, b) + (r.transport ? 0 : 1); k <= Math.max(a, b); k++) tall.add(k);
+  }
+  const rowTop = []; for (let k = 0, y = 0; k <= Math.max(0, ...Object.keys(p.metabolites).map(rowOf)); k++) { rowTop[k] = y; y += !p.column_zones || rowBands || tall.has(k + 1) ? ROWH : BH + 44; }
+  const rowY = r => (rowTop[r] ?? r * ROWH);
+  for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + rowY(r) + lower(r) + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
   // Column bands (p.column_zones): when each column is one compartment (a tubular cell: lumen | cell | blood), shade
@@ -1700,7 +1715,7 @@ function conn(m, item, st, horiz, statusOf) {
   const across = !tv || tst === 'hide' ? '' : tst === 'target' && INLINE ? `across: <form class="inl" data-q="0">${inlineInput()}</form>`
     : hidden(tst) ? `across: <span class="ename ${tst}"><span class="bk">transporter</span></span>` : 'across: ' + esc(tv.name) + mk(tst);
   const ct = cofVisible(cs) ? esc(cofText(m, r.cofactors)) + mk(cs)
-    : hidden(cs) ? parts.map(p => isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st)).join(' → ') : '';
+    : hidden(cs) ? parts.map(p => (p.pre && hidden(p.st) ? esc(p.pre) + ' ' : '') + (isLive(p) ? `<form class="inl" data-q="0">${inlineInput()}</form>` : hidden(p.st) ? `<span class="ename ${p.st}"><span class="bk">${cofWord(p, parts.length > 1)}</span></span>` : esc(p.text) + mk(p.st))).join(' → ') : '';
   // Fed vs fasting and drugs, as the drawing shows them under the name: text, a blank, or the answer field.
   const eIt = m.items['e:' + r.id] || item, live = it => `<form class="inl" data-q="0">${inlineInput()}</form>`;
   const extraPart = ([it, s], text, word) => (s === 'target' && INLINE ? live(it) : hidden(s) ? `<span class="ename ${s}" data-key="${it.key}"><span class="bk">${esc(word)}</span></span>` : `<b class="${it.kind === 'drug' ? 'drug' : 'reg'}">${esc(text)}</b>` + mk(s));

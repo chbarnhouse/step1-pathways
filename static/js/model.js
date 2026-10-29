@@ -87,7 +87,7 @@ function buildModel(p, sharedCof = Library.sharedCof()) {
   // dead-end branches follow the metabolite they leave from.
   const seq = [], seen = new Set();
   const push = k => { if (!seen.has(k)) { seen.add(k); seq.push(k); } };
-  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push((r.coupled ? 'u:' : 'e:') + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'o:', 'n:']) if (items[k + r.id]) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
+  const pushRx = r => { if (items['t:' + r.id]) push('t:' + r.id); push((r.coupled ? 'u:' : 'e:') + r.id); for (const k of ['k:', 'y:', 'x:', 'f:', 'c:', 'n:', 'o:']) if (items[k + r.id]) push(k + r.id); if (items['q:' + r.id]) push('q:' + r.id); };
   const pushMet = id => {
     if (seen.has('m:' + id)) return;
     // Side metabolites that only feed into this one (glucose from the blood via GLUT) come just before it.
