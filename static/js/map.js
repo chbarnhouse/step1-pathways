@@ -22,7 +22,7 @@ const MAP_LAYERS = [
   ['enz', 'Enzymes', ['e:', 'f:']], ['trn', 'Transporters', ['t:']], ['cof', 'Cofactors', ['c:', 'o:']], ['need', 'What steps need (vitamins)', ['n:']],
   ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['pairs', 'Lines between paired steps', []], ['bands', 'Group bands', []],
 ];
-const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, pairs: false, bands: true }, reg: '', off: null, q: '', side: true };
+const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, pairs: false, bands: true }, reg: '', off: null, q: '', side: true, hover: true }; // hover: Browse lights a row up while the pointer is on it
 const mapCfg = () => { const c = local.get('pathways.map') || {}; return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null, sel: c.sel || [] }; };
 const mapSave = c => local.set('pathways.map', c);
 const MAPV = { tiles: [], hits: [] };
@@ -216,7 +216,7 @@ function mapBrowseHTML(c) {
   const sel = new Set(c.sel);
   return `<div class="seg map-btabs" role="group" aria-label="Browse">${MAP_BROWSE.map(([v, l]) => `<button type="button" data-mapbtab="${v}" aria-pressed="${c.btab === v}">${l}</button>`).join('')}</div>
     <label class="search">${mi('search', 'sm')}<input type="search" data-mapbq placeholder="Filter ${esc(MAP_BROWSE.find(b => b[0] === c.btab)[1].toLowerCase())}" value="${esc(c.bq)}" aria-label="Filter the list"></label>
-    <div class="sec-h"><span class="muted small">${rows.length} · hover to light up, click to keep lit</span>${c.sel.length ? `<button type="button" class="linkbtn" data-mapclear>Clear selection (${c.sel.length})</button>` : ''}</div>
+    <div class="sec-h"><span class="muted small">${rows.length} · ${c.hover ? 'hover to light up, ' : ''}click to keep lit</span><button type="button" class="chip-tg small" data-maphover aria-pressed="${!!c.hover}" data-tip="Light up a row while the pointer is on it">${mi(c.hover ? 'check' : 'add', 'sm')} Light up on hover</button>${c.sel.length ? `<button type="button" class="linkbtn" data-mapclear>Clear selection (${c.sel.length})</button>` : ''}</div>
     <div class="map-list" role="list">${rows.map(x => { const vis = x.pids.some(id => on.has(id));
       return `<button type="button" role="listitem" class="map-row${vis ? '' : ' off'}" data-mapitem="${esc(x.id)}" aria-pressed="${sel.has(x.id)}">${mi(sel.has(x.id) ? 'check' : 'add', 'sm')}<span class="map-row-t"><span>${esc(x.name)}</span><span class="muted small">${x.via ? `as “${esc(x.via)}” · ` : ''}${esc(x.sub)}${vis ? '' : ' · not on the map'}</span></span></button>`; }).join('')}</div>`;
 }
@@ -249,13 +249,16 @@ function mapLight(fit) {
   setView(st, { k, x: st.clientWidth / 2 - (x0 + x1) / 2 * k, y: st.clientHeight / 2 - (y0 + y1) / 2 * k }, true);
 }
 let mapHoverTimer = 0;
-const mapHover = id => { if (MAPV.hover === id) return; MAPV.hover = id; clearTimeout(mapHoverTimer); mapHoverTimer = setTimeout(() => mapLight(!!id || mapCfg().sel.length > 0), id ? 140 : 250); };
-document.addEventListener('pointerover', e => { const r = e.target.closest?.('#mapSide [data-mapitem]'); if (r) mapHover(r.dataset.mapitem); else if (MAPV.hover && e.target.closest?.('#mapSide')) mapHover(null); });
-document.addEventListener('pointerleave', e => { if (e.target.id === 'mapSide' && MAPV.hover) mapHover(null); }, true);
-document.addEventListener('focusin', e => { const r = e.target.closest?.('#mapSide [data-mapitem]'); if (r) mapHover(r.dataset.mapitem); });
+// Hovering a row lights it up and fits the view to it; leaving it lets go of the light but keeps the view where it is.
+// Only a click keeps something lit. (Off in the sidebar: rows only light up when clicked.)
+const mapHover = id => { if (id && !mapCfg().hover) id = null; if (MAPV.hover === id) return; MAPV.hover = id; clearTimeout(mapHoverTimer); mapHoverTimer = setTimeout(() => mapLight(!!id), id ? 140 : 60); };
+document.addEventListener('pointerover', e => { const r = e.target.closest?.('#mapSide [data-mapitem]'); if (r) mapHover(r.dataset.mapitem); else if (MAPV.hover) mapHover(null); });
+document.addEventListener('pointerleave', e => { if (MAPV.hover && (e.target.id === 'mapSide' || e.target === document.documentElement)) mapHover(null); }, true);
+window.addEventListener('blur', () => { if (MAPV.hover) mapHover(null); });
+document.addEventListener('focusin', e => { const r = e.target.closest?.('#mapSide [data-mapitem]'); if (r) mapHover(r.dataset.mapitem); else if (MAPV.hover) mapHover(null); });
 const MAP_EMPTY = '<svg class="flow" viewBox="0 0 10 10"></svg>';
 function renderMap() {
-  const c = mapCfg();
+  const c = mapCfg(), fresh = !$('#view .mappage'); // just opened (not a redraw on the page): fit it all on screen
   $('#view').innerHTML = `<div class="page mappage${c.side ? '' : ' noside'}">
     <aside class="map-side card" id="mapSide" aria-label="Map settings"${c.side ? '' : ' hidden'}>${mapSidebarHTML(c)}</aside>
     <section class="map-main card">
@@ -264,6 +267,11 @@ function renderMap() {
     </section>
   </div>`;
   applyZoom($('#view'));
+  // (The stage settles its size over the first moments: fit again as it does, until the view is moved by hand.)
+  if (fresh) { let last = null; const fit = () => { const st = $('#mapStage'); if (!st || !svgOf(st) || !st.clientWidth) return;
+      if (last && st._v !== last) return; // moved since
+      const { w, h } = contentSize(st), k = fitK(st, 'fit'); setView(st, { k, x: (st.clientWidth - w * k) / 2, y: Math.max(CANVAS.pad, (st.clientHeight - h * k) / 2) }); last = st._v; };
+    requestAnimationFrame(fit); [150, 400, 900].forEach(t => setTimeout(fit, t)); }
   if (c.sel.length) requestAnimationFrame(() => mapLight(false));
 }
 // Redraws the canvas (keeping the view where it is) and, unless told not to, the sidebar.
@@ -304,6 +312,7 @@ document.addEventListener('click', e => {
   const tb = t.closest('[data-maptab]'), bt = t.closest('[data-mapbtab]'), item = t.closest('[data-mapitem]');
   if (tb) { c.tab = tb.dataset.maptab; mapSave(c); MAPV.hover = null; $('#mapSide').innerHTML = mapSidebarHTML(c); return; }
   if (bt) { c.btab = bt.dataset.mapbtab; c.bq = ''; mapSave(c); $('#mapSide').innerHTML = mapSidebarHTML(c); return; }
+  if (t.closest('[data-maphover]')) { c.hover = !c.hover; mapSave(c); MAPV.hover = null; $('#mapSide').innerHTML = mapSidebarHTML(c); return mapLight(false); }
   if (t.closest('[data-mapclear]')) { c.sel = []; mapSave(c); $('#mapSide').innerHTML = mapSidebarHTML(c); return mapLight(false); }
   if (item) { const id = item.dataset.mapitem, on = c.sel.includes(id); c.sel = on ? c.sel.filter(x => x !== id) : [...c.sel, id]; mapSave(c);
     item.setAttribute('aria-pressed', String(!on)); item.querySelector('svg, .mi')?.replaceWith(document.createRange().createContextualFragment(mi(on ? 'add' : 'check', 'sm')));

@@ -1325,7 +1325,9 @@ body[data-page="map"] .page.mappage { max-width: none; display: grid; grid-templ
 .map-row[aria-pressed="true"] { background: var(--blue-bg); border-color: var(--blue); font-weight: 700; }
 .map-row.off { color: var(--muted); }
 .map-row-t { display: grid; min-width: 0; } .map-row-t > span:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mapfull.hashl g.mbox:not(.hl), .mapfull.hashl g.elab:not(.hl) { opacity: .22; }
+/* What isn't lit fades back, its box and pill still opaque so the lines behind stay hidden. */
+.mapfull.hashl g.mbox:not(.hl) > :not(rect), .mapfull.hashl g.elab:not(.hl) > :not(rect) { opacity: .22; }
+.mapfull.hashl g.mbox:not(.hl) > rect, .mapfull.hashl g.elab:not(.hl) > rect { stroke-opacity: .22; }
 .mapfull g.mbox.hl rect { stroke: var(--orange); stroke-width: 5; }
 .mapfull g.elab.hl text { font-weight: 800; text-decoration: underline; text-decoration-thickness: 2px; }
 /* A coupled step's badge: the same letter on both of its arrows. Hover shows the pair; click goes to the other one. */

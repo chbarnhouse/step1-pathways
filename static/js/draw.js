@@ -995,7 +995,7 @@ function unionPath(rects, R = REGION_R, Rin = REGION_R + REGION_GAP) { // Rin: i
    which makes an inside corner concentric with the outside corner it wraps. Where a short edge forces a smaller radius,
    the corner it faces is matched (radius less the gap), so the two stay concentric. Returns
    { z: [{ d, runs, bbox }] }: the outline (evenodd) and the piece's area as row runs (for placing its name). */
-function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
+function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP, keepOut = []) { // keepOut: things in no compartment, never swallowed
   const h = GAP / 2, MINC = 2 * R + GAP, out = {}; if (!areas.length) return out; // MINC: no step shorter than two corners need
   const snapSide = (vals, low) => { const s = [...new Set(vals)].sort((a, b) => a - b), map = new Map(); let g = [];
     const flush = () => { const v = low ? g[0] : g[g.length - 1]; g.forEach(x => map.set(x, v)); g = []; };
@@ -1055,6 +1055,17 @@ function zonePartition(areas, boxes, R = REGION_R, GAP = REGION_GAP) {
         if ((up === z) === (dn === z)) continue; // inside the piece, or a thin piece of its own
         const side = k => { const [xs1, ys1] = step(i + k, j), [xn, yn] = up === z ? step(i + k, j - 1) : step(i + k, j + 1); return at(xs1, ys1) !== z && at(xn, yn) === z; };
         if (side(-1) || side(1)) own[y * W + x] = -1; } } }
+  // Holes: empty cells shut in on all sides (a ring's middle, a gap pieces close around) go to the compartment around
+  // most of their rim (at least 60% of it, by length), unless something in no compartment sits there.
+  const hseen = new Uint8Array(W * H);
+  for (let n0 = 0; n0 < W * H; n0++) { if (own[n0] >= 0 || hseen[n0]) continue;
+    const cells = [], stack = [n0], rim = new Map(); let open = false; hseen[n0] = 1;
+    while (stack.length) { const n = stack.pop(), i = n % W, j = (n - i) / W; cells.push(n);
+      if (keepOut.some(r => xs[i + 1] > r.x && xs[i] < r.x + r.w && ys[j + 1] > r.y && ys[j] < r.y + r.h)) open = true;
+      for (const [di, dj] of [[1, 0], [-1, 0], [0, 1], [0, -1]]) { const a = i + di, b = j + dj; if (a < 0 || b < 0 || a >= W || b >= H) { open = true; continue; }
+        const m = b * W + a; if (own[m] >= 0) { const L = di ? ys[j + 1] - ys[j] : xs[i + 1] - xs[i]; rim.set(own[m], (rim.get(own[m]) || 0) + L); } else if (!hseen[m]) { hseen[m] = 1; stack.push(m); } } }
+    const tot = [...rim.values()].reduce((a, b) => a + b, 0), [z, L] = [...rim].sort((a, b) => b[1] - a[1])[0] || [];
+    if (!open && tot && L >= 0.6 * tot) cells.forEach(n => { own[n] = z; }); }
   // Pieces: connected cells of one compartment; their outlines, traced with the piece on the right (y down).
   const seen = new Uint8Array(W * H), corners = [], pieces = [];
   for (let n0 = 0; n0 < W * H; n0++) {
@@ -2404,14 +2415,28 @@ function stitchSVG(m, statusOf) {
   for (const { z, r } of labelHolds) shapes[z].push(r);
   // Each connected piece is one shape: a plain rounded rectangle when the corner it would leave out is empty anyway,
   // else its own outline, fitting around the other compartment like a puzzle piece.
-  const pieces = {};
-  for (const [z, rs] of Object.entries(shapes)) {
-    const comp = rs.map((_, i) => i), find = i => (comp[i] === i ? i : (comp[i] = find(comp[i])));
+  const pieces = {}, boxOf = g => g.reduce(bbox);
+  const group = rs => { const comp = rs.map((_, i) => i), find = i => (comp[i] === i ? i : (comp[i] = find(comp[i])));
     rs.forEach((a, i) => rs.forEach((b, j) => { if (j > i && hit(a, b)) comp[find(i)] = find(j); }));
-    const groups = {}; rs.forEach((r, i) => (groups[find(i)] = groups[find(i)] || []).push(r));
-    pieces[z] = Object.values(groups);
+    const groups = {}; rs.forEach((r, i) => (groups[find(i)] = groups[find(i)] || []).push(r)); return Object.values(groups); };
+  for (const [z, rs] of Object.entries(shapes)) {
+    let gs = group(rs);
+    // Two pieces of one compartment close together, with nothing of another compartment (or of none) between them,
+    // become one: a strip joins them across the gap (the nearest facing sides, at least 120 px of them face to face).
+    const obst = [...Object.entries(GB).filter(([k]) => zoneOf[k] !== z).map(([, b]) => ({ x: b.x - 30, y: b.y - 30, w: b.w + 60, h: b.h + 60 })), ...labelHolds.filter(h => h.z !== z).map(h => h.r)];
+    for (let pass = 0; pass < 4 && gs.length > 1; pass++) {
+      let best = null;
+      gs.forEach((A, i) => gs.forEach((B, j) => { if (j <= i) return; for (const a of A) for (const b of B) {
+        const ox0 = Math.max(a.x, b.x), ox1 = Math.min(a.x + a.w, b.x + b.w), oy0 = Math.max(a.y, b.y), oy1 = Math.min(a.y + a.h, b.y + b.h);
+        let br = null, gap = Infinity;
+        if (ox1 - ox0 >= 120) { const [t, u] = a.y < b.y ? [a, b] : [b, a]; gap = u.y - t.y - t.h; br = { x: ox0, y: t.y + t.h - 1, w: ox1 - ox0, h: gap + 2 }; }
+        else if (oy1 - oy0 >= 120) { const [l, q] = a.x < b.x ? [a, b] : [b, a]; gap = q.x - l.x - l.w; br = { x: l.x + l.w - 1, y: oy0, w: gap + 2, h: oy1 - oy0 }; }
+        if (br && gap > 0 && gap <= 320 && (!best || gap < best.gap) && !obst.some(o => hit(br, o))) best = { br, gap }; } }));
+      if (!best) break;
+      rs.push(best.br); gs = group(rs);
+    }
+    pieces[z] = gs;
   }
-  const boxOf = g => g.reduce(bbox);
   // A piece too narrow for its name tab (one box in "kidney, colon, salivary glands, placenta · smooth ER") widens along
   // its top to fit it, when that runs into no other compartment; else the tab goes just outside it.
   for (const [z, gs] of Object.entries(pieces)) {
@@ -2431,7 +2456,8 @@ function stitchSVG(m, statusOf) {
   // (lab: its top is a label's, which the merging of edges must not cut into)
   const labelRects = new Set(labelHolds.map(h => h.r));
   const part = zonePartition(Object.entries(pieces).flatMap(([z, gs]) => gs.flatMap(g => { const b = boxOf(g); return foreign(z).some(o => hit(b, o)) ? g.map(r => ({ z, r, lab: labelRects.has(r) })) : [{ z, r: b, lab: g.some(r => labelRects.has(r) && Math.abs(r.y - b.y) < 1) }]; })),
-    [...Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(GB[k]), box: { x: GB[k].x - 14, y: GB[k].y - 14, w: GB[k].w + 28, h: GB[k].h + 28 } }))]);
+    [...Object.entries(zoneOf).map(([k, z]) => ({ z, r: pad(GB[k]), box: { x: GB[k].x - 14, y: GB[k].y - 14, w: GB[k].w + 28, h: GB[k].h + 28 } }))], REGION_R, REGION_GAP,
+    Object.entries(GB).filter(([k]) => !zoneOf[k]).map(([, b]) => ({ x: b.x - 14, y: b.y - 14, w: b.w + 28, h: b.h + 28 })));
   for (const [z, ps] of Object.entries(part)) bg += `<g class="blob">${ps.map(P => `<path class="t-${zoneTone(z)}" fill-rule="evenodd" d="${P.d}"/>`).join('')}</g>`;
   // (Not the spots kept free for labels while parts were placed: those are empty now.)
   const seen = occ.filter(o => !reserved.includes(o));
@@ -2445,7 +2471,10 @@ function stitchSVG(m, statusOf) {
     const others = Object.entries(part).filter(([z2]) => z2 !== z).flatMap(([, p2]) => p2.flatMap(P => P.runs));
     for (const P of ps.slice().sort((p, q) => q.bbox.w * q.bbox.h - p.bbox.w * p.bbox.h)) {
       const b0 = P.bbox;
-      if (named.some(n => near(n, b0))) { regions.push(b0); continue; }
+      // Every piece is named (one close by of the same compartment has been joined to it already), bar a sliver too
+      // narrow for its name with a named piece of the same compartment near it.
+      const zw = ((m.items['z:' + z]?.name || '').split(' · ').reduce((a, t) => Math.max(a, t.length), 0)) * 8.1 + 48;
+      if (Math.max(...P.runs.map(r => r.w)) < zw && named.some(n => near(n, b0))) { regions.push(b0); continue; }
       named.push(b0);
       const g = P.runs; // where its name can go: along the piece's own rows
       // On a top edge, left or right end, wherever it doesn't cover a label or box (topmost edge first).
@@ -2492,17 +2521,17 @@ function stitchSVG(m, statusOf) {
       // Anywhere inside the piece, a step at a time.
       g.forEach(r => { for (let y = r.y + 4; y <= r.y + r.h - TH - 4; y += 16) for (let x = r.x + 12; x <= r.x + r.w - 12 - tw; x += 24) spots.push({ x, y }); });
       // Nowhere fully free: the spot it covers least of (labels count most), just outside the shape too.
-      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3 }, { x: r.x + 12, y: r.y - TH - 4 }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - TH / 2 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + r.h / 2 - TH / 2 }, { x: r.x - tw - 6, y: r.y + 4 }));
-      // Further out still: a cramped compartment's name may sit a little away from it, never on a box.
-      g.forEach(r => [30, 60, 100].forEach(o => spots.push({ x: r.x + 12, y: r.y - TH - 4 - o }, { x: r.x + 12, y: r.y + r.h + 3 + o }, { x: r.x + r.w + 6 + o, y: r.y + 4 }, { x: r.x - tw - 6 - o, y: r.y + 4 })));
+      // (Just outside it, touching its edge: only when nothing on or inside it is clear. Never further away.)
+      g.forEach(r => spots.push({ x: r.x + 12, y: r.y + r.h + 3, out: true }, { x: r.x + 12, y: r.y - TH - 4, out: true }, { x: r.x + r.w - 4 - tw, y: r.y + r.h / 2 - TH / 2 }, { x: r.x + r.w + 6, y: r.y + r.h / 2 - TH / 2, out: true }, { x: r.x - tw - 6, y: r.y + r.h / 2 - TH / 2, out: true }, { x: r.x - tw - 6, y: r.y + 4, out: true }));
       const cost = q => { const t = rectOf(q); return (onLine(t) ? 4 : 0) + [...seen, ...DRAW_LABELS, ...lineRects].filter(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })).length * 2 + tabs.filter(o => hit(t, o)).length * 3 + others.filter(o => hit(t, o)).length; };
       // On the top edge a line may pass under the tab (it's opaque): the same place beats a clear one elsewhere.
       const under = q => { const t = rectOf(q); return ![...seen, ...DRAW_LABELS].some(o => hit(t, { x: o.x - 4, y: o.y - 4, w: o.w + 8, h: o.h + 8 })) && !tabs.some(o => hit(t, o)) && !others.some(o => hit(t, o)); };
       const clear = q => free(rectOf(q)) && !others.some(o => hit(rectOf(q), o));
       // Never on a line or a label while any clear spot is left: the corner, either edge, its bottom edge, then inside it.
       // Only when nothing anywhere is clear does a line pass under it (it's opaque) or it cover the least it can.
-      const at = t0.find(clear) || s0.find(clear) || top.find(clear) || side.find(clear) || edge.find(clear) || spots.find(clear) ||
-        top.find(under) || edge.find(under) || spots.filter(q => !onBox(rectOf(q))).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
+      const inn = spots.filter(q => !q.out);
+      const at = t0.find(clear) || s0.find(clear) || top.find(clear) || side.find(clear) || edge.find(clear) || inn.find(clear) ||
+        top.find(under) || edge.find(under) || spots.find(q => q.out && clear(q)) || inn.filter(q => !onBox(rectOf(q))).sort((p, q) => cost(p) - cost(q))[0] || spots.slice().sort((p, q) => cost(p) - cost(q))[0];
       const R0 = rectOf(at); tabs.push(R0);
       fg += `<rect class="legend" x="${R0.x}" y="${R0.y}" width="${R0.w}" height="${R0.h}" rx="5" data-room="${Math.round(at.vert ? Infinity : room)}" data-at="${t0.includes(at) ? 'corner-top' : s0.includes(at) ? 'corner-left' : top.includes(at) ? 'top' : side.includes(at) ? 'left' : at.edge ? 'bottom' : 'other'}"/>` + // data-room: the widest stretch of its shape, for the layout audit
         (at.vert ? `<g transform="translate(${R0.x},${R0.y + R0.h}) rotate(-90)">` : '') + (two
