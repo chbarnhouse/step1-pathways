@@ -734,14 +734,16 @@ function drawEdge1(m, statusOf, r, a, b, wA = BW, wB = BW) {
     if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r));
   } else if (Math.abs(p1[1] - p2[1]) < 4) {
     // A carrier on the way: the name goes between the pill and the far box if it fits there, else just above the pill.
-    let lx = mx, ly = my - 8;
+    let lx = mx, ly = my - 8, c1 = p1;
     if (r.via && m.items['t:' + r.id]) {
       const pv = viaAt([p1, p2]), pr = enzRect(pv[0], pv[1], 'middle', m.items['t:' + r.id], 22), er = enzRect(0, 0, 'middle', it, 16, 'bottom');
       const far = p2[0] > p1[0] ? pr.x + pr.w : pr.x, room = Math.abs(p2[0] - far) - 16;
       if (room >= er.w) lx = (far + p2[0]) / 2; else { lx = pv[0]; ly = pr.y - 4; }
+      // Its carrier in a membrane (compartment bands): the enzyme works past it, so its cofactors stay that side too.
+      if (GRID_MEMBRANES.includes(pv[0])) c1 = [far + Math.sign(p2[0] - p1[0]) * 8, p1[1]];
     }
     s += enzLabel(lx, ly, it, es, 'middle', 16, 'bottom'); DRAW_LABELS.push(enzRect(lx, ly, 'middle', it, 16, 'bottom'));
-    if (cs !== 'none' && cs !== 'hide') s += cofArcLine(p1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
+    if (cs !== 'none' && cs !== 'hide') s += cofArcLine(c1, p2, [0, 1], cofParts(m, statusOf, r)); // beneath, bowing up to the arrow
   } else if (Math.abs(p1[0] - p2[0]) < 4 && r.transport && !r.paracellular && GRID_MEMBRANES_Y.some(y => y > Math.min(p1[1], p2[1]) && y < Math.max(p1[1], p2[1]))) {
     // Across a horizontal membrane (a cell on its side): the carrier on the line, its name beside it toward where the solute goes.
     const ym = GRID_MEMBRANES_Y.find(y => y > Math.min(p1[1], p2[1]) && y < Math.max(p1[1], p2[1])), dn = p2[1] > p1[1], ly = ym + (dn ? 26 : -26);
@@ -1589,13 +1591,15 @@ function gridSVG(m, statusOf, opts = {}) {
   }
   const rowTop = []; for (let k = 0, y = 0; k <= Math.max(0, ...Object.keys(p.metabolites).map(rowOf)); k++) { rowTop[k] = y; y += !p.column_zones || rowBands || tall.has(k + 1) ? ROWH : BH + 44; }
   const rowY = r => (rowTop[r] ?? r * ROWH);
-  for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + c * COLW, cy: Y0 + rowY(r) + lower(r) + BH / 2 }; }
+  // Columns are evenly spaced unless the pathway gives each its own x (p.col_x: a compartment-first joined drawing).
+  const colX = c => (p.col_x ? (Number.isInteger(c) ? p.col_x[c] : (p.col_x[Math.floor(c)] + p.col_x[Math.ceil(c)]) / 2) : c * COLW);
+  for (const [id, x] of Object.entries(p.metabolites)) { const [c, r] = x.pos || [0, 0]; pos[id] = { cx: X0 + colX(c), cy: Y0 + rowY(r) + lower(r) + BH / 2 }; }
   DRAW_BOXES = Object.values(pos).map(q => ({ x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH })); DRAW_LABELS = [];
   let s = '';
   // Column bands (p.column_zones): when each column is one compartment (a tubular cell: lumen | cell | blood), shade
   // the columns, name each band at the top (quizzable like any compartment), and draw the membranes between them.
   // Bands run down columns, or (axis 'y': a cell turned on its side, lumen at the bottom) across rows.
-  const bands = [], ax = rowBands ? 1 : 0, at = v => (rowBands ? Y0 + v * ROWH + BH / 2 : X0 + v * COLW);
+  const bands = [], ax = rowBands ? 1 : 0, at = v => (rowBands ? Y0 + v * ROWH + BH / 2 : X0 + colX(v));
   if (p.column_zones && opts.zones !== false) {
     const byLine = new Map();
     for (const x of Object.values(p.metabolites)) { const c = (x.pos || [0, 0])[ax]; if (x.loc && !byLine.has(c)) byLine.set(c, { k: zoneKey(m, x.loc, x.tissue), loc: x.loc }); }
@@ -1618,7 +1622,7 @@ function gridSVG(m, statusOf, opts = {}) {
       if (i && membranes[i - 1]) { const t = membranes[i - 1], w = t.length * 7.2 + 14; s += `<rect class="legend" x="12" y="${b.x0 - 9}" width="${w}" height="17" rx="5"/><text class="zonet" x="19" y="${b.x0 + 3}">${esc(t)}</text>`; }
       return;
     }
-    s += zoneLabel(m, statusOf, b.k, X0 + (b.c0 + b.c1) / 2 * COLW, TOP + 8, 'middle', b.loc);
+    s += zoneLabel(m, statusOf, b.k, X0 + (colX(b.c0) + colX(b.c1)) / 2, TOP + 8, 'middle', b.loc);
     if (i && membranes[i - 1]) { const t = membranes[i - 1], w = t.length * 7.2 + 14; s += `<rect class="legend" x="${b.x0 - w / 2}" y="${TOP + 17}" width="${w}" height="17" rx="5"/><text class="zonet" x="${b.x0}" y="${TOP + 29}" text-anchor="middle">${esc(t)}</text>`; }
   });
   (p.grid_columns || []).forEach((label, c) => { s += `<text class="zonet" x="${X0 + c * COLW}" y="${TOP + 8}" text-anchor="middle">${esc(label)}</text>`; });
@@ -1666,7 +1670,9 @@ function gridSVG(m, statusOf, opts = {}) {
   const lk = linkTags(m, statusOf, Object.fromEntries(Object.entries(pos).map(([id, q]) => [id, { x: q.cx - BW / 2, y: q.cy - BH / 2, w: BW, h: BH }])));
   s += lk.s; DRAW_BOXES = [];
   // Room under the boxes for group frames (up to two deep) before the compartment list.
-  let H = Math.max(...Object.values(pos).map(q => q.cy)) + BH / 2 + 24 + ((p.groups || []).length ? 48 : 0);
+  // (and for the cofactors under a level step on the bottom row)
+  const yMax = Math.max(...Object.values(pos).map(q => q.cy)), lowCof = p.reactions.some(r => pos[r.from]?.cy === yMax && pos[r.to]?.cy === yMax && cofSt(m, statusOf, r) !== 'none' && cofSt(m, statusOf, r) !== 'hide');
+  let H = yMax + BH / 2 + 24 + ((p.groups || []).length ? 48 : 0) + (lowCof ? 50 : 0);
   const W = Math.max(Math.max(...Object.values(pos).map(q => q.cx)) + BW / 2 + 24, lk.maxX + 12);
   if (opts.zones !== false && !bands.length) {
     // Grids don't split into lanes, so the compartments are listed underneath (and quizzable there).
