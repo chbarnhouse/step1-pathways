@@ -100,7 +100,7 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
   // (Its own route counts too: text on the very line it names.)
   const own = q => P.slice(1).some((v, i) => { const u = P[i]; return Math.max(u[0], v[0]) > q.x + 1 && Math.min(u[0], v[0]) < q.x + q.w - 1 && Math.max(u[1], v[1]) > q.y + 2 && Math.min(u[1], v[1]) < q.y + q.h - 2; });
   // In compartment bands: never across a membrane, and better in the band where the enzyme works.
-  const zr = ROUTE_BANDS && r.loc ? zoneKey(m, r.loc, r.tissue) : '', bandCost = q => { if (!ROUTE_BANDS || !q?.w) return 0;
+  const zr = ROUTE_BANDS && r.loc ? (k => ROUTE_BANDS.alias?.[k] || k)(zoneKey(m, r.loc, r.tissue)) : '', bandCost = q => { if (!ROUTE_BANDS || !q?.w) return 0;
     if (ROUTE_BANDS.some((b, i) => i && q.x < b.x0 - 2 && q.x + q.w > b.x0 + 2)) return 10;
     const at = ROUTE_BANDS.find(b => q.x + q.w / 2 >= b.x0 && q.x + q.w / 2 < b.x1); return zr && at && ROUTE_BANDS.some(b => b.z === zr) && at.z !== zr ? 2 : 0; };
   const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.reduce((n, q) => n + bandCost(q) + (!q ? 0 : q.hit || DRAW_BOXES.some(b => overlaps(q, b)) ? 10 : DRAW_LABELS.some(l => overlaps(q, l)) ? 3 : lineHit(q) || (q.w && own(q)) || TAB_SPOTS.some(l => overlaps(q, l)) ? 1 : 0), 0); // (when nothing is clean: over a line or a compartment's name spot beats over a name, over a name beats over a box)
@@ -1960,9 +1960,10 @@ function gridRoute(a, b, boxes, labels, drawnSegs = [], linePts = []) { // lineP
 let STITCH_WHERE = null; // set while a joined drawing is drawn (stitchSVG)
 // Compartment-first joined drawings: every compartment is one band across the drawing (stitchSVG). The other way packs
 // whole parts and fits a shape around each compartment's boxes afterwards.
-let STITCH_BANDS = true, ROUTE_BANDS = null; // (the bands while steps between their pieces are labeled)
+let STITCH_BANDS = true, ROUTE_BANDS = null, STITCH_PROF = null; // STITCH_PROF = {}: how long each phase took (ms), for tuning // (the bands while steps between their pieces are labeled)
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
+  let pt = performance.now(); const PROF = k => { if (!STITCH_PROF) return; const t = performance.now(); STITCH_PROF[k] = (STITCH_PROF[k] || 0) + Math.round(t - pt); pt = t; };
   const owner = {}; tiles.forEach((t, i) => t.ids.forEach(id => { if (!(id in owner)) owner[id] = i; }));
   // Where each molecule is, as the joined drawing places it (by the first part that has it): a part drawn by itself
   // finds where its line enters another compartment from this, a molecule shared with an earlier part included.
@@ -2156,6 +2157,23 @@ function stitchSVG(m, statusOf) {
       for (const id of r.also_to || []) if (cross || pieceOf(id) !== pieceOf(r.from)) sides.push([r.from, id, r]);
       for (const id of r.also_from || []) if (cross || pieceOf(id) !== pieceOf(r.to)) sides.push([id, r.to, r]);
     }
+    // One band per compartment, not per tissue, where tissue doesn't tell them apart: blood is blood, and a compartment
+    // with no tissue given joins its tissue's when only one is named (glycolysis's cytosol is galactose's liver cytosol).
+    const alias = {}, byC = {};
+    for (const z of uniq(pieces.map(q => q.z))) { const [t, c] = z.includes('|') ? z.split('|') : ['', z]; (byC[c] = byC[c] || []).push({ z, t }); }
+    for (const [c, zl] of Object.entries(byC)) { const ts = uniq(zl.map(x => x.t).filter(Boolean)), outside = /blood|plasma|extracell|interstit/.test(c);
+      if (!outside && ts.length > 1) {
+        // Several tissues: the one with none given joins whichever of them its steps run into most, if any.
+        const plain = zl.find(x => !x.t); if (!plain) continue;
+        const into = {}; for (const T of tiles) for (const r of T.p.reactions) { const a = pieces.find(q => q.R.pos['m:' + r.from])?.z, b = pieces.find(q => q.R.pos['m:' + r.to])?.z;
+          for (const [u, v] of [[a, b], [b, a]]) if (u === plain.z && v && v !== u && zl.some(x => x.z === v)) into[v] = (into[v] || 0) + 1; }
+        const best = Object.entries(into).sort((x, y) => y[1] - x[1])[0]; if (best) alias[plain.z] = best[0];
+        continue;
+      }
+      const rep = (ts.length === 1 && !outside ? zl.find(x => x.t) : zl.find(x => m.items['z:' + x.z]) || zl[0]).z;
+      for (const x of zl) alias[x.z] = rep; }
+    for (const q of pieces) q.z = alias[q.z] || q.z;
+    BANDS.alias = alias;
     // The compartments in the order that keeps steps between them short: outside (blood, lumen) · cytosol · organelles.
     const zs = uniq(pieces.map(q => q.z)), wt = {};
     const zOfId = id => pieces.find(q => q.R.pos['m:' + id])?.z;
@@ -2174,16 +2192,23 @@ function stitchSVG(m, statusOf) {
       q.R = q.Rs.slice().sort((a, b) => score(b) - score(a))[0];
     }
     let bx = 0;
-    for (const z of order) { const w = Math.max(...pieces.filter(q => q.z === z).map(q => q.R.vb[2])); BANDS.push({ z, x0: bx, x1: bx + w + 320 }); bx += w + 320; }
+    // (Two parts in one band: room for their widest pieces side by side.)
+    for (const z of order) { const ps = pieces.filter(q => q.z === z).sort((a, b) => b.R.vb[2] - a.R.vb[2]), other = ps.find(q => q.ti !== ps[0].ti);
+      const w = ps[0].R.vb[2] + (other ? other.R.vb[2] + 60 : 0); BANDS.push({ z, x0: bx, x1: bx + w + 320 }); bx += w + 320; }
     // Pieces in drawing order: each part's pieces in the order its main line reaches them.
     const firstAt = q => { const T = q.R.T, sp = modelFor(T.p).seq; const i = Math.min(...Object.keys(q.R.pos).map(k => sp.indexOf(k)).filter(i => i >= 0)); return q.ti * 1000 + (Number.isFinite(i) ? i : 999); };
+  PROF('pieces');
     pieces.sort((a, b) => firstAt(a) - firstAt(b));
     // Every step across a membrane as [its box key, the other end's key] (both ways), and the rows they run along.
     const links = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].flatMap(r => zOfId(r.from) && zOfId(r.to) && zOfId(r.from) !== zOfId(r.to) ? [['m:' + r.from, 'm:' + r.to], ['m:' + r.to, 'm:' + r.from]] : []), LANES = [];
     for (const q of pieces) {
       // Against the membrane its steps cross, when they all cross the same one; else in the middle of its band.
-      const R = q.R, band = BANDS.find(b => b.z === q.z), lean = Object.keys(R.pos).reduce((n, k) => n + side(q.z, k.slice(2)), 0);
-      const dx = lean < 0 ? band.x0 + 160 - R.vb[0] : lean > 0 ? band.x1 - 160 - R.vb[0] - R.vb[2] : (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
+      const R = q.R, band = BANDS.find(b => b.z === q.z), leanOf = p => Object.keys(p.R.pos).reduce((n, k) => n + side(p.z, k.slice(2)), 0);
+      // In a band shared by parts, its widest piece goes to the side away from where the others cross (they take the membrane).
+      const mates = pieces.filter(o => o.z === q.z && o.ti !== q.ti), widest = mates.length && pieces.filter(o => o.z === q.z).every(o => o.R.vb[2] <= R.vb[2]);
+      const lean = widest ? -Math.sign(mates.reduce((n, o) => n + leanOf(o), 0)) : leanOf(q);
+      const L = band.x0 + 160 - R.vb[0], Rt = band.x1 - 160 - R.vb[0] - R.vb[2], C = (band.x0 + band.x1) / 2 - (R.vb[0] + R.vb[2] / 2);
+      const dxs = uniq(lean < 0 ? [L, C, Rt] : lean > 0 ? [Rt, C, L] : [C, L, Rt]);
       // Level with the box it's joined to across a membrane (a straight step), else just below what's in its band.
       const link = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].map(r => R.pos['m:' + r.from] && G['m:' + r.to] ? [R.pos['m:' + r.from], G['m:' + r.to]] : R.pos['m:' + r.to] && G['m:' + r.from] ? [R.pos['m:' + r.to], G['m:' + r.from]] : null).find(Boolean);
       const inBand = placed.filter(P => P.band === band), below = inBand.length ? Math.max(...inBand.map(P => P.vb[1] + P.vb[3] + P.dy)) + 40 - R.vb[1] : -R.vb[1];
@@ -2191,10 +2216,12 @@ function stitchSVG(m, statusOf) {
       // Its steps across a membrane each run along a row of their own: none within 110 px of one already crossing
       // (its carrier pill, name and cofactors need that much), its own step's row aside.
       const xs = links.filter(([k]) => R.pos[k]), clearRows = d => xs.every(([k, o]) => { const y = ctr(R.pos[k]).cy + d; return LANES.every(l => l.pair === [k, o].sort().join() || Math.abs(l.y - y) >= 110); });
-      let dy = dy0;
-      for (const strict of [true, false]) { let got = false;
-        for (let k = 0; k < 160; k++) { const d = dy0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 40; if (!clash(rectsOf(R, dx, d)) && !crosses(R, dx, d) && (!strict || clearRows(d))) { dy = d; got = true; break; } }
-        if (got) break; }
+      // Each place across its band (against the membrane it leans to first), the nearest clear row; the straightest wins.
+      let dx = dxs[0], dy = dy0, best = Infinity;
+      for (const strict of [true, false]) {
+        for (const x of dxs) for (let k = 0; k < 160 && k * 20 < best; k++) { const d = dy0 + (k % 2 ? 1 : -1) * Math.ceil(k / 2) * 40;
+          if (!clash(rectsOf(R, x, d)) && !crosses(R, x, d) && (!strict || clearRows(d))) { if (Math.abs(d - dy0) < best) { best = Math.abs(d - dy0); dx = x; dy = d; } break; } }
+        if (best < Infinity) break; }
       R.band = band; place(R, dx, dy);
       for (const [k, o] of xs) { const pair = [k, o].sort().join(); LANES.push({ y: ctr(R.pos[k]).cy + dy, pair }); if (G[o]) LANES.push({ y: ctr(G[o]).cy, pair }); }
     }
@@ -2323,6 +2350,7 @@ function stitchSVG(m, statusOf) {
       sideOf(O.T, id).forEach(r => sides.push((r.also_to || []).includes(id) ? [r.from, id, r] : [id, r.to, r]));
     } else dots.push({ a: k, R: placed[j], label: 'same molecule' });
   }
+  PROF('placed');
   rebuild();
   // Steps between parts, drawn like any other step (enzyme, cofactors) now that every box has its place.
   // Every box drawn, a molecule's second copy too (joined to the first by a dotted line), is a wall for what's routed now.
@@ -2358,6 +2386,7 @@ function stitchSVG(m, statusOf) {
   }
   // Same molecule, two compartments: a dashed transport arrow, from where it's made to where it's used.
   const madeOnly = id => m.p.reactions.some(r => r.to === id || (r.also_to || []).includes(id)) && !m.p.reactions.some(r => r.from === id || (r.also_from || []).includes(id));
+  PROF('bridges');
   for (const [x, y] of st.joins) {
     if (m.p.reactions.some(r => (r.from === x && r.to === y) || (r.from === y && r.to === x))) continue; // a real step already joins them
     const [f, t] = madeOnly(y) && !madeOnly(x) ? [y, x] : [x, y], a = G['m:' + f], b = G['m:' + t];
@@ -2486,6 +2515,7 @@ function stitchSVG(m, statusOf) {
     }
   }
   DRAW_BOXES = []; TAB_SPOTS = [];
+  PROF('dots+badges');
   let bg = '', fg = '';
   const regions = [], tabs = [];
   if (BANDED) {
@@ -2694,6 +2724,7 @@ function stitchSVG(m, statusOf) {
     }
   }
   }
+  PROF('compartments');
   let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
   const grow = r => { x0 = Math.min(x0, r.x); y0 = Math.min(y0, r.y); x1 = Math.max(x1, r.x + r.w); y1 = Math.max(y1, r.y + r.h); };
   placed.forEach(R => grow({ x: R.vb[0] + R.dx, y: R.vb[1] + R.dy, w: R.vb[2], h: R.vb[3] }));
