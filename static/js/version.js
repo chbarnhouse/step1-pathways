@@ -9,6 +9,10 @@ const APP_VERSION = '3.13.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
+    'Membranes are drawn as two colored lines side by side, each in its compartment’s color, so they no longer look like arrows; a wall between two cells is a little heavier.',
+    'Zoomed in, each membrane in view gets a small pill straddling it naming the compartment on each side (“◂ Cytosol | Mitochondria ▸”), so you always know where you are (not during a quiz).',
+    'Zoomed in on a connected drawing or the Map, a long arrow passing through the view with neither of its ends in it fades out. One you’re following stays while it’s in view, and for 3 seconds after you pan off it; zooming starts afresh. On by default; turn it off with Hide passing arrows in the Map’s Show list or Settings → Pathway pages. Never in quizzes.',
+    'Settings → Pathway pages → Style: try three sharper looks for drawings (Sharpened, Filled chips, Bold outlines); Classic stays the default.',
     'Hover help on drawings and the Map (not during a quiz): point at a molecule to see the other names it goes by, at an enzyme or carrier for its names and the step it does, and at an arrow for the step itself (from → to, the enzyme, the carrier, the cofactors).',
     'Zoomed in, an arrow that runs off the screen gets a small pill at the edge saying where it goes (“→ Glyceraldehyde-3-phosphate (Glycolysis + gluconeogenesis)”, “via” its carrier) or comes from; click it to go there.',
     'Connected drawings and the Map: arrows meet boxes head-on (a line that ran along just above a box and dropped a few pixels into its corner now enters its side, or drops a clear distance into it); a transporter that is a step’s name (SGLT1, GLUT2) sits on the membrane its line crosses; and the kidney’s urobilin no longer sits on top of urobilinogen with the reabsorption pill over both.',

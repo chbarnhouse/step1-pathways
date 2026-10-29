@@ -281,10 +281,85 @@ window.addEventListener('resize', () => {
    (TCA cycle) via Mitochondrial pyruvate carrier") or comes from ("← from …"); clicking it flies there. Up to 12, nearest
    the middle first; none during a quiz (they'd give answers away). */
 let EDGE_T = 0;
-function edgeHintsSoon(st) { clearTimeout(EDGE_T); EDGE_T = setTimeout(() => edgeHints(st), 140); }
+const canvasQuizzing = () => !!document.querySelector('#view .quiz') && typeof Q !== 'undefined' && Q.round?.type !== 'review';
+function edgeHintsSoon(st) { clearTimeout(EDGE_T); EDGE_T = setTimeout(() => { if (st.isConnected) { autoHide(st); edgeHints(st); membraneHints(st); } }, 140); }
+
+/* ---------- long arrows passing through ----------
+   Zoomed in on a joined drawing, an arrow between parts that crosses the view with neither of its ends in it is probably
+   not what you're looking at: it fades out. One you're following stays: an arrow that was showing stays while it's in
+   view, however long you pan along it, and keeps a 3-second grace if you pan off it and back. Zooming starts afresh
+   (from the whole drawing in, everything had its ends in view). Off in quizzes, and with Settings → Pathway pages. */
+const RT_GRACE = 3000;
+/* An element's own coordinates → the screen. Safari's getScreenCTM leaves out the canvas's CSS zoom, so: element → the
+   drawing's coordinates (both CTMs miss the same zoom, which cancels), then through the viewBox onto the drawing's box. */
+function toScreen(svg, el) {
+  const vb = svg.viewBox.baseVal, V = svg.getBoundingClientRect(), sx = V.width / vb.width, sy = V.height / vb.height;
+  const R = svg.getScreenCTM(), E = el.getScreenCTM(), M = R && E ? R.inverse().multiply(E) : null;
+  return (x, y) => { if (M) [x, y] = [M.a * x + M.c * y + M.e, M.b * x + M.d * y + M.f]; return [V.left + (x - vb.x) * sx, V.top + (y - vb.y) * sy]; };
+}
+function autoHide(st) {
+  const svg = svgOf(st); if (!svg) return;
+  const gs = svg.querySelectorAll('g.rt');
+  if (!gs.length) return;
+  if (canvasQuizzing() || Store.settings.autoHide === false) { gs.forEach(g => g.classList.remove('rt-off')); st._rt = null; return; }
+  const now = performance.now(), S = st.getBoundingClientRect(), k = st._v?.k || 1;
+  const zoomed = !st._rt || Math.abs(Math.log(k / st._rt.k)) > 0.1, mem = zoomed ? new WeakMap() : st._rt.mem;
+  st._rt = { k, mem };
+  const inS = (x, y) => x > S.left && x < S.right && y > S.top && y < S.bottom;
+  for (const g of gs) {
+    const [x1, y1, x2, y2] = g.dataset.e.split(' ').map(Number), sx = toScreen(svg, g);
+    const R = g.getBoundingClientRect(), there = R.right > S.left && R.left < S.right && R.bottom > S.top && R.top < S.bottom;
+    const o = mem.get(g) || { on: false, vis: false, seen: -Infinity };
+    if (there) {
+      // (Both ends count: the line starts and stops at its boxes' edges.)
+      o.on = inS(...sx(x1, y1)) || inS(...sx(x2, y2)) || (o.on && (o.vis || now - o.seen < RT_GRACE));
+      o.vis = true; o.seen = now;
+    } else o.vis = false;
+    mem.set(g, o);
+    g.classList.toggle('rt-off', there && !o.on);
+  }
+}
+
+/* ---------- which side of a membrane is which ----------
+   Zoomed in, the compartment names are often far off screen. Each membrane in view gets a small pill straddling it,
+   naming the compartment on each side (its halves edged in that side's color, like the membrane's own two lines).
+   Not in quizzes (a compartment can be the question). */
+function membraneHints(st) {
+  st.querySelectorAll('.memhint').forEach(e => e.remove());
+  const svg = svgOf(st); if (!svg || canvasQuizzing()) return;
+  const S = st.getBoundingClientRect(), V = svg.getBoundingClientRect();
+  // The whole drawing in view: its compartment names are too.
+  if (V.left >= S.left - 2 && V.right <= S.right + 2 && V.top >= S.top - 2 && V.bottom <= S.bottom + 2) return;
+  const placed = [], seen = [];
+  for (const g of svg.querySelectorAll('g.mpair')) {
+    const ln = g.querySelector('line'), T = toScreen(svg, ln);
+    const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map(a => +ln.getAttribute(a)), v = g.dataset.o === 'v', p = T(x1, y1), q = T(x2, y2);
+    // The stretch of it inside the view.
+    const lo = v ? Math.max(Math.min(p[1], q[1]), S.top) : Math.max(Math.min(p[0], q[0]), S.left), hi = v ? Math.min(Math.max(p[1], q[1]), S.bottom) : Math.min(Math.max(p[0], q[0]), S.right);
+    const at = v ? p[0] : p[1];
+    if (hi - lo < 60 || (v ? at < S.left + 20 || at > S.right - 20 : at < S.top + 20 || at > S.bottom - 20)) continue;
+    const key = g.dataset.a + '|' + g.dataset.b;
+    // One per pair of sides within a stretch of screen (the Map's membranes come in many short segments).
+    if (seen.some(o => o.key === key && Math.abs(o.at - at) < 40)) continue;
+    const tone = l => [...l.classList].find(c => c.startsWith('t-')) || 't-slate', [la, lb] = g.querySelectorAll('line');
+    const el = document.createElement('div'); el.className = 'memhint ' + (v ? 'mh-v' : 'mh-h'); el.setAttribute('aria-hidden', 'true');
+    el.innerHTML = v ? `<span class="mh-a ${tone(la)}">${esc(g.dataset.a)}</span><span class="mh-b ${tone(lb)}">${esc(g.dataset.b)}</span>`
+      : `<span class="mh-a ${tone(la)}">${esc(g.dataset.a)}</span><span class="mh-b ${tone(lb)}">${esc(g.dataset.b)}</span>`;
+    st.append(el);
+    const w = el.offsetWidth, h = el.offsetHeight;
+    // On a vertical membrane: near the top of the stretch in view, the split on the line. On a horizontal one: near the left, stacked across it.
+    let x, y;
+    if (v) { x = at - S.left - el.querySelector('.mh-a').offsetWidth; y = lo - S.top + 10; }
+    else { x = lo - S.left + 10; y = at - S.top - el.querySelector('.mh-a').offsetHeight; }
+    x = Math.min(S.width - w - 4, Math.max(4, x)); y = Math.min(S.height - h - 4, Math.max(4, y));
+    if (placed.some(o => x < o.x + o.w + 6 && o.x < x + w + 6 && y < o.y + o.h + 6 && o.y < y + h + 6)) { el.remove(); continue; }
+    el.style.left = x + 'px'; el.style.top = y + 'px'; placed.push({ x, y, w, h }); seen.push({ key, at });
+    if (placed.length >= 8) break;
+  }
+}
 function edgeHints(st) {
   st.querySelectorAll('.edgehint').forEach(e => e.remove());
-  if (!st.isConnected || (document.querySelector('#view .quiz') && typeof Q !== 'undefined' && Q.round?.type !== 'review')) return;
+  if (!st.isConnected || canvasQuizzing()) return;
   const svg = svgOf(st); if (!svg) return;
   const m = HOVER_MODELS.get(svg.dataset.pid); if (!m) return;
   const S = st.getBoundingClientRect(), pad = 4, inView = q => q.x > S.left + pad && q.x < S.right - pad && q.y > S.top + pad && q.y < S.bottom - pad;
@@ -292,10 +367,11 @@ function edgeHints(st) {
   const isLine = p => p.tagName === 'line', ends = p => ['x1', 'y1', 'x2', 'y2'].map(k => +p.getAttribute(k));
   const lenOf = p => { if (!isLine(p)) return p.getTotalLength(); const [x1, y1, x2, y2] = ends(p); return Math.hypot(x2 - x1, y2 - y1); };
   const scr = (p, l) => { let q; if (isLine(p)) { const [x1, y1, x2, y2] = ends(p), L = Math.hypot(x2 - x1, y2 - y1) || 1; q = { x: x1 + (x2 - x1) * l / L, y: y1 + (y2 - y1) * l / L }; } else q = p.getPointAtLength(l);
-    const M = p.getScreenCTM(); return { x: M.a * q.x + M.c * q.y + M.e, y: M.b * q.x + M.d * q.y + M.f }; };
+    const [x, y] = toScreen(svg, p)(q.x, q.y); return { x, y }; };
   const partOf = id => { const o = m.p.stitch?.origin.m[id]; return o ? Library.get(o[0][0])?.name : ''; };
   const found = [];
   for (const p of svg.querySelectorAll('path[class*="rx-"]:not(.hit), line[class*="rx-"]:not(.hit)')) {
+    if (p.closest('g.rt-off')) continue; // (faded out: not one you're following)
     const rid = [...p.classList].find(c => c.startsWith('rx-')).slice(3), r = m.p.reactions.find(x => x.id === rid); if (!r) continue;
     const L = lenOf(p); if (L < 40) continue;
     const a = scr(p, 0), b = scr(p, L), ia = inView(a), ib = inView(b); if (ia === ib) continue;

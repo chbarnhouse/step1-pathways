@@ -996,6 +996,13 @@ const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofact
 const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
   mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
 const zoneTone = key => { const k = String(key).split('|').pop(); return ZONE_TONES[k] || (k.startsWith('tubularlumen') ? 'gold' : 'slate'); };
+/* A membrane as two lines side by side, each in the color of the compartment on its side (so it never reads as an arrow);
+   a wall between cells a little heavier. It names the compartment either side (data-a: left or above, data-b: right or
+   below) for the hints at the screen's edge. */
+function membrane(m, x1, y1, x2, y2, za, zb, wall = false) {
+  const v = Math.abs(x1 - x2) < 0.5, o = wall ? 2.2 : 1.6, [dx, dy] = v ? [o, 0] : [0, o], nm = z => esc((n => n.charAt(0).toUpperCase() + n.slice(1))(m.items['z:' + z]?.name || String(z).split('|').pop()));
+  return `<g class="mpair${wall ? ' wall' : ''}" data-a="${nm(za)}" data-b="${nm(zb)}" data-o="${v ? 'v' : 'h'}"><line class="memb t-${zoneTone(za)}" x1="${x1 - dx}" y1="${y1 - dy}" x2="${x2 - dx}" y2="${y2 - dy}"/><line class="memb t-${zoneTone(zb)}" x1="${x1 + dx}" y1="${y1 + dy}" x2="${x2 + dx}" y2="${y2 + dy}"/></g>`;
+}
 const zoneTissue = key => (String(key).includes('|') ? String(key).split('|')[0] : '');
 // Boxes that are close together in one compartment share one dashed region.
 /* A set of overlapping rectangles as one shape: its outline, every corner rounded (inside corners too), so pieces of a
@@ -1357,7 +1364,7 @@ function linearSVG(m, statusOf, { zones = true, tabRoom = false } = {}) {
       const x0 = i === 0 ? -BLEED : laneLeft(i), x1 = i === last ? W + BLEED : laneLeft(i + 1);
       bg += `<rect class="zone t-${zoneTone(l.key)}" x="${x0}" y="${-BLEED}" width="${x1 - x0}" height="${H + 2 * BLEED}"/>`;
       // A new tissue is a different cell: solid wall. Same cell, new compartment: dashed membrane.
-      if (i > 0) bg += `<line class="${zoneTissue(l.key) !== zoneTissue(L.list[i - 1].key) ? 'cellwall' : 'membrane'}" x1="${x0}" x2="${x0}" y1="${-BLEED}" y2="${H + BLEED}"/>`;
+      if (i > 0) bg += membrane(m, x0, -BLEED, x0, H + BLEED, L.list[i - 1].key, l.key, zoneTissue(l.key) !== zoneTissue(L.list[i - 1].key));
       bg += zoneLabel(m, statusOf, l.key, laneX(i), 18, 'middle', l.label);
       drawn.add(l.key);
     });
@@ -1646,7 +1653,7 @@ function gridSVG(m, statusOf, opts = {}) {
     b.x0 = lo; b.x1 = hi;
     s += rowBands ? `<rect class="zone t-${zoneTone(b.k)}" x="${-BLEED}" y="${lo}" width="${2 * BLEED}" height="${hi - lo}"/>` : `<rect class="zone t-${zoneTone(b.k)}" x="${lo}" y="${-BLEED}" width="${hi - lo}" height="${2 * BLEED}"/>`;
     if (i) {
-      s += rowBands ? `<line class="cellwall" x1="${-BLEED}" x2="${BLEED}" y1="${lo}" y2="${lo}"/>` : `<line class="cellwall" x1="${lo}" x2="${lo}" y1="${-BLEED}" y2="${BLEED}"/>`;
+      s += rowBands ? membrane(m, -BLEED, lo, BLEED, lo, bands[i - 1].k, b.k, true) : membrane(m, lo, -BLEED, lo, BLEED, bands[i - 1].k, b.k, true);
       (rowBands ? GRID_MEMBRANES_Y : GRID_MEMBRANES).push(lo);
     }
   });
@@ -2173,8 +2180,10 @@ function stitchSVG(m, statusOf) {
     };
     // The labels go on the longer kind of run: a long climb beats a short sideways stub out of a box.
     const hl = h ? Math.abs(h[1][0] - h[0][0]) : 0, vl = v ? Math.abs(v[1][1] - v[0][1]) : 0;
-    if (h && v && vl > hl * 1.5 && hl < 260) return elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? routeLabels(null, v) : '');
-    return elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? routeLabels(h, v) : routeLabels(null, null));
+    // (One group per route, its ends noted: the Map hides a long arrow passing through the view with neither end in it.)
+    const Z = P[P.length - 1], grp = s => `<g class="rt" data-e="${P[0][0]} ${P[0][1]} ${Z[0]} ${Z[1]}">${s}</g>`;
+    if (h && v && vl > hl * 1.5 && hl < 260) return grp(elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? routeLabels(null, v) : ''));
+    return grp(elbow(P, r?.reversible, cls || rxCls(r || {})) + (labels && r && m.items['e:' + r.id] ? routeLabels(h, v) : routeLabels(null, null)));
   };
   const sideOf = (T, id) => T.p.reactions.filter(r => (r.also_to || []).includes(id) || (r.also_from || []).includes(id));
   const sides = []; // [from box id, to box id, reaction]: a side product or input that lives in another part
@@ -2302,7 +2311,11 @@ function stitchSVG(m, statusOf) {
     FLOOR.rects.forEach(r => { r.zs = r.role === 'isle' ? [r.z] : uniq(of(r.role).map(q => q.z)); });
     // Membranes: every edge between two regions (not the outer ones, which run on to the canvas edge).
     FLOOR.segs = [];
-    for (const r of FLOOR.rects) if (r.role !== 'cyto') for (const [x1, y1, x2, y2, e] of [[r.x, r.y, r.x + r.w, r.y, 't'], [r.x, r.y + r.h, r.x + r.w, r.y + r.h, 'b'], [r.x, r.y, r.x, r.y + r.h, 'l'], [r.x + r.w, r.y, r.x + r.w, r.y + r.h, 'r']]) if (!(r.bleed || '').includes(e)) FLOOR.segs.push([x1, y1, x2, y2]);
+    // (Each with the compartment either side: left or above first, as membrane() takes them.)
+    const zAt = (x, y) => FLOOR.rects.filter(q => x > q.x && x < q.x + q.w && y > q.y && y < q.y + q.h).pop()?.z;
+    for (const r of FLOOR.rects) if (r.role !== 'cyto') for (const [x1, y1, x2, y2, e] of [[r.x, r.y, r.x + r.w, r.y, 't'], [r.x, r.y + r.h, r.x + r.w, r.y + r.h, 'b'], [r.x, r.y, r.x, r.y + r.h, 'l'], [r.x + r.w, r.y, r.x + r.w, r.y + r.h, 'r']]) if (!(r.bleed || '').includes(e)) {
+      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, out = zAt(mx + (e === 'r' ? 6 : e === 'l' ? -6 : 0), my + (e === 'b' ? 6 : e === 't' ? -6 : 0)) || r.z;
+      FLOOR.segs.push([x1, y1, x2, y2, e === 'l' || e === 't' ? out : r.z, e === 'l' || e === 't' ? r.z : out]); }
     const centerOf = z => { const r = rectsFor(z)[0]; return r ? { cx: r.x + r.w / 2, cy: r.y + r.h / 2 } : { cx: 0, cy: 0 }; };
     // Each ring's turn: the one whose boxes with steps out of its region face the region they go to.
     const linksOf = id => [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].filter(r => r.from === id || r.to === id).map(r => zOfId(r.from === id ? r.to : r.from)).filter(Boolean);
@@ -2751,7 +2764,7 @@ function stitchSVG(m, statusOf) {
         const b = r.bleed || '', x0 = b.includes('l') ? r.x - BLEED : r.x, x1 = b.includes('r') ? r.x + r.w + BLEED : r.x + r.w, y0 = b.includes('t') ? r.y - BLEED : r.y, y1 = b.includes('b') ? r.y + r.h + BLEED : r.y + r.h;
         bg += `<g class="blob"><path class="t-${zoneTone(r.z)}" d="M${x0},${y0}H${x1}V${y1}H${x0}Z"/></g>`; regions.push({ x: r.x, y: r.y, w: r.w, h: r.h });
       }
-      for (const [x1, y1, x2, y2] of FLOOR.segs) bg += `<line class="cellwall" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+      for (const [x1, y1, x2, y2, za, zb] of FLOOR.segs) bg += membrane(m, x1, y1, x2, y2, za, zb);
       ZONE_INLINE_DONE = false;
       for (const r of FLOOR.rects) { let ty = r.y + 10;
         for (const z of r.zs || [r.z]) { if (named.has(z)) continue; named.add(z);
@@ -2763,7 +2776,7 @@ function stitchSVG(m, statusOf) {
       // The tint runs on past the drawing to the edges of the canvas (as a grid's columns do); the outer bands sideways too.
       const bx0 = i ? b.x0 : b.x0 - BLEED, bx1 = i < BANDS.length - 1 ? b.x1 : b.x1 + BLEED;
       bg += `<g class="blob"><path class="t-${zoneTone(b.z)}" d="M${bx0},${ya - BLEED}H${bx1}V${yb + BLEED}H${bx0}Z"/></g>`;
-      if (i) bg += `<line class="cellwall" x1="${b.x0}" x2="${b.x0}" y1="${ya - BLEED}" y2="${yb + BLEED}"/>`;
+      if (i) bg += membrane(m, b.x0, ya - BLEED, b.x0, yb + BLEED, BANDS[i - 1].z, b.z);
       const zi = m.items['z:' + b.z], name = zi?.name || b.z.split('|')[0], tw = Math.min(260, name.length * 8.1 + 16), R0 = { x: b.x0 + 12, y: ya + 10, w: tw, h: 22 };
       if (!zi) return;
       tabs.push(R0);
