@@ -2017,9 +2017,12 @@ function stitchSVG(m, statusOf) {
     const os = XI.rects.get(bucketKey(i, j)); if (os && os.some(o => { if (skip && o.x === skip.x && o.y === skip.y && o.box) return false; const g = r.box || o.box ? M : 3; return r.x < o.x + o.w + g && r.x + r.w > o.x - g && r.y < o.y + o.h + g && r.y + r.h > o.y - g; })) return true; } return false; }); };
   /* Lines against things, both ways, with the drawn geometry: a new part's lines may not run through anything placed,
      and the placed parts' lines may not run through the new part's boxes and labels. A 64-px bucket grid keeps it quick. */
-  const B = 64, bucketKey = (i, j) => i * 100003 + j, XI = { rects: new Map(), pts: new Map(), n: -1 };
+  const B = 64, bucketKey = (i, j) => i * 100003 + j, XI = { rects: new Map(), pts: new Map(), n: '' };
+  let OCCV = 0;
   const addRect = r => { for (let i = Math.floor(r.x / B); i <= Math.floor((r.x + r.w) / B); i++) for (let j = Math.floor(r.y / B); j <= Math.floor((r.y + r.h) / B); j++) { const k = bucketKey(i, j); (XI.rects.get(k) || XI.rects.set(k, []).get(k)).push(r); } };
-  const index = () => { const sig = occ.length * 1000 + placed.length + (occ[0]?.x || 0) + (occ[occ.length - 1]?.y || 0); if (XI.n === sig) return; XI.rects.clear(); XI.pts.clear(); occ.forEach(addRect);
+  // (Rebuilt whenever what's placed changed: every place() and rebuild() counts. A signature made of counts and a
+  // coordinate or two once matched a stale index after a piece was taken out and put back, and two pieces landed on each other.)
+  const index = () => { const sig = OCCV + ':' + occ.length; if (XI.n === sig) return; XI.rects.clear(); XI.pts.clear(); occ.forEach(addRect);
     for (const P of placed) for (const [x, y] of P.pts || []) { const k = bucketKey(Math.floor((x + P.dx) / B), Math.floor((y + P.dy) / B)); (XI.pts.get(k) || XI.pts.set(k, []).get(k)).push([x + P.dx, y + P.dy]); }
     XI.n = sig; };
   const inside = (x, y, r, g) => x > r.x - g && x < r.x + r.w + g && y > r.y - g && y < r.y + r.h + g;
@@ -2032,7 +2035,7 @@ function stitchSVG(m, statusOf) {
   const onAnyLine = r => { index(); for (let i = Math.floor((r.x - 3) / B); i <= Math.floor((r.x + r.w + 3) / B); i++) for (let j = Math.floor((r.y - 3) / B); j <= Math.floor((r.y + r.h + 3) / B); j++) { const ps = XI.pts.get(bucketKey(i, j)); if (ps && ps.some(([x, y]) => inside(x, y, r, 3))) return true; }
     return drawn.some(([p, q]) => Math.max(p[0], q[0]) > r.x - 3 && Math.min(p[0], q[0]) < r.x + r.w + 3 && Math.max(p[1], q[1]) > r.y - 3 && Math.min(p[1], q[1]) < r.y + r.h + 3); };
   const place = (R, dx, dy) => {
-    R.dx = dx; R.dy = dy; placed.push(R); occ.push(...rectsOf(R, dx, dy));
+    R.dx = dx; R.dy = dy; placed.push(R); occ.push(...rectsOf(R, dx, dy)); OCCV++;
     for (const [k, r] of Object.entries(R.pos)) if (!G[k]) G[k] = { ...shift(r, dx, dy), R, id: k.slice(2) };
   };
   // The parts placed so far take room with their steps too: nothing of a new part may sit on one of their arrows.
@@ -2068,7 +2071,7 @@ function stitchSVG(m, statusOf) {
   // After a part is re-drawn: everything placed so far, from scratch.
   const reserved = []; // where the labels of steps moved between parts used to be: kept free for them
   const rebuild = () => {
-    occ.length = 0; occ.push(...reserved); for (const k of Object.keys(G)) delete G[k];
+    occ.length = 0; occ.push(...reserved); OCCV++; for (const k of Object.keys(G)) delete G[k];
     for (const P of placed) { occ.push(...rectsOf(P, P.dx, P.dy)); for (const [k, r] of Object.entries(P.pos)) if (!G[k]) G[k] = { ...shift(r, P.dx, P.dy), R: P, id: k.slice(2) }; }
   };
   // Right-angled routes between two boxes, simplest first: straight, an L (either corner), then three legs (in the gap
@@ -2313,9 +2316,27 @@ function stitchSVG(m, statusOf) {
     FLOOR.segs = [];
     // (Each with the compartment either side: left or above first, as membrane() takes them.)
     const zAt = (x, y) => FLOOR.rects.filter(q => x > q.x && x < q.x + q.w && y > q.y && y < q.y + q.h).pop()?.z;
+    // An edge runs past several regions (blood's bottom edge: the cytosol, the ER, the matrix, the cytosol again): one
+    // membrane per stretch, named for what's across it there; an edge two regions share is drawn once.
+    const segKey = new Set();
     for (const r of FLOOR.rects) if (r.role !== 'cyto') for (const [x1, y1, x2, y2, e] of [[r.x, r.y, r.x + r.w, r.y, 't'], [r.x, r.y + r.h, r.x + r.w, r.y + r.h, 'b'], [r.x, r.y, r.x, r.y + r.h, 'l'], [r.x + r.w, r.y, r.x + r.w, r.y + r.h, 'r']]) if (!(r.bleed || '').includes(e)) {
-      const mx = (x1 + x2) / 2, my = (y1 + y2) / 2, out = zAt(mx + (e === 'r' ? 6 : e === 'l' ? -6 : 0), my + (e === 'b' ? 6 : e === 't' ? -6 : 0)) || r.z;
-      FLOOR.segs.push([x1, y1, x2, y2, e === 'l' || e === 't' ? out : r.z, e === 'l' || e === 't' ? r.z : out]); }
+      const h = y1 === y2, lo = h ? x1 : y1, hi = h ? x2 : y2;
+      const cuts = uniq([lo, hi, ...FLOOR.rects.flatMap(q => h ? [q.x, q.x + q.w] : [q.y, q.y + q.h]).filter(v => v > lo + 1 && v < hi - 1)]).sort((a, b) => a - b);
+      for (let i = 1; i < cuts.length; i++) {
+        const a = cuts[i - 1], b = cuts[i], mid = (a + b) / 2, out = (h ? zAt(mid, y1 + (e === 'b' ? 6 : -6)) : zAt(x1 + (e === 'r' ? 6 : -6), mid)) || r.z;
+        if (out === r.z) continue;
+        const sg = h ? [a, y1, b, y1] : [x1, a, x1, b], k = sg.map(Math.round).join(',');
+        if (segKey.has(k)) continue; segKey.add(k);
+        const za = e === 'l' || e === 't' ? out : r.z, zb = e === 'l' || e === 't' ? r.z : out, last = FLOOR.segs[FLOOR.segs.length - 1];
+        // (Carrying on the stretch before it, with the same two sides: one longer membrane.)
+        if (last && last[4] === za && last[5] === zb && (h ? last[1] === y1 && last[3] === y1 && Math.abs(last[2] - a) < 1 : last[0] === x1 && last[2] === x1 && Math.abs(last[3] - a) < 1)) { if (h) last[2] = b; else last[3] = b; }
+        else FLOOR.segs.push([...sg, za, zb]);
+      }
+    }
+    // An edge that reaches the floor's outside runs on to the canvas edge, as the tints on both sides of it do.
+    const Hf = Ht + Hm + Hb, outX = x => x <= 0 || x >= W, outY = y => y <= 0 || y >= Hf;
+    for (const g of FLOOR.segs) if (g[1] === g[3]) { const [a, b] = g[0] < g[2] ? [0, 2] : [2, 0]; if (outX(g[a])) g[a] -= BLEED; if (outX(g[b])) g[b] += BLEED; }
+      else { const [a, b] = g[1] < g[3] ? [1, 3] : [3, 1]; if (outY(g[a])) g[a] -= BLEED; if (outY(g[b])) g[b] += BLEED; }
     const centerOf = z => { const r = rectsFor(z)[0]; return r ? { cx: r.x + r.w / 2, cy: r.y + r.h / 2 } : { cx: 0, cy: 0 }; };
     // Each ring's turn: the one whose boxes with steps out of its region face the region they go to.
     const linksOf = id => [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].filter(r => r.from === id || r.to === id).map(r => zOfId(r.from === id ? r.to : r.from)).filter(Boolean);
@@ -2338,7 +2359,10 @@ function stitchSVG(m, statusOf) {
       return x > Math.min(h[0][0], h[1][0]) + 1 && x < Math.max(h[0][0], h[1][0]) - 1 && y > Math.min(v[0][1], v[1][1]) + 1 && y < Math.max(v[0][1], v[1][1]) - 1; };
     const ell = (a, b, hFirst) => (hFirst ? [[a, [b[0], a[1]]], [[b[0], a[1]], b]] : [[a, [a[0], b[1]]], [[a[0], b[1]], b]]);
     const through = (sg, boxes) => boxes.reduce((n, B) => n + (Math.max(sg[0][0], sg[1][0]) > B.x && Math.min(sg[0][0], sg[1][0]) < B.x + B.w && Math.max(sg[0][1], sg[1][1]) > B.y && Math.min(sg[0][1], sg[1][1]) < B.y + B.h ? 1 : 0), 0);
-    let ROOMY = false;
+    let ROOMY = false; const ROOMY_SLACK = 2000, NUDGE = 4; // (slack: about two crossings)
+    // The gap a step between two boxes of one region needs: a carrier's pill and the name past it; else its name and
+    // cofactors beside the line (nothing shown, just room for the arrow).
+    const roomFor = r => r.via ? 220 : statusOf('e:' + r.id) !== 'hide' && m.items['e:' + r.id] || cofParts(m, statusOf, r).some(p => p.st !== 'hide') ? 100 : 60;
     const placeFloor = q => {
       const R = q.R, mine = rectsFor(q.z).filter(r => r.role !== 'isle' || r.z === q.z);
       // Its links to boxes already down, and every other link already laid (as its cheaper corner).
@@ -2356,18 +2380,21 @@ function stitchSVG(m, statusOf) {
       // The nearest free spots (up to 40), scored with their crossings; the best wins.
       // (A step through a carrier between two boxes of one region, like the kidney's urobilin and the gut's urobilinogen: the
       // boxes far enough apart for its pill.)
-      const tight = ends.filter(([, , r]) => r.via && roleOf(zOfId(R.pos['m:' + r.from] ? r.to : r.from) || '') === roleOf(q.z));
-      const roomy = ([, dx, dy]) => tight.every(([a, b]) => Math.max(Math.abs(a.x + a.w / 2 + dx - b.x - b.w / 2) - (a.w + b.w) / 2, Math.abs(a.y + a.h / 2 + dy - b.y - b.h / 2) - (a.h + b.h) / 2) >= 220);
+      // (Any named step, not just a carrier's: aromatase from testosterone to estradiol needs room for its name and cofactors.)
+      const tight = ends.filter(([, , r]) => r.id && roleOf(zOfId(R.pos['m:' + r.from] ? r.to : r.from) || '') === roleOf(q.z));
+      const roomy = ([, dx, dy]) => tight.every(([a, b, r]) => Math.max(Math.abs(a.x + a.w / 2 + dx - b.x - b.w / 2) - (a.w + b.w) / 2, Math.abs(a.y + a.h / 2 + dy - b.y - b.h / 2) - (a.h + b.h) / 2) >= roomFor(r));
       const free = []; for (const c of ROOMY ? cands.filter(roomy) : cands) { if (free.length >= 80 || (free.length && c[0] > free[0][0] + 5000)) break; if (!clash(rectsOf(R, c[1], c[2])) && !crosses(R, c[1], c[2])) free.push(c); }
       const score = ([d, dx, dy]) => d + ends.reduce((n, [a, b]) => { const A = [a.x + a.w / 2 + dx, a.y + a.h / 2 + dy], B = cen(b);
         return n + Math.min(...[true, false].map(hf => ell(A, B, hf).reduce((t, sg) => t + 900 * laid.filter(l => l.some(ls => segsHit(sg, ls))).length + 3000 * through(sg, others.filter(o => !(B[0] > o.x && B[0] < o.x + o.w && B[1] > o.y && B[1] < o.y + o.h))), 0))); }, 0);
-      let got = free.length ? free.map(c => [score(c), c]).sort((a, b) => a[0] - b[0])[0][1] : cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)));
+      // (Making room, a piece moves as little as it can: far from where it was, it would tip its links into new crossings.)
+      const was = ROOMY && R.was, moved = c => (was ? NUDGE * (Math.abs(c[1] - was[0]) + Math.abs(c[2] - was[1])) : 0);
+      let got = free.length ? free.map(c => [score(c) + moved(c), c]).sort((a, b) => a[0] - b[0])[0][1] : cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)));
       if (!got) { const r = mine[0]; got = [0, r.x + 40 - R.vb[0], Math.max(...placed.map(P => P.vb[1] + P.vb[3] + P.dy), r.y) + 60 - R.vb[1]]; }
       place(R, got[1], got[2]);
     };
-    placeFloor.cramped = q => all.some(r => { const mine = q.R.pos['m:' + r.from] ? r.from : q.R.pos['m:' + r.to] ? r.to : null, o = mine && (mine === r.from ? r.to : r.from); if (!mine || !r.via || q.R.pos['m:' + o] || !G['m:' + o]) return false;
+    placeFloor.cramped = q => all.some(r => { const mine = q.R.pos['m:' + r.from] ? r.from : q.R.pos['m:' + r.to] ? r.to : null, o = mine && (mine === r.from ? r.to : r.from); if (!mine || !r.id || q.R.pos['m:' + o] || !G['m:' + o]) return false;
       if (roleOf(zOfId(o) || '') !== roleOf(q.z)) return false; const a = G['m:' + mine], b = G['m:' + o];
-      return Math.max(Math.abs(a.x + a.w / 2 - b.x - b.w / 2) - (a.w + b.w) / 2, Math.abs(a.y + a.h / 2 - b.y - b.h / 2) - (a.h + b.h) / 2) < 220; });
+      return Math.max(Math.abs(a.x + a.w / 2 - b.x - b.w / 2) - (a.w + b.w) / 2, Math.abs(a.y + a.h / 2 - b.y - b.h / 2) - (a.h + b.h) / 2) < roomFor(r); });
     for (const q of pieces) placeFloor(q);
     // Then three times over: each piece out and back in, now that everything it's joined to is down.
     const snap = () => pieces.map(q => [q.R.dx, q.R.dy]), restore = S => { pieces.forEach((q, i) => { q.R.dx = S[i][0]; q.R.dy = S[i][1]; }); rebuild(); };
@@ -2382,7 +2409,11 @@ function stitchSVG(m, statusOf) {
     improve(pieces);
     // Last, and only then (an early move tips the whole chart): a piece too close to the box its carrier's step joins in the
     // same region (the kidney's urobilin under the gut's urobilinogen) moves to the nearest spot with room for the pill.
-    ROOMY = true; for (const q of pieces) if (placeFloor.cramped(q)) { placed.splice(placed.indexOf(q.R), 1); rebuild(); placeFloor(q); } ROOMY = false;
+    // (Each such move kept only if the whole layout stays about as good: one that adds crossings is undone.)
+    ROOMY = true; let cost0 = layoutCost();
+    for (const q of pieces) if (placeFloor.cramped(q)) { const S = snap(); q.R.was = [q.R.dx, q.R.dy]; placed.splice(placed.indexOf(q.R), 1); rebuild(); placeFloor(q); q.R.was = null;
+      const c = layoutCost(); if (c > cost0 + ROOMY_SLACK) restore(S); else cost0 = c; }
+    ROOMY = false;
     if (STITCH_PROF) STITCH_PROF.est = Math.round(layoutCost() / 1000);
     } else {
     // Each band as wide as its widest piece, plus room either side for what crosses its membranes (a carrier's pill and
@@ -2760,10 +2791,13 @@ function stitchSVG(m, statusOf) {
     // between regions, each compartment named once at the top-left of its first region.
     if (FLOOR && FLOOR.rects.some(r => m.items['z:' + r.z] && statusOf('z:' + r.z) !== 'hide')) {
       const named = new Set();
+      // (A compartment's regions as one shape: the cytosol's three pieces drawn apart left faint seams where they meet.)
+      const shapes = new Map();
       for (const r of FLOOR.rects) {
         const b = r.bleed || '', x0 = b.includes('l') ? r.x - BLEED : r.x, x1 = b.includes('r') ? r.x + r.w + BLEED : r.x + r.w, y0 = b.includes('t') ? r.y - BLEED : r.y, y1 = b.includes('b') ? r.y + r.h + BLEED : r.y + r.h;
-        bg += `<g class="blob"><path class="t-${zoneTone(r.z)}" d="M${x0},${y0}H${x1}V${y1}H${x0}Z"/></g>`; regions.push({ x: r.x, y: r.y, w: r.w, h: r.h });
+        const k = r.role === 'isle' ? r.z + '#' + r.x : r.z; shapes.set(k, (shapes.get(k) || { z: r.z, d: '' })); shapes.get(k).d += `M${x0},${y0}H${x1}V${y1}H${x0}Z`; regions.push({ x: r.x, y: r.y, w: r.w, h: r.h });
       }
+      for (const { z, d } of shapes.values()) bg += `<g class="blob"><path class="t-${zoneTone(z)}" d="${d}"/></g>`;
       for (const [x1, y1, x2, y2, za, zb] of FLOOR.segs) bg += membrane(m, x1, y1, x2, y2, za, zb);
       ZONE_INLINE_DONE = false;
       for (const r of FLOOR.rects) { let ty = r.y + 10;

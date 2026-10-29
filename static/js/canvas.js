@@ -279,15 +279,53 @@ window.addEventListener('resize', () => {
 /* ---------- where an arrow goes off screen ----------
    Zoomed in, an arrow that leaves the view gets a small pill where it crosses the edge, saying where it goes ("→ Acetyl-CoA
    (TCA cycle) via Mitochondrial pyruvate carrier") or comes from ("← from …"); clicking it flies there. Up to 12, nearest
-   the middle first; none during a quiz (they'd give answers away). */
+   the middle first, each only where it covers nothing but its own arrow; none during a quiz (they'd give answers away). */
 let EDGE_T = 0;
 const canvasQuizzing = () => !!document.querySelector('#view .quiz') && typeof Q !== 'undefined' && Q.round?.type !== 'review';
-function edgeHintsSoon(st) { clearTimeout(EDGE_T); EDGE_T = setTimeout(() => { if (st.isConnected) { autoHide(st); edgeHints(st); membraneHints(st); } }, 140); }
+// While the view moves the hints fade away (placed for the old view, they'd trail behind it); once it settles they're
+// placed afresh. (A glide waits for the glide.)
+function edgeHintsSoon(st) {
+  st.classList.add('moving'); clearTimeout(EDGE_T);
+  EDGE_T = setTimeout(() => { if (!st.isConnected) return; autoHide(st); const svg = svgOf(st), ob = svg && !canvasQuizzing() ? hintObstacles(st, svg) : null; edgeHints(st, ob); membraneHints(st, ob); st.classList.remove('moving'); }, worldOf(st)?.classList.contains('glide') ? 320 : 160);
+}
+/* What a hint mustn't cover, in stage pixels: boxes, names and every other label (as rectangles) and every line (as
+   segments), leaving out the tints, the membranes and faded arrows. Collected once each time the view settles. */
+function hintObstacles(st, svg) {
+  const S = st.getBoundingClientRect(), rects = [], segs = [], seen = R => R.width + R.height > 0 && R.right > S.left && R.left < S.right && R.bottom > S.top && R.top < S.bottom;
+  for (const el of svg.querySelectorAll('g.mbox, g.elab, text, rect.legend, circle')) {
+    if ((el.tagName === 'text' || el.tagName === 'circle') && el.closest('g.mbox, g.elab') || el.closest('g.rt-off')) continue;
+    const R = el.getBoundingClientRect(); if (seen(R)) rects.push({ x: R.left - S.left, y: R.top - S.top, w: R.width, h: R.height });
+  }
+  for (const el of svg.querySelectorAll('path:not(.hit), line:not(.hit)')) {
+    if (el.matches('.memb, .zone, .region, .blob *, .gframe') || el.closest('g.rt-off, g.mbox, g.elab, defs')) continue;
+    if (!seen(el.getBoundingClientRect())) continue;
+    const T = toScreen(svg, el); let pts;
+    if (el.tagName === 'line') pts = [[+el.getAttribute('x1'), +el.getAttribute('y1')], [+el.getAttribute('x2'), +el.getAttribute('y2')]];
+    else { const d = el.getAttribute('d') || '';
+      // (Connectors are absolute M/L/Q: their numbers in pairs trace them. Anything else, sampled along it.)
+      if (/^[MLQZ\d\s,.\-e]+$/.test(d)) { const n = d.match(/-?[\d.]+(?:e-?\d+)?/g).map(Number); pts = []; for (let i = 0; i + 1 < n.length; i += 2) pts.push([n[i], n[i + 1]]); }
+      else { const L = el.getTotalLength(); pts = Array.from({ length: 13 }, (_, i) => { const q = el.getPointAtLength(L * i / 12); return [q.x, q.y]; }); } }
+    const sp = pts.map(([x, y]) => T(x, y)).map(([x, y]) => [x - S.left, y - S.top]), rx = [...el.classList].find(c => c.startsWith('rx-')) || '';
+    for (let i = 1; i < sp.length; i++) segs.push({ a: sp[i - 1], b: sp[i], rx });
+  }
+  return { rects, segs };
+}
+// Does a rectangle (stage pixels) cover any of them (a line of the given step aside: a hint may sit on its own arrow)?
+function hintCovers(ob, r, ownRx = '') {
+  const g = 3, x0 = r.x - g, y0 = r.y - g, x1 = r.x + r.w + g, y1 = r.y + r.h + g;
+  if (ob.rects.some(o => o.x < x1 && o.x + o.w > x0 && o.y < y1 && o.y + o.h > y0)) return true;
+  const inR = ([x, y]) => x >= x0 && x <= x1 && y >= y0 && y <= y1;
+  const cross = (p, q, a, b) => { const d = (q[0] - p[0]) * (b[1] - a[1]) - (q[1] - p[1]) * (b[0] - a[0]); if (!d) return false;
+    const t = ((a[0] - p[0]) * (b[1] - a[1]) - (a[1] - p[1]) * (b[0] - a[0])) / d, u = ((a[0] - p[0]) * (q[1] - p[1]) - (a[1] - p[1]) * (q[0] - p[0])) / d; return t >= 0 && t <= 1 && u >= 0 && u <= 1; };
+  const C = [[x0, y0], [x1, y0], [x1, y1], [x0, y1]];
+  return ob.segs.some(({ a, b, rx }) => (!ownRx || rx !== ownRx) && (inR(a) || inR(b) || C.some((c, i) => cross(a, b, c, C[(i + 1) % 4]))));
+}
 
 /* ---------- long arrows passing through ----------
    Zoomed in on a joined drawing, an arrow between parts that crosses the view with neither of its ends in it is probably
    not what you're looking at: it fades out. One you're following stays: an arrow that was showing stays while it's in
-   view, however long you pan along it, and keeps a 3-second grace if you pan off it and back. Zooming starts afresh
+   view, however long you pan along it, and keeps a 3-second grace if you pan off it and back. (Faded, not gone: it's still
+   there faintly, and pointing at it brings it back while the pointer is on it.) Zooming starts afresh
    (from the whole drawing in, everything had its ends in view). Off in quizzes, and with Settings → Pathway pages. */
 const RT_GRACE = 3000;
 /* An element's own coordinates → the screen. Safari's getScreenCTM leaves out the canvas's CSS zoom, so: element → the
@@ -324,9 +362,9 @@ function autoHide(st) {
    Zoomed in, the compartment names are often far off screen. Each membrane in view gets a small pill straddling it,
    naming the compartment on each side (its halves edged in that side's color, like the membrane's own two lines).
    Not in quizzes (a compartment can be the question). */
-function membraneHints(st) {
+function membraneHints(st, ob) {
   st.querySelectorAll('.memhint').forEach(e => e.remove());
-  const svg = svgOf(st); if (!svg || canvasQuizzing()) return;
+  const svg = svgOf(st); if (!svg || !ob) return;
   const S = st.getBoundingClientRect(), V = svg.getBoundingClientRect();
   // The whole drawing in view: its compartment names are too.
   if (V.left >= S.left - 2 && V.right <= S.right + 2 && V.top >= S.top - 2 && V.bottom <= S.bottom + 2) return;
@@ -343,23 +381,24 @@ function membraneHints(st) {
     if (seen.some(o => o.key === key && Math.abs(o.at - at) < 40)) continue;
     const tone = l => [...l.classList].find(c => c.startsWith('t-')) || 't-slate', [la, lb] = g.querySelectorAll('line');
     const el = document.createElement('div'); el.className = 'memhint ' + (v ? 'mh-v' : 'mh-h'); el.setAttribute('aria-hidden', 'true');
-    el.innerHTML = v ? `<span class="mh-a ${tone(la)}">${esc(g.dataset.a)}</span><span class="mh-b ${tone(lb)}">${esc(g.dataset.b)}</span>`
-      : `<span class="mh-a ${tone(la)}">${esc(g.dataset.a)}</span><span class="mh-b ${tone(lb)}">${esc(g.dataset.b)}</span>`;
+    el.innerHTML = `<span class="mh-a ${tone(la)}">${esc(g.dataset.a)}</span><span class="mh-b ${tone(lb)}">${esc(g.dataset.b)}</span>`;
     st.append(el);
-    const w = el.offsetWidth, h = el.offsetHeight;
-    // On a vertical membrane: near the top of the stretch in view, the split on the line. On a horizontal one: near the left, stacked across it.
-    let x, y;
-    if (v) { x = at - S.left - el.querySelector('.mh-a').offsetWidth; y = lo - S.top + 10; }
-    else { x = lo - S.left + 10; y = at - S.top - el.querySelector('.mh-a').offsetHeight; }
-    x = Math.min(S.width - w - 4, Math.max(4, x)); y = Math.min(S.height - h - 4, Math.max(4, y));
-    if (placed.some(o => x < o.x + o.w + 6 && o.x < x + w + 6 && y < o.y + o.h + 6 && o.y < y + h + 6)) { el.remove(); continue; }
-    el.style.left = x + 'px'; el.style.top = y + 'px'; placed.push({ x, y, w, h }); seen.push({ key, at });
+    const w = el.offsetWidth, h = el.offsetHeight, wa = el.querySelector('.mh-a'), off = v ? wa.offsetWidth : wa.offsetHeight;
+    // Split on the line, at the first spot along the stretch in view (from its top, or its left) where it covers nothing.
+    let spot = null;
+    for (let t = lo - (v ? S.top : S.left) + 10; t + (v ? h : w) < hi - (v ? S.top : S.left) - 4 && !spot; t += 24) {
+      const r = v ? { x: at - S.left - off, y: t, w, h } : { x: t, y: at - S.top - off, w, h };
+      if (r.x < 4 || r.y < 4 || r.x + w > S.width - 4 || r.y + h > S.height - 4) continue;
+      if (!hintCovers(ob, r) && !placed.some(o => r.x < o.x + o.w + 6 && o.x < r.x + w + 6 && r.y < o.y + o.h + 6 && o.y < r.y + h + 6)) spot = r;
+    }
+    if (!spot) { el.remove(); continue; }
+    el.style.left = spot.x + 'px'; el.style.top = spot.y + 'px'; placed.push(spot); seen.push({ key, at });
     if (placed.length >= 8) break;
   }
 }
-function edgeHints(st) {
+function edgeHints(st, ob) {
   st.querySelectorAll('.edgehint').forEach(e => e.remove());
-  if (!st.isConnected || canvasQuizzing()) return;
+  if (!st.isConnected || !ob) return;
   const svg = svgOf(st); if (!svg) return;
   const m = HOVER_MODELS.get(svg.dataset.pid); if (!m) return;
   const S = st.getBoundingClientRect(), pad = 4, inView = q => q.x > S.left + pad && q.x < S.right - pad && q.y > S.top + pad && q.y < S.bottom - pad;
@@ -390,10 +429,16 @@ function edgeHints(st) {
   for (const h of found.sort((x, y) => x.d - y.d)) {
     if (placed.length >= 12 || seen.has(h.text)) continue; seen.add(h.text);
     const el = document.createElement('button'); el.type = 'button'; el.className = 'edgehint'; el.textContent = h.text; el.dataset.go = h.key; el.dataset.rx = h.rid; st.append(el);
-    const w = el.offsetWidth, ht = el.offsetHeight;
-    let x = Math.min(S.width - w - 6, Math.max(6, h.at.x - S.left - w / 2)), y = Math.min(S.height - ht - 6, Math.max(6, h.at.y - S.top - ht / 2));
-    for (let k = 0; k < 8 && placed.some(o => Math.abs(o.x - x) < (o.w + w) / 2 + 4 && Math.abs(o.y - y) < ht + 4); k++) y += ht + 6; // (never on one another)
-    el.style.left = x + 'px'; el.style.top = y + 'px'; placed.push({ x: x + w / 2 - w / 2, y, w });
+    const w = el.offsetWidth, ht = el.offsetHeight, ax = h.at.x - S.left, ay = h.at.y - S.top;
+    // Where it crosses (on its own arrow), else a little along that edge: the first spot that covers nothing else.
+    const side = Math.min(ax, S.width - ax) < Math.min(ay, S.height - ay), clampR = (x, y) => ({ x: Math.min(S.width - w - 6, Math.max(6, x)), y: Math.min(S.height - ht - 6, Math.max(6, y)), w, h: ht });
+    let spot = null;
+    for (const d of [0, 28, -28, 56, -56, 90, -90, 130, -130]) {
+      const r = side ? clampR(ax - w / 2, ay - ht / 2 + d) : clampR(ax - w / 2 + d, ay - ht / 2);
+      if (!hintCovers(ob, r, 'rx-' + h.rid) && !placed.some(o => r.x < o.x + o.w + 4 && o.x < r.x + w + 4 && r.y < o.y + o.h + 4 && o.y < r.y + ht + 4)) { spot = r; break; }
+    }
+    if (!spot) { el.remove(); continue; }
+    el.style.left = spot.x + 'px'; el.style.top = spot.y + 'px'; placed.push(spot);
   }
 }
 document.addEventListener('click', e => {

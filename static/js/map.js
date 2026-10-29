@@ -187,7 +187,7 @@ function mapSidebarHTML(c) {
     <h3 class="glabel">Layout</h3>
     <div class="seg" role="group" aria-label="Layout">${[[false, 'Each pathway whole'], [true, 'Merge shared molecules']].map(([v, l]) => `<button type="button" data-mapmerge="${v}" aria-pressed="${!!c.merge === v}" data-tip="${v ? 'One drawing: each molecule once, with every pathway that uses it meeting there' : 'Each pathway on its own, grouped in bands; hover a molecule to see its other copies'}">${l}</button>`).join('')}</div>
     <h3 class="glabel">Show</h3>
-    <div class="map-sw">${MAP_LAYERS.map(([k, l]) => sw('data-maplayer', k, !!c.layers[k], l)).join('')}${sw('data-mapautohide', '1', Store.settings.autoHide !== false, 'Hide passing arrows')}</div>
+    <div class="map-sw">${MAP_LAYERS.map(([k, l]) => sw('data-maplayer', k, !!c.layers[k], l)).join('')}${sw('data-mapautohide', '1', Store.settings.autoHide !== false, 'Fade passing arrows')}</div>
     <h3 class="glabel">Fed or fasting</h3>
     <div class="seg" role="group" aria-label="Fed or fasting">${[['', 'Off'], ['fed', 'Fed'], ['fasting', 'Fasting']].map(([v, l]) => `<button type="button" data-mapreg="${v}" aria-pressed="${c.reg === v}">${l}</button>`).join('')}</div>
     <div class="sec-h"><h3 class="glabel">Pathways</h3><span class="btnrow"><button type="button" class="linkbtn" data-mapall="1">All</button><button type="button" class="linkbtn" data-mapall="0">None</button></span></div>

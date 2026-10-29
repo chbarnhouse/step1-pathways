@@ -872,12 +872,14 @@ body[data-page="home"] .view { padding-bottom: 20px; }
   .set-nav a { white-space: nowrap; }
 }
 /* Compartments: each kind has its own tint, its name on it, dashed membranes and a solid wall between cells. */
-.flow .zone, .flow .region { opacity: .75; }
-.flow .t-blue { fill: var(--blue-bg); } .flow .t-orange { fill: var(--orange-bg); } .flow .t-teal { fill: var(--teal-bg); }
-.flow .t-gold { fill: var(--gold-bg); } .flow .t-pink { fill: var(--pink-bg); } .flow .t-slate { fill: var(--slate-bg); }
+.flow .region { opacity: .75; }
+/* (Tints mixed from each tone into the page, so they're as saturated in dark themes as in light.) */
+.flow { --zt: 24%; }
+.flow .t-blue { fill: color-mix(in srgb, var(--blue) var(--zt), var(--paper)); } .flow .t-orange { fill: color-mix(in srgb, var(--orange) var(--zt), var(--paper)); } .flow .t-teal { fill: color-mix(in srgb, var(--teal) var(--zt), var(--paper)); }
+.flow .t-gold { fill: color-mix(in srgb, var(--gold) var(--zt), var(--paper)); } .flow .t-pink { fill: color-mix(in srgb, var(--pink) var(--zt), var(--paper)); } .flow .t-slate { fill: color-mix(in srgb, var(--slate) var(--zt), var(--paper)); }
 .flow .region { stroke: var(--ink-2); stroke-width: 1.6; stroke-dasharray: 7 5; }
 /* Connected pathways: a compartment is one tinted shape made of overlapping pieces; the group carries the transparency. */
-.flow .blob { opacity: .75; }
+.flow .blob { opacity: 1; }
 .flow .membrane { stroke: var(--ink-2); stroke-width: 1.8; stroke-dasharray: 7 5; }
 .flow .cellwall { stroke: var(--ink-2); stroke-width: 3; }
 .el-row .el-note { grid-column: 1 / -1; display: flex; gap: 6px; align-items: center; }
@@ -1372,34 +1374,26 @@ svg.flow path.hit, svg.flow line.hit { fill: none; stroke: transparent; stroke-w
 /* Where an arrow leaves the view: a pill at the edge (click to go there). */
 .edgehint { position: absolute; z-index: 6; max-width: 280px; padding: 3px 9px; border-radius: 999px; border: 1.5px solid var(--blue); background: var(--card); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.25; text-align: left; box-shadow: var(--shadow); cursor: pointer; white-space: normal; }
 .edgehint:hover, .edgehint:focus-visible { background: var(--blue-bg); }
-/* Drawing styles (Settings → Pathway pages → Style): how molecules, enzymes, carriers and cofactors stand apart.
-   html[data-dstyle]: a (today's, sharpened), b (filled chips), c (bold outlines); none set = today's look. */
-html[data-dstyle="a"] .flow .mbox:not(.blank):not(.target) rect { stroke-width: 2; }
-html[data-dstyle="a"] .flow .elab:not(.trn):not(.blank):not(.target) text:not(.tag):not(.req) { fill: var(--ink); }
-html[data-dstyle="a"] .flow .elab rect.trnpill { stroke: var(--orange); stroke-width: 2; }
-html[data-dstyle="a"] .flow .coft { fill: var(--teal); }
-html[data-dstyle="a"] .flow .cof { stroke: var(--teal); }
-html[data-dstyle="b"] .flow .mbox:not(.blank):not(.target) rect { fill: var(--blue-bg); stroke: var(--blue); }
-html[data-dstyle="b"] .flow .mbox:not(.blank):not(.target) text { fill: var(--blue); }
-html[data-dstyle="b"] .flow .elab:not(.trn):not(.blank):not(.target) text:not(.tag):not(.req) { fill: var(--teal); text-decoration: underline; text-decoration-thickness: 1.5px; text-underline-offset: 3px; }
-html[data-dstyle="b"] .flow .elab rect.trnpill { fill: var(--orange); stroke: none; }
-html[data-dstyle="b"] .flow .elab.trn text { fill: #ffffff; }
-html[data-dstyle="b"] .flow .coft { fill: var(--gold); font-weight: 700; }
-html[data-dstyle="b"] .flow .cof { stroke: var(--gold); }
-html[data-dstyle="c"] .flow .mbox:not(.blank):not(.target) rect { stroke: var(--ink); stroke-width: 2.5; rx: 4px; }
-html[data-dstyle="c"] .flow .elab:not(.trn):not(.blank):not(.target) text:not(.tag):not(.req) { fill: var(--pink); font-weight: 600; }
-html[data-dstyle="c"] .flow .elab rect.trnpill { stroke: var(--orange); stroke-width: 3; paint-order: stroke; }
-html[data-dstyle="c"] .flow .coft { fill: var(--slate); }
-html[data-dstyle="c"] .flow .ln { stroke: var(--ink); stroke-width: 2.6; }
+/* Sharpened (Charlie's pick, 2026-10-30): molecules a firmer outline, enzymes in ink, carriers' pills orange, cofactors teal. */
+.flow .mbox:not(.blank):not(.target) rect { stroke-width: 2; }
+.flow .elab:not(.trn):not(.blank):not(.target) text:not(.tag):not(.req) { fill: var(--ink); }
+.flow .elab rect.trnpill { stroke: var(--orange); stroke-width: 2; }
+.flow .coft { fill: var(--teal); }
+.flow .cof { stroke: var(--teal); }
 /* Membranes: two lines side by side, each in its compartment's color (a wall between cells heavier). */
 .flow .memb { stroke-width: 3.2; stroke: var(--slate); }
 .flow .mpair.wall .memb { stroke-width: 4.4; }
 .flow .memb.t-blue { stroke: var(--blue); } .flow .memb.t-orange { stroke: var(--orange); } .flow .memb.t-teal { stroke: var(--teal); }
 .flow .memb.t-gold { stroke: var(--gold); } .flow .memb.t-pink { stroke: var(--pink); } .flow .memb.t-slate { stroke: var(--slate); }
-/* Long arrows between parts passing through the view with neither end in it fade out (canvas.js autoHide). */
-.flow g.rt { transition: opacity .25s ease; }
-.flow g.rt.rt-off { opacity: 0; pointer-events: none; }
-@media (prefers-reduced-motion: reduce) { .flow g.rt { transition: none; } }
+/* Long arrows between parts passing through the view with neither end in it fade back (canvas.js autoHide); pointing at
+   one brings it forward while the pointer is on it. */
+.flow g.rt { transition: opacity .6s ease; }
+.flow g.rt.rt-off { opacity: .16; }
+.flow g.rt.rt-off:hover { opacity: 1; transition-duration: .15s; }
+/* Hints fade while the view moves (they're placed for where it stops). */
+.edgehint, .memhint { transition: opacity .18s ease; }
+.stage.canvas.moving :is(.edgehint, .memhint) { opacity: 0; transition-duration: .06s; pointer-events: none; }
+@media (prefers-reduced-motion: reduce) { .flow g.rt, .edgehint, .memhint { transition: none; } }
 /* Which compartment is on each side of a membrane in view: two halves, each edged in its side's color, split on the line. */
 .memhint { position: absolute; z-index: 5; display: flex; pointer-events: none; font-size: 11px; font-weight: 600; line-height: 1.2; color: var(--ink); white-space: nowrap; filter: drop-shadow(0 1px 2px rgb(0 0 0 / .18)); }
 .memhint span { --mt: var(--slate); padding: 2px 7px; background: var(--card); }

@@ -17,7 +17,6 @@ const APPEARANCE_DEFAULT = { mode: 'auto', light: 'default', dark: 'dark' };
 const appearance = () => Object.assign({}, APPEARANCE_DEFAULT, local.get('pathways.appearance') || {});
 const darkScheme = window.matchMedia ? matchMedia('(prefers-color-scheme: dark)') : null;
 // The drawing style (Settings → Pathway pages → Style), on the page root for the stylesheet.
-const applyDrawStyle = () => { const v = Store.settings?.drawStyle; if (v) document.documentElement.dataset.dstyle = v; else delete document.documentElement.dataset.dstyle; };
 function applyTheme() {
   const a = appearance(), dark = a.mode === 'dark' || (a.mode === 'auto' && !!darkScheme?.matches);
   document.documentElement.setAttribute('data-theme', dark ? a.dark : a.light);
@@ -842,8 +841,7 @@ function renderSettings() {
     <section class="card pad" id="set-draw">${setHead('Pathway pages', 'draw')}<p class="muted">What a pathway’s own page shows. Its buttons change these too.</p>
       <div class="setup">
         <div class="set-row"><span class="glabel">Fed vs fasting</span><div class="set-ctl">${seg('data-set', 'regView', [['', 'No badges'], ['fed', 'Fed (insulin)'], ['fasting', 'Fasting (glucagon)']], s.regView || '')}</div></div>
-        <div class="set-row"><span class="glabel">Style</span><div class="set-ctl">${seg('data-set', 'drawStyle', [['', 'Classic'], ['a', 'Sharpened'], ['b', 'Filled chips'], ['c', 'Bold outlines']], s.drawStyle || '')}</div></div>
-        <div class="set-row"><span class="glabel">Zoomed in</span><div class="set-ctl">${cb('data-sflag', 'autoHide', s.autoHide !== false, 'Hide long arrows passing through with neither end in view (joined drawings and the Map; never in a quiz)')}</div></div>
+        <div class="set-row"><span class="glabel">Zoomed in</span><div class="set-ctl">${cb('data-sflag', 'autoHide', s.autoHide !== false, 'Fade long arrows passing through with neither end in view (joined drawings and the Map; never in a quiz)')}</div></div>
         <div class="set-row"><span class="glabel">Drugs & toxins</span><div class="set-ctl">${cb('data-sflag', 'drugView', s.drugView, 'Show the drugs and toxins that act on each step')}</div></div>
       </div></section>
     <section class="card pad" id="set-map">${setHead('Map', 'map')}<p class="muted">The Map’s sidebar changes these too. Applies to this device.</p>
@@ -885,14 +883,14 @@ function renderSettings() {
 const SET_RESETS = {
   look: () => { local.set('pathways.appearance', null); applyTheme(); },
   quiz: () => { for (const k of ['answer', 'view', 'dir', 'zoom', 'follow', 'facts', 'autoAdvance']) Store.settings[k] = DEFAULT_SETTINGS[k]; for (const k of QUIZ_START_KEYS) setQuizStart(k, DRAFT_DEFAULTS[k] ?? (k === 'cofCount' ? true : k === 'nameModes' ? { ...NAME_MODE_DEFAULTS } : false)); delete Store.settings.quizStart; Store.save(); },
-  draw: () => { delete Store.settings.regView; delete Store.settings.drugView; delete Store.settings.autoHide; delete Store.settings.drawStyle; applyDrawStyle(); Store.save(); },
+  draw: () => { delete Store.settings.regView; delete Store.settings.drugView; delete Store.settings.autoHide; Store.save(); },
   map: () => { const c = mapCfg(); mapSave({ ...MAP_DEFAULT, tab: c.tab, btab: c.btab, side: c.side }); },
 };
 document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(RELEASED, 'All changes'); });
 document.addEventListener('click', e => {
   if (!$('#view .settings')) return;
   const sb = e.target.closest('[data-set]');
-  if (sb) { Store.settings[sb.dataset.set] = sb.dataset.v; Store.save(); applyDrawStyle(); return renderSettings(); }
+  if (sb) { Store.settings[sb.dataset.set] = sb.dataset.v; Store.save(); return renderSettings(); }
   const rs = e.target.closest('[data-setreset]');
   if (rs) { const k = rs.dataset.setreset, name = SET_SECTIONS.find(x => x[0] === k)?.[2] || ''; return ask({ title: `Reset ${name} to how it started?`, ok: 'Reset' }).then(y => { if (y) { SET_RESETS[k](); renderSettings(); } }); }
   const nm = e.target.closest('[data-snames]');
@@ -1167,7 +1165,7 @@ window.addEventListener('hashchange', router);
 (async function boot() {
   $('#brandIcon').innerHTML = mi('signpost');
   $$('[data-icon]').forEach(el => el.insertAdjacentHTML('afterbegin', mi(el.dataset.icon, 'sm')));
-  await Store.init(); applyDrawStyle();
+  await Store.init();
   const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
   await AutoBackup.init();
   previewBadge();
