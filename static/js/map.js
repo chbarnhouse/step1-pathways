@@ -22,8 +22,9 @@ const MAP_LAYERS = [
   ['enz', 'Enzymes', ['e:', 'f:']], ['trn', 'Transporters', ['t:']], ['cof', 'Cofactors', ['c:', 'o:']], ['need', 'What steps need (vitamins)', ['n:']],
   ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['pairs', 'Lines between paired steps', []], ['bands', 'Group bands', []],
 ];
-const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: false, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, pairs: false, bands: true }, reg: '', off: null, q: '', side: true, hover: true }; // hover: Browse lights a row up while the pointer is on it
-const mapCfg = () => { const c = local.get('pathways.map') || {}; return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null, sel: c.sel || [] }; };
+const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: true, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, pairs: false, bands: true }, reg: '', off: null, q: '', side: true, hover: true }; // hover: Browse lights a row up while the pointer is on it
+// (Once: settings saved before the merged chart became the cell, and the default, open on it; a choice made since stays.)
+const mapCfg = () => { const c = local.get('pathways.map') || {}; if (!c.cellV) { c.merge = true; c.cellV = 1; local.set('pathways.map', c); } return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null, sel: c.sel || [] }; };
 const mapSave = c => local.set('pathways.map', c);
 const MAPV = { tiles: [], hits: [] };
 const MAP_SHAPE = [1.5, 2.2]; // how wide a group block and the whole map run, against the square root of their area
