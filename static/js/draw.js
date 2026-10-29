@@ -95,6 +95,7 @@ function elbowLabels(m, statusOf, r, h, v) {
 /* A step drawn between the parts of a joined drawing can put its name and cofactors on any leg of its route. Every
    layout on every long-enough leg is scored by what it would cover (boxes and labels alike); the first that covers
    nothing wins (longest legs first), else the one that covers least. */
+const NONAME = { x: -1e7, y: -1e7, w: 0, h: 0 }; // (no name to place)
 function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(rect): it would sit on a line already drawn
   const it = m.items['e:' + r.id], es = statusOf('e:' + r.id), cs = cofSt(m, statusOf, r), cof = cs !== 'none' && cs !== 'hide';
   // (Its own route counts too: text on the very line it names.)
@@ -127,16 +128,16 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
       for (const wm of [22, 34]) for (const lift of wm > 22 ? [0] : [0, 24, 48]) for (const f of [0.5, 0.35, 0.65, 0.25, 0.75, 0.15, 0.85]) for (const up of cof ? [false, true] : [false]) { // (wm 34: on one line, to fit a tight gap)
         // (lift: the name a little further above its line, when right against it there's no room)
         const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = (up ? y - 62 : y - 8) - lift;
-        const name = enzRect(mx, ly, 'middle', it, wm, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
-        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return enzLabel(mx, ly, it, es, 'middle', wm, 'bottom') + c; } });
+        const name = ROUTE_NONAME ? NONAME : enzRect(mx, ly, 'middle', it, wm, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { if (name !== NONAME) DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return (ROUTE_NONAME ? '' : enzLabel(mx, ly, it, es, 'middle', wm, 'bottom')) + c; } });
       }
     } else {
       const x = p[0], y0 = Math.min(p[1], q[1]), y1 = Math.max(p[1], q[1]), cw = cof ? Math.max(0, ...parts.map(t => (hidden(t.st) ? 110 : t.text.length * 7))) + 64 : 14;
       const stretches = y1 - y0 > 150 ? [0.5, 0.35, 0.65, 0.22, 0.78].map(f => { const c = y0 + (y1 - y0) * f; return [Math.max(y0, c - 55), Math.min(y1, c + 55)]; }) : [[y0, y1]];
       for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1], [-44, 'end', 1], [cw + 30, 'start', 1], [-cw - 30, 'end', -1], [-74, 'end', 1], [cw + 60, 'start', 1], [-cw - 60, 'end', -1]]) {
         if (dx === 14 && cof) continue; // name right with cofactors left is the mirrored layout above
-        const c = (a0 + a1) / 2, name = enzRect(x + dx, c, an, it, 18), cb = drawn(() => cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0), name);
-        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return enzLabel(x + dx, c, it, es, an, 18, 'center') + cc; } });
+        const c = (a0 + a1) / 2, name = ROUTE_NONAME ? NONAME : enzRect(x + dx, c, an, it, 18), cb = drawn(() => cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0), name);
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { if (name !== NONAME) DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return (ROUTE_NONAME ? '' : enzLabel(x + dx, c, it, es, an, 18, 'center')) + cc; } });
       }
     }
   }
@@ -1981,7 +1982,7 @@ function gridRoute(a, b, boxes, labels, drawnSegs = [], linePts = []) { // lineP
 let STITCH_WHERE = null; // set while a joined drawing is drawn (stitchSVG)
 // Compartment-first joined drawings: every compartment is one band across the drawing (stitchSVG). The other way packs
 // whole parts and fits a shape around each compartment's boxes afterwards.
-let STITCH_BANDS = true, ROUTE_BANDS = null, ROUTE_FLOOR = null, MEMBRANE_SEGS = null, STITCH_PROF = null; // STITCH_PROF = {}: how long each phase took (ms), for tuning // (the bands while steps between their pieces are labeled)
+let STITCH_BANDS = true, ROUTE_BANDS = null, ROUTE_FLOOR = null, MEMBRANE_SEGS = null, ROUTE_NONAME = false, STITCH_PROF = null; // ROUTE_NONAME: the step's name is drawn elsewhere (a transporter's pill on its membrane) // STITCH_PROF = {}: how long each phase took (ms), for tuning // (the bands while steps between their pieces are labeled)
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
   let pt = performance.now(); const PROF = k => { if (!STITCH_PROF) return; const t = performance.now(); STITCH_PROF[k] = (STITCH_PROF[k] || 0) + Math.round(t - pt); pt = t; };
@@ -2096,6 +2097,29 @@ function stitchSVG(m, statusOf) {
     if (every) return [...clean, ...ok.filter(pts => !clean.includes(pts))];
     return clean[0] || ok[0] || null;
   };
+  // An end that would arrive as a short stub (a level run just above a box, then a drop of a few pixels into it near its
+  // corner): the level run moves to the box's middle instead, so the arrow meets its side head-on. Only when that run is
+  // clear of other boxes, and the leg before it can stretch to meet it.
+  const squareEnds = (P, a, b) => {
+    const clear = (p, q) => ![...DRAW_BOXES, ...DRAW_LABELS].some(r => !same(r, a) && !same(r, b) && segHits(p, q, r)) && !alongside(p, q);
+    const fix = (P, box, tail) => { const n = P.length; if (n < 3) return P;
+      const [e, c, d] = tail ? [n - 1, n - 2, n - 3] : [0, 1, 2], E = P[e], C = P[c], D = P[d];
+      if (Math.hypot(E[0] - C[0], E[1] - C[1]) >= 30 || Math.abs(C[1] - D[1]) > 1 || Math.abs(E[0] - C[0]) > 1) return P; // (a short vertical end after a level run)
+      const far = tail ? a : b, endD = tail ? d === 0 : d === n - 1, nx = endD ? null : P[tail ? d - 1 : d + 1]; // (the other end's box; the leg before D)
+      const upright = endD || Math.abs(nx[0] - D[0]) < 1;
+      // Into its side, head-on, at its middle height: when the level run can drop (or rise) to it.
+      const cy = box.y + box.h / 2, fromRight = D[0] > box.x + box.w, fromLeft = D[0] < box.x;
+      if ((fromRight || fromLeft) && upright && (!endD || (cy > far.y + 6 && cy < far.y + far.h - 6))) {
+        const x = fromRight ? box.x + box.w + 4 : box.x - 4;
+        if (clear([D[0], cy], [x, cy])) { const Q = P.map(q => [...q]); Q[d][1] = cy; Q[c] = [x, cy]; Q.splice(e, 1); return Q; }
+      }
+      // Else the level run moves further out, so the end is a clear 30-px drop into the box, not a sliver beside it.
+      if (!upright || endD) return P;
+      const dir = Math.sign(C[1] - E[1]) || 1, y = E[1] + dir * 30;
+      const ok = Math.sign(nx[1] - D[1]) !== dir || Math.sign(nx[1] - y) === dir; // (moving out must not run past the leg before it)
+      if (ok && clear([C[0], y], [D[0], y])) { const Q = P.map(q => [...q]); Q[c][1] = y; Q[d][1] = y; return Q; }
+      return P; };
+    return fix(fix(P, b, true), a, false); };
   // A route's ends moved out to the box edges.
   const trim = (pts, a, b) => {
     const P = pts.map(q => [...q]), n = P.length;
@@ -2108,16 +2132,19 @@ function stitchSVG(m, statusOf) {
     // Two boxes (nearly) level with nothing between them: one straight line, never a jog into the far box.
     const A = ctr(a), Bc = ctr(b), ym = (A.cy + Bc.cy) / 2, flat = !given && Math.abs(A.cy - Bc.cy) < 24 && Math.abs(ym - A.cy) < a.h / 2 - 4 && Math.abs(ym - Bc.cy) < b.h / 2 - 4
       && ![...DRAW_BOXES, ...DRAW_LABELS].some(r => !same(r, a) && !same(r, b) && segHits([Math.min(A.cx, Bc.cx) + a.w / 2 + 2, ym], [Math.max(A.cx, Bc.cx) - b.w / 2 - 2, ym], r)) && !alongside([A.cx, ym], [Bc.cx, ym]) ? [[A.cx, ym], [Bc.cx, ym]] : null; // (nor through a label: a tag beside the far box)
-    const pts = given || flat || gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = trim(pts, a, b);
+    const pts = given || flat || gridRoute(a, b, DRAW_BOXES, DRAW_LABELS, drawn, allPts()) || route(a, b, DRAW_BOXES, true, DRAW_LABELS) || [[ctr(a).cx, ctr(a).cy], [ctr(b).cx, ctr(a).cy], [ctr(b).cx, ctr(b).cy]], P = squareEnds(trim(pts, a, b), a, b);
     const segs = P.slice(1).map((q, i) => [P[i], q]); drawn.push(...pts.slice(1).map((q, i) => [pts[i], q]));
     if (r && labels) routed[r.id] = P;
-    ALL_ROUTES.push(P); // (for counting crossings, when timing)
+    ALL_ROUTES.push(P); P.ab = [a, b]; // (for counting crossings, when timing)
     const longest = f => segs.filter(f).sort((x, y) => Math.hypot(y[1][0] - y[0][0], y[1][1] - y[0][1]) - Math.hypot(x[1][0] - x[0][0], x[1][1] - x[0][1]))[0];
     const h = longest(([p, q]) => Math.abs(p[1] - q[1]) < 1), v0 = longest(([p, q]) => Math.abs(p[0] - q[0]) < 1);
     // A long vertical run keeps its labels to a short stretch in the middle, as on any other step.
     const v = v0; // elbowLabels keeps the labels to a short, clear stretch of a long run
     // A step between parts that brings its substrate across first shows its carrier too (GLUT into glycolysis).
     const ti = r?.via && m.items['t:' + r.id], at = ti && viaAt(P, ti), hold = ti && enzRect(at[0], at[1], 'middle', ti, 22);
+    // A transport step (the transporter is its name: SGLT1, GLUT2) sits on the membrane its line crosses, like a carrier.
+    const onMem = q => !!q && (MEMBRANE_SEGS ? MEMBRANE_SEGS.some(([a, b, c, d]) => (a === c ? Math.abs(q[0] - a) < 1 && q[1] >= Math.min(b, d) && q[1] <= Math.max(b, d) : Math.abs(q[1] - b) < 1 && q[0] >= Math.min(a, c) && q[0] <= Math.max(a, c))) : VIA_X.some(x => Math.abs(q[0] - x) < 1));
+    const tt = (ROUTE_BANDS || ROUTE_FLOOR) && r?.transport && !r.via && m.items['e:' + r.id], atT = tt && viaAt(P, tt), memT = tt && onMem(atT);
     if (hold && DRAW_LABELS.some(l => overlaps(hold, l))) ROUTE_LABEL_MISS += 3; // its pill on another label: another route may do better
     // Where the line goes on past the pill (a second step through the same carrier forks off there: PDH and pyruvate carboxylase).
     if (hold && r) { const i = P.findIndex((q, j) => j && Math.min(P[j - 1][0], q[0]) <= at[0] && Math.max(P[j - 1][0], q[0]) >= at[0] && Math.abs(P[j - 1][1] - at[1]) < 1), dir = i > 0 ? Math.sign(P[i][0] - P[i - 1][0]) : 0;
@@ -2127,9 +2154,10 @@ function stitchSVG(m, statusOf) {
       if (hold) DRAW_LABELS.push(hold);
       const mine = P.slice(1); // this route's own segments are the last ones drawn
       const lineHit = q => { const was = drawn.splice(drawn.length - mine.length, mine.length); const hit = onAnyLine(q); drawn.push(...was); return hit; }; // (not its own route)
-      const lab = (hh || vv) ? routeStepLabels(m, statusOf, r, P, lineHit) || elbowLabels(m, statusOf, r, hh, vv) : '';
+      const pill = memT ? enzRect(atT[0], atT[1], 'middle', tt, 22) : null; if (pill) DRAW_LABELS.push(pill);
+      ROUTE_NONAME = !!memT; const lab = (hh || vv) ? routeStepLabels(m, statusOf, r, P, lineHit) || (memT ? '' : elbowLabels(m, statusOf, r, hh, vv)) : ''; ROUTE_NONAME = false;
       if (hold) DRAW_LABELS.splice(DRAW_LABELS.indexOf(hold), 1);
-      const out = lab + (ti ? viaPill(m, statusOf, r, at) : '');
+      const out = lab + (ti ? viaPill(m, statusOf, r, at) : '') + (memT ? enzLabel(atT[0], atT[1], tt, statusOf('e:' + r.id), 'middle', 22, 'center') : '');
       if (r) (routeLab[r.id] = routeLab[r.id] || []).push(...DRAW_LABELS.slice(n0)); // (its labels, for the compartment they belong to)
       return out;
     };
@@ -2287,10 +2315,11 @@ function stitchSVG(m, statusOf) {
       return x > Math.min(h[0][0], h[1][0]) + 1 && x < Math.max(h[0][0], h[1][0]) - 1 && y > Math.min(v[0][1], v[1][1]) + 1 && y < Math.max(v[0][1], v[1][1]) - 1; };
     const ell = (a, b, hFirst) => (hFirst ? [[a, [b[0], a[1]]], [[b[0], a[1]], b]] : [[a, [a[0], b[1]]], [[a[0], b[1]], b]]);
     const through = (sg, boxes) => boxes.reduce((n, B) => n + (Math.max(sg[0][0], sg[1][0]) > B.x && Math.min(sg[0][0], sg[1][0]) < B.x + B.w && Math.max(sg[0][1], sg[1][1]) > B.y && Math.min(sg[0][1], sg[1][1]) < B.y + B.h ? 1 : 0), 0);
+    let ROOMY = false;
     const placeFloor = q => {
       const R = q.R, mine = rectsFor(q.z).filter(r => r.role !== 'isle' || r.z === q.z);
       // Its links to boxes already down, and every other link already laid (as its cheaper corner).
-      const ends = all.flatMap(r => R.pos['m:' + r.from] && G['m:' + r.to] && !R.pos['m:' + r.to] ? [[R.pos['m:' + r.from], G['m:' + r.to]]] : R.pos['m:' + r.to] && G['m:' + r.from] && !R.pos['m:' + r.from] ? [[R.pos['m:' + r.to], G['m:' + r.from]]] : []);
+      const ends = all.flatMap(r => R.pos['m:' + r.from] && G['m:' + r.to] && !R.pos['m:' + r.to] ? [[R.pos['m:' + r.from], G['m:' + r.to], r]] : R.pos['m:' + r.to] && G['m:' + r.from] && !R.pos['m:' + r.from] ? [[R.pos['m:' + r.to], G['m:' + r.from], r]] : []);
       const laid = all.filter(r => G['m:' + r.from] && G['m:' + r.to] && !R.pos['m:' + r.from] && !R.pos['m:' + r.to]).map(r => ell(cen(G['m:' + r.from]), cen(G['m:' + r.to]), true));
       const others = placed.filter(P => P !== R).map(P => ({ x: P.vb[0] + P.dx, y: P.vb[1] + P.dy, w: P.vb[2], h: P.vb[3] }));
       const cands = [];
@@ -2302,16 +2331,36 @@ function stitchSVG(m, statusOf) {
           cands.push([cost, dx, dy]); } }
       cands.sort((a, b) => a[0] - b[0]);
       // The nearest free spots (up to 40), scored with their crossings; the best wins.
-      const free = []; for (const c of cands) { if (free.length >= 80 || (free.length && c[0] > free[0][0] + 5000)) break; if (!clash(rectsOf(R, c[1], c[2])) && !crosses(R, c[1], c[2])) free.push(c); }
+      // (A step through a carrier between two boxes of one region, like the kidney's urobilin and the gut's urobilinogen: the
+      // boxes far enough apart for its pill.)
+      const tight = ends.filter(([, , r]) => r.via && roleOf(zOfId(R.pos['m:' + r.from] ? r.to : r.from) || '') === roleOf(q.z));
+      const roomy = ([, dx, dy]) => tight.every(([a, b]) => Math.max(Math.abs(a.x + a.w / 2 + dx - b.x - b.w / 2) - (a.w + b.w) / 2, Math.abs(a.y + a.h / 2 + dy - b.y - b.h / 2) - (a.h + b.h) / 2) >= 220);
+      const free = []; for (const c of ROOMY ? cands.filter(roomy) : cands) { if (free.length >= 80 || (free.length && c[0] > free[0][0] + 5000)) break; if (!clash(rectsOf(R, c[1], c[2])) && !crosses(R, c[1], c[2])) free.push(c); }
       const score = ([d, dx, dy]) => d + ends.reduce((n, [a, b]) => { const A = [a.x + a.w / 2 + dx, a.y + a.h / 2 + dy], B = cen(b);
         return n + Math.min(...[true, false].map(hf => ell(A, B, hf).reduce((t, sg) => t + 900 * laid.filter(l => l.some(ls => segsHit(sg, ls))).length + 3000 * through(sg, others.filter(o => !(B[0] > o.x && B[0] < o.x + o.w && B[1] > o.y && B[1] < o.y + o.h))), 0))); }, 0);
       let got = free.length ? free.map(c => [score(c), c]).sort((a, b) => a[0] - b[0])[0][1] : cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)));
       if (!got) { const r = mine[0]; got = [0, r.x + 40 - R.vb[0], Math.max(...placed.map(P => P.vb[1] + P.vb[3] + P.dy), r.y) + 60 - R.vb[1]]; }
       place(R, got[1], got[2]);
     };
+    placeFloor.cramped = q => all.some(r => { const mine = q.R.pos['m:' + r.from] ? r.from : q.R.pos['m:' + r.to] ? r.to : null, o = mine && (mine === r.from ? r.to : r.from); if (!mine || !r.via || q.R.pos['m:' + o] || !G['m:' + o]) return false;
+      if (roleOf(zOfId(o) || '') !== roleOf(q.z)) return false; const a = G['m:' + mine], b = G['m:' + o];
+      return Math.max(Math.abs(a.x + a.w / 2 - b.x - b.w / 2) - (a.w + b.w) / 2, Math.abs(a.y + a.h / 2 - b.y - b.h / 2) - (a.h + b.h) / 2) < 220; });
     for (const q of pieces) placeFloor(q);
     // Then three times over: each piece out and back in, now that everything it's joined to is down.
-    for (let pass = 0; pass < 3; pass++) for (const q of pieces) { placed.splice(placed.indexOf(q.R), 1); rebuild(); placeFloor(q); }
+    const snap = () => pieces.map(q => [q.R.dx, q.R.dy]), restore = S => { pieces.forEach((q, i) => { q.R.dx = S[i][0]; q.R.dy = S[i][1]; }); rebuild(); };
+    const improve = order => { for (let pass = 0; pass < 3; pass++) for (const q of order) { placed.splice(placed.indexOf(q.R), 1); rebuild(); placeFloor(q); } };
+    // (How good the whole layout is, by the same measure each piece was placed by: for comparing layouts.)
+    const layoutCost = () => { const L = all.filter(r => G['m:' + r.from] && G['m:' + r.to]).map(r => [cen(G['m:' + r.from]), cen(G['m:' + r.to])]), boxes = placed.map(P => ({ x: P.vb[0] + P.dx, y: P.vb[1] + P.dy, w: P.vb[2], h: P.vb[3], P }));
+      const laidL = L.map(([A, B]) => ell(A, B, true));
+      return L.reduce((n, [A, B], i) => n + Math.abs(A[0] - B[0]) + Math.abs(A[1] - B[1]) + Math.min(...[true, false].map(hf => ell(A, B, hf).reduce((t, sg) => t + 900 * laidL.filter((l, j) => j !== i && l.some(ls => segsHit(sg, ls))).length
+        + 3000 * boxes.filter(o => !(A[0] > o.x && A[0] < o.x + o.w && A[1] > o.y && A[1] < o.y + o.h) && !(B[0] > o.x && B[0] < o.x + o.w && B[1] > o.y && B[1] < o.y + o.h)).filter(o => through(sg, [o])).length, 0))), 0); };
+    // The passes in order and in reverse, from the same start; the better layout stays (small changes early on can tip
+    // the whole chart, so one order alone is luck).
+    improve(pieces);
+    // Last, and only then (an early move tips the whole chart): a piece too close to the box its carrier's step joins in the
+    // same region (the kidney's urobilin under the gut's urobilinogen) moves to the nearest spot with room for the pill.
+    ROOMY = true; for (const q of pieces) if (placeFloor.cramped(q)) { placed.splice(placed.indexOf(q.R), 1); rebuild(); placeFloor(q); } ROOMY = false;
+    if (STITCH_PROF) STITCH_PROF.est = Math.round(layoutCost() / 1000);
     } else {
     // Each band as wide as its widest piece, plus room either side for what crosses its membranes (a carrier's pill and
     // the step's name beside it).
@@ -2669,6 +2718,8 @@ function stitchSVG(m, statusOf) {
     for (const segs of S) for (const [[x0, y0], [x1, y1]] of segs) { const lo = [Math.min(x0, x1), Math.min(y0, y1)], hi = [Math.max(x0, x1), Math.max(y0, y1)], h = Math.abs(y0 - y1) < 1;
       for (const [a, b] of pairs) if (h ? (a[1] - y0) * (b[1] - y0) < 0 && a[0] > lo[0] + 20 && a[0] < hi[0] - 20 : (a[0] - x0) * (b[0] - x0) < 0 && a[1] > lo[1] + 20 && a[1] < hi[1] - 20) rp++; }
     STITCH_PROF.crossArrows = rr; STITCH_PROF.crossLines = rp;
+    STITCH_PROF.stubList = ALL_ROUTES.filter(P => P.length > 2 && [[P[0], P[1]], [P[P.length - 2], P[P.length - 1]]].some(([u, v]) => Math.hypot(u[0] - v[0], u[1] - v[1]) < 30)).map(P => ({ P: P.map(q => q.map(Math.round)), ab: P.ab.map(r => [r.x, r.y, r.w, r.h].map(Math.round)) }));
+    STITCH_PROF.stubs = ALL_ROUTES.filter(P => P.length > 2 && [[P[0], P[1]], [P[P.length - 2], P[P.length - 1]]].some(([u, v]) => Math.hypot(u[0] - v[0], u[1] - v[1]) < 30)).length; // (ends that arrive as a short stub)
   }
   PROF('dots+badges');
   let bg = '', fg = '';
