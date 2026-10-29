@@ -200,21 +200,25 @@ function mapSidebarHTML(c) {
    lit is the hovered row plus every selected one, and the view fits all of it. */
 const MAP_BROWSE = [['path', 'Pathways'], ['met', 'Molecules'], ['enz', 'Enzymes'], ['cof', 'Cofactors'], ['drug', 'Drugs'], ['tox', 'Toxins']];
 function mapBrowseEntries(kind) {
-  if (kind === 'path') return mapPathways().map(p => ({ id: 'path|' + p.id, name: p.name, sub: p.group || 'Other', pids: [p.id] }));
-  return Object.values(catalog()[kind] || {}).map(e => ({ id: kind + '|' + e.key, name: e.name, sub: `${plural(e.pathways.size, 'pathway')}`, pids: [...e.pathways], e }))
+  if (kind === 'path') return mapPathways().map(p => ({ id: 'path|' + p.id, name: p.name, sub: p.group || 'Other', pids: [p.id], alt: p.aliases || [] }));
+  return Object.values(catalog()[kind] || {}).map(e => ({ id: kind + '|' + e.key, name: e.name, sub: `${plural(e.pathways.size, 'pathway')}`, pids: [...e.pathways], alt: [...e.others, ...e.short] }))
     .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }));
 }
 function mapBrowseHTML(c) {
   const on = new Set(mapPathways().filter(p => !mapOff(c).has(p.id)).map(p => p.id)), q = norm(c.bq || '');
-  // Exact names first, then names that start with it, then the rest that contain it.
-  const rank = x => { const ns = [x.name, ...(x.e ? x.e.others : [])].map(norm); return ns.includes(q) ? 0 : ns.some(n => n.startsWith(q)) ? 1 : ns.some(n => n.includes(q)) ? 2 : 9; };
-  const rows = mapBrowseEntries(c.btab).map(x => [x, q ? rank(x) : 0]).filter(([, r]) => r < 9).sort((a, b) => a[1] - b[1]).map(([x]) => x);
+  // Every name it goes by counts (TCA, Krebs cycle, citric acid cycle): exact first, then starts-with, then contains.
+  // A row found by another name says which, so the hit makes sense.
+  const rank = x => { const ns = [x.name, ...x.alt].map(n => [n, norm(n)]), hit = f => ns.find(([, n]) => f(n));
+    const m = hit(n => n === q) || hit(n => n.startsWith(q)) || hit(n => n.includes(q));
+    if (!m) return [x, 9]; const r = norm(m[1]) === q ? 0 : norm(m[1]).startsWith(q) ? 1 : 2;
+    return [m[0] === x.name ? x : { ...x, via: m[0] }, r]; };
+  const rows = mapBrowseEntries(c.btab).map(x => q ? rank(x) : [x, 0]).filter(([, r]) => r < 9).sort((a, b) => a[1] - b[1]).map(([x]) => x);
   const sel = new Set(c.sel);
   return `<div class="seg map-btabs" role="group" aria-label="Browse">${MAP_BROWSE.map(([v, l]) => `<button type="button" data-mapbtab="${v}" aria-pressed="${c.btab === v}">${l}</button>`).join('')}</div>
     <label class="search">${mi('search', 'sm')}<input type="search" data-mapbq placeholder="Filter ${esc(MAP_BROWSE.find(b => b[0] === c.btab)[1].toLowerCase())}" value="${esc(c.bq)}" aria-label="Filter the list"></label>
     <div class="sec-h"><span class="muted small">${rows.length} · hover to light up, click to keep lit</span>${c.sel.length ? `<button type="button" class="linkbtn" data-mapclear>Clear selection (${c.sel.length})</button>` : ''}</div>
     <div class="map-list" role="list">${rows.map(x => { const vis = x.pids.some(id => on.has(id));
-      return `<button type="button" role="listitem" class="map-row${vis ? '' : ' off'}" data-mapitem="${esc(x.id)}" aria-pressed="${sel.has(x.id)}">${mi(sel.has(x.id) ? 'check' : 'add', 'sm')}<span class="map-row-t"><span>${esc(x.name)}</span><span class="muted small">${esc(x.sub)}${vis ? '' : ' · not on the map'}</span></span></button>`; }).join('')}</div>`;
+      return `<button type="button" role="listitem" class="map-row${vis ? '' : ' off'}" data-mapitem="${esc(x.id)}" aria-pressed="${sel.has(x.id)}">${mi(sel.has(x.id) ? 'check' : 'add', 'sm')}<span class="map-row-t"><span>${esc(x.name)}</span><span class="muted small">${x.via ? `as “${esc(x.via)}” · ` : ''}${esc(x.sub)}${vis ? '' : ' · not on the map'}</span></span></button>`; }).join('')}</div>`;
 }
 // The drawn elements for one browse entry: boxes and labels carrying its keys (a cofactor lights up its step's enzyme).
 function mapEls(id) {

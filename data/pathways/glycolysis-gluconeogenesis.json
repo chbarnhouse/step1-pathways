@@ -5,7 +5,7 @@
  "systems": [
   "Fundamentals"
  ],
- "aliases": [],
+ "aliases": ["GNG", "glycolysis", "gluconeogenesis"],
  "compose": [
   "glycolysis",
   "gluconeogenesis"

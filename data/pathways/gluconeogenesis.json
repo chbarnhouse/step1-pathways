@@ -9,7 +9,7 @@
  "tags": [
   "Fasting"
  ],
- "aliases": [],
+ "aliases": ["GNG", "glucose synthesis"],
  "multiplier_label": "per glucose",
  "summary": "Liver (also kidney, intestinal epithelium) during fasting. 2 pyruvate → glucose costs 4 ATP + 2 GTP + 2 NADH. The four bypass enzymes: pyruvate carboxylase, PEPCK, fructose-1,6-bisphosphatase (rate-limiting), glucose-6-phosphatase. Muscle can't release glucose (no glucose-6-phosphatase).",
  "metabolites": {
