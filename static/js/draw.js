@@ -100,19 +100,24 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
   // (Its own route counts too: text on the very line it names.)
   const own = q => P.slice(1).some((v, i) => { const u = P[i]; return Math.max(u[0], v[0]) > q.x + 1 && Math.min(u[0], v[0]) < q.x + q.w - 1 && Math.max(u[1], v[1]) > q.y + 2 && Math.min(u[1], v[1]) < q.y + q.h - 2; });
   // In compartment bands: never across a membrane, and better in the band where the enzyme works.
-  const zr = ROUTE_BANDS && r.loc ? (k => ROUTE_BANDS.alias?.[k] || k)(zoneKey(m, r.loc, r.tissue)) : '', bandCost = q => { if (!ROUTE_BANDS || !q?.w) return 0;
+  const zr = (ROUTE_BANDS || ROUTE_FLOOR) && r.loc ? (k => (ROUTE_BANDS || ROUTE_FLOOR).alias?.[k] || k)(zoneKey(m, r.loc, r.tissue)) : '', bandCost = q => { if (ROUTE_FLOOR && q?.w) return floorCost(q); if (!ROUTE_BANDS || !q?.w) return 0;
     if (ROUTE_BANDS.some((b, i) => i && q.x < b.x0 - 2 && q.x + q.w > b.x0 + 2)) return 10;
     const at = ROUTE_BANDS.find(b => q.x + q.w / 2 >= b.x0 && q.x + q.w / 2 < b.x1); return zr && at && ROUTE_BANDS.some(b => b.z === zr) && at.z !== zr ? 2 : 0; };
+  // (The Map's floorplan: the same, with its membranes as edges between regions.)
+  const floorCost = q => { const F = ROUTE_FLOOR; if (F.segs.some(([a, b, c, d]) => (a === c ? a > q.x + 2 && a < q.x + q.w - 2 && Math.max(b, d) > q.y && Math.min(b, d) < q.y + q.h : b > q.y + 2 && b < q.y + q.h - 2 && Math.max(a, c) > q.x && Math.min(a, c) < q.x + q.w))) return 10;
+    const cx = q.x + q.w / 2, cy = q.y + q.h / 2, at = F.rects.filter(r => cx >= r.x && cx < r.x + r.w && cy >= r.y && cy < r.y + r.h).pop(); return zr && at && F.rects.some(r => r.zs.includes(zr)) && !at.zs.includes(zr) ? 2 : 0; };
   const parts = cof ? cofParts(m, statusOf, r) : [], count = rs => rs.reduce((n, q) => n + bandCost(q) + (!q ? 0 : q.hit || DRAW_BOXES.some(b => overlaps(q, b)) ? 10 : DRAW_LABELS.some(l => overlaps(q, l)) ? 3 : lineHit(q) || (q.w && own(q)) || TAB_SPOTS.some(l => overlaps(q, l)) ? 1 : 0), 0); // (when nothing is clean: over a line or a compartment's name spot beats over a name, over a name beats over a box)
   const self = rs => { const t = rs.filter(q => q && q.w); let n = 0; for (let i = 0; i < t.length; i++) for (let j = i + 1; j < t.length; j++) if (overlaps(t[i], t[j])) n += 3; return n; }; // its own texts on each other
   // What a layout's cofactor text actually is, where it lands, tried without keeping anything.
   // (Drawn as the real thing is: its name already there, which the curl steers around; and curls record their labels.)
   // Its curl too, sampled every 8 px (a 4-px square each): a curl through a label is as bad as text on one.
-  const drawn = (f, name) => { if (!cof) return []; const keep = COF_SPOTS.length, kl = DRAW_LABELS.length; DRAW_LABELS.push(name); const svg = f(); COF_SPOTS.length = keep; DRAW_LABELS.length = kl;
-    const probe = pathProbe(), pts = [];
-    for (const pm of svg.matchAll(/<path class="([^"]*)" d="([^"]+)"/g)) { if (/\bah\b/.test(pm[1])) continue; probe.setAttribute('d', pm[2]); const L = probe.getTotalLength(); for (let l = 8; l < L - 8; l += 8) { const q = probe.getPointAtLength(l); pts.push({ x: q.x - 2, y: q.y - 2, w: 4, h: 4 }); } }
-    const curlHit = pts.some(q => hitsBox(q));
-    return [...textRects(svg), ...(curlHit ? [{ hit: true }] : [])]; };
+  // (The curl is checked only for the layouts in the running, best first: sampling every one is what made the Map slow.)
+  let CURL = null;
+  const drawn = (f, name) => { if (!cof) { CURL = () => false; return []; } const keep = COF_SPOTS.length, kl = DRAW_LABELS.length; DRAW_LABELS.push(name); const svg = f(); COF_SPOTS.length = keep; DRAW_LABELS.length = kl;
+    CURL = () => { const probe = pathProbe();
+      for (const pm of svg.matchAll(/<path class="([^"]*)" d="([^"]+)"/g)) { if (/\bah\b/.test(pm[1])) continue; probe.setAttribute('d', pm[2]); const L = probe.getTotalLength(); for (let l = 8; l < L - 8; l += 8) { const q = probe.getPointAtLength(l); if (hitsBox({ x: q.x - 2, y: q.y - 2, w: 4, h: 4 })) return true; } }
+      return false; };
+    return textRects(svg); };
   const legs = P.slice(1).map((q, i) => [P[i], q]).map(([p, q]) => ({ p, q, h: Math.abs(p[1] - q[1]) < 1, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }))
     .filter(l => l.len >= (l.h ? 110 : 60)).sort((a, b) => b.len - a.len); // short legs too, as a last resort (tried last)
   const plans = [];
@@ -123,7 +128,7 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
         // (lift: the name a little further above its line, when right against it there's no room)
         const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = (up ? y - 62 : y - 8) - lift;
         const name = enzRect(mx, ly, 'middle', it, wm, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
-        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), go: () => { DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return enzLabel(mx, ly, it, es, 'middle', wm, 'bottom') + c; } });
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return enzLabel(mx, ly, it, es, 'middle', wm, 'bottom') + c; } });
       }
     } else {
       const x = p[0], y0 = Math.min(p[1], q[1]), y1 = Math.max(p[1], q[1]), cw = cof ? Math.max(0, ...parts.map(t => (hidden(t.st) ? 110 : t.text.length * 7))) + 64 : 14;
@@ -131,12 +136,18 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
       for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1], [-44, 'end', 1], [cw + 30, 'start', 1], [-cw - 30, 'end', -1], [-74, 'end', 1], [cw + 60, 'start', 1], [-cw - 60, 'end', -1]]) {
         if (dx === 14 && cof) continue; // name right with cofactors left is the mirrored layout above
         const c = (a0 + a1) / 2, name = enzRect(x + dx, c, an, it, 18), cb = drawn(() => cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0), name);
-        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), go: () => { DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return enzLabel(x + dx, c, it, es, an, 18, 'center') + cc; } });
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return enzLabel(x + dx, c, it, es, an, 18, 'center') + cc; } });
       }
     }
   }
   if (!plans.length) { ROUTE_LABEL_MISS += 5; return ''; }
-  const best = plans.find(pl => !pl.n) || plans.slice().sort((a, b) => a.n - b.n)[0]; ROUTE_LABEL_MISS += best.n;
+  // Best first (in the order tried when tied); a curl through a box costs as much as text on one.
+  let best = null;
+  for (const pl of plans.map((pl, i) => [pl, i]).sort((a, b) => a[0].n - b[0].n || a[1] - b[1]).map(x => x[0])) {
+    if (best && pl.n >= best.n) break;
+    const n = pl.n + (pl.curl() ? 10 : 0); if (!best || n < best.n) best = { ...pl, n }; if (!n) break;
+  }
+  ROUTE_LABEL_MISS += best.n;
   return best.go();
 }
 let TAB_SPOTS = []; // where a joined drawing's compartment names will go: a step's name avoids them (stitchSVG)
@@ -656,6 +667,15 @@ function slide(q, it) {
 }
 function viaAt(pts, it = null) { // it: the carrier's item, to find a spot where its pill lands on nothing
   const segs = pts.slice(1).map((q, i) => [pts[i], q]);
+  // The Map's floorplan: the membranes are real edges between regions, not lines across the whole drawing.
+  if (MEMBRANE_SEGS) for (let i = segs.length - 1; i >= 0; i--) {
+    const [[x0, y0], [x1, y1]] = segs[i], hits = [];
+    for (const [a, b, c, d] of MEMBRANE_SEGS) {
+      if (a === c && Math.abs(y0 - y1) < 1 && a > Math.min(x0, x1) + 2 && a < Math.max(x0, x1) - 2 && y0 > Math.min(b, d) && y0 < Math.max(b, d)) hits.push([a, y0]);
+      if (b === d && Math.abs(x0 - x1) < 1 && b > Math.min(y0, y1) + 2 && b < Math.max(y0, y1) - 2 && x0 > Math.min(a, c) && x0 < Math.max(a, c)) hits.push([x0, b]);
+    }
+    if (hits.length) return hits.sort((p, q) => Math.hypot(p[0] - x1, p[1] - y1) - Math.hypot(q[0] - x1, q[1] - y1))[0];
+  }
   for (let i = segs.length - 1; i >= 0; i--) {
     const [[x0, y0], [x1, y1]] = segs[i];
     const xm = [...VIA_X, ...GRID_MEMBRANES].filter(x => x > Math.min(x0, x1) + 2 && x < Math.max(x0, x1) - 2).sort((a, b) => Math.abs(a - x1) - Math.abs(b - x1))[0];
@@ -1961,7 +1981,7 @@ function gridRoute(a, b, boxes, labels, drawnSegs = [], linePts = []) { // lineP
 let STITCH_WHERE = null; // set while a joined drawing is drawn (stitchSVG)
 // Compartment-first joined drawings: every compartment is one band across the drawing (stitchSVG). The other way packs
 // whole parts and fits a shape around each compartment's boxes afterwards.
-let STITCH_BANDS = true, ROUTE_BANDS = null, STITCH_PROF = null; // STITCH_PROF = {}: how long each phase took (ms), for tuning // (the bands while steps between their pieces are labeled)
+let STITCH_BANDS = true, ROUTE_BANDS = null, ROUTE_FLOOR = null, MEMBRANE_SEGS = null, STITCH_PROF = null; // STITCH_PROF = {}: how long each phase took (ms), for tuning // (the bands while steps between their pieces are labeled)
 function stitchSVG(m, statusOf) {
   const st = m.p.stitch, tiles = st.tiles.map(t => ({ ...t, ids: Object.keys(t.p.metabolites) }));
   let pt = performance.now(); const PROF = k => { if (!STITCH_PROF) return; const t = performance.now(); STITCH_PROF[k] = (STITCH_PROF[k] || 0) + Math.round(t - pt); pt = t; };
@@ -2118,8 +2138,9 @@ function stitchSVG(m, statusOf) {
   };
   const sideOf = (T, id) => T.p.reactions.filter(r => (r.also_to || []).includes(id) || (r.also_from || []).includes(id));
   const sides = []; // [from box id, to box id, reaction]: a side product or input that lives in another part
-  const BANDED = STITCH_BANDS && !tiles.every(T => T.p.nephron) && (tiles.length <= 4 || STITCH_BANDS === 'all'); // (the Map's merged chart: not yet)
+  const BANDED = STITCH_BANDS && !tiles.every(T => T.p.nephron);
   const BANDS = []; // [{ z, x0, x1 }] in order, when BANDED
+  const FLOOR = BANDED && tiles.length > 4 ? {} : null; // more than four parts (the Map's merged chart): compartments as a cell's floorplan ({ rects, segs }), not bands
   if (BANDED) {
     /* Each part splits into one piece per compartment (drawn by its own renderer: a ring stays a ring); a box shared with
        an earlier part stays that part's. Every step between two pieces is drawn between parts (bridges), so a carrier
@@ -2188,6 +2209,86 @@ function stitchSVG(m, statusOf) {
     const perms = a => (a.length <= 1 ? [a] : a.flatMap((x, i) => perms([...a.slice(0, i), ...a.slice(i + 1)]).map(r => [x, ...r])));
     const cost = o => o.reduce((n, a, i) => n + o.reduce((t, b, j) => t + (wt[a + '>' + b] || 0) * Math.abs(i - j), 0), 0) * 10 + o.reduce((n, z, i) => n + Math.abs(rank(z) - i * 3 / Math.max(1, o.length - 1)), 0);
     const order = zs.length <= 7 ? perms(zs).sort((a, b) => cost(a) - cost(b))[0] : zs.slice().sort((a, b) => rank(a) - rank(b));
+    if (FLOOR) {
+    /* The Map: a cell. Blood across the top (gut lumen and urine at its left), the cytosol a U below it, the ER and the
+       mitochondrial matrix side by side inside the U (each touching the blood above, the cytosol around and each other),
+       the intermembrane space a strip under the matrix, and the small organelles (lysosome, vesicles) islands in the
+       bottom of the cytosol. Every pair of compartments with steps between them shares an edge. */
+    const roleOf = z => { const c = z.split('|').pop(); return /blood|plasma|extracell|interstit/.test(c) ? 'blood' : /lumen|brush|urine|gut/.test(c) ? 'lumen' : /cytosol|cytoplasm/.test(c) ? 'cyto'
+      : /intermembrane/.test(c) ? 'ims' : /mito|matrix/.test(c) ? 'mito' : c === 'er' || /reticulum/.test(c) ? 'er' : 'isle'; };
+    const M = 200, room = q => (q.R.vb[2] + 80) * (q.R.vb[3] + 80); // (M: clear inside each edge, for a carrier's pill and its step's name)
+    const of = r => pieces.filter(q => roleOf(q.z) === r), A = r => of(r).reduce((n, q) => n + room(q), 0) * 1.25;
+    const MW = r => Math.max(0, ...of(r).map(q => q.R.vb[2])), MH = r => Math.max(0, ...of(r).map(q => q.R.vb[3]));
+    const fit = (r, w) => (of(r).length ? Math.max(MH(r) + 2 * M, A(r) / Math.max(1, w - 2 * M) + 2 * M) : 0);
+    // An island just big enough for its pieces, about square (pieces side by side as well as stacked).
+    const isles = uniq(of('isle').map(q => q.z)).map(z => { const ps = pieces.filter(q => q.z === z), ar = ps.reduce((n, q) => n + room(q), 0) * 1.4;
+      const w = Math.max(Math.max(...ps.map(q => q.R.vb[2])) + 160, Math.sqrt(ar) + 160); return { z, w, h: Math.max(Math.max(...ps.map(q => q.R.vb[3])) + 120, ar / (w - 160) + 120) }; });
+    const hIms = of('ims').length ? MH('ims') + 2 * 120 : 0;
+    // The ER and the matrix share one height; the cytosol's arms and bottom take what's left, shaped so the whole chart
+    // comes out about 1.6 times as wide as it is tall.
+    const lumStack = of('lumen').reduce((n, q) => n + q.R.vb[3] + 60, 0), lumCols = Math.max(1, Math.ceil(lumStack / 1600)), lumH = lumStack / lumCols;
+    let bestLay = null;
+    for (const wer of [0, 0.15, 0.3].map(f => Math.max(MW('er') + 2 * M, f * 6000))) for (const wmi of [0, 0.2, 0.4].map(f => Math.max(MW('mito') + 2 * M, f * 8000))) {
+      const we = of('er').length ? wer : 0, wm = of('mito').length || hIms ? wmi : 0;
+      const Hm = Math.max(fit('er', we || 1), fit('mito', wm || 1) + hIms, 600);
+      for (const Wa of [1, 1.5, 2, 3, 4].map(k => MW('cyto') * k / 2 + 2 * M)) {
+        const W = 2 * Wa + we + wm, Ht = Math.max(MH('blood'), lumH) + 2 * 140; // (the lumen's pieces stack in its corner, in columns when there are many)
+        // The islands in rows along the bottom of the cytosol, as many to a row as fit between its arms.
+        const room = Math.max(800, W - 2 * Wa - 160), rows = []; for (const i of isles) { const row = rows[rows.length - 1]; if (row && row.w + i.w + 80 <= room) { row.w += i.w + 80; row.h = Math.max(row.h, i.h); row.is.push(i); } else rows.push({ w: i.w + 80, h: i.h, is: [i] }); }
+        const isleW = rows.length ? Math.max(...rows.map(r => r.w)) : 0, isleH = rows.reduce((n, r) => n + r.h + 80, 0); isles.rows = rows;
+        const left = A('cyto') - 2 * (Wa - 2 * M) * (Hm - M), Hb = Math.max(MH('cyto') + 2 * M, isleH + 2 * M, left > 0 ? left / Math.max(1, W - 2 * Wa) + isleH + 2 * M : 0, 400);
+        const H = Ht + Hm + Hb, score = Math.abs(Math.log(W / H / 1.6)) + W * H / 4e8;
+        if (!bestLay || score < bestLay.score) bestLay = { score, W, H, Ht, Hm, Hb, Wa, we, wm, rows };
+      }
+    }
+    const { W, Ht, Hm, Hb, Wa, we, wm, rows } = bestLay, wl = of('lumen').length ? lumCols * (MW('lumen') + 80) + 2 * M : 0;
+    const R0 = (x, y, w, h) => ({ x, y, w, h });
+    FLOOR.rects = [];
+    const add = (role, r, bleed) => { const z = role === 'isle' ? r.z : uniq(of(role).map(q => q.z))[0] || role; FLOOR.rects.push({ role, z, ...r, bleed }); };
+    if (wl) add('lumen', R0(0, 0, wl, Ht), 'tl');
+    add('blood', R0(wl, 0, W - wl, Ht), wl ? 'tr' : 'tlr');
+    add('cyto', R0(0, Ht, Wa, Hm + Hb), 'lb'); add('cyto', R0(Wa, Ht + Hm, W - 2 * Wa, Hb), 'b'); add('cyto', R0(W - Wa, Ht, Wa, Hm + Hb), 'rb');
+    if (we) add('er', R0(Wa, Ht, we, Hm));
+    if (wm) { add('mito', R0(Wa + we, Ht, wm, Hm - hIms)); if (hIms) add('ims', R0(Wa + we, Ht + Hm - hIms, wm, hIms)); }
+    let iy = Ht + Hm + Hb - 80; for (const row of rows) { iy -= row.h; let ix = W - Wa - 80; for (const i of row.is) { ix -= i.w; add('isle', { z: i.z, x: ix, y: iy + (row.h - i.h) / 2, w: i.w, h: i.h }); ix -= 80; } iy -= 80; } // (rows from the bottom, right to left)
+    const cytoZ = uniq(of('cyto').map(q => q.z))[0]; FLOOR.rects.forEach(r => { if (r.role === 'cyto') r.z = cytoZ || r.z; });
+    const rectsFor = z => FLOOR.rects.filter(r => r.role === roleOf(z) && (r.role !== 'isle' || r.z === z)), holes = FLOOR.rects.filter(r => r.role === 'isle'); // (a region takes every compartment of its kind: brush border, gut lumen and urine share one)
+    FLOOR.rects.forEach(r => { r.zs = r.role === 'isle' ? [r.z] : uniq(of(r.role).map(q => q.z)); });
+    // Membranes: every edge between two regions (not the outer ones, which run on to the canvas edge).
+    FLOOR.segs = [];
+    for (const r of FLOOR.rects) if (r.role !== 'cyto') for (const [x1, y1, x2, y2, e] of [[r.x, r.y, r.x + r.w, r.y, 't'], [r.x, r.y + r.h, r.x + r.w, r.y + r.h, 'b'], [r.x, r.y, r.x, r.y + r.h, 'l'], [r.x + r.w, r.y, r.x + r.w, r.y + r.h, 'r']]) if (!(r.bleed || '').includes(e)) FLOOR.segs.push([x1, y1, x2, y2]);
+    const centerOf = z => { const r = rectsFor(z)[0]; return r ? { cx: r.x + r.w / 2, cy: r.y + r.h / 2 } : { cx: 0, cy: 0 }; };
+    // Each ring's turn: the one whose boxes with steps out of its region face the region they go to.
+    const linksOf = id => [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))].filter(r => r.from === id || r.to === id).map(r => zOfId(r.from === id ? r.to : r.from)).filter(Boolean);
+    for (const q of pieces) if ((q.Rs || []).length > 1) {
+      const me = centerOf(q.z), score = R => Object.entries(R.pos).reduce((n, [k, r]) => n + linksOf(k.slice(2)).filter(z => z !== q.z).reduce((t, z) => { const o = centerOf(z), dx = o.cx - me.cx, dy = o.cy - me.cy, L = Math.hypot(dx, dy) || 1;
+        return t + ((r.x + r.w / 2 - R.vb[0]) / R.vb[2] - 0.5) * dx / L + ((r.y + r.h / 2 - R.vb[1]) / R.vb[3] - 0.5) * dy / L; }, 0), 0);
+      q.R = q.Rs.slice().sort((a, b) => score(b) - score(a))[0];
+    }
+    // Pieces in drawing order; each goes to the spot in its region nearest the box it's joined to (level with it or
+    // straight above or below when it can), else the first free spot from the region's top-left.
+    const firstAt = q => { const sp = modelFor(q.R.T.p).seq, i = Math.min(...Object.keys(q.R.pos).map(k => sp.indexOf(k)).filter(i => i >= 0)); return q.ti * 1000 + (Number.isFinite(i) ? i : 999); };
+    PROF('pieces');
+    pieces.sort((a, b) => firstAt(a) - firstAt(b));
+    const all = [...bridges, ...st.joins.map(([a, b]) => ({ from: a, to: b }))];
+    for (const q of pieces) {
+      const R = q.R, rs = rectsFor(q.z), mine = rs.filter(r => r.role !== 'isle' || r.z === q.z);
+      const link = all.map(r => R.pos['m:' + r.from] && G['m:' + r.to] ? [R.pos['m:' + r.from], G['m:' + r.to]] : R.pos['m:' + r.to] && G['m:' + r.from] ? [R.pos['m:' + r.to], G['m:' + r.from]] : null).find(Boolean);
+      const cands = [];
+      for (const r of mine) { const mm = r.role === 'isle' ? 40 : M, m0 = Math.min(mm, Math.max(40, (r.w - R.vb[2]) / 2)), m1 = Math.min(mm, Math.max(40, (r.h - R.vb[3]) / 2)); // (an island is just big enough: a small margin)
+        for (let x = r.x + m0; x <= Math.max(r.x + m0, r.x + r.w - m0 - R.vb[2]); x += 40) for (let y = r.y + m1; y <= Math.max(r.y + m1, r.y + r.h - m1 - R.vb[3]); y += 40) {
+          const dx = x - R.vb[0], dy = y - R.vb[1], box = { x, y, w: R.vb[2], h: R.vb[3] };
+          if (r.role === 'cyto' && holes.some(h => overlaps(box, { x: h.x - 60, y: h.y - 60, w: h.w + 120, h: h.h + 120 }))) continue; // (not on an island)
+          let cost;
+          if (link) { const a = ctr(link[0]), b = ctr(link[1]), ex = Math.abs(a.cx + dx - b.cx), ey = Math.abs(a.cy + dy - b.cy); cost = ex + ey + 0.6 * Math.min(ex, ey); }
+          else cost = (y - r.y) * 2 + (x - r.x);
+          cands.push([cost, dx, dy]); } }
+      cands.sort((a, b) => a[0] - b[0]);
+      let got = cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)) && !crosses(R, dx, dy)) || cands.find(([, dx, dy]) => !clash(rectsOf(R, dx, dy)));
+      if (!got) { const r = mine[0]; got = [0, r.x + 40 - R.vb[0], Math.max(...placed.map(P => P.vb[1] + P.vb[3] + P.dy), r.y) + 60 - R.vb[1]]; }
+      place(R, got[1], got[2]);
+    }
+    } else {
     // Each band as wide as its widest piece, plus room either side for what crosses its membranes (a carrier's pill and
     // the step's name beside it).
     // Each ring's turn: the one whose boxes with steps into another band sit furthest toward that band.
@@ -2237,6 +2338,7 @@ function stitchSVG(m, statusOf) {
         if (best < Infinity) break; }
       R.band = band; place(R, dx, dy);
       for (const [k, o] of xs) { const pair = [k, o].sort().join(); LANES.push({ y: ctr(R.pos[k]).cy + dy, pair }); if (G[o]) LANES.push({ y: ctr(G[o]).cy, pair }); }
+    }
     }
     // Links between the parts (the TCA cycle's succinyl-CoA into ALA synthase): drawn as ties, as when parts are packed whole.
     tiles.forEach((T, ti) => tiles.slice(0, ti).forEach(P => {
@@ -2381,7 +2483,8 @@ function stitchSVG(m, statusOf) {
   const baseEnz = q => norm((m.p.enzymes[q.enzyme]?.name || q.enzyme || '').replace(/\s*\([^)]*\)\s*$/, ''));
   const quiet = r => statusOf('e:' + r.id) === 'shown' && cofParts(m, statusOf, r).every(p => p.st === 'shown' || p.st === 'hide');
   const drawnBy = (r, a, b) => a.R && a.R === b.R && a.R.sm.p.reactions.some(q => q.id !== r.id && ((q.from === r.from && q.to === r.to) || (q.from === r.to && q.to === r.from)) && baseEnz(q) === baseEnz(r));
-  if (BANDED) { VIA_X = BANDS.slice(1).map(b => b.x0); ROUTE_BANDS = BANDS; } // the membranes: a carrier's pill sits on the one its step crosses
+  if (FLOOR) { VIA_X = []; MEMBRANE_SEGS = FLOOR.segs; ROUTE_FLOOR = FLOOR; FLOOR.alias = BANDS.alias; }
+  else if (BANDED) { VIA_X = BANDS.slice(1).map(b => b.x0); ROUTE_BANDS = BANDS; } // the membranes: a carrier's pill sits on the one its step crosses
   for (const r0 of uniq(bridges)) {
     // Through a carrier already drawn from the same box: one pill, the line forking past it.
     const fork = BANDED && r0.via && PILL_FORK[r0.from + '|' + m.p.enzymes[r0.via]?.name], r = fork ? { ...r0, via: undefined } : r0;
@@ -2390,11 +2493,12 @@ function stitchSVG(m, statusOf) {
     // When its names find no clean spot along the route it takes, another route wins if its names cover less (the first
     // clean one, shortest first; else the one that covers least).
     const keep = [drawn.length, DRAW_LABELS.length, COF_SPOTS.length], undo = () => { drawn.length = keep[0]; DRAW_LABELS.length = keep[1]; COF_SPOTS.length = keep[2]; };
-    ROUTE_LABEL_MISS = 0; let svg = drawRoute(r, a, b);
-    if (ROUTE_LABEL_MISS) { let best = [ROUTE_LABEL_MISS, null]; undo();
+    ROUTE_LABEL_MISS = 0; const tR = performance.now(); let svg = drawRoute(r, a, b); if (STITCH_PROF) { STITCH_PROF.n1 = (STITCH_PROF.n1 || 0) + 1; STITCH_PROF.first = (STITCH_PROF.first || 0) + performance.now() - tR; }
+    if (ROUTE_LABEL_MISS) { if (STITCH_PROF) STITCH_PROF.retries = (STITCH_PROF.retries || 0) + 1; let best = [ROUTE_LABEL_MISS, null]; undo();
       const across = pts => 3 * DRAW_LABELS.filter(l => pts.slice(1).some((q, i) => segHits(pts[i], q, l))).length; // (the route itself through a name counts too)
       const noJog = pts => pts.slice(1).every((q, i) => Math.hypot(q[0] - pts[i][0], q[1] - pts[i][1]) >= 24); // (never a little step into a box)
-      for (const pts of (route(a, b, DRAW_BOXES, true, DRAW_LABELS, true) || []).filter(noJog).slice(0, 24)) { const x = across(pts); if (x >= best[0]) continue; ROUTE_LABEL_MISS = 0; drawRoute(r, a, b, undefined, true, pts); undo(); if (ROUTE_LABEL_MISS + x < best[0]) best = [ROUTE_LABEL_MISS + x, pts]; if (!best[0]) break; }
+      // (The Map has many of these: fewer tries each.)
+      for (const pts of (route(a, b, DRAW_BOXES, true, DRAW_LABELS, true) || []).filter(noJog).slice(0, FLOOR ? 6 : 24)) { const x = across(pts); if (x >= best[0]) continue; ROUTE_LABEL_MISS = 0; drawRoute(r, a, b, undefined, true, pts); undo(); if (ROUTE_LABEL_MISS + x < best[0]) best = [ROUTE_LABEL_MISS + x, pts]; if (!best[0]) break; }
       svg = drawRoute(r, a, b, undefined, true, best[1]); }
     between += svg;
   }
@@ -2541,8 +2645,22 @@ function stitchSVG(m, statusOf) {
     for (const [p, q] of drawn) { ya = Math.min(ya, p[1], q[1]); yb = Math.max(yb, p[1], q[1]); }
     ya -= 56; yb += 24;
     ZONE_INLINE_DONE = false;
-    // (Compartments set to Hide: the pieces keep their places, without tints, lines or names.)
-    if (BANDS.some(b => m.items['z:' + b.z] && statusOf('z:' + b.z) !== 'hide')) BANDS.forEach((b, i) => {
+    // The Map's floorplan: each region tinted (the outer ones running on to the canvas edges), membranes on the edges
+    // between regions, each compartment named once at the top-left of its first region.
+    if (FLOOR && FLOOR.rects.some(r => m.items['z:' + r.z] && statusOf('z:' + r.z) !== 'hide')) {
+      const named = new Set();
+      for (const r of FLOOR.rects) {
+        const b = r.bleed || '', x0 = b.includes('l') ? r.x - BLEED : r.x, x1 = b.includes('r') ? r.x + r.w + BLEED : r.x + r.w, y0 = b.includes('t') ? r.y - BLEED : r.y, y1 = b.includes('b') ? r.y + r.h + BLEED : r.y + r.h;
+        bg += `<g class="blob"><path class="t-${zoneTone(r.z)}" d="M${x0},${y0}H${x1}V${y1}H${x0}Z"/></g>`; regions.push({ x: r.x, y: r.y, w: r.w, h: r.h });
+      }
+      for (const [x1, y1, x2, y2] of FLOOR.segs) bg += `<line class="cellwall" x1="${x1}" y1="${y1}" x2="${x2}" y2="${y2}"/>`;
+      ZONE_INLINE_DONE = false;
+      for (const r of FLOOR.rects) { let ty = r.y + 10;
+        for (const z of r.zs || [r.z]) { if (named.has(z)) continue; named.add(z);
+          const zi = m.items['z:' + z]; if (!zi) continue;
+          const tw = Math.min(260, (zi.name || '').length * 8.1 + 16), T0 = { x: r.x + 12, y: ty, w: tw, h: 22 }; tabs.push(T0); ty += 28; // (several in one region: one under another)
+          fg += `<rect class="legend" x="${T0.x}" y="${T0.y}" width="${T0.w}" height="${T0.h}" rx="5" data-at="corner-top"/>` + zoneLabel(m, statusOf, z, T0.x + 7, T0.y + 15, 'start'); } }
+    } else if (!FLOOR && BANDS.some(b => m.items['z:' + b.z] && statusOf('z:' + b.z) !== 'hide')) BANDS.forEach((b, i) => {
       const r = { x: b.x0, y: ya, w: b.x1 - b.x0, h: yb - ya }; regions.push(r);
       // The tint runs on past the drawing to the edges of the canvas (as a grid's columns do); the outer bands sideways too.
       const bx0 = i ? b.x0 : b.x0 - BLEED, bx1 = i < BANDS.length - 1 ? b.x1 : b.x1 + BLEED;
@@ -2751,7 +2869,7 @@ function stitchSVG(m, statusOf) {
   const body = placed.map(R => `<g transform="translate(${R.dx},${R.dy})">${slotAt(R, R.body)}</g>`).join('');
   const slots = [];
   const flat = body.replace(/<rect class="inl-slot"[^>]*data-moved="1"[^>]*\/>/g, t => { slots.push(t); return ''; });
-  STITCH_WHERE = null; ROUTE_BANDS = null;
+  STITCH_WHERE = null; ROUTE_BANDS = null; ROUTE_FLOOR = null; MEMBRANE_SEGS = null;
   return `<svg class="flow stitched" viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(m.p.name)} flow diagram"><g transform="translate(${P - x0},${P - y0})">${bg}${flat}<g class="between">${between}</g>${fg}${pairBadges}</g>${slots.join('')}</svg>`;
 }
 
