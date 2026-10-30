@@ -841,7 +841,7 @@ function renderSettings() {
     <section class="card pad" id="set-draw">${setHead('Pathway pages', 'draw')}<p class="muted">What a pathway’s own page shows. Its buttons change these too.</p>
       <div class="setup">
         <div class="set-row"><span class="glabel">Fed vs fasting</span><div class="set-ctl">${seg('data-set', 'regView', [['', 'No badges'], ['fed', 'Fed (insulin)'], ['fasting', 'Fasting (glucagon)']], s.regView || '')}</div></div>
-        <div class="set-row"><span class="glabel">Zoomed in</span><div class="set-ctl">${cb('data-sflag', 'autoHide', s.autoHide !== false, 'Fade long arrows passing through with neither end in view (joined drawings and the Map; never in a quiz)')}</div></div>
+        <div class="set-row"><span class="glabel">Zoomed in</span><div class="set-ctl">${cb('data-sflag', 'autoHide', s.autoHide !== false, 'Fade long arrows passing through with neither end in view (joined drawings and the Map; never in a quiz)')}${cb('data-sflag', 'minimap', s.minimap !== false, 'Overview inset on the Map: the whole cell in a corner, with where you are')}</div></div>
         <div class="set-row"><span class="glabel">Drugs & toxins</span><div class="set-ctl">${cb('data-sflag', 'drugView', s.drugView, 'Show the drugs and toxins that act on each step')}</div></div>
       </div></section>
     <section class="card pad" id="set-map">${setHead('Map', 'map')}<p class="muted">The Map’s sidebar changes these too. Applies to this device.</p>
@@ -883,7 +883,7 @@ function renderSettings() {
 const SET_RESETS = {
   look: () => { local.set('pathways.appearance', null); applyTheme(); },
   quiz: () => { for (const k of ['answer', 'view', 'dir', 'zoom', 'follow', 'facts', 'autoAdvance']) Store.settings[k] = DEFAULT_SETTINGS[k]; for (const k of QUIZ_START_KEYS) setQuizStart(k, DRAFT_DEFAULTS[k] ?? (k === 'cofCount' ? true : k === 'nameModes' ? { ...NAME_MODE_DEFAULTS } : false)); delete Store.settings.quizStart; Store.save(); },
-  draw: () => { delete Store.settings.regView; delete Store.settings.drugView; delete Store.settings.autoHide; Store.save(); },
+  draw: () => { delete Store.settings.regView; delete Store.settings.drugView; delete Store.settings.autoHide; delete Store.settings.minimap; Store.save(); },
   map: () => { const c = mapCfg(); mapSave({ ...MAP_DEFAULT, tab: c.tab, btab: c.btab, side: c.side }); },
 };
 document.addEventListener('click', e => { if (e.target.closest('[data-whatsnew]')) showChangelog(RELEASED, 'All changes'); });
@@ -1165,7 +1165,7 @@ window.addEventListener('hashchange', router);
 (async function boot() {
   $('#brandIcon').innerHTML = mi('signpost');
   $$('[data-icon]').forEach(el => el.insertAdjacentHTML('afterbegin', mi(el.dataset.icon, 'sm')));
-  await Store.init();
+  await Store.init(); await mapCodeSig();
   const hadData = !!(Object.keys(Store.data.stats).length || Store.data.presets.length || Object.keys(Store.data.custom).length || local.get('pathways.seen'));
   await AutoBackup.init();
   previewBadge();

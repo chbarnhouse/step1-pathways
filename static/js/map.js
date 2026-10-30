@@ -22,6 +22,8 @@ const MAP_LAYERS = [
   ['enz', 'Enzymes', ['e:', 'f:']], ['trn', 'Transporters', ['t:']], ['cof', 'Cofactors', ['c:', 'o:']], ['need', 'What steps need (vitamins)', ['n:']],
   ['rl', 'Rate-limiting', ['k:']], ['loc', 'Compartments', ['z:']], ['drug', 'Drugs & toxins', ['q:']], ['links', 'Tags to other pathways', []], ['pairs', 'Lines between paired steps', []], ['bands', 'Group bands', []],
 ];
+// (The Show list in two groups: what's written on the drawing, and what's laid over it.)
+const MAP_LABEL_LAYERS = ['enz', 'trn', 'cof', 'need', 'rl', 'drug'];
 const MAP_DEFAULT = { tab: 'show', btab: 'path', bq: '', sel: [], merge: true, layers: { enz: true, trn: true, cof: true, need: true, rl: true, loc: true, drug: false, links: true, pairs: false, bands: true }, reg: '', off: null, q: '', side: true, hover: true }; // hover: Browse lights a row up while the pointer is on it
 // (Once: settings saved before the merged chart became the cell, and the default, open on it; a choice made since stays.)
 const mapCfg = () => { const c = local.get('pathways.map') || {}; if (!c.cellV) { c.merge = true; c.cellV = 1; local.set('pathways.map', c); } return { ...MAP_DEFAULT, ...c, layers: { ...MAP_DEFAULT.layers, ...(c.layers || {}) }, off: c.off || null, sel: c.sel || [] }; };
@@ -76,6 +78,16 @@ function mapStatus(c, found) {
    meeting at it (the same engine that joins pathways for a quiz). A search hit's keys, which name each pathway's own
    ids, become the joined drawing's ids. */
 const MAP_MERGED = { sig: '', svg: '' };
+/* The merged chart takes seconds to lay out. The last one drawn is kept on this device and used again while nothing that
+   draws it has changed: the same pathways and settings, the same pathway data, and the same drawing code (MAP_CODE, a
+   fingerprint of the scripts, read once at start). A released copy that can't read its scripts goes by its version;
+   a preview that can't, never reuses. */
+let MAP_CODE = '';
+const hashStr = s => { let h = 2166136261; for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); } return (h >>> 0).toString(36); };
+async function mapCodeSig() {
+  try { const t = await Promise.all(['js/draw.js', 'js/model.js', 'js/store.js', 'js/map.js'].map(u => fetch(u).then(r => { if (!r.ok) throw 0; return r.text(); }))); MAP_CODE = hashStr(t.join('|')); }
+  catch { MAP_CODE = CHANGELOG[0]?.v === 'next' ? '' : 'v' + APP_VERSION; }
+}
 function mapMergedKey(P, pid, k) {
   let T = P.stitch.tiles.find(t => t.id === pid), i = k.indexOf(':'), pre = k.slice(0, i + 1), id = k.slice(i + 1);
   // A pathway drawn inside a combined one (glycolysis in glycolysis + gluconeogenesis): its ids, by name, in the combined one.
@@ -105,6 +117,8 @@ function mapMergedSVG(c) {
   const d = { pathway: ids[0], extra: [], combine: false }; ids.slice(1).forEach(id => addPathway(d, id));
   const P = Library.get(draftPathway(d)); if (!P?.stitch && ids.length > 1) return '';
   const m = modelFor(P), found = mapSearch(c.q);
+  const disk = MAP_CODE && sig + '|' + hashStr(JSON.stringify(ids.map(id => Library.get(id)))) + '|' + MAP_CODE;
+  if (disk) { const d = local.get('pathways.mapcache'); if (d?.sig === disk && d.svg) { HOVER_MODELS.set(P.id, m); Object.assign(MAP_MERGED, { sig, svg: d.svg, P }); return d.svg; } }
   // Lit: every key a search found (a whole pathway: its own steps and boxes).
   let lit = null;
   if (found) { lit = new Set();
@@ -125,6 +139,7 @@ function mapMergedSVG(c) {
   if (!c.layers.links) svg = svg.replace(/<(a|g) class="xlink[\s\S]*?<\/\1>/g, '');
   MAP_MERGED.sig = sig; MAP_MERGED.svg = svg.replace('class="flow', 'class="flow mapfull merged');
   MAP_MERGED.P = P;
+  if (disk) try { local.set('pathways.mapcache', { sig: disk, svg: MAP_MERGED.svg }); } catch { /* (no room: it just draws next time) */ }
   return MAP_MERGED.svg;
 }
 // Every pathway that's on, drawn and packed into its group's band: rows left to right, wrapping at the map's width.
@@ -187,7 +202,10 @@ function mapSidebarHTML(c) {
     <h3 class="glabel">Layout</h3>
     <div class="seg" role="group" aria-label="Layout">${[[false, 'Each pathway whole'], [true, 'Merge shared molecules']].map(([v, l]) => `<button type="button" data-mapmerge="${v}" aria-pressed="${!!c.merge === v}" data-tip="${v ? 'One drawing: each molecule once, with every pathway that uses it meeting there' : 'Each pathway on its own, grouped in bands; hover a molecule to see its other copies'}">${l}</button>`).join('')}</div>
     <h3 class="glabel">Show</h3>
-    <div class="map-sw">${MAP_LAYERS.map(([k, l]) => sw('data-maplayer', k, !!c.layers[k], l)).join('')}${sw('data-mapautohide', '1', Store.settings.autoHide !== false, 'Fade passing arrows')}</div>
+    <h4 class="map-sub">Labels</h4>
+    <div class="map-sw">${MAP_LAYERS.filter(([k]) => MAP_LABEL_LAYERS.includes(k)).map(([k, l]) => sw('data-maplayer', k, !!c.layers[k], l)).join('')}</div>
+    <h4 class="map-sub">Overlays</h4>
+    <div class="map-sw">${MAP_LAYERS.filter(([k]) => !MAP_LABEL_LAYERS.includes(k)).map(([k, l]) => sw('data-maplayer', k, !!c.layers[k], l)).join('')}${sw('data-mapautohide', '1', Store.settings.autoHide !== false, 'Fade passing arrows')}${sw('data-mapminimap', '1', Store.settings.minimap !== false, 'Overview inset')}</div>
     <h3 class="glabel">Fed or fasting</h3>
     <div class="seg" role="group" aria-label="Fed or fasting">${[['', 'Off'], ['fed', 'Fed'], ['fasting', 'Fasting']].map(([v, l]) => `<button type="button" data-mapreg="${v}" aria-pressed="${c.reg === v}">${l}</button>`).join('')}</div>
     <div class="sec-h"><h3 class="glabel">Pathways</h3><span class="btnrow"><button type="button" class="linkbtn" data-mapall="1">All</button><button type="button" class="linkbtn" data-mapall="0">None</button></span></div>
@@ -310,6 +328,8 @@ document.addEventListener('click', e => {
   const lay = t.closest('[data-maplayer]'), reg = t.closest('[data-mapreg]'), path = t.closest('[data-mappath]'), grp = t.closest('[data-mapgrp]'), all = t.closest('[data-mapall]'), go = t.closest('[data-mapgo]'), side = t.closest('[data-mapside]');
   if (lay) { c.layers[lay.dataset.maplayer] = !c.layers[lay.dataset.maplayer]; mapSave(c); return mapRefresh(); }
   // (A view setting, not a layer: nothing is redrawn, the arrows just come back or go.)
+  const mmb = t.closest('[data-mapminimap]');
+  if (mmb) { Store.settings.minimap = Store.settings.minimap === false; Store.save(); mmb.setAttribute('aria-pressed', String(Store.settings.minimap)); const st = canvasStage(); if (st) { minimap(st); edgeHintsSoon(st); } return; }
   const ah = t.closest('[data-mapautohide]');
   if (ah) { Store.settings.autoHide = Store.settings.autoHide === false; Store.save(); ah.setAttribute('aria-pressed', String(Store.settings.autoHide)); const st = canvasStage(); if (st) { st._rt = null; autoHide(st); edgeHintsSoon(st); } return; }
   if (reg) { c.reg = reg.dataset.mapreg; mapSave(c); return mapRefresh(); }

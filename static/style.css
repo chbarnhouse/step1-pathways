@@ -761,7 +761,7 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 @media (min-width: 861px) { .quiz.occ .drawer { position: static; max-height: none; min-height: 0; } }
 .qbar.compact .tbtn span:not(.count) { display: none; }
 .qbar.compact .tbtn .count { display: inline-grid; }
-.qbar.tight .zoombar [data-zoom="width"], .qbar.tight .zoombar [data-zoom="height"], .qbar.tight .zoombar [data-zoom="fit"], .qbar.tight .zpct, .qbar.tight .qsub { display: none; }
+.qbar.tight .zpct, .qbar.tight .qsub { display: none; }
 .quiz .qtitle { min-width: 260px; } /* the title keeps room; fitToolbar trims the tools instead */
 @media (max-width: 600px) { .quiz .qtitle { min-width: 0; } }
 .quiz { grid-template-columns: minmax(0, 1fr); } /* bars can't stretch the page; fitToolbar sees the overflow */
@@ -1309,7 +1309,7 @@ button.fjoin:hover { border-color: var(--accent); }
 .rv-note textarea { width: 100%; font: inherit; padding: 8px; border-radius: 8px; border: 1px solid var(--line); background: var(--card); color: var(--ink); }
 /* The map page: settings sidebar beside a full-height canvas. */
 body[data-page="map"] .page.mappage { max-width: none; display: grid; grid-template-columns: minmax(260px, 320px) minmax(0, 1fr); gap: 12px; height: calc(100dvh - var(--topbar-h, 64px) - 24px); padding-block: 12px; }
-.mappage.noside { grid-template-columns: minmax(0, 1fr); }
+body[data-page="map"] .page.mappage.noside { grid-template-columns: minmax(0, 1fr); } /* (as specific as the rule above, or Hide settings left the map 320 px wide) */
 .map-side { overflow: auto; padding: 14px; }
 .map-side-in { display: grid; gap: 10px; align-content: start; }
 .map-side .glabel { margin: 6px 0 0; }
@@ -1377,7 +1377,7 @@ svg.flow path.hit, svg.flow line.hit { fill: none; stroke: transparent; stroke-w
 .hovtip b { font-weight: 650; }
 .hovtip .ht-aka, .hovtip .ht-step, .hovtip .ht-dim { opacity: .82; margin-top: 2px; }
 /* Where an arrow leaves the view: a pill at the edge (click to go there). */
-.edgehint { position: absolute; z-index: 6; max-width: 280px; padding: 3px 9px; border-radius: 999px; border: 1.5px solid var(--blue); background: var(--card); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.25; text-align: left; box-shadow: var(--shadow); cursor: pointer; white-space: normal; }
+.edgehint { position: absolute; z-index: 6; max-width: 320px; padding: 3px 10px; border-radius: 999px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border: 1.5px solid var(--blue); background: var(--card); color: var(--ink); font-size: 12px; font-weight: 600; line-height: 1.25; text-align: left; box-shadow: var(--shadow); cursor: pointer; }
 .edgehint:hover, .edgehint:focus-visible { background: var(--blue-bg); }
 /* Sharpened (Charlie's pick, 2026-10-30): molecules a firmer outline, enzymes in ink, carriers' pills orange, cofactors teal. */
 .flow .mbox:not(.blank):not(.target) rect { stroke-width: 2; }
@@ -1411,3 +1411,31 @@ svg.flow path.hit, svg.flow line.hit { fill: none; stroke: transparent; stroke-w
 .memhint.mh-h .mh-a { border-bottom: 3px solid var(--mt); border-radius: 8px 8px 0 0; }
 .memhint.mh-h .mh-b { border-top: 3px solid var(--mt); border-radius: 0 0 8px 8px; }
 .memhint.mh-h .mh-a::before { content: '▴ '; color: var(--mt); } .memhint.mh-h .mh-b::before { content: '▾ '; color: var(--mt); }
+/* From far away (canvas.js lodUpdate): small print goes, a joined drawing names its pathway pieces instead. */
+.stage.canvas .flow :is(.coft, .cof, g.elab, .tag, .req, .pairbadge, .rlstrip, text.startt, text.multt) { transition: opacity .2s ease; }
+.stage.canvas[data-lod] .flow :is(.coft, .cof, g.elab, .tag, .req, .pairbadge, .rlstrip) { opacity: 0; pointer-events: none; }
+.stage.canvas[data-lod="far"] .flow :is(g.mbox text, text.startt, text.multt, text.xtagt) { opacity: 0; }
+.flow g.ovl { display: none; pointer-events: none; }
+.stage.canvas[data-lod="far"] .flow g.ovl { display: inline; }
+.flow .ovt { fill: var(--ink); font-weight: 700; letter-spacing: .01em; paint-order: stroke; stroke: var(--paper); stroke-width: .32em; stroke-linejoin: round; }
+/* Piece rects are kept only for the overview inset to read. */
+.flow .ovr { display: none; }
+@media (prefers-reduced-motion: reduce) { .stage.canvas .flow :is(.coft, .cof, g.elab, .tag, .req) { transition: none; } }
+/* The Map's overview inset (canvas.js minimap). */
+.minimap { position: absolute; z-index: 7; right: 12px; bottom: 12px; width: 220px; padding: 5px; border-radius: 12px; background: var(--card); border: 1px solid var(--line); box-shadow: var(--shadow); cursor: crosshair; touch-action: none; }
+.minimap svg.mm { display: block; width: 100%; height: auto; max-height: 180px; border-radius: 8px; overflow: hidden; background: var(--paper); }
+.minimap .mm-box { fill: var(--ink-2); opacity: .55; }
+.minimap .mm-piece { fill: none; stroke: var(--ink-2); stroke-width: 18; opacity: .35; }
+.minimap .mm-view { fill: var(--blue); fill-opacity: .14; stroke: var(--blue); stroke-width: 2.5; vector-effect: non-scaling-stroke; }
+.minimap.dragging { cursor: grabbing; }
+/* One Fit button; its ways in a small menu. */
+.fitmenu { position: relative; }
+.fitmenu > summary { list-style: none; }
+.fitmenu > summary::-webkit-details-marker { display: none; }
+.fitmenu[open] > summary.tbtn { background: var(--blue-bg); color: var(--blue); border-color: var(--blue); }
+.pop.fitpop { left: 0; right: auto; width: 230px; }
+.fitpop .fitem { display: grid; grid-template-columns: 20px 1fr; column-gap: 8px; align-items: center; text-align: left; color: var(--ink); font: inherit; font-weight: 600; cursor: pointer; }
+.fitpop .fitem .fit-sub { grid-column: 2; font-size: var(--fs-xs); font-weight: 500; color: var(--muted); }
+.map-sub { margin: 0 0 -4px; font-size: var(--fs-sm); font-weight: 650; color: var(--ink-2); }
+/* (In the quiz the zoom bar floats at the bottom right: its Fit menu opens upward, toward the middle.) */
+.zoomfloat .pop.fitpop { top: auto; bottom: calc(100% + 8px); left: auto; right: 0; }

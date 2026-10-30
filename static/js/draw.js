@@ -119,6 +119,9 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
       for (const pm of svg.matchAll(/<path class="([^"]*)" d="([^"]+)"/g)) { if (/\bah\b/.test(pm[1])) continue; probe.setAttribute('d', pm[2]); const L = probe.getTotalLength(); for (let l = 8; l < L - 8; l += 8) { const q = probe.getPointAtLength(l); if (hitsBox({ x: q.x - 2, y: q.y - 2, w: 4, h: 4 })) return true; } }
       return false; };
     return textRects(svg); };
+  // A name well away from its own line reads as another step's: that costs about as much as text on a line, so it's only
+  // used when every spot nearer covers something.
+  const away = (q, p, r) => { if (!q || q === NONAME) return 0; const x = Math.max(q.x - Math.max(p[0], r[0]), 0, Math.min(p[0], r[0]) - (q.x + q.w)), y = Math.max(q.y - Math.max(p[1], r[1]), 0, Math.min(p[1], r[1]) - (q.y + q.h)); return Math.hypot(x, y) > 46 ? 2 : 0; };
   const legs = P.slice(1).map((q, i) => [P[i], q]).map(([p, q]) => ({ p, q, h: Math.abs(p[1] - q[1]) < 1, len: Math.hypot(q[0] - p[0], q[1] - p[1]) }))
     .filter(l => l.len >= (l.h ? 110 : 60)).sort((a, b) => b.len - a.len); // short legs too, as a last resort (tried last)
   const plans = [];
@@ -129,7 +132,7 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
         // (lift: the name a little further above its line, when right against it there's no room)
         const mx = p[0] + (q[0] - p[0]) * f, half = Math.min(len / 2 - 14, 130), a0 = Math.max(Math.min(p[0], q[0]) + 14, mx - half), a1 = Math.min(Math.max(p[0], q[0]) - 14, mx + half), ly = (up ? y - 62 : y - 8) - lift;
         const name = ROUTE_NONAME ? NONAME : enzRect(mx, ly, 'middle', it, wm, 'bottom'), cb = drawn(() => cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts), name);
-        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { if (name !== NONAME) DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return (ROUTE_NONAME ? '' : enzLabel(mx, ly, it, es, 'middle', wm, 'bottom')) + c; } });
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]) + away(name, p, q), curl: CURL, go: () => { if (name !== NONAME) DRAW_LABELS.push(name); const c = cof ? cofArcLine(dir > 0 ? [a0, y] : [a1, y], dir > 0 ? [a1, y] : [a0, y], [0, up ? -1 : 1], parts) : ''; DRAW_LABELS.push(...textRects(c)); return (ROUTE_NONAME ? '' : enzLabel(mx, ly, it, es, 'middle', wm, 'bottom')) + c; } });
       }
     } else {
       const x = p[0], y0 = Math.min(p[1], q[1]), y1 = Math.max(p[1], q[1]), cw = cof ? Math.max(0, ...parts.map(t => (hidden(t.st) ? 110 : t.text.length * 7))) + 64 : 14;
@@ -137,7 +140,7 @@ function routeStepLabels(m, statusOf, r, P, lineHit = () => false) { // lineHit(
       for (const [a0, a1] of stretches) for (const [dx, an, sx] of [[-14, 'end', 1], [cw, 'start', 1], [-cw, 'end', -1], [14, 'start', -1], [-44, 'end', 1], [cw + 30, 'start', 1], [-cw - 30, 'end', -1], [-74, 'end', 1], [cw + 60, 'start', 1], [-cw - 60, 'end', -1]]) {
         if (dx === 14 && cof) continue; // name right with cofactors left is the mirrored layout above
         const c = (a0 + a1) / 2, name = ROUTE_NONAME ? NONAME : enzRect(x + dx, c, an, it, 18), cb = drawn(() => cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0), name);
-        plans.push({ n: count([name, ...cb]) + self([name, ...cb]), curl: CURL, go: () => { if (name !== NONAME) DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return (ROUTE_NONAME ? '' : enzLabel(x + dx, c, it, es, an, 18, 'center')) + cc; } });
+        plans.push({ n: count([name, ...cb]) + self([name, ...cb]) + away(name, p, q), curl: CURL, go: () => { if (name !== NONAME) DRAW_LABELS.push(name); const cc = cof ? cofArcParts(x, a0, a1, parts, q[1] < p[1], sx < 0) : ''; DRAW_LABELS.push(...textRects(cc)); return (ROUTE_NONAME ? '' : enzLabel(x + dx, c, it, es, an, 18, 'center')) + cc; } });
       }
     }
   }
@@ -993,7 +996,8 @@ const BLEED = 20000;
 const VIA_ROOM = 56; // a via step's extra height: its carrier pill above the enzyme
 const SIDE_STEP = BW + 250; // box + the gap a sideways step's enzyme and cofactor text needs
 // Each kind of compartment has its own tint (always with its name written on it, never color alone).
-const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'teal',
+const ZONE_TONES = { blood: 'slate', lumen: 'slate', tubularlumen: 'gold', 'brush border': 'slate', 'plasma membrane': 'slate', cytosol: 'blue', er: 'teal', golgi: 'teal', vesicle: 'slate', // (vesicles slate: teal is the ER's, and they sit in the cytosol near it)
+ 
   mitochondria: 'orange', 'intermembrane space': 'gold', nucleus: 'gold', peroxisome: 'pink', lysosome: 'pink' };
 const zoneTone = key => { const k = String(key).split('|').pop(); return ZONE_TONES[k] || (k.startsWith('tubularlumen') ? 'gold' : 'slate'); };
 /* A membrane as two lines side by side, each in the color of the compartment on its side (so it never reads as an arrow);
@@ -3011,7 +3015,8 @@ function stitchSVG(m, statusOf) {
   const P = 16, W = x1 - x0 + 2 * P, H = y1 - y0 + 2 * P;
   // The answer field floats over its slot in drawing units (placeInline), so the slot carries its part's offset itself.
   const slotAt = (R, b) => b.replace(/class="inl-slot" x="([-\d.]+)" y="([-\d.]+)"/, (_, x, y) => `class="inl-slot" x="${+x + R.dx + P - x0}" y="${+y + R.dy + P - y0}" data-moved="1"`);
-  const body = placed.map(R => `<g transform="translate(${R.dx},${R.dy})">${slotAt(R, R.body)}</g>`).join('');
+  // (Each piece says whose it is and where it sits, for the overview a zoomed-out view shows: canvas.js overviewLayer.)
+  const body = placed.map(R => `<g transform="translate(${R.dx},${R.dy})" data-part="${esc(R.T.id)}" data-at="${R.vb[0] + R.dx} ${R.vb[1] + R.dy} ${R.vb[2]} ${R.vb[3]}">${slotAt(R, R.body)}</g>`).join('');
   const slots = [];
   const flat = body.replace(/<rect class="inl-slot"[^>]*data-moved="1"[^>]*\/>/g, t => { slots.push(t); return ''; });
   STITCH_WHERE = null; ROUTE_BANDS = null; ROUTE_FLOOR = null; MEMBRANE_SEGS = null;

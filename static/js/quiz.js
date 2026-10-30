@@ -1252,12 +1252,14 @@ function legendHTML() {
     <div class="pop legend"><b class="lg-h">Key</b>${rows.map(([pic, txt]) => `<div class="lg-row">${pic}<span>${txt}</span></div>`).join('')}
       <p class="muted small">In a quiz, the blank you’re on is outlined thick; ${mi('task_alt', 'sm')} marks a right answer, a cross a missed one.</p></div></details>`;
 }
+// Fitting the drawing: one button, its three ways in a menu (the one in use marked).
+const FIT_WAYS = [['width', 'fit_width', 'Fit width', 'Its width fills the screen'], ['height', 'fit_height', 'Fit height', 'Its height fills the screen'], ['fit', 'fit_screen', 'Fit all', 'The whole drawing (turns off Follow) · F']];
+const fitMenuHTML = () => `<details class="fitmenu"><summary class="tbtn" data-tip="Fit the drawing to the screen (F: the whole drawing)" aria-label="Fit the drawing: choose how">${mi('fit_screen')}<span>Fit</span>${mi('expand_more', 'sm')}</summary>
+  <div class="pop fmenu fitpop">${FIT_WAYS.map(([v, ic, l, t]) => `<button type="button" class="fitem" data-zoom="${v}" aria-label="${esc(l + ': ' + t)}">${mi(ic, 'sm')} <span>${l}</span><span class="fit-sub">${esc(t)}</span></button>`).join('')}</div></details>`;
 function zoomBarHTML(floating = false) {
   return `<div class="zoombar" role="group" aria-label="Diagram zoom">
-    <span class="zgroup"><button class="tbtn icon" data-zoom="out" data-tip="Zoom out" aria-label="Zoom out">${mi('zoom_out')}</button><button type="button" class="zpct" id="zoomPct" data-zoom="actual" data-tip="Actual size (100%)" aria-label="Zoom level; set to 100%">100%</button><button class="tbtn icon" data-zoom="in" data-tip="Zoom in" aria-label="Zoom in">${mi('zoom_in')}</button></span>
-    ${tbtn('data-zoom="width"', 'fit_width', 'Fit width', 'Fit to width')}
-    ${tbtn('data-zoom="height"', 'fit_height', 'Fit height', 'Fit to height')}
-    ${tbtn('data-zoom="fit"', 'fit_screen', 'Fit all', 'Fit the whole diagram (turns off Follow)')}
+    <span class="zgroup"><button class="tbtn icon" data-zoom="out" data-tip="Zoom out (−)" aria-label="Zoom out">${mi('zoom_out')}</button><button type="button" class="zpct" id="zoomPct" data-zoom="actual" data-tip="Actual size, 100% (0)" aria-label="Zoom level; set to 100%">100%</button><button class="tbtn icon" data-zoom="in" data-tip="Zoom in (+)" aria-label="Zoom in">${mi('zoom_in')}</button></span>
+    ${fitMenuHTML()}
     ${legendHTML()}
     ${floating ? `<span class="follow-wrap"><button type="button" class="tbtn icon peekbtn" data-peek ${Store.settings.follow ? '' : 'hidden'} data-tip="Hold to see the whole pathway" aria-label="Hold to see the whole pathway">${mi('visibility')}</button>` : ''}${tbtn('data-flag="follow"', 'center_focus_strong', 'Follow', 'Follow: keep the current blank centered')}${floating ? '</span>' : ''}
   </div>`;
@@ -1522,7 +1524,7 @@ document.addEventListener('click', e => {
   if (zb) {
     const v = zb.dataset.zoom;
     if (v === 'in') zoomBy(0.1); else if (v === 'out') zoomBy(-0.1); else if (v === 'actual') zoomTo(1);
-    else { Store.settings.zoom = v; if (v === 'fit') Store.settings.follow = false; Store.save(); CANVAS_VIEW = null; applyZoom(); } // fitting always re-fits; Fit all shows everything, so it stops following
+    else { zb.closest('details.fitmenu')?.removeAttribute('open'); Store.settings.zoom = v; if (v === 'fit') Store.settings.follow = false; Store.save(); CANVAS_VIEW = null; applyZoom(); } // fitting always re-fits; Fit all shows everything, so it stops following
     followTarget(); return;
   }
   if (e.target.closest('[data-flag="follow"]')) { Store.settings.follow = !Store.settings.follow; Store.save(); applyZoom(); followTarget(); return; }
@@ -1670,3 +1672,7 @@ document.addEventListener('keydown', e => {
   e.preventDefault();
   hintLetter(q);
 });
+
+// The Fit menu closes on a click elsewhere or Escape.
+document.addEventListener('click', e => { if (!e.target.closest('details.fitmenu')) document.querySelectorAll('details.fitmenu[open]').forEach(d => d.removeAttribute('open')); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') document.querySelectorAll('details.fitmenu[open]').forEach(d => { d.removeAttribute('open'); d.querySelector('summary')?.focus(); }); });

@@ -41,6 +41,7 @@ function setView(st, v, animate = false) {
   const { w, h } = contentSize(st);
   CANVAS_VIEW = { key: st.dataset.view || '', mode: Store.settings.zoom, k: v.k, x: v.x, y: v.y, w, h };
   const zp = document.querySelector('#zoomPct'); if (zp) zp.textContent = Math.round(v.k * 100) + '%';
+  lodUpdate(st); minimap(st);
   edgeHintsSoon(st);
 }
 // Zoom about a point of the stage (cursor, pinch center, or the middle for the buttons).
@@ -286,7 +287,7 @@ const canvasQuizzing = () => !!document.querySelector('#view .quiz') && typeof Q
 // placed afresh. (A glide waits for the glide.)
 function edgeHintsSoon(st) {
   st.classList.add('moving'); clearTimeout(EDGE_T);
-  EDGE_T = setTimeout(() => { if (!st.isConnected) return; autoHide(st); const svg = svgOf(st), ob = svg && !canvasQuizzing() ? hintObstacles(st, svg) : null; edgeHints(st, ob); membraneHints(st, ob); st.classList.remove('moving'); }, worldOf(st)?.classList.contains('glide') ? 320 : 160);
+  EDGE_T = setTimeout(() => { if (!st.isConnected) return; autoHide(st); const svg = svgOf(st), ob = svg && !canvasQuizzing() && st.dataset.lod !== 'far' ? hintObstacles(st, svg) : null; edgeHints(st, ob); membraneHints(st, ob); st.classList.remove('moving'); }, worldOf(st)?.classList.contains('glide') ? 320 : 160);
 }
 /* What a hint mustn't cover, in stage pixels: boxes, names and every other label (as rectangles) and every line (as
    segments), leaving out the tints, the membranes and faded arrows. Collected once each time the view settles. */
@@ -369,7 +370,9 @@ function membraneHints(st, ob) {
   // The whole drawing in view: its compartment names are too.
   if (V.left >= S.left - 2 && V.right <= S.right + 2 && V.top >= S.top - 2 && V.bottom <= S.bottom + 2) return;
   // (Clear of the arrows' pills at the edges too, which go first.)
-  const placed = [...st.querySelectorAll('.edgehint')].map(e => ({ x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight })), seen = [];
+  // Compartment names already on screen (their tabs): a membrane between two of them needs no pill.
+  const named = new Set([...svg.querySelectorAll('text.zonet')].filter(t => { const R = t.getBoundingClientRect(); return R.width && R.right > S.left && R.left < S.right && R.bottom > S.top && R.top < S.bottom; }).map(t => norm(t.textContent)));
+  const placed = [...st.querySelectorAll('.edgehint, :scope > .minimap:not([hidden])')].map(e => ({ x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight })), seen = [];
   for (const g of svg.querySelectorAll('g.mpair')) {
     const ln = g.querySelector('line'), T = toScreen(svg, ln);
     const [x1, y1, x2, y2] = ['x1', 'y1', 'x2', 'y2'].map(a => +ln.getAttribute(a)), v = g.dataset.o === 'v', p = T(x1, y1), q = T(x2, y2);
@@ -378,6 +381,7 @@ function membraneHints(st, ob) {
     const at = v ? p[0] : p[1];
     if (hi - lo < 60 || (v ? at < S.left + 20 || at > S.right - 20 : at < S.top + 20 || at > S.bottom - 20)) continue;
     const key = g.dataset.a + '|' + g.dataset.b;
+    if (named.has(norm(g.dataset.a)) && named.has(norm(g.dataset.b))) continue;
     // One per pair of sides within a stretch of screen (the Map's membranes come in many short segments).
     if (seen.some(o => o.key === key && Math.abs(o.at - at) < 40)) continue;
     const tone = l => [...l.classList].find(c => c.startsWith('t-')) || 't-slate', [la, lb] = g.querySelectorAll('line');
@@ -423,13 +427,14 @@ function edgeHints(st, ob) {
     const outId = boxAt(r.to) <= boxAt(r.from) ? r.to : r.from, near = outId === r.to ? r.from : r.to, goes = outId === r.to;
     const at = scr(p, lo), far = m.items['m:' + outId]; if (!far) continue;
     const via = m.items['t:' + r.id] || (r.transport ? m.items['e:' + r.id] : null), there = partOf(outId), here = partOf(near);
-    const text = `${goes ? '→' : '← from'} ${far.name}${there && there !== here ? ` (${there})` : ''}${via ? ` via ${via.name}` : ''}`;
-    found.push({ at, text, rid, key: 'm:' + outId, d: Math.hypot(at.x - (S.left + S.width / 2), at.y - (S.top + S.height / 2)) });
+    // (One line: where it goes. The carrier is in its tooltip.)
+    const text = `${goes ? '→' : '← from'} ${far.name}${there && there !== here ? ` (${there})` : ''}`, tip = text + (via ? ` via ${via.name}` : '');
+    found.push({ at, text, tip, rid, key: 'm:' + outId, d: Math.hypot(at.x - (S.left + S.width / 2), at.y - (S.top + S.height / 2)) });
   }
-  const seen = new Set(), placed = [];
+  const seen = new Set(), placed = [...st.querySelectorAll(':scope > .minimap:not([hidden])')].map(e => ({ x: e.offsetLeft, y: e.offsetTop, w: e.offsetWidth, h: e.offsetHeight }));
   for (const h of found.sort((x, y) => x.d - y.d)) {
     if (placed.length >= 12 || seen.has(h.text)) continue; seen.add(h.text);
-    const el = document.createElement('button'); el.type = 'button'; el.className = 'edgehint'; el.textContent = h.text; el.dataset.go = h.key; el.dataset.rx = h.rid; st.append(el);
+    const el = document.createElement('button'); el.type = 'button'; el.className = 'edgehint'; el.textContent = h.text; el.title = h.tip + ' (click to go there)'; el.dataset.go = h.key; el.dataset.rx = h.rid; st.append(el);
     const w = el.offsetWidth, ht = el.offsetHeight, ax = h.at.x - S.left, ay = h.at.y - S.top;
     // Where it crosses (on its own arrow), else a little along that edge: the first spot that covers nothing else.
     const side = Math.min(ax, S.width - ax) < Math.min(ay, S.height - ay), clampR = (x, y) => ({ x: Math.min(S.width - w - 6, Math.max(6, x)), y: Math.min(S.height - ht - 6, Math.max(6, y)), w, h: ht });
@@ -442,8 +447,97 @@ function edgeHints(st, ob) {
     el.style.left = spot.x + 'px'; el.style.top = spot.y + 'px'; placed.push(spot);
   }
 }
+/* ---------- the drawing from far away ----------
+   Zoomed out, small print is only noise. Below LOD_MID the cofactors and step names go (molecule names stay); below
+   LOD_FAR the molecule names go too, and a joined drawing (the Map) names each pathway piece instead, in type that
+   stays readable whatever the zoom. Not in quizzes: there, what's drawn is the question. */
+const LOD_MID = 0.42, LOD_FAR = 0.22;
+function lodUpdate(st) {
+  const k = st._v?.k || 1, lod = canvasQuizzing() ? '' : k < LOD_FAR ? 'far' : k < LOD_MID ? 'mid' : '';
+  if ((st.dataset.lod || '') !== lod) { if (lod) st.dataset.lod = lod; else delete st.dataset.lod; }
+  if (lod !== 'far') return;
+  const svg = svgOf(st); if (!svg) return;
+  const o = svg.querySelector('g.ovl') || overviewLayer(svg); if (!o) return;
+  // About 15 px on screen whatever the zoom; biggest pieces first, a name that would sit on one already shown left out.
+  const fs = 15 / k, shown = [];
+  for (const t of o.querySelectorAll('text')) {
+    t.setAttribute('font-size', fs.toFixed(1));
+    const w = t.textContent.length * fs * 0.6, x = +t.getAttribute('x') - w / 2, y = +t.getAttribute('y') - fs * 0.7, h = fs * 1.4;
+    const ok = !shown.some(o => x < o.x + o.w && o.x < x + w && y < o.y + o.h && o.y < y + h);
+    t.style.display = ok ? '' : 'none'; if (ok) shown.push({ x, y, w, h });
+  }
+}
+// Each pathway's pieces in a joined drawing, as the drawing placed them: every piece of two boxes or more outlined, and
+// each pathway named once, on its biggest piece. (lodUpdate sizes the names and drops any that would sit on another.)
+function overviewLayer(svg) {
+  const parts = [...svg.querySelectorAll('g[data-part]')], inner = svg.firstElementChild; if (!parts.length || !inner) return null;
+  const biggest = new Map(), rects = [];
+  for (const g of parts) {
+    if (g.querySelectorAll('g.mbox').length < 2) continue;
+    const [x, y, w, h] = g.dataset.at.split(' ').map(Number), pid = g.dataset.part, r = { x, y, w, h, pid };
+    rects.push(r); if (!biggest.has(pid) || w * h > biggest.get(pid).w * biggest.get(pid).h) biggest.set(pid, r);
+  }
+  const outl = rects.map(r => `<rect class="ovr" x="${r.x - 24}" y="${r.y - 24}" width="${r.w + 48}" height="${r.h + 48}" rx="36"/>`).join('');
+  const names = [...biggest.values()].sort((a, b) => b.w * b.h - a.w * a.h).map(r => `<text class="ovt" x="${r.x + r.w / 2}" y="${r.y + r.h / 2}" text-anchor="middle" dominant-baseline="central">${esc(Library.get(r.pid)?.name || r.pid)}</text>`).join('');
+  inner.insertAdjacentHTML('beforeend', `<g class="ovl" aria-hidden="true">${outl}${names}</g>`);
+  return inner.querySelector('g.ovl');
+}
+
+/* ---------- where you are, on the Map ----------
+   Zoomed in on the Map, a small picture of the whole cell sits in the corner (its compartments, its pathway pieces,
+   every box) with a frame showing what's on screen. Click or drag in it to go there. Off in Settings → Pathway pages
+   or the Map's Show list; hidden while the whole drawing is in view. */
+function minimap(st) {
+  let mm = st.querySelector(':scope > .minimap');
+  const svg = svgOf(st), on = st.dataset.view === 'map' && Store.settings.minimap !== false && svg && svg.viewBox.baseVal.width > 20;
+  if (!on) { mm?.remove(); return; }
+  const vb = svg.viewBox.baseVal, v = st._v, k = v.k;
+  if (!mm || mm._svg !== svg) {
+    mm?.remove(); mm = document.createElement('div'); mm.className = 'minimap'; mm._svg = svg;
+    mm.setAttribute('role', 'img'); mm.setAttribute('aria-label', 'Where the view is on the whole map; click or drag to move it');
+    const ovl = svg.querySelector('g.ovl') || overviewLayer(svg);
+    const tints = [...svg.querySelectorAll('g.blob, rect.zone, g.mpair')].map(e => e.outerHTML).join('');
+    const R = svg.getScreenCTM()?.inverse(), boxes = R ? [...svg.querySelectorAll('g.mbox')].map(g => { const b = g.getBBox(), E = g.getScreenCTM(); if (!E) return ''; const M = R.multiply(E);
+      return `<rect class="mm-box" x="${M.a * b.x + M.e}" y="${M.d * b.y + M.f}" width="${b.width * M.a}" height="${b.height * M.d}"/>`; }).join('') : '';
+    const pieces = ovl ? [...ovl.querySelectorAll('rect.ovr')].map(r => `<rect class="mm-piece" x="${r.getAttribute('x')}" y="${r.getAttribute('y')}" width="${r.getAttribute('width')}" height="${r.getAttribute('height')}" rx="60"/>`).join('') : '';
+    // (Tints and pieces are in the drawing's inner frame, as they were drawn; boxes were measured in its outer one.)
+    const tf = svg.firstElementChild?.getAttribute('transform') || '';
+    mm.innerHTML = `<svg class="flow mm" viewBox="${vb.x} ${vb.y} ${vb.width} ${vb.height}" preserveAspectRatio="xMidYMid meet"><g transform="${tf}">${tints}${pieces}</g>${boxes}<rect class="mm-view" rx="20"/></svg>`;
+    st.append(mm);
+    // Moving the view: the point under the pointer goes to the middle of the stage.
+    const go = e => { const r = mm.querySelector('svg').getBoundingClientRect(), sc = Math.max(vb.width / r.width, vb.height / r.height);
+      const ux = vb.x + vb.width / 2 + (e.clientX - r.left - r.width / 2) * sc, uy = vb.y + vb.height / 2 + (e.clientY - r.top - r.height / 2) * sc, K = st._v.k;
+      setView(st, { ...st._v, x: st.clientWidth / 2 - (ux - vb.x) * K, y: st.clientHeight / 2 - (uy - vb.y) * K }); };
+    mm.addEventListener('pointerdown', e => { e.stopPropagation(); e.preventDefault(); mm.setPointerCapture(e.pointerId); mm.classList.add('dragging'); go(e); });
+    mm.addEventListener('pointermove', e => { if (mm.classList.contains('dragging')) { e.stopPropagation(); go(e); } });
+    for (const ev of ['pointerup', 'pointercancel']) mm.addEventListener(ev, () => mm.classList.remove('dragging'));
+    mm.addEventListener('wheel', e => e.stopPropagation(), { passive: true });
+  }
+  const W = st.clientWidth / k, H = st.clientHeight / k, x = vb.x - v.x / k, y = vb.y - v.y / k;
+  // (The whole drawing on screen: nothing to find.)
+  mm.hidden = x <= vb.x + 2 && y <= vb.y + 2 && x + W >= vb.x + vb.width - 2 && y + H >= vb.y + vb.height - 2;
+  const fr = mm.querySelector('.mm-view'); fr.setAttribute('x', x); fr.setAttribute('y', y); fr.setAttribute('width', W); fr.setAttribute('height', H);
+}
+
 document.addEventListener('click', e => {
   const h = e.target.closest?.('.edgehint'); if (!h) return;
   const st = h.closest('.stage.canvas'), box = st?.querySelector(`svg.flow g.mbox[data-key="${CSS.escape(h.dataset.go)}"]`);
   if (box) centerOn(box);
+});
+
+/* ---------- keys on a drawing ----------
+   F fits the whole drawing, + and − zoom, 0 goes to 100%; on the Map, / goes to its search and Escape clears what's lit.
+   Never while typing (an answer, a search). */
+document.addEventListener('keydown', e => {
+  if (e.metaKey || e.ctrlKey || e.altKey || e.target.closest?.('input, textarea, select, [contenteditable]') || document.querySelector('dialog[open]')) return;
+  const st = canvasStage(); if (!st || !st._v) return;
+  const k = e.key;
+  if (k === '+' || k === '=') zoomBy(0.1);
+  else if (k === '-' || k === '_') zoomBy(-0.1);
+  else if (k === '0') zoomTo(1);
+  else if (k === 'f' || k === 'F') document.querySelector('[data-zoom="fit"]')?.click();
+  else if (k === '/' && st.dataset.view === 'map') { const q = document.querySelector('#mapSide [data-mapq]') || document.querySelector('#mapSide input[type="search"]'); if (!q) return; q.focus(); }
+  else if (k === 'Escape' && st.dataset.view === 'map') { const c = document.querySelector('#mapSide [data-mapclear]'); if (!c) return; c.click(); }
+  else return;
+  e.preventDefault();
 });
