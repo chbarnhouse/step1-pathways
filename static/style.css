@@ -1440,3 +1440,29 @@ svg.flow path.hit, svg.flow line.hit { fill: none; stroke: transparent; stroke-w
 .map-sub { margin: 0 0 -4px; font-size: var(--fs-sm); font-weight: 650; color: var(--ink-2); }
 /* (In the quiz the zoom bar floats at the bottom right: its Fit menu opens upward, toward the middle.) */
 .zoomfloat .pop.fitpop { top: auto; bottom: calc(100% + 8px); left: auto; right: 0; }
+
+/* Analytics (your copy only, analytics.js) */
+.page.analytics { display: grid; gap: 16px; max-width: 1100px; margin-inline: auto; }
+.an-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+.an-head h1 { margin: 0; }
+.an-tools { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.an-kpis { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; }
+.an-kpi { display: grid; gap: 2px; }
+.an-kpi b { font-size: 2rem; line-height: 1.15; }
+.an-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 12px; }
+.an-grid h2, .an-trend h2 { margin: 0 0 10px; font-size: var(--fs-md); }
+.an-chart { position: relative; display: grid; grid-template-columns: auto minmax(0, 1fr); gap: 2px 8px; }
+.an-y { display: flex; flex-direction: column; justify-content: space-between; height: 170px; text-align: right; }
+.an-bars { display: flex; align-items: flex-end; gap: 2px; height: 170px; border-bottom: 1px solid var(--line); }
+.an-day { flex: 1 1 0; min-width: 0; height: 100%; display: flex; align-items: flex-end; }
+.an-day i { display: block; width: 100%; max-width: 28px; margin-inline: auto; min-height: 0; background: var(--blue); border-radius: 4px 4px 0 0; }
+.an-day:hover i { filter: brightness(1.15); }
+.an-x { grid-column: 2; display: flex; justify-content: space-between; }
+.an-rows { display: grid; gap: 9px; margin: 0; padding: 0; list-style: none; }
+.an-row { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 3px 10px; font-size: var(--fs-sm); }
+.an-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.an-row b { font-variant-numeric: tabular-nums; }
+.an-row i { grid-column: 1 / -1; display: block; height: 5px; border-radius: 3px; background: var(--blue); }
+.an-table { width: 100%; font-size: var(--fs-sm); border-collapse: collapse; }
+.an-table th, .an-table td { padding: 3px 6px; text-align: right; }
+.an-table th:first-child, .an-table td:first-child { text-align: left; }

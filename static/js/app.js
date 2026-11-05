@@ -86,7 +86,7 @@ function renderDashboard() {
       ${backupCardHTML()}
     </div>
     <div class="dash-quick">${favoritesCardHTML()}${presetsCardHTML()}</div>
-    ${Store.mode === 'server' ? `<div class="dash-feedback" id="dashFeedback">${feedbackHTML()}</div>${reviewCardHTML()}` : ''}
+    ${Store.mode === 'server' ? `<div class="dash-feedback" id="dashFeedback">${feedbackHTML()}</div><div id="dashAnalytics">${analyticsCardHTML()}</div>${reviewCardHTML()}` : ''}
     <div class="dash-cols">
       <section class="card pad dash-card">
         <div class="sec-h"><h2>${mi('trending_down', 'h-ic')} Weak spots</h2>${worst.length ? '<button class="btn small" data-dash="drill">Drill these</button>' : ''}</div>
@@ -1156,6 +1156,7 @@ function router() {
   else if ((m = h.match(/^#\/library\/([a-z]+)\/(.+)$/))) { page = 'pathways'; renderCatItem(m[1], decodeURIComponent(m[2])); }
   else if (h === '#/settings') { page = 'settings'; renderSettings(); }
   else if (h === '#/review' && Store.mode === 'server') { page = 'settings'; renderReview(); }
+  else if (h === '#/analytics' && Store.mode === 'server') { page = 'analytics'; renderAnalytics(); }
   else { location.replace('#/'); return; }
   document.body.dataset.page = page;
   trailLabel(h);
