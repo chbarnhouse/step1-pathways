@@ -1,19 +1,12 @@
 /* Anonymous usage counts for the public copy, sent to Umami Cloud (no cookies, no accounts, no Umami script).
    Only the page visited and a few named events go out: never answers, scores, typed text or anything from a
-   custom pathway. Nothing is sent until USAGE_SITE is set, on any other host, before the notice is accepted,
-   when switched off in Settings, or when the browser asks not to be tracked. */
+   custom pathway. Nothing is sent without USAGE_SITE, on any other host, or when the browser asks not to be tracked. */
 'use strict';
 const USAGE_SITE = '56616b77-2796-43d6-bce3-022db6f45a99'; // the Umami website ID
 const USAGE_URL = 'https://gateway.umami.is/api/send';
 const USAGE_HOST = 'chbarnhouse.github.io';
-const USAGE_NOTICE_TITLE = 'Anonymous usage counts';
-const USAGE_NOTICE_HTML = `<p>To learn what’s useful, this site sends anonymous counts to Umami, an analytics service: which pages and pathways get opened, which quiz styles get used, and your device type and rough location. It uses no cookies and can’t tell who you are.</p>
-  <p>Your answers, scores and anything you type are never sent. Turn this off any time in <b>Settings → Your data</b>.</p>`;
-const USAGE_ACK_LABEL = 'I understand anonymous usage counts are sent, and that I can turn them off in Settings.';
 
-const usageApplies = () => !!USAGE_SITE && location.hostname === USAGE_HOST && Store.mode === 'local';
-const usageAllowed = () => local.get('pathways.usage') !== 'off';
-const usageOn = () => usageApplies() && usageAllowed() && !!local.get('pathways.usageAck') && !navigator.globalPrivacyControl && navigator.doNotTrack !== '1';
+const usageOn = () => !!USAGE_SITE && location.hostname === USAGE_HOST && Store.mode === 'local' && !navigator.globalPrivacyControl && navigator.doNotTrack !== '1';
 const usagePathway = id => Library.status(id) === 'builtin' ? id : 'custom'; // a custom pathway's id can be its name
 
 // Only these shapes leave the browser; anything else in the address is reported as /other.

@@ -9,7 +9,7 @@ const APP_VERSION = '3.13.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
   { v: 'next', items: [
-    'This site now sends anonymous usage counts (which pages and quiz styles get used) so we can see what’s helping. No cookies, and never your answers, scores or anything you type. You’re told once, and Settings → Your data turns it off.',
+    'This site now sends anonymous usage counts (which pages and quiz styles get used) so we can see what’s helping. No cookies, and never your answers, scores or anything you type.',
     'Zoomed out, drawings drop the small print: below about 40% cofactors and step names fade out (molecule names stay); below about 20% molecule names go too, and the Map names each pathway in type that stays readable at any zoom (each pathway once, on its biggest piece; names never sit on each other). Not in quizzes.',
     'The Map has an overview inset in the bottom-right corner: the whole cell, with a frame showing what’s on screen; click or drag in it to go there. It hides while the whole Map fits. Turn it off with Overview inset in the Show list or Settings → Pathway pages.',
     'The Map opens instantly after the first time: its layout is kept on this device and drawn again only when the pathways, your Show settings, the pathway data or the app changes.',

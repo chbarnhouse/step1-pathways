@@ -868,7 +868,6 @@ function renderSettings() {
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history…</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
-      ${usageApplies() ? `<label class="cb"><input type="checkbox" data-usage ${usageAllowed() ? 'checked' : ''}> Send anonymous usage counts (pages and quiz styles only; never your answers or scores)</label>` : ''}
     </section>
     <section class="card pad help" id="set-help">${setHead('Help and feedback')}
       <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
@@ -911,7 +910,6 @@ document.addEventListener('click', e => {
 document.addEventListener('change', e => {
   if (!$('#view .settings')) return;
   if (e.target.hasAttribute('data-remind')) local.set('pathways.remind', e.target.checked ? 'on' : 'off');
-  if (e.target.hasAttribute('data-usage')) local.set('pathways.usage', e.target.checked ? 'on' : 'off');
   if (e.target.hasAttribute('data-autodl')) local.set('pathways.autoDownload', e.target.checked ? Date.now() : null);
   if (e.target.id === 'tourNeverSetting') local.set('pathways.tourNever', e.target.checked ? null : Date.now());
   if (e.target.dataset.sflag) { Store.settings[e.target.dataset.sflag] = e.target.checked; Store.save(); }
@@ -936,19 +934,17 @@ function dataGate() {
     const acks = [['gateAckAI', AI_ACK_LABEL, 'pathways.aiAck'], ['gateAckRisk', RISK_ACK_LABEL, 'pathways.riskAck']];
     const boxes = list => list.map(([id, label]) => `<label class="cb ack"><input type="checkbox" class="gate-req" id="${id}"> ${label}</label>`).join('');
     const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}${boxes(acks)}</section>`;
-    const usageAcks = usageApplies() ? [['gateAckUsage', USAGE_ACK_LABEL, 'pathways.usageAck']] : [];
-    const aboutUsage = usageAcks.length ? `<section class="gate-ai" aria-labelledby="gusH"><h3 id="gusH">${mi('history', 'sm')} ${USAGE_NOTICE_TITLE}</h3>${USAGE_NOTICE_HTML}${boxes(usageAcks)}</section>` : '';
     if (!needData) {
       // Accepted the storage notice before the content notices existed: just the boxes not ticked yet.
-      const left = acks.filter(([, , key]) => !local.get(key)), usageLeft = usageAcks.filter(([, , key]) => !local.get(key));
-      d.innerHTML = `<div class="dlg gate"><div class="dlg-h"><h2>${left.length ? `${mi('science', 'h-ic')} ${AI_NOTICE_TITLE}` : `${mi('history', 'h-ic')} ${USAGE_NOTICE_TITLE}`}</h2></div>
-        ${left.length ? `<div class="ask-text">${AI_NOTICE_HTML}</div>${boxes(left)}` : ''}
-        ${usageLeft.length ? (left.length ? aboutUsage : `<div class="ask-text">${USAGE_NOTICE_HTML}</div>${boxes(usageLeft)}`) : ''}
+      const left = acks.filter(([, , key]) => !local.get(key));
+      d.innerHTML = `<div class="dlg gate"><div class="dlg-h"><h2>${mi('science', 'h-ic')} ${AI_NOTICE_TITLE}</h2></div>
+        <div class="ask-text">${AI_NOTICE_HTML}</div>
+        ${boxes(left)}
         <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
       d.oncancel = e => e.preventDefault();
       const reqs = [...d.querySelectorAll('.gate-req')], all = () => reqs.every(x => x.checked);
       reqs.forEach(x => { x.onchange = () => { d.querySelector('#gateGo').disabled = !all(); }; });
-      d.querySelector('#gateGo').onclick = () => { if (!all()) return; [...left, ...usageLeft].forEach(([, , key]) => local.set(key, Date.now())); d.close(); usagePage(); res(); };
+      d.querySelector('#gateGo').onclick = () => { if (!all()) return; left.forEach(([, , key]) => local.set(key, Date.now())); d.close(); res(); };
       return d.showModal();
     }
     d.innerHTML = `<div class="dlg gate">
@@ -958,7 +954,6 @@ function dataGate() {
       <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAck"> ${DATA_ACK_LABEL}</label>
       ${AutoBackup.supported ? '' : `<label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckBrowser"> I understand that this browser can’t keep a backup file up to date for me, so I need to download backups myself (Chrome and Edge can do it automatically).</label>`}
       ${aboutAI}
-      ${aboutUsage}
       <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
     // The backup step, written out click by click; it redraws itself after linking.
     const drawBackup = () => {
@@ -987,8 +982,7 @@ function dataGate() {
     d.querySelector('#gateGo').onclick = () => {
       if (!allTicked()) return;
       local.set('pathways.dataAck', Date.now()); local.set('pathways.aiAck', Date.now()); local.set('pathways.riskAck', Date.now());
-      if (usageAcks.length) local.set('pathways.usageAck', Date.now());
-      d.close(); usagePage(); res();
+      d.close(); res();
     };
     d.showModal();
   });

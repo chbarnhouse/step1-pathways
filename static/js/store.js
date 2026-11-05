@@ -339,7 +339,7 @@ const Presets = {
 /* ---------- data notice text (used by the tour and the standalone gate in app.js) ---------- */
 // Things to accept once per browser: where progress is kept, where the content comes from, and that it's provided as is.
 // The later ones were added after release, so someone who accepted the first is asked only what's new to them.
-const needsDataAck = () => Store.mode === 'local' && (!local.get('pathways.dataAck') || !local.get('pathways.aiAck') || !local.get('pathways.riskAck') || (usageApplies() && !local.get('pathways.usageAck')));
+const needsDataAck = () => Store.mode === 'local' && (!local.get('pathways.dataAck') || !local.get('pathways.aiAck') || !local.get('pathways.riskAck'));
 const DATA_NOTICE_TITLE = 'Your progress is saved only in this browser';
 const DATA_NOTICE_HTML = `<p>Step 1 Pathways has no accounts and no server, so your progress isn’t saved online. Your history, presets, favorites, tags and settings live in this browser’s storage.</p>
   <p>Browsers can erase that storage without warning: clearing history or site data, private windows, running low on space, or switching browsers or devices. If that happens, everything is lost and can’t be recovered.</p>
