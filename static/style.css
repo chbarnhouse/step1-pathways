@@ -733,7 +733,6 @@ body[data-page="home"] .view { padding-bottom: 20px; }
 
 /* the analytics choice (usage.js) */
 .usagebar { position: fixed; z-index: 110; left: 0; right: 0; bottom: 0; display: grid; grid-template-columns: minmax(0, 1fr) 220px; align-items: center; gap: 10px 16px; padding: 12px max(16px, env(safe-area-inset-right, 0px)) calc(12px + env(safe-area-inset-bottom, 0px)) max(16px, env(safe-area-inset-left, 0px)); border-top: 1px solid var(--line); background: var(--paper); color: var(--ink); box-shadow: 0 -6px 24px rgba(0, 0, 0, .18); }
-.usagebar-text { display: grid; gap: 4px; }
 .usagebar p { margin: 0; font-size: var(--fs-sm); }
 .usagebar .btnrow { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin: 0; }
 @media (max-width: 640px) { .usagebar { grid-template-columns: minmax(0, 1fr); } }

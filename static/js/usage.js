@@ -44,8 +44,7 @@ function usageBanner() {
   if (!usageApplies() || local.get('pathways.usage') || $('#usageBanner')) return;
   const b = document.createElement('aside');
   b.id = 'usageBanner'; b.className = 'usagebar'; b.setAttribute('aria-label', 'Analytics choice');
-  b.innerHTML = `<div class="usagebar-text"><b>Anonymous analytics</b>
-    <p>Accept to send anonymous counts of the pages and quiz styles used here to Umami. No cookies, and never your answers, scores or typing. Change this any time in Settings → Your data.</p></div>
+  b.innerHTML = `<p>This site uses anonymous analytics to see how it’s used. You can change your choice in Settings.</p>
     <div class="btnrow"><button type="button" class="btn small" data-usagechoice="off">Reject</button><button type="button" class="btn small" data-usagechoice="on">Accept</button></div>`;
   document.body.append(b);
 }

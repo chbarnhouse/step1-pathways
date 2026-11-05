@@ -868,7 +868,7 @@ function renderSettings() {
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history…</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
-      ${usageApplies() ? `<label class="cb"><input type="checkbox" data-usage ${usageOn() ? 'checked' : ''}> Send anonymous analytics (pages and quiz styles only; no cookies, and never your answers, scores or typing)</label>` : ''}
+      ${usageApplies() ? `<label class="cb"><input type="checkbox" data-usage ${usageOn() ? 'checked' : ''}> Anonymous analytics</label>` : ''}
     </section>
     <section class="card pad help" id="set-help">${setHead('Help and feedback')}
       <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
