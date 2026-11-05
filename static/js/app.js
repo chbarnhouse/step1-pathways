@@ -868,7 +868,7 @@ function renderSettings() {
       ${Store.mode === 'local' ? `<label class="cb"><input type="checkbox" data-remind ${local.get('pathways.remind') !== 'off' ? 'checked' : ''}> Remind me to back up when I open or leave Pathways</label>` : ''}
       <div class="btnrow"><button class="btn" data-data="export">${mi('download', 'sm')} Export backup</button><button class="btn" data-data="import">${mi('upload', 'sm')} Import backup</button><button class="btn ghost" data-data="resetstats">Clear all history…</button></div>
       <input type="file" id="backupFile" accept=".json,application/json" hidden>
-      ${usageApplies() ? `<label class="cb"><input type="checkbox" data-usage ${usageOn() ? 'checked' : ''}> Anonymous analytics</label>` : ''}
+      ${usageApplies() ? `<label class="cb"><input type="checkbox" data-usage ${usageAllowed() ? 'checked' : ''}> Anonymous analytics</label>` : ''}
     </section>
     <section class="card pad help" id="set-help">${setHead('Help and feedback')}
       <p class="muted">A one-minute guided tour of the app. Spotted something wrong, confusing, or a fact that looks off? Report it.</p>
@@ -936,12 +936,14 @@ function dataGate() {
     const acks = [['gateAckAI', AI_ACK_LABEL, 'pathways.aiAck'], ['gateAckRisk', RISK_ACK_LABEL, 'pathways.riskAck']];
     const boxes = list => list.map(([id, label]) => `<label class="cb ack"><input type="checkbox" class="gate-req" id="${id}"> ${label}</label>`).join('');
     const aboutAI = `<section class="gate-ai" aria-labelledby="gaiH"><h3 id="gaiH">${mi('science', 'sm')} ${AI_NOTICE_TITLE}</h3>${AI_NOTICE_HTML}${boxes(acks)}</section>`;
+    const aboutUsage = usageApplies() ? `<p class="muted small gate-usage">${USAGE_NOTICE}</p>` : '';
     if (!needData) {
       // Accepted the storage notice before the content notices existed: just the boxes not ticked yet.
       const left = acks.filter(([, , key]) => !local.get(key));
       d.innerHTML = `<div class="dlg gate"><div class="dlg-h"><h2>${mi('science', 'h-ic')} ${AI_NOTICE_TITLE}</h2></div>
         <div class="ask-text">${AI_NOTICE_HTML}</div>
         ${boxes(left)}
+        ${aboutUsage}
         <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
       d.oncancel = e => e.preventDefault();
       const reqs = [...d.querySelectorAll('.gate-req')], all = () => reqs.every(x => x.checked);
@@ -956,6 +958,7 @@ function dataGate() {
       <label class="cb ack"><input type="checkbox" class="gate-req" id="gateAck"> ${DATA_ACK_LABEL}</label>
       ${AutoBackup.supported ? '' : `<label class="cb ack"><input type="checkbox" class="gate-req" id="gateAckBrowser"> I understand that this browser can’t keep a backup file up to date for me, so I need to download backups myself (Chrome and Edge can do it automatically).</label>`}
       ${aboutAI}
+      ${aboutUsage}
       <div class="actions"><button type="button" class="btn primary" id="gateGo" disabled>Continue</button></div></div>`;
     // The backup step, written out click by click; it redraws itself after linking.
     const drawBackup = () => {
@@ -1180,5 +1183,5 @@ window.addEventListener('hashchange', router);
   router();
   await openingPrompt();
   if (!maybeAutoTour() && needsDataAck()) await dataGate();
-  if (!Tour.active) { await announceUpdate(hadData); usageBanner(); } else local.set('pathways.seenVersion', APP_VERSION);
+  if (!Tour.active) { await announceUpdate(hadData); usageStart(); } else local.set('pathways.seenVersion', APP_VERSION);
 })();
