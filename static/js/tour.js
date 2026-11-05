@@ -97,7 +97,7 @@ function endTour(finished = false) {
   Tour.active = false;
   $('#tour')?.remove();
   if (location.hash === '#/quiz' && Q.cfg?.name === 'Tour demo') location.hash = '#/';
-  if (needsDataAck()) dataGate();
+  Promise.resolve(needsDataAck() ? dataGate() : null).then(usageBanner);
 }
 document.addEventListener('click', e => {
   const b = e.target.closest('[data-tour-act]');
