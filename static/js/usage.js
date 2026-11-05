@@ -1,14 +1,16 @@
 /* Anonymous usage counts for the public copy, sent to Umami Cloud (no cookies, no accounts, no Umami script).
    Only the page visited and a few named events go out: never answers, scores, typed text or anything from a
-   custom pathway. Nothing is sent on any other host, before the opening windows are dismissed, when switched off in
-   Settings, or when the browser asks not to be tracked. */
+   custom pathway. Nothing is sent on any other host, from a European time zone, before the opening windows are dismissed,
+   when switched off in Settings, or when the browser asks not to be tracked. */
 'use strict';
 const USAGE_SITE = '56616b77-2796-43d6-bce3-022db6f45a99'; // the Umami website ID
 const USAGE_URL = 'https://gateway.umami.is/api/send';
 const USAGE_HOST = 'chbarnhouse.github.io';
 const USAGE_NOTICE = 'This site uses anonymous analytics. You can turn them off in Settings → Your data.';
 
-const usageApplies = () => !!USAGE_SITE && location.hostname === USAGE_HOST && Store.mode === 'local' && !navigator.globalPrivacyControl && navigator.doNotTrack !== '1';
+// Europe, plus the EU's zones filed under other continents. A time zone is only a guide, but it needs no lookup.
+const usageInEurope = () => { try { return /^Europe\/|^Atlantic\/(Azores|Madeira|Canary)$|^Africa\/Ceuta$|^Asia\/(Nicosia|Famagusta)$/.test(Intl.DateTimeFormat().resolvedOptions().timeZone); } catch { return true; } };
+const usageApplies = () => !!USAGE_SITE && location.hostname === USAGE_HOST && Store.mode === 'local' && !navigator.globalPrivacyControl && navigator.doNotTrack !== '1' && !usageInEurope();
 const usageAllowed = () => local.get('pathways.usage') !== 'off';
 let usageReady = false;
 const usageOn = () => usageReady && usageApplies() && usageAllowed();
