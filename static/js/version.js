@@ -5,10 +5,10 @@
    A copy built with a 'next' entry is a preview: the server copy shows a Preview badge listing what's coming. */
 'use strict';
 
-const APP_VERSION = '3.13.0';
+const APP_VERSION = '3.14.0';
 const PUBLIC_SITE = 'https://chbarnhouse.github.io/step1-pathways/'; // the copy classmates use
 const CHANGELOG = [
-  { v: 'next', items: [
+  { v: '3.14.0', date: '2026-11-05', items: [
     'This site now uses anonymous analytics. You can turn them off in Settings → Your data.',
     'New: the Map (the map button by Settings). Every pathway on one canvas, laid out like a cell, with compartments, a sidebar to show or hide labels and overlays, Browse to find anything by any of its names, and an overview inset to get around. It opens fitted, and instantly after the first time.',
     'New quiz mode, Where does it break?: read a clinical vignette and click the step that fails. About fifty classic deficiencies and poisonings.',
