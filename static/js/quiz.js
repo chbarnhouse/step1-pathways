@@ -989,6 +989,7 @@ document.addEventListener('click', e => {
 });
 function logAnswer(done = false) {
   const L = Q.log; if (!L) return;
+  const wasDone = L.done;
   if (done) showFinish();
   Object.assign(L, { right: Q.score.right, total: Q.score.total, last: Date.now(), answer: answerStyle(), done: L.done || done });
   const log = Store.data.log = Store.data.log || [];
@@ -996,6 +997,11 @@ function logAnswer(done = false) {
   if (i >= 0) log[i] = { ...L }; else if (L.total) log.unshift({ ...L });
   if (log.length > 300) log.length = 300;
   Store.save();
+  if (!Tour.active) {
+    const about = { pathway: usagePathway(L.pathways[0]), pathways: L.pathways.length, mode: L.mode, given: L.given, answer: L.answer };
+    if (i < 0 && L.total) usageSend('quiz-start', about);
+    if (done && !wasDone) usageSend('quiz-finish', about);
+  }
 }
 function resolved(q) {
   const R = Q.round;
